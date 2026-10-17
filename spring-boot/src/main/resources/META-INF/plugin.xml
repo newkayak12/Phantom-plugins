@@ -4,7 +4,7 @@
   <vendor>Phantom</vendor>
   <category>Frameworks</category>
   <description><![CDATA[
-  Spring Boot support for Phantom IDEA: completion and quick documentation for configuration keys and values
+  Spring Boot support for Phantom IDEA: File → New → Project → Spring Boot creates projects with Spring Initializr, and completion and quick documentation for configuration keys and values
   in application*.yml / application*.properties, from the spring-configuration-metadata.json files of
   the project's libraries and its own build output. Does nothing in projects without Spring Boot.
   ]]></description>
@@ -18,5 +18,6 @@
     <module name="phantom.springBoot.core"/>
     <module name="phantom.springBoot.yaml"/>
     <module name="phantom.springBoot.properties"/>
+    <module name="phantom.springBoot.initializr"/>
   </content>
 </idea-plugin>

@@ -1,0 +1,9 @@
+<idea-plugin package="dev.phantom.springboot.initializr">
+  <dependencies>
+    <module name="intellij.java.ui"/>
+    <module name="phantom.springBoot.core"/>
+  </dependencies>
+  <extensions defaultExtensionNs="com.intellij">
+    <moduleBuilder builderClass="dev.phantom.springboot.initializr.SpringInitializrModuleBuilder"/>
+  </extensions>
+</idea-plugin>
