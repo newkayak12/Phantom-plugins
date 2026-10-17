@@ -1,0 +1,54 @@
+# phantom-plugins
+
+[Phantom IDEA](https://github.com/newkayak12/Phantom-IDEA)용 플러그인 모음입니다.
+IDE에 기본으로 넣지 않고 따로 설치하게 해서, 프로젝트가 실제로 쓰는 기술만 비용을 냅니다. [English](./README.md)
+
+## 설치
+
+Phantom에는 이 저장소가 기본으로 등록돼 있습니다. **Settings | Plugins | Marketplace**에서 플러그인 이름으로 찾아 설치하면 됩니다.
+프로젝트에서 플러그인의 `detect`에 적힌 라이브러리가 보이면 Phantom이 먼저 설치를 제안합니다.
+
+같은 형식을 따르는 다른 저장소도 추가할 수 있습니다. **Settings | Plugins | ⚙ | Manage Plugin Repositories**에서
+`owner/repo`, `owner/repo@branch`, github.com 주소 중 하나를 입력하면 됩니다.
+
+## 플러그인
+
+| 플러그인 | 폴더 | 설명 |
+|----------|------|------|
+| Phantom Database Console | [db](./db/KOR.md) · [English](./db/README.md) | MySQL, PostgreSQL, H2용 JDBC 콘솔. 에디터에서 SQL 실행, 결과 그리드, 스키마 트리 |
+
+## 저장소 형식
+
+Phantom은 저장소의 기본 브랜치(`@` 뒤에 적으면 그 브랜치)에서 `.phantom/marketplace.json` 파일 하나만 읽습니다.
+형식과 필드는 [README](./README.md#repository-format)에 정리했습니다. 핵심은 이렇습니다.
+
+- 꼭 있어야 하는 필드는 `id`와 `download`입니다.
+- `download`에는 `https://` 주소를 쓰거나, 이 저장소 GitHub Releases의 `<태그>/<파일>`을 씁니다.
+- `since`와 `until`은 호환되는 Phantom 빌드 범위입니다. 범위 밖의 버전은 목록에서 숨깁니다.
+- `detect`에는 `group:artifact` 좌표를 적습니다. 프로젝트가 그 라이브러리를 쓰면 Phantom이 설치를 제안합니다.
+
+플러그인 폴더마다 소스, `build.gradle.kts`, `README.md`, `KOR.md`를 둡니다.
+
+## 빌드와 배포
+
+플러그인은 설치된 Phantom IDEA에 대고 컴파일합니다. 그 위치가 `gradle.properties`의 `phantomIde`입니다.
+JDK 25가 필요하고, Phantom에 들어 있는 것을 씁니다.
+
+```
+./gradlew :db:test :db:buildPlugin          # zip은 db/build/distributions에 생깁니다
+python3 tools/release.py db                 # 빌드, 테스트, marketplace.json 갱신
+python3 tools/release.py db --publish       # 위 작업에 더해 zip을 담은 GitHub 릴리스 생성
+```
+
+릴리스한 뒤에는 `.phantom/marketplace.json`을 커밋하고 push합니다.
+
+## 플러그인 추가
+
+1. `<폴더>/build.gradle.kts`를 만들고 `plugins { id("phantom-plugin") }`와 `version`을 적습니다.
+2. 코드는 `<폴더>/src/main/kotlin`에, `plugin.xml`은 `<폴더>/src/main/resources/META-INF`에 둡니다.
+3. `settings.gradle.kts`에 `include("<폴더>")`를 추가하고, `.phantom/marketplace.json`에 `"source": "<폴더>"` 항목을 추가합니다.
+4. `<폴더>/README.md`와 `<폴더>/KOR.md`를 쓰고, 위 표에 한 줄을 추가합니다.
+
+## 라이선스
+
+Apache License 2.0.

@@ -1,0 +1,34 @@
+<idea-plugin package="dev.phantom.db.core">
+  <dependencies>
+    <module name="intellij.grid"/>
+    <module name="intellij.grid.core.impl"/>
+    <module name="intellij.grid.impl"/>
+  </dependencies>
+  <resource-bundle>messages.PhantomDbBundle</resource-bundle>
+  <extensions defaultExtensionNs="com.intellij">
+    <fileType name="Phantom SQL" language="SQL" extensions="sql"
+              implementationClass="dev.phantom.db.core.SqlFileType" fieldName="INSTANCE"/>
+    <lang.parserDefinition language="SQL" implementationClass="dev.phantom.db.core.SqlParserDefinition"/>
+    <lang.syntaxHighlighterFactory language="SQL" implementationClass="dev.phantom.db.core.SqlSyntaxHighlighterFactory"/>
+    <lang.commenter language="SQL" implementationClass="dev.phantom.db.core.SqlCommenter"/>
+    <lang.braceMatcher language="SQL" implementationClass="dev.phantom.db.core.SqlBraceMatcher"/>
+    <completion.contributor language="SQL" implementationClass="dev.phantom.db.core.SqlCompletionContributor"/>
+    <runLineMarkerContributor language="SQL" implementationClass="dev.phantom.db.core.exec.SqlRunLineMarkerContributor"/>
+    <editorNotificationProvider implementation="dev.phantom.db.core.exec.SqlDataSourceNotificationProvider"/>
+    <actionPromoter implementation="dev.phantom.db.core.exec.SqlActionPromoter"/>
+    <toolWindow id="Database" anchor="right" secondary="false" icon="AllIcons.Nodes.DataTables"
+                factoryClass="dev.phantom.db.core.ui.DbToolWindowFactory"/>
+  </extensions>
+  <actions resource-bundle="messages.PhantomDbBundle">
+    <action id="PhantomDb.RunStatement" class="dev.phantom.db.core.exec.SqlRunStatementAction" icon="AllIcons.Actions.Execute">
+      <keyboard-shortcut keymap="$default" first-keystroke="control ENTER"/>
+      <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+    </action>
+    <action id="PhantomDb.SelectDataSource" class="dev.phantom.db.core.exec.SqlSelectDataSourceAction">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.RunStatement"/>
+    </action>
+    <action id="PhantomDb.ShowDatabase" class="dev.phantom.db.core.ui.DbShowToolWindowAction" icon="AllIcons.Nodes.DataTables">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
+  </actions>
+</idea-plugin>

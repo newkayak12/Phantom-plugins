@@ -1,0 +1,21 @@
+<idea-plugin>
+  <id>dev.phantom.db</id>
+  <name>Phantom Database Console</name>
+  <vendor url="https://github.com/newkayak12/phantom-plugins">Phantom</vendor>
+  <category>Database</category>
+  <description><![CDATA[
+  Connect to MySQL, PostgreSQL or H2 over JDBC and run SQL from the editor: highlighting for .sql files, Ctrl+Enter to
+  run the statement at the caret, results in a sortable grid, and a lazily loaded schema tree. Drivers come from the
+  project's own dependencies or the local Gradle/Maven cache, so no download is needed. Nothing runs at startup.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+    <plugin id="intellij.grid.core.plugin"/>
+  </dependencies>
+
+  <!-- The grid modules are visible only inside the "jetbrains" namespace, so the code lives in a content module there -->
+  <content namespace="jetbrains">
+    <module name="phantom.db.core"/>
+  </content>
+</idea-plugin>

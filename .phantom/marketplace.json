@@ -1,0 +1,30 @@
+{
+  "name": "phantom-plugins",
+  "owner": {
+    "name": "newkayak12",
+    "url": "https://github.com/newkayak12"
+  },
+  "description": "Plugins for Phantom IDEA, installed on demand instead of bundled",
+  "plugins": [
+    {
+      "id": "dev.phantom.db",
+      "name": "Phantom Database Console",
+      "version": "0.1.0",
+      "source": "db",
+      "description": "Connect to MySQL, PostgreSQL or H2 over JDBC and run SQL from the editor: highlighting, Ctrl+Enter to run the statement at the caret, a sortable result grid and a lazily loaded schema tree. Drivers come from the project's dependencies or the local Gradle/Maven cache.",
+      "vendor": "Phantom",
+      "category": "Database",
+      "since": "262",
+      "until": "262.*",
+      "depends": ["com.intellij.modules.lang", "intellij.grid.core.plugin"],
+      "download": "db-0.1.0/db-0.1.0.zip",
+      "detect": [
+        "com.mysql:mysql-connector-j",
+        "mysql:mysql-connector-java",
+        "org.mariadb.jdbc:mariadb-java-client",
+        "org.postgresql:postgresql",
+        "com.h2database:h2"
+      ]
+    }
+  ]
+}
