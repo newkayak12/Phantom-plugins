@@ -11,6 +11,15 @@ Phantom에는 이 저장소가 기본으로 등록돼 있습니다. **Settings |
 같은 형식을 따르는 다른 저장소도 추가할 수 있습니다. **Settings | Plugins | ⚙ | Manage Plugin Repositories**에서
 `owner/repo`, `owner/repo@branch`, github.com 주소 중 하나를 입력하면 됩니다.
 
+**비공개 저장소**를 읽으려면 그 저장소 내용을 읽을 권한이 있는 GitHub 토큰이 필요합니다.
+Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github.com` 요청에만 토큰을 보냅니다.
+
+1. **Find Action → Set GitHub Token for Plugin Repositories**로 저장한 토큰 (IDE 비밀번호 저장소에 보관)
+2. 환경 변수 `GH_TOKEN` 또는 `GITHUB_TOKEN`
+3. GitHub CLI에 로그인돼 있으면 `gh auth token`
+
+공개 저장소는 토큰이 없어도 됩니다.
+
 ## 플러그인
 
 | 플러그인 | 폴더 | 설명 |

@@ -11,6 +11,15 @@ Phantom also suggests a plugin when it finds one of the libraries the plugin lis
 To add any other repository in this format: **Settings | Plugins | ⚙ | Manage Plugin Repositories**, then enter
 `owner/repo`, `owner/repo@branch`, or the github.com URL.
 
+**Private repositories** need a GitHub token with read access to the repository's contents. Phantom looks for a
+token in this order and sends it only to `api.github.com` for the configured repositories:
+
+1. The one saved with **Find Action → Set GitHub Token for Plugin Repositories** (kept in the IDE password safe)
+2. The `GH_TOKEN` or `GITHUB_TOKEN` environment variable
+3. `gh auth token`, if the GitHub CLI is logged in
+
+Public repositories need no token.
+
 ## Plugins
 
 | Plugin | Folder | Description |
