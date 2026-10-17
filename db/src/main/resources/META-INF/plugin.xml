@@ -1,7 +1,7 @@
 <idea-plugin>
   <id>dev.phantom.db</id>
   <name>Phantom Database Console</name>
-  <vendor url="https://github.com/newkayak12/phantom-plugins">Phantom</vendor>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Database</category>
   <description><![CDATA[
   Connect to MySQL, PostgreSQL or H2 over JDBC and run SQL from the editor: highlighting for .sql files, Ctrl+Enter to
