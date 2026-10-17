@@ -16,7 +16,10 @@
       "category": "Database",
       "since": "262",
       "until": "262.*",
-      "depends": ["com.intellij.modules.lang", "intellij.grid.core.plugin"],
+      "depends": [
+        "com.intellij.modules.lang",
+        "intellij.grid.core.plugin"
+      ],
       "download": "db-0.1.0/db-0.1.0.zip",
       "detect": [
         "com.mysql:mysql-connector-j",
