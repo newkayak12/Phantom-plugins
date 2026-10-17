@@ -25,6 +25,8 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | 플러그인 | 폴더 | 설명 |
 |----------|------|------|
 | Phantom Database Console | [db](./db/KOR.md) · [English](./db/README.md) | MySQL, PostgreSQL, H2용 JDBC 콘솔. 에디터에서 SQL 실행, 결과 그리드, 스키마 트리 |
+| Phantom Spring | [spring](./spring/KOR.md) · [English](./spring/README.md) | 빈 주입 이동, 자동 주입 검사, Endpoints 툴 윈도우 (Java, Kotlin) |
+| Phantom Spring Boot | [spring-boot](./spring-boot/KOR.md) · [English](./spring-boot/README.md) | `application.yml` / `.properties` 키·값 자동완성과 문서 |
 
 ## 저장소 형식
 

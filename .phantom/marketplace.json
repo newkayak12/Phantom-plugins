@@ -28,6 +28,47 @@
         "org.postgresql:postgresql",
         "com.h2database:h2"
       ]
+    },
+    {
+      "id": "dev.phantom.spring",
+      "name": "Phantom Spring",
+      "version": "0.1.0",
+      "source": "spring",
+      "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, and the Endpoints tool window for Spring MVC handlers.",
+      "vendor": "Phantom",
+      "category": "Frameworks",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang",
+        "com.intellij.java"
+      ],
+      "download": "spring-0.1.0/spring-0.1.0.zip",
+      "detect": [
+        "org.springframework:spring-context",
+        "org.springframework:spring-web",
+        "org.springframework:spring-webmvc"
+      ]
+    },
+    {
+      "id": "dev.phantom.spring.boot",
+      "name": "Phantom Spring Boot",
+      "version": "0.1.0",
+      "source": "spring-boot",
+      "description": "Spring Boot configuration support: completion and quick documentation for keys and values in application*.yml and application*.properties, from library metadata and the project's own @ConfigurationProperties, in Java and Kotlin.",
+      "vendor": "Phantom",
+      "category": "Frameworks",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang",
+        "com.intellij.java"
+      ],
+      "download": "spring-boot-0.1.0/spring-boot-0.1.0.zip",
+      "detect": [
+        "org.springframework.boot:spring-boot",
+        "org.springframework.boot:spring-boot-autoconfigure"
+      ]
     }
   ]
 }

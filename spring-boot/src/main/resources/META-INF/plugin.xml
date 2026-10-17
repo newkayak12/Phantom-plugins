@@ -1,0 +1,22 @@
+<idea-plugin>
+  <id>dev.phantom.spring.boot</id>
+  <name>Phantom Spring Boot</name>
+  <vendor>Phantom</vendor>
+  <category>Frameworks</category>
+  <description><![CDATA[
+  Spring Boot support for Phantom IDEA: completion and quick documentation for configuration keys and values
+  in application*.yml / application*.properties, from the spring-configuration-metadata.json files of
+  the project's libraries and its own build output. Does nothing in projects without Spring Boot.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+    <plugin id="com.intellij.java"/>
+  </dependencies>
+
+  <content namespace="jetbrains">
+    <module name="phantom.springBoot.core"/>
+    <module name="phantom.springBoot.yaml"/>
+    <module name="phantom.springBoot.properties"/>
+  </content>
+</idea-plugin>

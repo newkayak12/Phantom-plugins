@@ -1,0 +1,21 @@
+<idea-plugin>
+  <id>dev.phantom.spring</id>
+  <name>Phantom Spring</name>
+  <vendor>Phantom</vendor>
+  <category>Frameworks</category>
+  <description><![CDATA[
+  Spring Framework support for Phantom IDEA: bean injection navigation in both directions
+  and correct "unused" analysis for Spring-managed classes and methods. Works for Java and Kotlin.
+  Does nothing in projects without spring-context on the classpath.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+    <plugin id="com.intellij.java"/>
+  </dependencies>
+
+  <content namespace="jetbrains">
+    <module name="phantom.spring.core"/>
+    <module name="phantom.spring.kotlin"/>
+  </content>
+</idea-plugin>

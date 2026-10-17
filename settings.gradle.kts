@@ -25,3 +25,5 @@ dependencyResolutionManagement {
 
 // One folder per plugin; each is listed in .phantom/marketplace.json
 include("db")
+include("spring")
+include("spring-boot")

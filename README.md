@@ -25,6 +25,8 @@ Public repositories need no token.
 | Plugin | Folder | Description |
 |--------|--------|-------------|
 | Phantom Database Console | [db](./db/README.md) · [한국어](./db/KOR.md) | JDBC console for MySQL, PostgreSQL and H2: run SQL from the editor, result grid, schema tree |
+| Phantom Spring | [spring](./spring/README.md) · [한국어](./spring/KOR.md) | Bean injection navigation, autowiring inspection, Endpoints tool window (Java and Kotlin) |
+| Phantom Spring Boot | [spring-boot](./spring-boot/README.md) · [한국어](./spring-boot/KOR.md) | `application.yml` / `.properties` key and value completion and docs |
 
 ## Repository format
 
