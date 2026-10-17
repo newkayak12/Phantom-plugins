@@ -32,9 +32,9 @@
     {
       "id": "dev.phantom.spring",
       "name": "Phantom Spring",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "source": "spring",
-      "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, and the Endpoints tool window for Spring MVC handlers.",
+      "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, Spring MVC handlers for the Endpoints tool window, Spring Security path and expression support, and Kafka/RabbitMQ/JMS sender-receiver navigation.",
       "vendor": "Phantom",
       "category": "Frameworks",
       "since": "262",
@@ -43,7 +43,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-0.1.0/spring-0.1.0.zip",
+      "download": "spring-0.2.0/spring-0.2.0.zip",
       "detect": [
         "org.springframework:spring-context",
         "org.springframework:spring-web",
@@ -68,6 +68,91 @@
       "detect": [
         "org.springframework.boot:spring-boot",
         "org.springframework.boot:spring-boot-autoconfigure"
+      ]
+    },
+    {
+      "id": "dev.phantom.jpa",
+      "name": "Phantom JPA",
+      "version": "0.1.0",
+      "source": "jpa",
+      "description": "JPA, Hibernate and Spring Data JPA for Java and Kotlin: JPQL in @Query with completion and errors, derived query method checks, a @Modifying check, entity mapping checks, and repository/entity gutter navigation.",
+      "vendor": "Phantom",
+      "category": "Frameworks",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang",
+        "com.intellij.java"
+      ],
+      "download": "jpa-0.1.0/jpa-0.1.0.zip",
+      "detect": [
+        "org.springframework.data:spring-data-jpa",
+        "org.hibernate.orm:hibernate-core",
+        "org.hibernate:hibernate-core",
+        "jakarta.persistence:jakarta.persistence-api",
+        "javax.persistence:javax.persistence-api"
+      ]
+    },
+    {
+      "id": "dev.phantom.reactive",
+      "name": "Phantom Reactive Streams",
+      "version": "0.1.0",
+      "source": "reactive-streams",
+      "description": "Reactor and RxJava checks for Java and Kotlin: a Mono, Flux or RxJava source created and dropped without being subscribed, and blocking calls inside reactive operators.",
+      "vendor": "Phantom",
+      "category": "Frameworks",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang",
+        "com.intellij.java"
+      ],
+      "download": "reactive-streams-0.1.0/reactive-streams-0.1.0.zip",
+      "detect": [
+        "io.projectreactor:reactor-core",
+        "org.reactivestreams:reactive-streams",
+        "io.reactivex.rxjava3:rxjava",
+        "io.reactivex.rxjava2:rxjava"
+      ]
+    },
+    {
+      "id": "dev.phantom.ktor",
+      "name": "Phantom Ktor",
+      "version": "0.1.0",
+      "source": "ktor",
+      "description": "Ktor server routes from the routing DSL, including routes in Route extension functions with the prefixes of their callers, in the Endpoints tool window.",
+      "vendor": "Phantom",
+      "category": "Frameworks",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang",
+        "com.intellij.java",
+        "org.jetbrains.kotlin"
+      ],
+      "download": "ktor-0.1.0/ktor-0.1.0.zip",
+      "detect": [
+        "io.ktor:ktor-server-core",
+        "io.ktor:ktor-server-core-jvm"
+      ]
+    },
+    {
+      "id": "dev.phantom.kubernetes",
+      "name": "Phantom Kubernetes",
+      "version": "0.1.0",
+      "source": "kubernetes",
+      "description": "Helm chart templates: .Values completion and navigation from values.yaml, .Release/.Chart fields, include/define navigation, and a warning for values that values.yaml does not define.",
+      "vendor": "Phantom",
+      "category": "Cloud",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang",
+        "org.jetbrains.plugins.yaml"
+      ],
+      "download": "kubernetes-0.1.0/kubernetes-0.1.0.zip",
+      "detectFiles": [
+        "Chart.yaml"
       ]
     }
   ]

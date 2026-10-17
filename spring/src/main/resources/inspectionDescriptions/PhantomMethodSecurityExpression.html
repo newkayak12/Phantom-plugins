@@ -1,0 +1,8 @@
+<html>
+<body>
+Reports <code>#name</code> references in <code>@PreAuthorize</code>, <code>@PostAuthorize</code>, <code>@PreFilter</code> and
+<code>@PostFilter</code> expressions that name no argument of the annotated method. Spring evaluates such a reference to
+<code>null</code>, so a check like <code>#userId == principal.id</code> quietly gives the wrong answer.
+Names given with <code>@P</code> or <code>@Param</code> count as argument names.
+</body>
+</html>

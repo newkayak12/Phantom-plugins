@@ -17,5 +17,7 @@
   <content namespace="jetbrains">
     <module name="phantom.spring.core"/>
     <module name="phantom.spring.kotlin"/>
+    <module name="phantom.spring.security"/>
+    <module name="phantom.spring.messaging"/>
   </content>
 </idea-plugin>

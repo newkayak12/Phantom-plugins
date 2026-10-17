@@ -15,8 +15,6 @@
                      bundle="messages.PhantomSpringBundle" key="inspection.autowiring.display.name"
                      groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
                      implementationClass="dev.phantom.spring.core.ide.SpringAutowiringInspection"/>
-    <toolWindow id="Endpoints" anchor="bottom" secondary="false" icon="AllIcons.Webreferences.Server"
-                doNotActivateOnStart="true" factoryClass="dev.phantom.spring.core.ide.EndpointsToolWindowFactory"/>
   </extensions>
   <extensions defaultExtensionNs="com.intellij.microservices">
     <endpointsProvider implementation="dev.phantom.spring.core.ide.SpringMvcEndpointsProvider"/>

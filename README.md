@@ -6,7 +6,7 @@ pays for the technology it uses. [한국어](./KOR.md)
 ## Install
 
 Phantom lists this repository by default. Open **Settings | Plugins | Marketplace** and search for the plugin by name.
-Phantom also suggests a plugin when it finds one of the libraries the plugin lists under `detect` in the project.
+Phantom also suggests a plugin when it finds one of the libraries the plugin lists under `detect`, or one of the files under `detectFiles`, in the project.
 
 To add any other repository in this format: **Settings | Plugins | ⚙ | Manage Plugin Repositories**, then enter
 `owner/repo`, `owner/repo@branch`, or the github.com URL.
@@ -25,8 +25,12 @@ Public repositories need no token.
 | Plugin | Folder | Description |
 |--------|--------|-------------|
 | Phantom Database Console | [db](./db/README.md) · [한국어](./db/KOR.md) | JDBC console for MySQL, PostgreSQL and H2: run SQL from the editor, result grid, schema tree |
-| Phantom Spring | [spring](./spring/README.md) · [한국어](./spring/KOR.md) | Bean injection navigation, autowiring inspection, Endpoints tool window (Java and Kotlin) |
-| Phantom Spring Boot | [spring-boot](./spring-boot/README.md) · [한국어](./spring-boot/KOR.md) | `application.yml` / `.properties` key and value completion and docs |
+| Phantom Spring | [spring](./spring/README.md) · [한국어](./spring/KOR.md) | Bean injection navigation, autowiring inspection, Spring MVC endpoints, Security paths and expressions, Kafka/RabbitMQ/JMS navigation (Java and Kotlin) |
+| Phantom Spring Boot | [spring-boot](./spring-boot/README.md) · [한국어](./spring-boot/KOR.md) | New Spring Boot projects with Spring Initializr; `application.yml` / `.properties` key and value completion and docs |
+| Phantom JPA | [jpa](./jpa/README.md) · [한국어](./jpa/KOR.md) | JPQL in `@Query`, derived query and `@Modifying` checks, entity mapping checks, repository/entity navigation |
+| Phantom Reactive Streams | [reactive-streams](./reactive-streams/README.md) · [한국어](./reactive-streams/KOR.md) | Unsubscribed `Mono`/`Flux` and blocking calls inside operators (Reactor, RxJava) |
+| Phantom Ktor | [ktor](./ktor/README.md) · [한국어](./ktor/KOR.md) | Ktor routes in the Endpoints tool window, including routes in `Route` extension functions |
+| Phantom Kubernetes | [kubernetes](./kubernetes/README.md) · [한국어](./kubernetes/KOR.md) | Helm templates: `.Values` completion, navigation and missing-value warnings |
 
 ## Repository format
 
@@ -64,6 +68,7 @@ Phantom reads one file, `.phantom/marketplace.json`, from the repository's defau
 | `depends` | no | Plugin ids the plugin needs |
 | `source` | no | The plugin's folder, linked from the plugin page |
 | `detect` | no | `group:artifact` coordinates; Phantom suggests the plugin when a project uses one |
+| `detectFiles` | no | File names, such as `Chart.yaml`; Phantom suggests the plugin when a project contains one |
 
 Each plugin folder holds its sources, a `build.gradle.kts`, a `README.md` and a `KOR.md`.
 

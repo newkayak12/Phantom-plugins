@@ -1,0 +1,29 @@
+<idea-plugin>
+  <id>dev.phantom.kubernetes</id>
+  <name>Phantom Kubernetes</name>
+  <vendor>Phantom</vendor>
+  <category>Cloud</category>
+  <description><![CDATA[
+  Helm chart support for Phantom IDEA: completion of .Values paths from values.yaml, .Release and .Chart fields and
+  include names in chart templates; Ctrl+B from a value to its key and from include to define; and a warning for
+  values that values.yaml does not define. Works only inside chart templates.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+    <plugin id="org.jetbrains.plugins.yaml"/>
+  </dependencies>
+
+  <resource-bundle>messages.PhantomKubernetesBundle</resource-bundle>
+  <extensions defaultExtensionNs="com.intellij">
+    <completion.contributor language="any" order="first" implementationClass="dev.phantom.kubernetes.HelmCompletionContributor"/>
+    <typedHandler implementation="dev.phantom.kubernetes.HelmTypedHandler"/>
+    <gotoDeclarationHandler implementation="dev.phantom.kubernetes.HelmGotoDeclarationHandler"/>
+    <!-- _helpers.tpl holds the chart's define blocks; opened as text so completion and Ctrl+B work there too -->
+    <fileType name="PLAIN_TEXT" extensions="tpl"/>
+    <localInspection enabledByDefault="true" level="WEAK WARNING" shortName="PhantomHelmValues"
+                     bundle="messages.PhantomKubernetesBundle" key="values.display.name"
+                     groupBundle="messages.PhantomKubernetesBundle" groupKey="group.name"
+                     implementationClass="dev.phantom.kubernetes.HelmValuesInspection"/>
+  </extensions>
+</idea-plugin>

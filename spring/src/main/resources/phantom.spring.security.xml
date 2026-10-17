@@ -1,0 +1,13 @@
+<idea-plugin package="dev.phantom.spring.security">
+  <dependencies>
+    <module name="phantom.spring.core"/>
+  </dependencies>
+  <extensions defaultExtensionNs="com.intellij">
+    <completion.contributor language="JAVA" order="first" implementationClass="dev.phantom.spring.security.SpringSecurityCompletionContributor"/>
+    <completion.contributor language="kotlin" order="first" implementationClass="dev.phantom.spring.security.SpringSecurityCompletionContributor"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomMethodSecurityExpression"
+                     bundle="messages.PhantomSpringBundle" key="security.inspection.display.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.security.MethodSecurityExpressionInspection"/>
+  </extensions>
+</idea-plugin>

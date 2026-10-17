@@ -1,0 +1,20 @@
+<idea-plugin>
+  <id>dev.phantom.jpa</id>
+  <name>Phantom JPA</name>
+  <vendor>Phantom</vendor>
+  <category>Frameworks</category>
+  <description><![CDATA[
+  JPA, Hibernate and Spring Data JPA support for Phantom IDEA:  and entity mapping checks, repository/entity navigation, JPQL inside Spring Data @Query and @NamedQuery (also through
+  const val / static final constants), with highlighting, entity and attribute navigation, completion
+  and unresolved-name errors. Works for Java and Kotlin. Does nothing in projects without JPA.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+    <plugin id="com.intellij.java"/>
+  </dependencies>
+
+  <content namespace="jetbrains">
+    <module name="phantom.jpa.core"/>
+  </content>
+</idea-plugin>
