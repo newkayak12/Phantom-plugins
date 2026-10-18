@@ -82,6 +82,22 @@
                      enabledByDefault="true" level="ERROR" implementationClass="dev.phantom.db.core.SqlInsertIntoGeneratedColumnInspection"/>
     <localInspection language="SQL" shortName="PhantomSqlMisleadingReference" key="inspection.PhantomSqlMisleadingReference" groupKey="inspection.group.sql"
                      enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlMisleadingReferenceInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlFunctionArguments" key="inspection.PhantomSqlFunctionArguments" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="ERROR" implementationClass="dev.phantom.db.core.SqlFunctionArgumentsInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlIfFunction" key="inspection.PhantomSqlIfFunction" groupKey="inspection.group.sql"
+                     enabledByDefault="false" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlIfFunctionInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlReservedIdentifier" key="inspection.PhantomSqlReservedIdentifier" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlReservedIdentifierInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlDropIndexedColumn" key="inspection.PhantomSqlDropIndexedColumn" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlDropIndexedColumnInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlTriggerTransition" key="inspection.PhantomSqlTriggerTransition" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="ERROR" implementationClass="dev.phantom.db.core.SqlTriggerTransitionInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlTransactionInTrigger" key="inspection.PhantomSqlTransactionInTrigger" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="ERROR" implementationClass="dev.phantom.db.core.SqlTransactionInTriggerInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlUnusedVariable" key="inspection.PhantomSqlUnusedVariable" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnusedVariableInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlMissingReturn" key="inspection.PhantomSqlMissingReturn" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlMissingReturnInspection"/>
     <lang.formatter language="SQL" implementationClass="dev.phantom.db.core.SqlFormattingModelBuilder"/>
     <lang.findUsagesProvider language="SQL" implementationClass="dev.phantom.db.core.SqlFindUsagesProvider"/>
     <runLineMarkerContributor language="SQL" implementationClass="dev.phantom.db.core.exec.SqlRunLineMarkerContributor"/>
