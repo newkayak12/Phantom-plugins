@@ -356,7 +356,7 @@ class SpringResourceLocationInspection : AbstractBaseUastLocalInspectionTool() {
         for (attribute in target.attributes) {
           for (item in attributeItems(node, attribute)) {
             val path = item.evaluateString() ?: continue
-            if (path.isBlank() || path.contains("\${") || exists(owner.javaPsi, path, target.relativeToPackage)) continue
+            if (path.isBlank() || path.contains("\${") || resourceExists(owner.javaPsi, path, target.relativeToPackage)) continue
             holder.registerProblem(anchorOf(item) ?: continue, PhantomSpringBundle.message("inspection.resource.location.message", path))
           }
         }
@@ -364,19 +364,20 @@ class SpringResourceLocationInspection : AbstractBaseUastLocalInspectionTool() {
       }
     }, arrayOf(UAnnotation::class.java), true)
   }
+}
 
-  private fun exists(owner: PsiClass, raw: String, relativeToPackage: Boolean): Boolean {
-    if (raw.startsWith("http:") || raw.startsWith("https:") || raw.startsWith("file:") || raw.startsWith("classpath*:")) return true
-    val path = when {
-      raw.startsWith("classpath:") -> raw.removePrefix("classpath:").trimStart('/')
-      raw.startsWith("/") -> raw.trimStart('/')
-      relativeToPackage -> (owner.qualifiedName?.substringBeforeLast('.', "")?.replace('.', '/')?.let { if (it.isEmpty()) "" else "$it/" } ?: "") + raw
-      else -> raw
-    }
-    if (path.contains('*') || path.contains('?')) return true
-    val module = ModuleUtilCore.findModuleForPsiElement(owner) ?: return true
-    val entries = ModuleRootManager.getInstance(module).orderEntries().recursively().withoutSdk()
-    val roots: List<VirtualFile> = entries.withoutLibraries().sources().roots.toList() + entries.librariesOnly().classes().roots.toList()
-    return roots.any { it.findFileByRelativePath(path) != null }
+/** Whether a Spring resource location resolves in the owner's module (sources, resources, libraries); URLs and patterns count as found. */
+internal fun resourceExists(owner: PsiClass, raw: String, relativeToPackage: Boolean): Boolean {
+  if (raw.startsWith("http:") || raw.startsWith("https:") || raw.startsWith("file:") || raw.startsWith("classpath*:")) return true
+  val path = when {
+    raw.startsWith("classpath:") -> raw.removePrefix("classpath:").trimStart('/')
+    raw.startsWith("/") -> raw.trimStart('/')
+    relativeToPackage -> (owner.qualifiedName?.substringBeforeLast('.', "")?.replace('.', '/')?.let { if (it.isEmpty()) "" else "$it/" } ?: "") + raw
+    else -> raw
   }
+  if (path.contains('*') || path.contains('?')) return true
+  val module = ModuleUtilCore.findModuleForPsiElement(owner) ?: return true
+  val entries = ModuleRootManager.getInstance(module).orderEntries().recursively().withoutSdk()
+  val roots: List<VirtualFile> = entries.withoutLibraries().sources().roots.toList() + entries.librariesOnly().classes().roots.toList()
+  return roots.any { it.findFileByRelativePath(path) != null }
 }

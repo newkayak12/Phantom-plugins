@@ -12,7 +12,7 @@ object SpringStubs {
       "package org.springframework.stereotype; $RUNTIME public @interface Component { String value() default \"\"; }",
       "package org.springframework.stereotype; $RUNTIME @Component public @interface Service { String value() default \"\"; }",
       "package org.springframework.context.annotation; $RUNTIME @org.springframework.stereotype.Component public @interface Configuration { boolean proxyBeanMethods() default true; }",
-      "package org.springframework.context.annotation; $RUNTIME public @interface Bean { String[] name() default {}; String[] value() default {}; }",
+      "package org.springframework.context.annotation; $RUNTIME public @interface Bean { String[] name() default {}; String[] value() default {}; String initMethod() default \"\"; String destroyMethod() default \"(inferred)\"; }",
       "package org.springframework.context.annotation; $RUNTIME public @interface Scope { String value() default \"\"; String scopeName() default \"\"; }",
       "package org.springframework.context.annotation; $RUNTIME public @interface DependsOn { String[] value() default {}; }",
       "package org.springframework.context.annotation; $RUNTIME public @interface Conditional { Class<?>[] value(); }",

@@ -152,6 +152,40 @@
                      bundle="messages.PhantomSpringBundle" key="aop.declare.parents.name"
                      groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
                      implementationClass="dev.phantom.spring.core.ide.AopDeclareParentsInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringBeanLifecycleMethod"
+                     bundle="messages.PhantomSpringBundle" key="inspection.bean.lifecycle.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringBeanLifecycleMethodInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringLookupMethod"
+                     bundle="messages.PhantomSpringBundle" key="inspection.lookup.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringLookupMethodInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringResourceValue"
+                     bundle="messages.PhantomSpringBundle" key="inspection.resource.value.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringResourceValueInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringProfileExpression"
+                     bundle="messages.PhantomSpringBundle" key="inspection.profile.expression.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringProfileExpressionInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WEAK WARNING" shortName="PhantomSpringUnknownProfile"
+                     bundle="messages.PhantomSpringBundle" key="inspection.profile.unknown.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringUnknownProfileInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WEAK WARNING" shortName="PhantomSpringBeanNameConvention"
+                     bundle="messages.PhantomSpringBundle" key="inspection.bean.name.convention.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringBeanNameConventionInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WEAK WARNING" shortName="PhantomAopArgNamesBinding"
+                     bundle="messages.PhantomSpringBundle" key="aop.arg.names.unbound.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.AopArgNamesBindingInspection"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringCacheLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringCacheLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringScheduledLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringScheduledLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringImportLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringImportLineMarkerProvider"/>
   </extensions>
   <extensions defaultExtensionNs="com.intellij.microservices">
     <endpointsProvider implementation="dev.phantom.spring.core.ide.SpringMvcEndpointsProvider"/>
