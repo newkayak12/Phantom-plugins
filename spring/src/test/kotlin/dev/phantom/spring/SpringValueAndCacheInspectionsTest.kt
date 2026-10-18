@@ -67,6 +67,41 @@ class SpringValueAndCacheInspectionsTest : LightJavaCodeInsightFixtureTestCase()
     myFixture.checkHighlighting()
   }
 
+  fun testPlaceholdersInClasspathImports() {
+    myFixture.enableInspections(SpringValuePlaceholderInspection())
+    myFixture.addFileToProject("application.yaml", """
+      spring:
+        application:
+          name: app
+        config:
+          import:
+            - classpath:kafka/index.yaml
+            - optional:classpath:not/there.yaml
+    """.trimIndent())
+    myFixture.addFileToProject("kafka/index.yaml", "spring:\n  config:\n    import: classpath:kafka/topics.properties\n")
+    myFixture.addFileToProject("kafka/topics.properties", "topic.orders=orders\n")
+    myFixture.configureByText("T.java", """
+      package app;
+      import org.springframework.beans.factory.annotation.Value;
+      public class T {
+        @Value("${'$'}{topic.orders}") String orders;
+        @Value("${'$'}{spring.application.name}") String name;
+        @Value("${'$'}{<warning descr="${placeholder("topic.payments")}">topic.payments</warning>}") String payments;
+      }
+    """.trimIndent())
+    myFixture.checkHighlighting()
+  }
+
+  fun testPlaceholdersWithAMissingRequiredImport() {
+    myFixture.enableInspections(SpringValuePlaceholderInspection())
+    myFixture.addFileToProject("application.properties", "spring.config.import=classpath:gone.yaml\n")
+    myFixture.configureByText("U.java", """
+      package app;
+      public class U { @org.springframework.beans.factory.annotation.Value("${'$'}{anything.at.all}") String v; }
+    """.trimIndent())
+    myFixture.checkHighlighting()
+  }
+
   fun testYamlKeys() {
     val keys = SpringConfigKeys.yamlKeys("""
       spring:

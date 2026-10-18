@@ -9,9 +9,9 @@
     {
       "id": "dev.phantom.db",
       "name": "Phantom Database Console",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "source": "db",
-      "description": "Connect to MySQL, PostgreSQL or H2 over JDBC and run SQL from the editor: highlighting, Ctrl+Enter to run the statement at the caret, a sortable result grid and a lazily loaded schema tree. Drivers come from the project's dependencies or the local Gradle/Maven cache. Manual-commit data sources keep changes in an open transaction you review, commit or roll back in the Database Changes tool window. Edit single-table results in the grid, and compare two schemas with the SQL to make them match. SQL in @Query(nativeQuery = true), @NativeQuery and JdbcTemplate/JdbcClient strings is highlighted and completed. Query history (Ctrl+Alt+E), result export to CSV, TSV, JSON, SQL INSERT or Markdown, and JPA entity generation from a table. 0.5.0: SQL that understands names (alias-aware completion with schema loaded on demand, Ctrl+B to the table or column, unknown table/column warnings, Reformat), a table data view with WHERE/ORDER BY filters, paging and foreign-key navigation, keys/foreign keys/indexes/routines/triggers in the tree, Show DDL and Modify Table, manual-commit transactions, Explain Plan/Analyze and query parameters. 0.6.0: 18 SQL inspections, each toggleable (UPDATE/DELETE without WHERE, JOIN without ON, unused CTE, alias problems, VALUES count, UNION column count, GROUP BY, CASE vs COALESCE, and with the schema loaded: ambiguous columns, NOT NULL columns, string length, type mismatch).",
+      "description": "Connect to MySQL, PostgreSQL or H2 over JDBC and run SQL from the editor: highlighting, Ctrl+Enter to run the statement at the caret, a sortable result grid and a lazily loaded schema tree. Drivers come from the project's dependencies or the local Gradle/Maven cache. Manual-commit data sources keep changes in an open transaction you review, commit or roll back in the Database Changes tool window. Edit single-table results in the grid, and compare two schemas with the SQL to make them match. SQL in @Query(nativeQuery = true), @NativeQuery and JdbcTemplate/JdbcClient strings is highlighted and completed. Query history (Ctrl+Alt+E), result export to CSV, TSV, JSON, SQL INSERT or Markdown, and JPA entity generation from a table. 0.5.0: SQL that understands names (alias-aware completion with schema loaded on demand, Ctrl+B to the table or column, unknown table/column warnings, Reformat), a table data view with WHERE/ORDER BY filters, paging and foreign-key navigation, keys/foreign keys/indexes/routines/triggers in the tree, Show DDL and Modify Table, manual-commit transactions, Explain Plan/Analyze and query parameters. 0.6.0: 18 SQL inspections, each toggleable (UPDATE/DELETE without WHERE, JOIN without ON, unused CTE, alias problems, VALUES count, UNION column count, GROUP BY, CASE vs COALESCE, and with the schema loaded: ambiguous columns, NOT NULL columns, string length, type mismatch). Wave 6: 12 more SQL checks (= NULL, constant conditions, aggregates in WHERE, redundant COALESCE/LIMIT, unused subquery columns, duplicate columns, ADD NOT NULL without default, deprecated MySQL types, USING columns, ORDER BY position).",
       "vendor": "Phantom",
       "category": "Database",
       "since": "262",
@@ -20,7 +20,7 @@
         "com.intellij.modules.lang",
         "intellij.grid.core.plugin"
       ],
-      "download": "db-0.6.0/db-0.6.0.zip",
+      "download": "db-0.7.0/db-0.7.0.zip",
       "detect": [
         "com.mysql:mysql-connector-j",
         "mysql:mysql-connector-java",
@@ -32,9 +32,9 @@
     {
       "id": "dev.phantom.spring",
       "name": "Phantom Spring",
-      "version": "0.4.1",
+      "version": "0.5.0",
       "source": "spring",
-      "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, Spring MVC handlers for the Endpoints tool window, Spring Security path and expression support, and Kafka/RabbitMQ/JMS sender-receiver navigation. 0.4.0: proxy pitfalls (self-invocation of @Transactional/@Cacheable/@Async, private/final/static proxied methods, Kotlin classes not opened by kotlin-spring), @Scheduled/@Async/@EventListener contracts, field and static injection, duplicate bean names, @Scope values, @Sql paths, @DirtiesContext, publishEvent \u2194 listener gutters, @Qualifier/@DependsOn bean name completion and Ctrl+B.",
+      "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, Spring MVC handlers for the Endpoints tool window, Spring Security path and expression support, and Kafka/RabbitMQ/JMS sender-receiver navigation. 0.4.0: proxy pitfalls (self-invocation of @Transactional/@Cacheable/@Async, private/final/static proxied methods, Kotlin classes not opened by kotlin-spring), @Scheduled/@Async/@EventListener contracts, field and static injection, duplicate bean names, @Scope values, @Sql paths, @DirtiesContext, publishEvent ↔ listener gutters, @Qualifier/@DependsOn bean name completion and Ctrl+B. Wave 6: @Value placeholders (follows spring.config.import), SpEL syntax, cache names, caching on interfaces, @Qualifier/@DependsOn near-miss names, MVC path variables, endpoint and AOP advice gutters, method security not enabled, pointcut syntax.",
       "vendor": "Phantom",
       "category": "Frameworks",
       "since": "262",
@@ -43,7 +43,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-0.4.1/spring-0.4.1.zip",
+      "download": "spring-0.5.0/spring-0.5.0.zip",
       "detect": [
         "org.springframework:spring-context",
         "org.springframework:spring-web",
@@ -73,9 +73,9 @@
     {
       "id": "dev.phantom.jpa",
       "name": "Phantom JPA",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "source": "jpa",
-      "description": "JPA, Hibernate and Spring Data JPA for Java and Kotlin: JPQL in @Query with completion and errors, derived query method checks, a @Modifying check, entity mapping checks, and repository/entity gutter navigation. An Entity Diagram tool window: entities, columns and relations drawn from the code, copyable as a Mermaid erDiagram. 0.3.0: entity checks (several @Id, no-arg constructor, mappedBy, raw collections, converters), attribute checks (@Column on associations, LAZY on the inverse @OneToOne, @ManyToMany cascade REMOVE, unmapped entity fields, @Enumerated), Kotlin entity checks (kotlin-jpa/all-open, data class, val attributes, read-only collections), Lombok on entities, repository return and parameter types and Pageable.",
+      "description": "JPA, Hibernate and Spring Data JPA for Java and Kotlin: JPQL in @Query with completion and errors, derived query method checks, a @Modifying check, entity mapping checks, and repository/entity gutter navigation. An Entity Diagram tool window: entities, columns and relations drawn from the code, copyable as a Mermaid erDiagram. 0.3.0: entity checks (several @Id, no-arg constructor, mappedBy, raw collections, converters), attribute checks (@Column on associations, LAZY on the inverse @OneToOne, @ManyToMany cascade REMOVE, unmapped entity fields, @Enumerated), Kotlin entity checks (kotlin-jpa/all-open, data class, val attributes, read-only collections), Lombok on entities, repository return and parameter types and Pageable. Wave 6: JPQL undeclared aliases and function arity, entity graph attributes, entity listener callback signatures.",
       "vendor": "Phantom",
       "category": "Frameworks",
       "since": "262",
@@ -84,7 +84,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "jpa-0.3.0/jpa-0.3.0.zip",
+      "download": "jpa-0.4.0/jpa-0.4.0.zip",
       "detect": [
         "org.springframework.data:spring-data-jpa",
         "org.hibernate.orm:hibernate-core",

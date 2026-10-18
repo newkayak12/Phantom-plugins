@@ -33,9 +33,14 @@ object SpringConfigKeys {
   private val CONFIG_NAME = Regex("""(application|bootstrap)([-_.][\w.-]*)?\.(properties|ya?ml)""")
   private const val PROPERTY_SOURCE = "org.springframework.context.annotation.PropertySource"
 
-  /** Keys that come from somewhere the files do not show: config servers, imports, vault. */
-  private val EXTERNAL_MARKERS = listOf("spring.config.import", "spring.cloud.config", "spring.cloud.vault", "spring.cloud.consul",
+  /** Keys that come from somewhere the files do not show: config servers, vault, other locations. */
+  private val EXTERNAL_MARKERS = listOf("spring.cloud.config", "spring.cloud.vault", "spring.cloud.consul",
                                         "spring.config.additional-location", "spring.config.location")
+  private const val IMPORT_KEY = "spring.config.import"
+  /** A `spring.config.import` location this reads: `[optional:]classpath:` or `[optional:]file:` with a config file extension. */
+  private val FILE_IMPORT = Regex("""(optional:)?(classpath|file):([^\s,'"\]]+\.(?:properties|ya?ml))""")
+  /** An import from a server (configserver:, vault:, consul:, aws-...:): its keys cannot be known. */
+  private val SERVER_IMPORT = Regex("""(?<![\w/])(configserver|vault|consul|zookeeper|aws-[\w-]+|kubernetes|k8s):""")
 
   fun get(project: Project): Keys = CachedValuesManager.getManager(project).getCachedValue(project) {
     CachedValueProvider.Result.create(compute(project), PsiModificationTracker.MODIFICATION_COUNT, ProjectRootManager.getInstance(project))
@@ -55,14 +60,62 @@ object SpringConfigKeys {
         }
       }
     }
+    val roots = ModuleManager.getInstance(project).modules.flatMap { module ->
+      ModuleRootManager.getInstance(module).contentEntries.flatMap { it.sourceFolders.mapNotNull { f -> f.file } }
+    }
+    val baseDir = project.basePath?.let { com.intellij.openapi.vfs.LocalFileSystem.getInstance().findFileByPath(it) }
     val keys = HashSet<String>()
-    for (file in files) {
+    var external = false
+    // imported files (spring.config.import) are read like the rest; one that cannot be found makes the keys unknowable
+    val queue = ArrayDeque(files)
+    while (queue.isNotEmpty()) {
+      val file = queue.removeFirst()
       val text = FileDocumentManager.getInstance().getCachedDocument(file)?.text ?: runCatching { VfsUtilCore.loadText(file) }.getOrNull() ?: continue
       val raw = if (file.extension == "properties") propertiesKeys(text) else yamlKeys(text)
       raw.mapTo(keys, ::normalize)
+      if (raw.none { normalize(it) == normalize(IMPORT_KEY) || normalize(it).startsWith(normalize(IMPORT_KEY) + "[") }) continue
+      val block = importValues(text, file.extension == "properties")
+      if (SERVER_IMPORT.containsMatchIn(block)) external = true
+      val imports = FILE_IMPORT.findAll(block).toList()
+      if (imports.isEmpty()) external = true
+      for (m in imports) {
+        val optional = m.groupValues[1].isNotEmpty()
+        val path = m.groupValues[3].removePrefix("/")
+        val found = if (m.groupValues[2] == "classpath") roots.firstNotNullOfOrNull { it.findFileByRelativePath(path) }
+                    else file.parent?.findFileByRelativePath(path.removePrefix("./")) ?: baseDir?.findFileByRelativePath(path.removePrefix("./"))
+        when {
+          found != null -> if (files.add(found)) queue += found
+          !optional -> external = true
+        }
+      }
     }
-    val external = EXTERNAL_MARKERS.map(::normalize).any { marker -> keys.any { it == marker || it.startsWith("$marker.") } }
+    external = external || EXTERNAL_MARKERS.map(::normalize).any { marker -> keys.any { it == marker || it.startsWith("$marker.") } }
     return Keys(files.toList(), keys, external)
+  }
+
+  /** The text of the `spring.config.import` value: the properties line, or the YAML key's line and the lines nested under it. */
+  internal fun importValues(text: String, properties: Boolean): String {
+    if (properties) return text.lines().filter { normalize(it.substringBefore('=').substringBefore(':').trim()).startsWith(normalize(IMPORT_KEY)) }
+      .joinToString("\n") { it.substringAfter('=') }
+    val out = StringBuilder()
+    var importIndent = -1
+    val stack = ArrayList<Pair<Int, String>>()
+    for (line in text.lines()) {
+      val trimmed = line.trimStart()
+      if (trimmed.isEmpty() || trimmed.startsWith("#")) continue
+      val indent = line.length - trimmed.length
+      if (importIndent >= 0) {
+        if (indent > importIndent || (indent == importIndent && trimmed.startsWith("- "))) { out.append(trimmed).append('\n'); continue }
+        importIndent = -1
+      }
+      if (trimmed.startsWith("- ") || trimmed == "---") { if (trimmed == "---") stack.clear(); continue }
+      val key = trimmed.substringBefore(':', "").trim('"', '\'').takeIf { it.isNotEmpty() && trimmed.contains(':') } ?: continue
+      while (stack.isNotEmpty() && stack.last().first >= indent) stack.removeAt(stack.size - 1)
+      val full = (stack.map { it.second } + key).joinToString(".")
+      stack += indent to key
+      if (normalize(full) == normalize(IMPORT_KEY)) { importIndent = indent; out.append(trimmed.substringAfter(':')).append('\n') }
+    }
+    return out.toString()
   }
 
   fun normalize(key: String): String = key.lowercase().replace("-", "").replace("_", "")
