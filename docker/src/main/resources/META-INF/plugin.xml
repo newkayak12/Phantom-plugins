@@ -70,5 +70,7 @@
                      implementationClass="dev.phantom.docker.dockerfile.DockerfileCopyPathsInspection"/>
     <psi.referenceContributor language="yaml" implementation="dev.phantom.docker.compose.ComposeReferenceContributor"/>
     <gotoDeclarationHandler implementation="dev.phantom.docker.compose.ComposeGotoDeclarationHandler"/>
+    <gotoDeclarationHandler implementation="dev.phantom.docker.dockerfile.DockerfileStageGotoDeclarationHandler"/>
+    <codeInsight.lineMarkerProvider language="yaml" implementationClass="dev.phantom.docker.compose.ComposeLineMarkerProvider"/>
   </extensions>
 </idea-plugin>

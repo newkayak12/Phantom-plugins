@@ -84,18 +84,7 @@ class BootConfigKeyLineMarkerProvider : LineMarkerProviderDescriptor() {
       .createLineMarkerInfo(element)
   }
 
-  /** Where each key's text starts in the file, to its normalized full name. */
-  private fun keyStarts(file: PsiFile): Map<Int, String> = CachedValuesManager.getCachedValue(file) {
-    val text = file.viewProvider.contents.toString()
-    val result = HashMap<Int, String>()
-    if (file.name.endsWith(".properties")) {
-      for (entry in ConfigText.properties(text)) result[entry.offset - (entry.key.lastIndexOf('.') + 1)] = ConfigNames.normalize(entry.key)
-    }
-    else {
-      for (entry in ConfigText.yaml(text)) result[entry.offset] = ConfigNames.normalize(entry.key)
-    }
-    CachedValueProvider.Result.create(result as Map<Int, String>, file)
-  }
+  private fun keyStarts(file: PsiFile): Map<Int, String> = ConfigKeyOffsets.of(file)
 }
 
 /** On a `@ConfigurationProperties` class or `@Bean` method: the configuration keys set under its prefix. */

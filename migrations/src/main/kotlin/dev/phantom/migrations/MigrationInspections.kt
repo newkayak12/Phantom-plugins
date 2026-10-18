@@ -104,7 +104,7 @@ class LiquibaseChangelogInspection : LocalInspectionTool() {
           val attribute = if (tag.localName == "include") "file" else "path"
           val path = tag.getAttributeValue(attribute) ?: continue
           val relative = tag.getAttributeValue("relativeToChangelogFile") == "true"
-          if (resolve(module, changelog, path, relative, tag.localName == "includeAll") == null) {
+          if (resolveInclude(module, changelog, path, relative, tag.localName == "includeAll") == null) {
             val key = if (tag.localName == "include") "liquibase.missing.file" else "liquibase.missing.dir"
             report(tag.getAttribute(attribute)?.valueElement ?: tag, PhantomMigrationsBundle.message(key, path), null)
           }
@@ -129,24 +129,24 @@ class LiquibaseChangelogInspection : LocalInspectionTool() {
         val pathValue = body.getKeyValueByKey(attribute) ?: continue
         val path = (pathValue.value as? YAMLScalar)?.textValue ?: continue
         val relative = (body.getKeyValueByKey("relativeToChangelogFile")?.value as? YAMLScalar)?.textValue == "true"
-        if (resolve(module, changelog, path, relative, kind == "includeAll") == null) {
+        if (resolveInclude(module, changelog, path, relative, kind == "includeAll") == null) {
           val key = if (kind == "include") "liquibase.missing.file" else "liquibase.missing.dir"
           report(pathValue.value ?: pathValue, PhantomMigrationsBundle.message(key, path), null)
         }
       }
     }
   }
+}
 
-  /** Next to the changelog when relative; otherwise from a resource root, then (as Liquibase also tries) next to the changelog. */
-  private fun resolve(module: Module, changelog: VirtualFile, path: String, relative: Boolean, directory: Boolean): VirtualFile? {
-    if (path.contains("\${")) return changelog // a property placeholder: cannot be judged
-    val clean = path.removePrefix("classpath:").removePrefix("classpath*:")
-    val candidates = buildList {
-      changelog.parent?.findFileByRelativePath(clean)?.let(::add)
-      if (!relative) {
-        for (root in sourceAndResourceRoots(module, true)) root.findFileByRelativePath(clean.trimStart('/'))?.let(::add)
-      }
+/** Next to the changelog when relative; otherwise from a resource root, then (as Liquibase also tries) next to the changelog. */
+internal fun resolveInclude(module: Module, changelog: VirtualFile, path: String, relative: Boolean, directory: Boolean): VirtualFile? {
+  if (path.contains("\${")) return changelog // a property placeholder: cannot be judged
+  val clean = path.removePrefix("classpath:").removePrefix("classpath*:")
+  val candidates = buildList {
+    changelog.parent?.findFileByRelativePath(clean)?.let(::add)
+    if (!relative) {
+      for (root in sourceAndResourceRoots(module, true)) root.findFileByRelativePath(clean.trimStart('/'))?.let(::add)
     }
-    return candidates.firstOrNull { it.isDirectory == directory }
   }
+  return candidates.firstOrNull { it.isDirectory == directory }
 }
