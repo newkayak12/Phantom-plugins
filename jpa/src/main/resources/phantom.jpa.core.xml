@@ -73,5 +73,11 @@
                 factoryClass="dev.phantom.jpa.core.EntityDiagramToolWindowFactory"/>
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.jpa.core.JpaRepositoryLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.jpa.core.JpaRepositoryLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.jpa.core.DerivedQueryLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.jpa.core.DerivedQueryLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.jpa.core.EntityGraphLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.jpa.core.EntityGraphLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.jpa.core.EntityAttributeUsagesLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.jpa.core.EntityAttributeUsagesLineMarkerProvider"/>
   </extensions>
 </idea-plugin>

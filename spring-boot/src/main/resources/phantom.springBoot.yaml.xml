@@ -8,5 +8,6 @@
     <lang.documentationProvider language="yaml" order="first" implementationClass="dev.phantom.springboot.yaml.BootYamlDocumentationProvider"/>
     <codeInsight.lineMarkerProvider language="yaml" implementationClass="dev.phantom.springboot.core.BootConfigKeyLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="yaml" implementationClass="dev.phantom.springboot.core.BootProfileOverrideLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="yaml" implementationClass="dev.phantom.springboot.core.BootProfileValueLineMarkerProvider"/>
   </extensions>
 </idea-plugin>
