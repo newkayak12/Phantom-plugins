@@ -3,6 +3,7 @@ package dev.phantom.docker
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.lang.annotation.HighlightSeverity
+import dev.phantom.docker.compose.PhantomDockerBundle
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import dev.phantom.docker.dockerfile.*
 
@@ -112,6 +113,48 @@ class DockerfileChecksTest : BasePlatformTestCase() {
       "CMD in shell form runs under /bin/sh -c: the process is not PID 1 and does not get SIGTERM. Use the exec form [\"executable\", \"arg\"]",
       "ENTRYPOINT in shell form runs under /bin/sh -c: the process is not PID 1 and does not get SIGTERM. Use the exec form [\"executable\", \"arg\"]",
     ), problems())
+  }
+
+  fun testCopyHeredocs() {
+    myFixture.enableInspections(DockerfileCopyHeredocInspection::class.java)
+    dockerfile("h/Dockerfile", """
+      FROM alpine AS base
+      COPY <<EOF /etc/app.conf
+      key=value
+      EOF
+      COPY <<EOF
+      lost
+      EOF
+      COPY --from=base <<EOF /x
+      y
+      EOF
+    """)
+    val heredoc = problems().filter { it.contains("here-document") }
+    assertEquals(listOf(
+      PhantomDockerBundle.message("dockerfile.heredoc.from", "COPY"),
+      PhantomDockerBundle.message("dockerfile.heredoc.no.destination", "COPY"),
+    ).sorted(), heredoc)
+
+    dockerfile("old/Dockerfile", """
+      # syntax=docker/dockerfile:1.3
+      FROM alpine
+      COPY <<EOF /etc/app.conf
+      a
+      EOF
+    """)
+    assertEquals(listOf(PhantomDockerBundle.message("dockerfile.heredoc.syntax", "1.3")), problems().filter { it.contains("syntax") })
+
+    dockerfile("new/Dockerfile", """
+      # syntax=docker/dockerfile:1.7
+      FROM alpine
+      COPY <<EOF /etc/app.conf
+      a
+      EOF
+      RUN <<EOF
+      echo hi
+      EOF
+    """)
+    assertEmpty(problems().filter { it.contains("here-document") || it.contains("syntax") })
   }
 
   fun testComposeBuildContext() {

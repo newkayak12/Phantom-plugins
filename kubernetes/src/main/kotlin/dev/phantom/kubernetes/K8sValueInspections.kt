@@ -171,6 +171,28 @@ class K8sNonEditableKeysInspection : K8sInspection() {
   }
 }
 
+/**
+ * Kinds the API server never stores, so a manifest of them cannot be applied: reviews (`TokenReview`,
+ * `SubjectAccessReview`, ...) are evaluated once and returned, `Binding`/`Eviction`/`Scale` are written through their
+ * parent's subresource, and `ComponentStatus` is read-only status.
+ */
+class K8sNonEditableResourceInspection : K8sInspection() {
+  private val REVIEWS = setOf("TokenReview", "TokenRequest", "SelfSubjectReview", "SubjectAccessReview", "SelfSubjectAccessReview",
+                              "LocalSubjectAccessReview", "SelfSubjectRulesReview")
+  private val SUBRESOURCES = setOf("Binding", "Eviction", "Scale")
+
+  override fun check(resource: K8sResource, report: (PsiElement, String, ProblemHighlightType) -> Unit) {
+    if (K8sKinds.BY_GROUP[K8sKinds.group(resource.apiVersion)]?.contains(resource.kind) != true) return
+    val why = when (resource.kind) {
+      in REVIEWS -> PhantomKubernetesBundle.message("k8s.kind.not.stored.review")
+      in SUBRESOURCES -> PhantomKubernetesBundle.message("k8s.kind.not.stored.subresource")
+      "ComponentStatus" -> PhantomKubernetesBundle.message("k8s.kind.not.stored.readonly")
+      else -> return
+    }
+    report(resource.kindScalar ?: resource.root, PhantomKubernetesBundle.message("k8s.kind.not.stored", resource.kind, why), ProblemHighlightType.WEAK_WARNING)
+  }
+}
+
 /** `Chart.yaml`: the required `apiVersion`, `name` and `version`, keys Helm does not know, and the fixed values of `apiVersion` and `type`. */
 class HelmChartInspection : LocalInspectionTool() {
   private val TOP = setOf("apiVersion", "name", "version", "kubeVersion", "description", "type", "keywords", "home", "sources", "dependencies",

@@ -45,6 +45,10 @@
                      bundle="messages.PhantomKubernetesBundle" key="k8s.server.name"
                      groupBundle="messages.PhantomKubernetesBundle" groupKey="group.k8s"
                      implementationClass="dev.phantom.kubernetes.K8sNonEditableKeysInspection"/>
+    <localInspection language="yaml" enabledByDefault="true" level="WEAK WARNING" shortName="PhantomK8sNotStoredKind"
+                     bundle="messages.PhantomKubernetesBundle" key="k8s.not.stored.name"
+                     groupBundle="messages.PhantomKubernetesBundle" groupKey="group.k8s"
+                     implementationClass="dev.phantom.kubernetes.K8sNonEditableResourceInspection"/>
     <localInspection language="yaml" enabledByDefault="true" level="ERROR" shortName="PhantomHelmChart"
                      bundle="messages.PhantomKubernetesBundle" key="helm.chart.name"
                      groupBundle="messages.PhantomKubernetesBundle" groupKey="group.name"

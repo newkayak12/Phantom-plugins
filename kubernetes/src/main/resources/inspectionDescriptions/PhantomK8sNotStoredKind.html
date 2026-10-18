@@ -1,0 +1,11 @@
+<html>
+<body>
+Reports manifests of kinds the Kubernetes API server never stores, so <code>kubectl apply</code> of them fails:
+<ul>
+  <li>reviews such as <code>TokenReview</code>, <code>TokenRequest</code>, <code>SubjectAccessReview</code> and
+      <code>SelfSubjectAccessReview</code>, which are evaluated once and returned;</li>
+  <li><code>Binding</code>, <code>Eviction</code> and <code>Scale</code>, written through a subresource of their parent;</li>
+  <li><code>ComponentStatus</code>, read-only status.</li>
+</ul>
+</body>
+</html>
