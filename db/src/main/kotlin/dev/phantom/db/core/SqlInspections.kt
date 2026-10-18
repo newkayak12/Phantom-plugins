@@ -30,6 +30,10 @@ class SqlItem(val element: PsiElement, val depth: Int) {
 
 /** The flat view of a query the inspections work on: items, UNION arms, select lists, INSERT rows. */
 object SqlQueries {
+  /** Aggregate functions of the supported dialects; with OVER they are window functions instead. */
+  val AGGREGATES: Set<String> = setOf("COUNT", "SUM", "AVG", "MIN", "MAX", "GROUP_CONCAT", "STRING_AGG", "ARRAY_AGG", "JSON_AGG", "JSONB_AGG",
+                                      "JSON_ARRAYAGG", "JSON_OBJECTAGG", "JSON_OBJECT_AGG", "LISTAGG", "BIT_AND", "BIT_OR", "BIT_XOR", "BOOL_AND",
+                                      "BOOL_OR", "EVERY", "STDDEV", "STDDEV_POP", "STDDEV_SAMP", "VARIANCE", "VAR_POP", "VAR_SAMP", "ANY_VALUE")
   private val DML = setOf("SELECT", "WITH", "INSERT", "UPDATE", "DELETE", "REPLACE")
   private val SET_OPERATORS = setOf("UNION", "EXCEPT", "INTERSECT", "MINUS")
   private val SELECT_LIST_END = setOf("FROM", "INTO", "WHERE", "GROUP", "HAVING", "ORDER", "LIMIT", "WINDOW", "FETCH", "OFFSET", "FOR")
@@ -243,8 +247,8 @@ object SqlQueries {
 }
 
 /**
- * Base of the SQL inspections: they look at SELECT, INSERT, UPDATE, DELETE and WITH statements only, once per
- * statement and once per subquery. DDL and scripts are left alone.
+ * Base of the SQL inspections: they look at SELECT, INSERT, UPDATE, DELETE and WITH statements, once per statement
+ * and once per subquery, and at CREATE and ALTER statements through [checkDdl]. Other statements are left alone.
  */
 abstract class SqlInspection : LocalInspectionTool() {
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
@@ -257,6 +261,7 @@ abstract class SqlInspection : LocalInspectionTool() {
             checkStatement(element, holder)
             checkQuery(element, SqlQueries.items(element), holder)
           }
+          else if (element.firstKeyword in DDL) checkDdl(element, holder)
           is SqlSubquery -> {
             val statement = PsiTreeUtil.getParentOfType(element, SqlStatement::class.java) ?: return
             if (SqlQueries.isDml(statement)) checkQuery(element, SqlQueries.items(element), holder)
@@ -268,12 +273,19 @@ abstract class SqlInspection : LocalInspectionTool() {
 
   protected open fun checkStatement(statement: SqlStatement, holder: ProblemsHolder) {}
 
+  /** CREATE and ALTER statements, which the query checks leave alone. */
+  protected open fun checkDdl(statement: SqlStatement, holder: ProblemsHolder) {}
+
   /** [query] is the statement or a subquery; [items] are its own, not those of nested subqueries. */
   protected open fun checkQuery(query: SqlScope, items: List<SqlItem>, holder: ProblemsHolder) {}
 
   protected fun register(holder: ProblemsHolder, from: PsiElement, to: PsiElement, message: String,
                          type: ProblemHighlightType = ProblemHighlightType.GENERIC_ERROR_OR_WARNING, vararg fixes: LocalQuickFix) {
     holder.registerProblem(holder.manager.createProblemDescriptor(from, to, message, type, holder.isOnTheFly, *fixes))
+  }
+
+  private companion object {
+    val DDL = setOf("CREATE", "ALTER")
   }
 }
 
@@ -537,7 +549,7 @@ class SqlShouldBeInGroupByInspection : SqlInspection() {
       val list = SqlQueries.selectList(arm)?.flatten() ?: continue
       val aggregateRanges = ArrayList<IntRange>()
       for ((i, item) in list.withIndex()) {
-        if (item.type != SqlTokens.IDENTIFIER || item.text.uppercase() !in AGGREGATES) continue
+        if (item.type != SqlTokens.IDENTIFIER || item.text.uppercase() !in SqlQueries.AGGREGATES) continue
         val open = list.getOrNull(i + 1)?.takeIf { it.type == SqlTokens.LPAREN && it.depth == item.depth } ?: continue
         val close = (i + 2 until list.size).firstOrNull { list[it].depth == open.depth && list[it].type == SqlTokens.RPAREN } ?: continue
         if (list.getOrNull(close + 1)?.isKeyword("OVER") == true) continue // a window function, not a grouping aggregate
@@ -550,12 +562,6 @@ class SqlShouldBeInGroupByInspection : SqlInspection() {
         holder.registerProblem(column, PhantomDbBundle.message("sql.inspection.group.by", column.columnName))
       }
     }
-  }
-
-  private companion object {
-    val AGGREGATES = setOf("COUNT", "SUM", "AVG", "MIN", "MAX", "GROUP_CONCAT", "STRING_AGG", "ARRAY_AGG", "JSON_AGG", "JSONB_AGG",
-                           "JSON_ARRAYAGG", "JSON_OBJECTAGG", "JSON_OBJECT_AGG", "LISTAGG", "BIT_AND", "BIT_OR", "BIT_XOR", "BOOL_AND",
-                           "BOOL_OR", "EVERY", "STDDEV", "STDDEV_POP", "STDDEV_SAMP", "VARIANCE", "VAR_POP", "VAR_SAMP", "ANY_VALUE")
   }
 }
 

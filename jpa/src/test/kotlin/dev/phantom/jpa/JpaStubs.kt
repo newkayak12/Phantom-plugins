@@ -31,6 +31,14 @@ object JpaStubs {
     fixture.addClass("package jakarta.persistence; $type public @interface IdClass { Class value(); }")
     fixture.addClass("package jakarta.persistence; $type public @interface Converter { boolean autoApply() default false; }")
     fixture.addClass("package jakarta.persistence; public interface AttributeConverter<X, Y> { Y convertToDatabaseColumn(X a); X convertToEntityAttribute(Y d); }")
+    fixture.addClass("package jakarta.persistence; $runtime public @interface NamedAttributeNode { String value(); String subgraph() default \"\"; }")
+    fixture.addClass("package jakarta.persistence; $type public @interface NamedEntityGraph { String name() default \"\"; NamedAttributeNode[] attributeNodes() default {}; }")
+    fixture.addClass("package jakarta.persistence; $type public @interface NamedEntityGraphs { NamedEntityGraph[] value(); }")
+    fixture.addClass("package jakarta.persistence; $type public @interface EntityListeners { Class[] value(); }")
+    for (event in listOf("PrePersist", "PostPersist", "PreUpdate", "PostUpdate", "PreRemove", "PostRemove", "PostLoad")) {
+      fixture.addClass("package jakarta.persistence; $runtime @java.lang.annotation.Target(java.lang.annotation.ElementType.METHOD) public @interface $event {}")
+    }
+    fixture.addClass("package org.springframework.data.jpa.repository; $runtime public @interface EntityGraph { String value() default \"\"; String[] attributePaths() default {}; }")
     fixture.addClass("package org.springframework.data.domain; public interface Pageable {}")
     fixture.addClass("package org.springframework.data.domain; public interface Slice<T> extends Iterable<T> {}")
     fixture.addClass("package org.springframework.data.domain; public interface Page<T> extends Slice<T> {}")
