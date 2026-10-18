@@ -13,5 +13,17 @@
                      bundle="messages.PhantomSpringBundle" key="security.disabled.name"
                      groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
                      implementationClass="dev.phantom.spring.security.MethodSecurityDisabledInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSecurityDebug"
+                     bundle="messages.PhantomSpringBundle" key="security.debug.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.security.SecurityDebugInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSecuritySelfInvocation"
+                     bundle="messages.PhantomSpringBundle" key="security.self.invocation.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.security.SecuritySelfInvocationInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSecurityBeanReference"
+                     bundle="messages.PhantomSpringBundle" key="security.bean.reference.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.security.SecurityBeanReferenceInspection"/>
   </extensions>
 </idea-plugin>

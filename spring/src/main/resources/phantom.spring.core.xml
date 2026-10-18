@@ -100,6 +100,58 @@
     <psi.referenceContributor language="UAST" implementation="dev.phantom.spring.core.ide.SpringBeanNameReferenceContributor"/>
     <toolWindow id="Spring Beans" anchor="right" secondary="true" icon="/icons/phantom/toolwindow/springBeans.svg"
                 factoryClass="dev.phantom.spring.core.ide.SpringBeansToolWindowFactory"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringCacheableAndCachePut"
+                     bundle="messages.PhantomSpringBundle" key="inspection.cacheable.put.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringCacheableAndCachePutInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringAbstractBean"
+                     bundle="messages.PhantomSpringBundle" key="inspection.abstract.bean.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringAbstractBeanInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringValueType"
+                     bundle="messages.PhantomSpringBundle" key="inspection.value.type.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringValueTypeInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringBeanMethod"
+                     bundle="messages.PhantomSpringBundle" key="inspection.bean.method.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringBeanMethodInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringScanPackage"
+                     bundle="messages.PhantomSpringBundle" key="inspection.scan.package.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringScanPackageInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringAspectjAutoproxy"
+                     bundle="messages.PhantomSpringBundle" key="inspection.aspectj.autoproxy.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringAspectjAutoproxyInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringAutowiredOutsideBean"
+                     bundle="messages.PhantomSpringBundle" key="inspection.autowired.outside.bean.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringAutowiredOutsideBeanInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringResourceLocation"
+                     bundle="messages.PhantomSpringBundle" key="inspection.resource.location.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringResourceLocationInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringTestBeanFactory"
+                     bundle="messages.PhantomSpringBundle" key="inspection.test.bean.factory.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringTestBeanFactoryInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomAopAdviceSignature"
+                     bundle="messages.PhantomSpringBundle" key="aop.advice.signature.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.AopAdviceSignatureInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WEAK WARNING" shortName="PhantomAopPointcutMethod"
+                     bundle="messages.PhantomSpringBundle" key="aop.pointcut.method.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.AopPointcutMethodInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomAopArgNames"
+                     bundle="messages.PhantomSpringBundle" key="aop.arg.names.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.AopArgNamesInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomAopDeclareParents"
+                     bundle="messages.PhantomSpringBundle" key="aop.declare.parents.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.AopDeclareParentsInspection"/>
   </extensions>
   <extensions defaultExtensionNs="com.intellij.microservices">
     <endpointsProvider implementation="dev.phantom.spring.core.ide.SpringMvcEndpointsProvider"/>

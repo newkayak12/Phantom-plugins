@@ -5,6 +5,7 @@ import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
 import com.intellij.codeInspection.AbstractBaseUastLocalInspectionTool
 import com.intellij.codeInspection.LocalInspectionToolSession
+import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.icons.AllIcons
 import com.intellij.java.library.JavaLibraryUtil
@@ -36,6 +37,11 @@ object AopModel {
   const val POINTCUT: String = "$PACKAGE.Pointcut"
   const val AFTER_RETURNING: String = "$PACKAGE.AfterReturning"
   const val AFTER_THROWING: String = "$PACKAGE.AfterThrowing"
+  const val AROUND: String = "$PACKAGE.Around"
+  const val DECLARE_PARENTS: String = "$PACKAGE.DeclareParents"
+  const val JOIN_POINT: String = "org.aspectj.lang.JoinPoint"
+  const val PROCEEDING_JOIN_POINT: String = "org.aspectj.lang.ProceedingJoinPoint"
+  const val STATIC_PART: String = "org.aspectj.lang.JoinPoint.StaticPart"
   val ADVICE: List<String> = listOf("$PACKAGE.Before", "$PACKAGE.After", "$PACKAGE.Around", AFTER_RETURNING, AFTER_THROWING)
 
   /** Pointcut designators of the AspectJ language (Spring AOP supports a subset, weaving all of them) and Spring's `bean`. */
@@ -233,5 +239,134 @@ class AopAdviceLineMarkerProvider : LineMarkerProviderDescriptor() {
     return LineMarkerInfo(element, element.textRange, AllIcons.Nodes.Aspect,
                           { PhantomSpringBundle.message("aop.gutter.tooltip", kind, expression) }, null, GutterIconRenderer.Alignment.LEFT,
                           { PhantomSpringBundle.message("aop.line.marker.name") })
+  }
+}
+
+private fun isType(type: com.intellij.psi.PsiType?, fqn: String): Boolean =
+  com.intellij.psi.util.InheritanceUtil.isInheritor(type, fqn)
+
+/**
+ * Advice method shapes Spring AOP rejects or that lose the call: `@Around` without a `ProceedingJoinPoint` first
+ * parameter (error), `@Around` that never calls `proceed()` (the advised method never runs) or returns void (its
+ * return value is lost), and a `ProceedingJoinPoint` parameter on any other advice (error).
+ */
+class AopAdviceSignatureInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
+    if (!AopModel.isAopProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
+    return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
+      override fun visitMethod(node: UMethod): Boolean {
+        val annotation = AopModel.ADVICE.firstNotNullOfOrNull { node.findAnnotation(it) } ?: return true
+        val anchor = node.uastAnchor?.sourcePsi ?: return true
+        val parameters = node.uastParameters
+        if (annotation.qualifiedName != AopModel.AROUND) {
+          val pjp = parameters.firstOrNull { isType(it.type, AopModel.PROCEEDING_JOIN_POINT) } ?: return true
+          holder.registerProblem(pjp.uastAnchor?.sourcePsi ?: anchor, PhantomSpringBundle.message("aop.advice.pjp.not.around"), ProblemHighlightType.GENERIC_ERROR)
+          return true
+        }
+        if (!isType(parameters.firstOrNull()?.type, AopModel.PROCEEDING_JOIN_POINT)) {
+          holder.registerProblem(anchor, PhantomSpringBundle.message("aop.advice.around.no.pjp"), ProblemHighlightType.GENERIC_ERROR)
+          return true
+        }
+        val body = node.uastBody ?: return true
+        var proceeds = false
+        body.accept(object : org.jetbrains.uast.visitor.AbstractUastVisitor() {
+          override fun visitCallExpression(node: org.jetbrains.uast.UCallExpression): Boolean {
+            if (node.methodName == "proceed") proceeds = true
+            return proceeds
+          }
+          // the join point handed to a helper may be proceeded there
+          override fun visitSimpleNameReferenceExpression(node: org.jetbrains.uast.USimpleNameReferenceExpression): Boolean {
+            if (node.identifier == parameters.first().name && node.uastParent is org.jetbrains.uast.UCallExpression &&
+                (node.uastParent as org.jetbrains.uast.UCallExpression).receiver != node) proceeds = true
+            return proceeds
+          }
+        })
+        if (!proceeds) {
+          holder.registerProblem(anchor, PhantomSpringBundle.message("aop.advice.around.no.proceed"))
+          return true
+        }
+        if (node.returnType == com.intellij.psi.PsiTypes.voidType()) {
+          holder.registerProblem(anchor, PhantomSpringBundle.message("aop.advice.around.void"), ProblemHighlightType.WEAK_WARNING)
+        }
+        return true
+      }
+    }, arrayOf(UMethod::class.java), true)
+  }
+}
+
+/**
+ * `@Pointcut` methods only name an expression: one that returns a value or has statements is misleading, as the body
+ * never runs. `if()` pointcuts, whose static boolean method is the condition, are left alone.
+ */
+class AopPointcutMethodInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
+    if (!AopModel.isAopProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
+    return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
+      override fun visitMethod(node: UMethod): Boolean {
+        val annotation = node.findAnnotation(AopModel.POINTCUT) ?: return true
+        val expression = AopModel.expressionOf(annotation)?.evaluateString().orEmpty()
+        if (Regex("""\bif\s*\(""").containsMatchIn(expression)) return true
+        val anchor = node.uastAnchor?.sourcePsi ?: return true
+        if (node.returnType != com.intellij.psi.PsiTypes.voidType()) {
+          holder.registerProblem(anchor, PhantomSpringBundle.message("aop.pointcut.method.not.void"))
+          return true
+        }
+        val body = node.uastBody as? org.jetbrains.uast.UBlockExpression ?: return true
+        if (body.expressions.isNotEmpty()) holder.registerProblem(anchor, PhantomSpringBundle.message("aop.pointcut.method.body"))
+        return true
+      }
+    }, arrayOf(UMethod::class.java), true)
+  }
+}
+
+/**
+ * `argNames` must name every parameter of the advice or pointcut method, in order; a leading `JoinPoint`,
+ * `ProceedingJoinPoint` or `JoinPoint.StaticPart` may be left out. Any other count fails when the aspect is built.
+ */
+class AopArgNamesInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
+    if (!AopModel.isAopProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
+    return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
+      override fun visitMethod(node: UMethod): Boolean {
+        val annotation = AopModel.annotationOf(node) ?: return true
+        val value = annotation.findDeclaredAttributeValue("argNames") ?: return true
+        val names = value.evaluateString()?.split(',')?.map(String::trim)?.filter(String::isNotEmpty) ?: return true
+        if (names.isEmpty()) return true
+        val parameters = node.uastParameters
+        val first = parameters.firstOrNull()?.type
+        val joinPointFirst = isType(first, AopModel.JOIN_POINT) || first?.canonicalText == AopModel.STATIC_PART
+        if (names.size == parameters.size || joinPointFirst && names.size == parameters.size - 1) return true
+        holder.registerProblem(value.sourcePsi ?: return true, PhantomSpringBundle.message("aop.arg.names.count", names.size, parameters.size))
+        return true
+      }
+    }, arrayOf(UMethod::class.java), true)
+  }
+}
+
+/** `@DeclareParents` on a field whose type is not an interface, or with a `defaultImpl` that is abstract or does not implement it. */
+class AopDeclareParentsInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
+    if (!AopModel.isAopProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
+    return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
+      override fun visitField(node: org.jetbrains.uast.UField): Boolean {
+        val annotation = node.findAnnotation(AopModel.DECLARE_PARENTS) ?: return true
+        val anchor = annotation.sourcePsi ?: return true
+        val introduced = (node.type as? com.intellij.psi.PsiClassType)?.resolve() ?: return true
+        if (!introduced.isInterface) {
+          holder.registerProblem(anchor, PhantomSpringBundle.message("aop.declare.parents.not.interface", introduced.name ?: ""))
+          return true
+        }
+        val literal = annotation.findDeclaredAttributeValue("defaultImpl") as? org.jetbrains.uast.UClassLiteralExpression ?: return true
+        val impl = (literal.type as? com.intellij.psi.PsiClassType)?.resolve() ?: return true
+        if (impl.qualifiedName == AopModel.DECLARE_PARENTS) return true
+        val problem = when {
+          impl.isInterface || impl.hasModifierProperty(com.intellij.psi.PsiModifier.ABSTRACT) -> PhantomSpringBundle.message("aop.declare.parents.abstract.impl", impl.name ?: "")
+          !impl.isInheritor(introduced, true) -> PhantomSpringBundle.message("aop.declare.parents.impl.mismatch", impl.name ?: "", introduced.name ?: "")
+          else -> return true
+        }
+        holder.registerProblem(literal.sourcePsi ?: anchor, problem)
+        return true
+      }
+    }, arrayOf(org.jetbrains.uast.UField::class.java), true)
   }
 }

@@ -276,3 +276,94 @@ class MethodSecurityDisabledInspection : AbstractBaseUastLocalInspectionTool() {
     }, arrayOf(UMethod::class.java, org.jetbrains.uast.UClass::class.java), true)
   }
 }
+
+/** `@EnableWebSecurity(debug = true)` in production code: Spring Security logs every request with its headers and session. */
+class SecurityDebugInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
+    if (!SecurityGate.isSecurityProject(holder.project) || dev.phantom.spring.core.SpringBeans.isInTestSources(holder.file)) return PsiElementVisitor.EMPTY_VISITOR
+    return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
+      override fun visitAnnotation(node: UAnnotation): Boolean {
+        if (node.qualifiedName != ENABLE_WEB_SECURITY) return true
+        val debug = node.findDeclaredAttributeValue("debug") ?: return true
+        if (debug.evaluate() != true) return true
+        holder.registerProblem(debug.sourcePsi?.parent?.takeIf { it.textLength < 40 } ?: debug.sourcePsi ?: return true,
+                               dev.phantom.spring.core.PhantomSpringBundle.message("security.debug.message"))
+        return true
+      }
+    }, arrayOf(UAnnotation::class.java), true)
+  }
+
+  companion object {
+    const val ENABLE_WEB_SECURITY: String = "org.springframework.security.config.annotation.web.configuration.EnableWebSecurity"
+  }
+}
+
+/**
+ * A call from a bean into its own secured method (`@PreAuthorize`, `@Secured`, `@RolesAllowed`…): the call does not
+ * go through the proxy, so the check does not run for it. A caller with the very same annotation is not reported.
+ */
+class SecuritySelfInvocationInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
+    if (!SecurityGate.isSecurityProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
+    return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
+      override fun visitCallExpression(node: UCallExpression): Boolean {
+        if (node.kind != org.jetbrains.uast.UastCallKind.METHOD_CALL) return true
+        val receiver = node.receiver
+        if (receiver != null && receiver !is org.jetbrains.uast.UThisExpression) return true
+        val callee = node.resolve() ?: return true
+        val secured = callee.annotations.firstOrNull { it.qualifiedName in SECURED } ?: return true
+        val caller = node.getParentOfType<UMethod>(true) ?: return true
+        val callerClass = caller.javaPsi.containingClass ?: return true
+        if (node.getParentOfType<org.jetbrains.uast.UClass>(true)?.javaPsi != callerClass) return true
+        val calleeClass = callee.containingClass ?: return true
+        if (!com.intellij.psi.util.InheritanceUtil.isInheritorOrSelf(callerClass, calleeClass, true)) return true
+        if (!dev.phantom.spring.core.SpringBeans.isBeanClass(callerClass)) return true
+        if (caller.javaPsi.annotations.any { it.qualifiedName == secured.qualifiedName && it.text == secured.text }) return true
+        val anchor = node.methodIdentifier?.sourcePsi ?: node.sourcePsi ?: return true
+        val name = "@" + secured.qualifiedName!!.substringAfterLast('.')
+        holder.registerProblem(anchor, dev.phantom.spring.core.PhantomSpringBundle.message("security.self.invocation.message", name, callee.name))
+        return true
+      }
+    }, arrayOf(UCallExpression::class.java), true)
+  }
+
+  companion object {
+    val SECURED: Set<String> = MethodSecurity.EXPRESSION_ANNOTATIONS + setOf(
+      "org.springframework.security.access.annotation.Secured",
+      "jakarta.annotation.security.RolesAllowed",
+      "javax.annotation.security.RolesAllowed",
+    )
+  }
+}
+
+/**
+ * `@name` bean references in method security expressions that are a near miss of a project bean name (other case,
+ * one letter off). Names close to no project bean are not reported: library beans are not known here.
+ */
+class SecurityBeanReferenceInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
+    if (!SecurityGate.isSecurityProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
+    return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
+      override fun visitAnnotation(node: UAnnotation): Boolean {
+        if (node.qualifiedName !in MethodSecurity.EXPRESSION_ANNOTATIONS) return true
+        val host = node.findDeclaredAttributeValue("value") as? UInjectionHost ?: return true
+        val psi = host.psiLanguageInjectionHost
+        val valueRange = ElementManipulators.getValueTextRange(psi)
+        // blank out quoted text so an e-mail address in a literal is not read as a bean reference
+        val value = valueRange.substring(psi.text).replace(Regex("'[^']*'")) { " ".repeat(it.value.length) }
+        for (match in BEAN_REFERENCE.findAll(value)) {
+          val name = match.groupValues[1]
+          val meant = dev.phantom.spring.core.ide.SpringBeanNameTypos.nearMiss(holder.project, name) ?: continue
+          val start = valueRange.startOffset + match.groups[1]!!.range.first
+          holder.registerProblem(psi, TextRange(start, start + name.length),
+                                 dev.phantom.spring.core.PhantomSpringBundle.message("inspection.bean.name.typo.message", name, meant))
+        }
+        return true
+      }
+    }, arrayOf(UAnnotation::class.java), true)
+  }
+
+  companion object {
+    private val BEAN_REFERENCE = Regex("""(?<![\w.])@([A-Za-z_]\w*)""")
+  }
+}

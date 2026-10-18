@@ -98,3 +98,55 @@ class SpringDirtiesContextInspection : AbstractBaseUastLocalInspectionTool() {
   }
 
 }
+
+/**
+ * `@TestBean` whose factory method does not exist: a static, parameterless method named by `methodName` (or
+ * `Class#method`), by default the field's name, in the test class, its superclasses or enclosing classes. Kotlin
+ * companion functions count too, so a missing `@JvmStatic` is not reported.
+ */
+class SpringTestBeanFactoryInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
+    if (!SpringProjectGate.isSpringProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
+    return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
+      override fun visitField(node: UField): Boolean {
+        val annotation = node.findAnnotation(TEST_BEAN) ?: return true
+        val owner = node.javaPsi.let { it as? PsiField }?.containingClass ?: return true
+        val declared = annotation.findDeclaredAttributeValue("methodName")?.evaluateString()?.takeIf { it.isNotBlank() }
+        val found = if (declared != null && '#' in declared) {
+          val className = declared.substringBefore('#')
+          val psiClass = JavaPsiFacade.getInstance(holder.project).findClass(className, com.intellij.psi.search.GlobalSearchScope.allScope(holder.project))
+          psiClass == null || hasFactory(listOf(psiClass), declared.substringAfter('#'))
+        }
+        else {
+          val names = if (declared != null) listOf(declared) else listOf(node.name, node.name + "TestOverride")
+          names.any { hasFactory(searched(owner), it) }
+        }
+        if (found) return true
+        val name = declared ?: node.name
+        val anchor = annotation.sourcePsi ?: return true
+        holder.registerProblem(anchor, PhantomSpringBundle.message("inspection.test.bean.factory.message", name))
+        return true
+      }
+    }, arrayOf(UField::class.java), true)
+  }
+
+  private fun searched(owner: PsiClass): List<PsiClass> {
+    val result = LinkedHashSet<PsiClass>()
+    var c: PsiClass? = owner
+    while (c != null) {
+      result += c
+      InheritanceUtil.getSuperClasses(c, result, false)
+      c = c.containingClass
+    }
+    return result.toList()
+  }
+
+  private fun hasFactory(classes: List<PsiClass>, name: String): Boolean = classes.any { c ->
+    val candidates = c.findMethodsByName(name, false).toList() + c.innerClasses.filter { it.name == "Companion" }.flatMap { it.findMethodsByName(name, false).toList() }
+    candidates.any { it.parameterList.parametersCount == 0 }
+  }
+
+  companion object {
+    @NonNls const val TEST_BEAN: String = "org.springframework.test.context.bean.override.convention.TestBean"
+  }
+}

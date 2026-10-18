@@ -1,0 +1,5 @@
+<html>
+<body>
+Reports <code>@Component</code>, <code>@Service</code>, <code>@Controller</code>, <code>@Configuration</code> and (on abstract classes) <code>@Repository</code> on abstract classes and interfaces. Component scanning only registers concrete classes, so no bean is created. Abstract classes with <code>@Lookup</code> methods, and interfaces with any other annotation (MyBatis <code>@Mapper</code>, <code>@FeignClient</code>, <code>@HttpExchange</code>), are not reported.
+</body>
+</html>
