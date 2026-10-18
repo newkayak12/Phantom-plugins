@@ -1,0 +1,10 @@
+<html>
+<body>
+Reports injecting a bean by its class when that bean is a JDK dynamic proxy: Spring then exposes only the bean's
+interfaces, and startup fails with "the bean is of type $ProxyNN".
+<p>Only reported when interface-based proxies are chosen explicitly: with Spring Boot, <code>spring.aop.proxy-target-class=false</code>;
+without Boot, an <code>@Enable*</code> annotation (<code>@EnableTransactionManagement</code>, <code>@EnableAsync</code>,
+<code>@EnableCaching</code>, <code>@EnableAspectJAutoProxy</code>) with <code>proxyTargetClass = false</code> and none with
+<code>true</code>. The bean must be proxied (transactions, async, caching, retry) and implement an interface.</p>
+</body>
+</html>

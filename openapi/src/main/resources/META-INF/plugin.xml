@@ -24,6 +24,10 @@
                      bundle="messages.PhantomOpenApiBundle" key="ref.display.name"
                      groupBundle="messages.PhantomOpenApiBundle" groupKey="group.name"
                      implementationClass="dev.phantom.openapi.OpenApiRefInspection"/>
+    <localInspection enabledByDefault="true" level="WARNING" shortName="PhantomOpenApiSpecShape"
+                     bundle="messages.PhantomOpenApiBundle" key="shape.display.name"
+                     groupBundle="messages.PhantomOpenApiBundle" groupKey="group.name"
+                     implementationClass="dev.phantom.openapi.OpenApiSpecShapeInspection"/>
     <codeInsight.lineMarkerProvider language="yaml" implementationClass="dev.phantom.openapi.SpecOperationLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="JSON" implementationClass="dev.phantom.openapi.SpecOperationLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.openapi.EndpointSpecLineMarkerProvider"/>

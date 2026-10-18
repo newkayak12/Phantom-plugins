@@ -1,0 +1,10 @@
+<html>
+<body>
+Reports HTTP header names in Spring code that cannot be valid or that are one typo away from a standard header, such as
+<code>Content_Type</code>, <code>Authorisation</code> or <code>Acept</code>.
+<p>Checked: <code>@RequestHeader</code>, the <code>headers</code> of request mappings, <code>@CrossOrigin</code> allowed and
+exposed headers, and the header methods of <code>HttpHeaders</code>, <code>RestClient</code>, <code>WebClient</code>,
+<code>ResponseEntity</code>, MockMvc and the servlet request and response.</p>
+<p>Custom headers (<code>X-Tenant-Id</code>) and placeholders are not reported.</p>
+</body>
+</html>

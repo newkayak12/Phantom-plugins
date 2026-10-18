@@ -200,6 +200,22 @@
                      bundle="messages.PhantomSpringBundle" key="inspection.api.version.syntax.name"
                      groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
                      implementationClass="dev.phantom.spring.core.ide.SpringApiVersionSyntaxInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringHttpHeader"
+                     bundle="messages.PhantomSpringBundle" key="inspection.http.header.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringHttpHeaderInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringMediaType"
+                     bundle="messages.PhantomSpringBundle" key="inspection.http.media.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringMediaTypeInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringValueStyle"
+                     bundle="messages.PhantomSpringBundle" key="inspection.value.style.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringValueStyleInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringJdkProxyInjection"
+                     bundle="messages.PhantomSpringBundle" key="inspection.jdk.proxy.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringJdkProxyInjectionInspection"/>
   </extensions>
   <extensions defaultExtensionNs="com.intellij.microservices">
     <endpointsProvider implementation="dev.phantom.spring.core.ide.SpringMvcEndpointsProvider"/>

@@ -68,6 +68,10 @@
                      bundle="messages.PhantomDockerBundle" key="dockerfile.copy.paths.name"
                      groupBundle="messages.PhantomDockerBundle" groupKey="group.dockerfile"
                      implementationClass="dev.phantom.docker.dockerfile.DockerfileCopyPathsInspection"/>
+    <localInspection enabledByDefault="true" level="ERROR" shortName="PhantomDockerfileCopyHeredoc"
+                     bundle="messages.PhantomDockerBundle" key="dockerfile.heredoc.name"
+                     groupBundle="messages.PhantomDockerBundle" groupKey="group.dockerfile"
+                     implementationClass="dev.phantom.docker.dockerfile.DockerfileCopyHeredocInspection"/>
     <psi.referenceContributor language="yaml" implementation="dev.phantom.docker.compose.ComposeReferenceContributor"/>
     <gotoDeclarationHandler implementation="dev.phantom.docker.compose.ComposeGotoDeclarationHandler"/>
     <gotoDeclarationHandler implementation="dev.phantom.docker.dockerfile.DockerfileStageGotoDeclarationHandler"/>

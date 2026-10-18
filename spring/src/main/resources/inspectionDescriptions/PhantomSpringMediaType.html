@@ -1,0 +1,10 @@
+<html>
+<body>
+Reports media types in Spring code that do not parse as <code>type/subtype</code>, use a top-level type that does not
+exist, or are one typo away from a common type, such as <code>aplication/json</code> or <code>image/jpg</code>.
+<p>Checked: <code>produces</code> and <code>consumes</code> of request mappings, <code>MediaType.parseMediaType</code>
+and <code>valueOf</code>, <code>contentType(...)</code> and <code>accept(...)</code> of the HTTP clients and MockMvc, and
+<code>Content-Type</code>/<code>Accept</code> header values. Vendor types such as <code>application/vnd.acme+json</code>
+are fine.</p>
+</body>
+</html>

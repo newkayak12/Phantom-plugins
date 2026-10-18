@@ -200,3 +200,25 @@ class DockerfileCopyPathsInspection : DockerfileInspection() {
     return null
   }
 }
+
+/**
+ * Here-documents in `COPY`/`ADD` (`COPY <<EOF /etc/app.conf`): they need a destination after the heredoc, cannot be
+ * combined with `--from` (the content comes from the Dockerfile itself), and need Dockerfile syntax 1.4 or later,
+ * so a `# syntax=docker/dockerfile:1.3` (or older) directive makes BuildKit reject them.
+ */
+class DockerfileCopyHeredocInspection : DockerfileInspection() {
+  private val SYNTAX = Regex("""(?im)\A(?:\s*#[^\n]*\n)*?\s*#\s*syntax\s*=\s*(?:docker\.io/)?docker/dockerfile:(\d+)(?:\.(\d+))?([^\s]*)""")
+
+  override fun check(file: PsiFile, dockerfile: Dockerfile, report: (TextRange, String, ProblemHighlightType) -> Unit) {
+    val error = ProblemHighlightType.GENERIC_ERROR
+    val syntax = SYNTAX.find(file.text)
+    val tooOld = syntax != null && !syntax.groupValues[3].contains("labs") &&
+                 (syntax.groupValues[1].toInt() < 1 || (syntax.groupValues[1].toInt() == 1 && (syntax.groupValues[2].toIntOrNull() ?: 0) < 4))
+    for (ins in dockerfile.instructions) {
+      if (ins.upper !in setOf("COPY", "ADD") || ins.heredocs.isEmpty() || ins.isExecForm) continue
+      if (ins.operands.none { !it.startsWith("<<") }) report(ins.keywordRange, PhantomDockerBundle.message("dockerfile.heredoc.no.destination", ins.upper), error)
+      if (ins.flag("from") != null) report(ins.argsRange, PhantomDockerBundle.message("dockerfile.heredoc.from", ins.upper), error)
+      if (tooOld) report(ins.keywordRange, PhantomDockerBundle.message("dockerfile.heredoc.syntax", syntax!!.value.substringAfter(':').trim()), error)
+    }
+  }
+}

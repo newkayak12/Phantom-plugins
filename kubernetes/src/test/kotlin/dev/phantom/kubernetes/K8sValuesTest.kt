@@ -148,6 +148,39 @@ class K8sValuesTest : BasePlatformTestCase() {
     ).sorted(), problems())
   }
 
+  fun testKindsThatAreNeverStored() {
+    myFixture.enableInspections(K8sNonEditableResourceInspection::class.java)
+    myFixture.configureByText("review.yaml", """
+      apiVersion: authorization.k8s.io/v1
+      kind: SelfSubjectAccessReview
+      spec:
+        resourceAttributes:
+          verb: get
+      ---
+      apiVersion: v1
+      kind: Binding
+      metadata:
+        name: p
+      target:
+        name: node-1
+      ---
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: fine
+      ---
+      apiVersion: example.com/v1
+      kind: TokenReview
+      metadata:
+        name: custom-group-is-not-checked
+    """.trimIndent())
+    val notStored = problems().filter { it.contains("cannot be applied") }
+    assertEquals(listOf(
+      msg("k8s.kind.not.stored", "Binding", msg("k8s.kind.not.stored.subresource")),
+      msg("k8s.kind.not.stored", "SelfSubjectAccessReview", msg("k8s.kind.not.stored.review")),
+    ).sorted(), notStored)
+  }
+
   fun testHelmChart() {
     myFixture.configureByText("Chart.yaml", """
       apiVersion: v3

@@ -1,0 +1,13 @@
+<html>
+<body>
+Reports YAML and JSON files that look like an OpenAPI or Swagger document but are not read as one, and problems at the
+top level of documents that are:
+<ul>
+  <li><code>paths</code> and <code>info</code> at the top with a misspelled version key (<code>opeanpi:</code>,
+      <code>swager:</code>) or none at all;</li>
+  <li>a version no tool reads: <code>openapi</code> must be <code>3.x</code> or <code>3.x.y</code>, <code>swagger</code>
+      must be <code>2.0</code>;</li>
+  <li>top-level keys that are not fields of the document (weak warning); extensions starting with <code>x-</code> are fine.</li>
+</ul>
+</body>
+</html>
