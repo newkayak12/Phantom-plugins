@@ -51,6 +51,11 @@ class SpringBootRunConfiguration(name: String, project: Project, factory: Config
   /** Comma-separated, passed as `-Dspring.profiles.active`. */
   var activeProfiles: String = ""
 
+  override fun createAdditionalTabComponents(manager: AdditionalTabComponentManager, startedProcess: com.intellij.execution.process.ProcessHandler?) {
+    super.createAdditionalTabComponents(manager, startedProcess)
+    if (startedProcess != null) manager.addAdditionalTabComponent(ActuatorTab(startedProcess), "phantom.actuator")
+  }
+
   override fun getRunClass(): String? = ReadAction.compute<String?, RuntimeException> {
     val main = mainClass ?: return@compute mainClassName
     SpringBootApplications.launcherOf(main)?.let(JavaExecutionUtil::getRuntimeQualifiedName) ?: mainClassName

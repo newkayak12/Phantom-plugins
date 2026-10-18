@@ -88,6 +88,13 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
         foreground = UIUtil.getContextHelpForeground()
       })
     }
+    (outcomes.lastOrNull { it is DbOutcome.Rows } as? DbOutcome.Rows)?.let { shownResult ->
+      lateinit var link: ActionLink
+      link = ActionLink(PhantomDbBundle.message("db.run.export")) {
+        DbExportUi.show(project, link, shownResult, dataSource?.dbms ?: dev.phantom.db.core.Dbms.MYSQL)
+      }
+      top.add(link)
+    }
     top.add(JBLabel(SqlSafety.preview(outcomes.lastOrNull()?.sql.orEmpty())).apply { foreground = UIUtil.getContextHelpForeground() })
 
     val results = outcomes.filterIsInstance<DbOutcome.Rows>()

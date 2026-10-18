@@ -5,6 +5,7 @@
     <module name="intellij.java"/>
     <module name="intellij.java.execution"/>
     <module name="intellij.java.execution.impl"/>
+    <module name="intellij.libraries.gson"/>
   </dependencies>
   <extensions defaultExtensionNs="com.intellij">
     <configurationType implementation="dev.phantom.springboot.run.SpringBootConfigurationType"/>

@@ -25,7 +25,7 @@ import javax.swing.tree.TreePath
 class DbConsoleTest : BasePlatformTestCase() {
   companion object {
     init {
-      System.setProperty("idea.load.plugins.id", "dev.phantom.db")
+      System.setProperty("idea.load.plugins.id", "dev.phantom.db,org.jetbrains.kotlin")
     }
 
     /** The H2 driver from the local Gradle or Maven cache: the same lookup a data source without a chosen jar uses. */

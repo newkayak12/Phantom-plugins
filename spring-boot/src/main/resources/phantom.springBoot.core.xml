@@ -7,10 +7,12 @@
     <module name="intellij.platform.uast"/>
     <module name="intellij.java.indexing"/>
     <module name="intellij.libraries.gson"/>
+    <module name="intellij.platform.uast.ide"/>
   </dependencies>
   <resource-bundle>messages.PhantomSpringBootBundle</resource-bundle>
   <extensions defaultExtensionNs="com.intellij">
     <gotoDeclarationHandler implementation="dev.phantom.springboot.core.BootConfigGotoDeclarationHandler"/>
+    <psi.referenceContributor language="UAST" implementation="dev.phantom.springboot.core.ValuePlaceholderReferenceContributor"/>
     <localInspection enabledByDefault="true" level="WARNING" shortName="PhantomBootConfigKeys"
                      bundle="messages.PhantomSpringBootBundle" key="inspection.key.display.name"
                      groupBundle="messages.PhantomSpringBootBundle" groupKey="inspection.group.name"

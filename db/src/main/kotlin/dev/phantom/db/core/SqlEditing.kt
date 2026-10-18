@@ -133,7 +133,12 @@ class SqlCompletionContributor : CompletionContributor() {
 
   private fun cachedTables(file: PsiFile): List<DbTableRef> {
     val vFile = file.virtualFile ?: file.viewProvider.virtualFile
-    val dataSource = DbConsoles.dataSourceFor(file.project, vFile) ?: return emptyList()
+    // SQL injected into a Java or Kotlin string has no console of its own: use a data source whose schema is loaded
+    val dataSource = DbConsoles.dataSourceFor(file.project, vFile)
+                     ?: DbDataSourceService.getInstance(file.project).dataSources.takeIf {
+                       com.intellij.lang.injection.InjectedLanguageManager.getInstance(file.project).isInjectedFragment(file)
+                     }?.firstOrNull { DbMetadataCache.cachedTables(file.project, it.id).isNotEmpty() }
+                     ?: return emptyList()
     return DbMetadataCache.cachedTables(file.project, dataSource.id)
   }
 

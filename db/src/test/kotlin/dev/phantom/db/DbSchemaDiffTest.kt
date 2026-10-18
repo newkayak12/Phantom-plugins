@@ -11,7 +11,7 @@ import kotlinx.coroutines.runBlocking
 class DbSchemaDiffTest : BasePlatformTestCase() {
   companion object {
     init {
-      System.setProperty("idea.load.plugins.id", "dev.phantom.db")
+      System.setProperty("idea.load.plugins.id", "dev.phantom.db,org.jetbrains.kotlin")
     }
   }
 

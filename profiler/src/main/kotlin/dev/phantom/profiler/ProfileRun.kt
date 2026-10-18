@@ -93,6 +93,25 @@ object Recordings {
 
   fun take(profile: RunProfile): Path? = pending.remove(profile)
 
+  private val pendingDirs: MutableMap<RunProfile, Path> = Collections.synchronizedMap(WeakHashMap())
+
+  /** A folder for a run that forks several JVMs (Gradle tests): each writes its own recording into it. */
+  fun newDirectory(name: String): Path {
+    val file = newFile(name)
+    return file.resolveSibling(file.fileName.toString().removeSuffix(".jfr")).createDirectories()
+  }
+
+  fun expectDirectory(profile: RunProfile, dir: Path) {
+    pendingDirs[profile] = dir
+  }
+
+  fun takeDirectory(profile: RunProfile): Path? = pendingDirs.remove(profile)
+
+  /** The non-empty recordings in [dir], largest (usually the busiest JVM) first. */
+  fun recordingsIn(dir: Path): List<Path> =
+    if (!Files.isDirectory(dir)) emptyList()
+    else Files.list(dir).use { s -> s.filter { it.toString().endsWith(".jfr") && sizeOf(it) > 0 }.toList() }.sortedByDescending { sizeOf(it) }
+
   /** Saved recordings, newest first. */
   fun list(): List<Path> =
     if (!directory.exists()) emptyList()
@@ -112,6 +131,7 @@ object Recordings {
 class ProfileExecutionListener(private val project: Project) : ExecutionListener {
   override fun processTerminated(executorId: String, env: ExecutionEnvironment, handler: ProcessHandler, exitCode: Int) {
     if (executorId != ProfileExecutor.ID) return
+    Recordings.takeDirectory(env.runProfile)?.let { dir -> openFrom(dir, env); return }
     val file = Recordings.take(env.runProfile) ?: return
     ApplicationManager.getApplication().executeOnPooledThread {
       // the JVM writes the file in a shutdown hook; it is complete by the time the process is gone, give the FS a moment
@@ -122,6 +142,20 @@ class ProfileExecutionListener(private val project: Project) : ExecutionListener
         else Recordings.notify(project, PhantomProfilerBundle.message("run.no.recording", env.runProfile.name))
       }, { project.isDisposed })
     }
+  }
+}
+
+/** A Gradle run's recordings: the three largest are opened, the folder keeps all of them. */
+private fun ProfileExecutionListener.openFrom(dir: Path, env: ExecutionEnvironment) {
+  val project = env.project
+  ApplicationManager.getApplication().executeOnPooledThread {
+    var waited = 0
+    var files = Recordings.recordingsIn(dir)
+    while (files.isEmpty() && waited++ < 30) { Thread.sleep(100); files = Recordings.recordingsIn(dir) }
+    ApplicationManager.getApplication().invokeLater({
+      if (files.isEmpty()) Recordings.notify(project, PhantomProfilerBundle.message("run.no.recording", env.runProfile.name))
+      else files.take(3).forEach { Recordings.open(project, it) }
+    }, { project.isDisposed })
   }
 }
 

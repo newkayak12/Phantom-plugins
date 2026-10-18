@@ -124,6 +124,10 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       Separator.getInstance(),
       action("db.action.refresh.text", AllIcons.Actions.Refresh) { refresh() },
       action("db.action.console.text", AllIcons.Debugger.Console, { selectedSource() != null }) { selectedSource()?.let { openConsole(it, null) } },
+      ActionManager.getInstance().getAction("PhantomDb.ShowHistory"),
+      action("db.action.entity.text", AllIcons.Nodes.Class, { selectedNode() is DbNode.Table }) {
+        (selectedNode() as? DbNode.Table)?.let { DbEntityGenerator.start(project, it.dataSource, it.ref) }
+      },
       action("db.action.compare.text", AllIcons.Actions.Diff, { selectedNode() is DbNode.Schema }) {
         (selectedNode() as? DbNode.Schema)?.let { DbSchemaCompare.chooseAndCompare(project, DbSchemaSide(it.dataSource, it.ref), tree) }
       },

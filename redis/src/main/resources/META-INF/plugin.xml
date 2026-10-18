@@ -1,0 +1,21 @@
+<idea-plugin>
+  <id>dev.phantom.redis</id>
+  <name>Phantom Redis</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Database</category>
+  <description><![CDATA[
+  A Redis browser and console for Phantom IDEA: keys found with SCAN and a pattern (never KEYS *), values of every
+  type (strings with JSON indented, hashes, lists, sets, sorted sets, streams), delete, and a command line with
+  redis-cli style output and history. Speaks the Redis protocol itself, with password, ACL user, database and TLS.
+  The connection opens only while the Redis tool window is shown.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+  </dependencies>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <toolWindow id="Redis" anchor="right" secondary="false" icon="/icons/phantom/redis.svg" doNotActivateOnStart="true"
+                factoryClass="dev.phantom.redis.RedisToolWindowFactory"/>
+  </extensions>
+</idea-plugin>

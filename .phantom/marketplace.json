@@ -9,9 +9,9 @@
     {
       "id": "dev.phantom.db",
       "name": "Phantom Database Console",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "source": "db",
-      "description": "Connect to MySQL, PostgreSQL or H2 over JDBC and run SQL from the editor: highlighting, Ctrl+Enter to run the statement at the caret, a sortable result grid and a lazily loaded schema tree. Drivers come from the project's dependencies or the local Gradle/Maven cache. Manual-commit data sources keep changes in an open transaction you review, commit or roll back in the Database Changes tool window. Edit single-table results in the grid, and compare two schemas with the SQL to make them match.",
+      "description": "Connect to MySQL, PostgreSQL or H2 over JDBC and run SQL from the editor: highlighting, Ctrl+Enter to run the statement at the caret, a sortable result grid and a lazily loaded schema tree. Drivers come from the project's dependencies or the local Gradle/Maven cache. Manual-commit data sources keep changes in an open transaction you review, commit or roll back in the Database Changes tool window. Edit single-table results in the grid, and compare two schemas with the SQL to make them match. SQL in @Query(nativeQuery = true), @NativeQuery and JdbcTemplate/JdbcClient strings is highlighted and completed. Query history (Ctrl+Alt+E), result export to CSV, TSV, JSON, SQL INSERT or Markdown, and JPA entity generation from a table.",
       "vendor": "Phantom",
       "category": "Database",
       "since": "262",
@@ -20,7 +20,7 @@
         "com.intellij.modules.lang",
         "intellij.grid.core.plugin"
       ],
-      "download": "db-0.3.0/db-0.3.0.zip",
+      "download": "db-0.4.0/db-0.4.0.zip",
       "detect": [
         "com.mysql:mysql-connector-j",
         "mysql:mysql-connector-java",
@@ -53,9 +53,9 @@
     {
       "id": "dev.phantom.spring.boot",
       "name": "Phantom Spring Boot",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "source": "spring-boot",
-      "description": "Spring Boot support: File → New → Project → Spring Boot generates projects with Spring Initializr, and application*.yml / application*.properties get completion and quick documentation for keys and values, from library metadata and the project's own @ConfigurationProperties, in Java and Kotlin.",
+      "description": "Spring Boot support: File → New → Project → Spring Boot generates projects with Spring Initializr, and application*.yml / application*.properties get completion and quick documentation for keys and values, from library metadata and the project's own @ConfigurationProperties, in Java and Kotlin. An Actuator tab beside the console of a running app (health, beans, mappings, environment, polled only while shown), and completion and Ctrl+B for ${...} placeholders in @Value from the project's application.yml/properties and Spring Boot metadata.",
       "vendor": "Phantom",
       "category": "Frameworks",
       "since": "262",
@@ -64,7 +64,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-boot-0.3.0/spring-boot-0.3.0.zip",
+      "download": "spring-boot-0.4.0/spring-boot-0.4.0.zip",
       "detect": [
         "org.springframework.boot:spring-boot",
         "org.springframework.boot:spring-boot-autoconfigure"
@@ -73,9 +73,9 @@
     {
       "id": "dev.phantom.jpa",
       "name": "Phantom JPA",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "source": "jpa",
-      "description": "JPA, Hibernate and Spring Data JPA for Java and Kotlin: JPQL in @Query with completion and errors, derived query method checks, a @Modifying check, entity mapping checks, and repository/entity gutter navigation.",
+      "description": "JPA, Hibernate and Spring Data JPA for Java and Kotlin: JPQL in @Query with completion and errors, derived query method checks, a @Modifying check, entity mapping checks, and repository/entity gutter navigation. An Entity Diagram tool window: entities, columns and relations drawn from the code, copyable as a Mermaid erDiagram.",
       "vendor": "Phantom",
       "category": "Frameworks",
       "since": "262",
@@ -84,7 +84,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "jpa-0.1.0/jpa-0.1.0.zip",
+      "download": "jpa-0.2.0/jpa-0.2.0.zip",
       "detect": [
         "org.springframework.data:spring-data-jpa",
         "org.hibernate.orm:hibernate-core",
@@ -158,9 +158,9 @@
     {
       "id": "dev.phantom.profiler",
       "name": "Phantom Profiler",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "source": "profiler",
-      "description": "CPU and allocation profiling for Java and Kotlin with Java Flight Recorder: a Profile action next to Run and Debug, a Profiler tool window that records any running JVM, and a .jfr viewer with flame graph, call tree, hot methods, allocations and GC summary.",
+      "description": "CPU and allocation profiling for Java and Kotlin with Java Flight Recorder: a Profile action next to Run and Debug, a Profiler tool window that records any running JVM, and a .jfr viewer with flame graph, call tree, hot methods, allocations and GC summary. Profile also works on Gradle run configurations: tests run by Gradle and applications delegated to Gradle, one recording per forked JVM.",
       "vendor": "Phantom",
       "category": "Profiling",
       "since": "262",
@@ -169,7 +169,71 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "profiler-0.1.0/profiler-0.1.0.zip"
+      "download": "profiler-0.2.0/profiler-0.2.0.zip"
+    },
+    {
+      "id": "dev.phantom.docker",
+      "name": "Phantom Docker",
+      "version": "0.1.0",
+      "source": "docker",
+      "description": "Docker Compose through the docker CLI: run icons on compose services, a Docker Compose run configuration shown in Services, and a Docker tool window listing containers by compose project with start, stop, restart, remove, logs and compose down. Polls only while open.",
+      "vendor": "Phantom",
+      "since": "262",
+      "until": "262.*",
+      "category": "Cloud",
+      "depends": [
+        "com.intellij.modules.lang",
+        "org.jetbrains.plugins.yaml"
+      ],
+      "download": "docker-0.1.0/docker-0.1.0.zip",
+      "detectFiles": [
+        "compose.yaml",
+        "compose.yml",
+        "docker-compose.yml",
+        "docker-compose.yaml",
+        "Dockerfile"
+      ]
+    },
+    {
+      "id": "dev.phantom.redis",
+      "name": "Phantom Redis",
+      "version": "0.1.0",
+      "source": "redis",
+      "description": "A Redis browser and console: keys by SCAN pattern, values of every type with JSON indented, delete, and a redis-cli style command line with history. Password, ACL user, database and TLS. Connects only while the Redis tool window is shown.",
+      "vendor": "Phantom",
+      "since": "262",
+      "until": "262.*",
+      "category": "Database",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "redis-0.1.0/redis-0.1.0.zip",
+      "detect": [
+        "org.springframework.data:spring-data-redis",
+        "io.lettuce:lettuce-core",
+        "redis.clients:jedis",
+        "org.redisson:redisson"
+      ]
+    },
+    {
+      "id": "dev.phantom.kafka",
+      "name": "Phantom Kafka",
+      "version": "0.1.0",
+      "source": "kafka",
+      "description": "A Kafka browser: topics with partitions and offsets, latest/earliest/since-time messages read without joining a group, sending with key, headers and partition, consumer group lag, create and delete topics. SASL/SSL via client properties in the password safe.",
+      "vendor": "Phantom",
+      "since": "262",
+      "until": "262.*",
+      "category": "Cloud",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "kafka-0.1.0/kafka-0.1.0.zip",
+      "detect": [
+        "org.apache.kafka:kafka-clients",
+        "org.springframework.kafka:spring-kafka",
+        "io.projectreactor.kafka:reactor-kafka"
+      ]
     }
   ]
 }

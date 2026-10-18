@@ -8,6 +8,8 @@
   a Profile action next to Run and Debug that opens the recording when the program ends, a Profiler tool window that
   starts and stops recording in any running JVM, and a viewer for .jfr files with a flame graph, call tree, hot
   methods, allocations by class and GC summary. Double-click a frame to open its source. Nothing runs until you profile.
+  Profile also works on Gradle run configurations: tests run by Gradle and applications delegated to Gradle get one
+  recording per forked JVM.
   ]]></description>
 
   <dependencies>
@@ -18,6 +20,10 @@
     <module name="intellij.java.execution"/>
     <module name="intellij.java.execution.impl"/>
   </dependencies>
+
+  <content>
+    <module name="phantom.profiler.gradle"/>
+  </content>
 
   <resource-bundle>messages.PhantomProfilerBundle</resource-bundle>
   <extensions defaultExtensionNs="com.intellij">

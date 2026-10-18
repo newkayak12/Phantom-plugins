@@ -6,7 +6,8 @@
   <description><![CDATA[
   JPA, Hibernate and Spring Data JPA support for Phantom IDEA:  and entity mapping checks, repository/entity navigation, JPQL inside Spring Data @Query and @NamedQuery (also through
   const val / static final constants), with highlighting, entity and attribute navigation, completion
-  and unresolved-name errors. Works for Java and Kotlin. Does nothing in projects without JPA.
+  and unresolved-name errors. The Entity Diagram tool window draws entities and their relations, and copies them as a
+  Mermaid erDiagram. Works for Java and Kotlin. Does nothing in projects without JPA.
   ]]></description>
 
   <dependencies>

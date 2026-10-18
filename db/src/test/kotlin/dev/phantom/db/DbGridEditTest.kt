@@ -15,7 +15,7 @@ import java.sql.Types
 class DbGridEditTest : BasePlatformTestCase() {
   companion object {
     init {
-      System.setProperty("idea.load.plugins.id", "dev.phantom.db")
+      System.setProperty("idea.load.plugins.id", "dev.phantom.db,org.jetbrains.kotlin")
     }
   }
 

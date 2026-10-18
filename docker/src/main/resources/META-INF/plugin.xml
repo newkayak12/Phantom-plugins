@@ -1,0 +1,28 @@
+<idea-plugin>
+  <id>dev.phantom.docker</id>
+  <name>Phantom Docker</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Cloud</category>
+  <description><![CDATA[
+  Docker Compose for Phantom IDEA through the docker command line: run icons on a compose file's services start
+  the whole file or one service with docker compose up, in a Docker Compose run configuration that also shows in
+  the Services tool window. The Docker tool window lists containers grouped by compose project, refreshed only while
+  it is open, with start, stop, restart, remove, logs and compose down. Works with Docker Desktop, OrbStack, Colima
+  or any docker CLI.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+    <plugin id="org.jetbrains.plugins.yaml"/>
+  </dependencies>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <configurationType implementation="dev.phantom.docker.ComposeConfigurationType"/>
+    <runConfigurationProducer implementation="dev.phantom.docker.ComposeRunProducer"/>
+    <runLineMarkerContributor language="yaml" implementationClass="dev.phantom.docker.ComposeRunLineMarkerContributor"/>
+    <runDashboardDefaultTypesProvider implementation="dev.phantom.docker.ComposeDashboardTypes"/>
+    <toolWindow id="Docker" anchor="bottom" secondary="false" icon="/icons/phantom/docker.svg" doNotActivateOnStart="true"
+                factoryClass="dev.phantom.docker.DockerToolWindowFactory"/>
+    <notificationGroup id="Phantom Docker" displayType="BALLOON"/>
+  </extensions>
+</idea-plugin>

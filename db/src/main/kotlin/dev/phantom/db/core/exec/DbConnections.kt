@@ -221,6 +221,7 @@ object DbExecutor {
       for (sql in statements) {
         val outcome = runOne(connection, dataSource, sql)
         outcomes.addAll(outcome)
+        outcome.forEach { DbQueryHistory.getInstance(project).record(dataSource, it) }
         outcome.forEach { onOutcome(it) }
         if (outcome.any { it is DbOutcome.Failed }) break
         if (outcome.any { it is DbOutcome.Updated } && SqlSafety.isDdl(sql)) {

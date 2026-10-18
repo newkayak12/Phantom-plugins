@@ -4,11 +4,12 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.0"
+version = "0.2.0"
 
 dependencies {
   intellijPlatform {
     bundledPlugin("com.intellij.java")
+    bundledPlugin("com.intellij.gradle")
     testFramework(TestFrameworkType.Plugin.Java, providers.gradleProperty("platformTestBuild"))
   }
 }
