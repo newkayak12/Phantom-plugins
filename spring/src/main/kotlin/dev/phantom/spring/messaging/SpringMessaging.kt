@@ -130,7 +130,7 @@ internal object MessagingModel {
     }
     return annotated.uAnnotations.flatMap { annotation ->
       val (broker, attributes) = LISTENERS[annotation.qualifiedName] ?: return@flatMap emptyList()
-      attributes.flatMap { strings(annotation.findDeclaredAttributeValue(it)) }.distinct()
+      attributes.flatMap { strings(annotation.findDeclaredAttributeValue(it)) }.map { ConfigPlaceholders.resolve(declaration.sourcePsi ?: anchor, it) }.distinct()
         .map { MessagingSite(broker, it, false, pointer(anchor), label) }
     }
   }
@@ -139,8 +139,8 @@ internal object MessagingModel {
     val index = sender.channelIndex(call.valueArgumentCount) ?: return null
     val argument = call.getArgumentForParameter(index) ?: call.valueArguments.getOrNull(index) ?: return null
     if (argument.getExpressionType()?.canonicalText != "java.lang.String") return null
-    val channel = argument.evaluateString() ?: return null
     val anchor = anchorOf(call) ?: return null
+    val channel = argument.evaluateString()?.let { ConfigPlaceholders.resolve(anchor, it) } ?: return null
     return MessagingSite(sender.broker, channel, true, pointer(anchor), location(call))
   }
 
@@ -303,5 +303,71 @@ class MessagingCompletionContributor : CompletionContributor() {
                             (parent.methodName in MessagingModel.CALL_NAMES || parent.classReference?.resolvedName == "ProducerRecord")
       else -> false
     }
+  }
+}
+
+/**
+ * `${kafka.topic.order}` in a listener or sender: the value from the project's `application*.properties` or
+ * `application*.yml` (all profiles; the first file that has the key wins), or the `:default`. Left as written when
+ * the key is in no file, so the same placeholder on both sides still pairs up.
+ */
+internal object ConfigPlaceholders {
+  private val PLACEHOLDER = Regex("""\$\{([^}:]+)(?::([^}]*))?}""")
+
+  fun resolve(context: PsiElement, value: String): String {
+    if (!value.contains("\${")) return value
+    val properties = properties(context.project)
+    var unresolved = false
+    val resolved = PLACEHOLDER.replace(value) { match ->
+      properties[match.groupValues[1].trim()] ?: match.groups[2]?.value ?: run { unresolved = true; match.value }
+    }
+    return if (unresolved) value else resolved
+  }
+
+  fun properties(project: Project): Map<String, String> = CachedValuesManager.getManager(project).getCachedValue(project) {
+    CachedValueProvider.Result.create(read(project), PsiModificationTracker.getInstance(project))
+  }
+
+  private fun read(project: Project): Map<String, String> {
+    val scope = GlobalSearchScope.projectScope(project)
+    val extensions = listOf("properties", "yml", "yaml")
+    val base = listOf("application", "bootstrap").flatMap { name -> extensions.map { "$name.$it" } }
+      .flatMap { com.intellij.psi.search.FilenameIndex.getVirtualFilesByName(it, scope) }
+    // profile files (application-local.yml) sit next to the base file
+    val profiles = base.mapNotNull { it.parent }.distinct().flatMap { dir ->
+      dir.children.filter { it.name.startsWith("application-") && it.extension in extensions }.sortedBy { it.name }
+    }
+    val files = base + profiles
+    val result = LinkedHashMap<String, String>()
+    for (file in files) {
+      val text = runCatching { com.intellij.openapi.vfs.VfsUtilCore.loadText(file) }.getOrNull() ?: continue
+      val entries = if (file.extension == "properties") readProperties(text) else readYaml(text)
+      for ((key, value) in entries) result.putIfAbsent(key, value)
+    }
+    return result
+  }
+
+  private fun readProperties(text: String): Map<String, String> =
+    java.util.Properties().apply { runCatching { load(java.io.StringReader(text)) } }.entries.associate { it.key.toString() to it.value.toString() }
+
+  /** Nested mappings flattened to dotted keys; lists and multi-line values are skipped. */
+  fun readYaml(text: String): Map<String, String> {
+    val result = LinkedHashMap<String, String>()
+    val path = ArrayList<Pair<Int, String>>()
+    for (raw in text.lines()) {
+      val line = raw.substringBefore(" #").trimEnd()
+      if (line.isBlank() || line.trimStart().startsWith("#") || line.startsWith("---")) { if (line.startsWith("---")) path.clear(); continue }
+      val indent = line.length - line.trimStart().length
+      val content = line.trim()
+      if (content.startsWith("- ")) continue
+      val colon = Regex("""^([^:'"]+|'[^']*'|"[^"]*"):(\s+|$)""").find(content) ?: continue
+      val key = colon.groupValues[1].trim().trim('"', '\'')
+      while (path.isNotEmpty() && path.last().first >= indent) path.removeAt(path.lastIndex)
+      val value = content.substring(colon.range.last + 1).trim()
+      val full = (path.map { it.second } + key).joinToString(".")
+      if (value.isEmpty()) path += indent to key
+      else if (!value.startsWith("|") && !value.startsWith(">")) result[full] = value.trim('"', '\'')
+    }
+    return result
   }
 }

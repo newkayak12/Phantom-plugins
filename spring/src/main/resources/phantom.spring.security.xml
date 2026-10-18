@@ -9,5 +9,9 @@
                      bundle="messages.PhantomSpringBundle" key="security.inspection.display.name"
                      groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
                      implementationClass="dev.phantom.spring.security.MethodSecurityExpressionInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomMethodSecurityDisabled"
+                     bundle="messages.PhantomSpringBundle" key="security.disabled.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.security.MethodSecurityDisabledInspection"/>
   </extensions>
 </idea-plugin>

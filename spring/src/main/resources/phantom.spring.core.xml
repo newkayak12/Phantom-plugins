@@ -61,6 +61,18 @@
                      implementationClass="dev.phantom.spring.core.ide.SpringDirtiesContextInspection"/>
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringEventLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringEventLineMarkerProvider"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomMvcPathVariable"
+                     bundle="messages.PhantomSpringBundle" key="mvc.path.variable.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringMvcPathVariableInspection"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringEndpointLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringEndpointLineMarkerProvider"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomAopPointcut"
+                     bundle="messages.PhantomSpringBundle" key="aop.pointcut.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.AopPointcutInspection"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.AopAdviceLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.AopAdviceLineMarkerProvider"/>
     <psi.referenceContributor language="UAST" implementation="dev.phantom.spring.core.ide.SpringBeanNameReferenceContributor"/>
     <toolWindow id="Spring Beans" anchor="right" secondary="true" icon="/icons/phantom/toolwindow/springBeans.svg"
                 factoryClass="dev.phantom.spring.core.ide.SpringBeansToolWindowFactory"/>
