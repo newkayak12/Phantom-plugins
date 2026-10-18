@@ -59,6 +59,30 @@
                      bundle="messages.PhantomSpringBundle" key="inspection.dirties.context.name"
                      groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
                      implementationClass="dev.phantom.spring.core.ide.SpringDirtiesContextInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringValuePlaceholder"
+                     bundle="messages.PhantomSpringBundle" key="inspection.value.placeholder.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringValuePlaceholderInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringElSyntax"
+                     bundle="messages.PhantomSpringBundle" key="inspection.spel.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringElSyntaxInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringCacheNames"
+                     bundle="messages.PhantomSpringBundle" key="inspection.cache.names.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringCacheNamesInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WEAK WARNING" shortName="PhantomSpringCacheOnInterface"
+                     bundle="messages.PhantomSpringBundle" key="inspection.cache.interface.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringCacheOnInterfaceInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringQualifierUnresolved"
+                     bundle="messages.PhantomSpringBundle" key="inspection.qualifier.typo.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringQualifierUnresolvedInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringDependsOnUnresolved"
+                     bundle="messages.PhantomSpringBundle" key="inspection.depends.on.typo.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringDependsOnUnresolvedInspection"/>
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringEventLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringEventLineMarkerProvider"/>
     <psi.referenceContributor language="UAST" implementation="dev.phantom.spring.core.ide.SpringBeanNameReferenceContributor"/>
