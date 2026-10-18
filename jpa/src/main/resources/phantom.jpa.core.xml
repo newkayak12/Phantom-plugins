@@ -29,6 +29,22 @@
                      bundle="messages.PhantomJpaBundle" key="modifying.inspection.display.name"
                      groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.name"
                      implementationClass="dev.phantom.jpa.core.ModifyingQueryInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomJpaAttribute"
+                     bundle="messages.PhantomJpaBundle" key="attribute.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.JpaAttributeInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomKotlinJpaEntity"
+                     bundle="messages.PhantomJpaBundle" key="kotlin.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.KotlinJpaEntityInspection"/>
+    <localInspection language="JAVA" enabledByDefault="true" level="WARNING" shortName="PhantomLombokEntity"
+                     bundle="messages.PhantomJpaBundle" key="lombok.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.LombokEntityInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomRepositoryMethod"
+                     bundle="messages.PhantomJpaBundle" key="repository.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.jpa.core.RepositoryMethodInspection"/>
     <toolWindow id="Entity Diagram" anchor="right" secondary="false" icon="AllIcons.Nodes.DataTables" doNotActivateOnStart="true"
                 factoryClass="dev.phantom.jpa.core.EntityDiagramToolWindowFactory"/>
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.jpa.core.JpaRepositoryLineMarkerProvider"/>

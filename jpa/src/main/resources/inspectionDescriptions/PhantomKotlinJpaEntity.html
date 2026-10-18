@@ -1,0 +1,6 @@
+<html><body>
+Reports Kotlin entities that clash with the compiler plugins the module's Gradle build applies: final entities without
+<code>allOpen</code>, missing no-argument constructors without <code>kotlin("plugin.jpa")</code>, redundant <code>open</code> and constructors,
+<code>data class</code> entities, <code>val</code> attributes and read-only collection types on associations.
+Silent in modules without a Gradle build script.
+</body></html>
