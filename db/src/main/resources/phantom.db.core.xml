@@ -74,6 +74,14 @@
                      enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUsingColumnsInspection"/>
     <localInspection language="SQL" shortName="PhantomSqlNotNullColumnTest" key="inspection.PhantomSqlNotNullColumnTest" groupKey="inspection.group.sql"
                      enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlNotNullColumnTestInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlAutoIncrementDuplicate" key="inspection.PhantomSqlAutoIncrementDuplicate" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="ERROR" implementationClass="dev.phantom.db.core.SqlAutoIncrementDuplicateInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlFunctionSpace" key="inspection.PhantomSqlFunctionSpace" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlFunctionSpaceInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlInsertIntoGeneratedColumn" key="inspection.PhantomSqlInsertIntoGeneratedColumn" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="ERROR" implementationClass="dev.phantom.db.core.SqlInsertIntoGeneratedColumnInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlMisleadingReference" key="inspection.PhantomSqlMisleadingReference" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlMisleadingReferenceInspection"/>
     <lang.formatter language="SQL" implementationClass="dev.phantom.db.core.SqlFormattingModelBuilder"/>
     <lang.findUsagesProvider language="SQL" implementationClass="dev.phantom.db.core.SqlFindUsagesProvider"/>
     <runLineMarkerContributor language="SQL" implementationClass="dev.phantom.db.core.exec.SqlRunLineMarkerContributor"/>

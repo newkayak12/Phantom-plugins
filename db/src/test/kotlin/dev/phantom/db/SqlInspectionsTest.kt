@@ -23,12 +23,13 @@ class SqlInspectionsTest : BasePlatformTestCase() {
       SqlNullComparisonInspection::class.java, SqlConstantConditionInspection::class.java, SqlAggregateMisuseInspection::class.java,
       SqlRedundantCoalesceInspection::class.java, SqlRedundantLimitInspection::class.java, SqlUnusedSubqueryItemInspection::class.java,
       SqlDuplicateColumnInspection::class.java, SqlOrderByPositionInspection::class.java, SqlAddNotNullColumnInspection::class.java,
-      SqlDeprecatedTypeInspection::class.java,
+      SqlDeprecatedTypeInspection::class.java, SqlAutoIncrementDuplicateInspection::class.java, SqlFunctionSpaceInspection::class.java,
     )
     val SCHEMA: List<Class<out LocalInspectionTool>> = listOf(
       SqlAmbiguousColumnInspection::class.java, SqlInsertNullIntoNotNullInspection::class.java,
       SqlStringLengthExceededInspection::class.java, SqlTypeMismatchInspection::class.java,
       SqlUsingColumnsInspection::class.java, SqlNotNullColumnTestInspection::class.java,
+      SqlInsertIntoGeneratedColumnInspection::class.java, SqlMisleadingReferenceInspection::class.java,
     )
   }
 
@@ -229,6 +230,56 @@ class SqlInspectionsTest : BasePlatformTestCase() {
     }
     assertEquals(listOf("AddNotNullColumn: ADD COLUMN c"), findings(ddl, pg))
     assertEquals(listOf("DeprecatedType: (11)", "DeprecatedType: (20)", "DeprecatedType: ZEROFILL", "DeprecatedType: (7,2)"), findings(ddl, mysql))
+  }
+
+  fun testAutoIncrementAndMysqlFunctionSpace() {
+    assertEquals(listOf("AutoIncrementDuplicate: AUTO_INCREMENT"),
+                 findings("CREATE TABLE t (id BIGINT AUTO_INCREMENT PRIMARY KEY, seq INT AUTO_INCREMENT, n INT) AUTO_INCREMENT = 10;"))
+    assertEmpty(findings("CREATE TABLE t (id BIGINT AUTO_INCREMENT PRIMARY KEY, n INT) AUTO_INCREMENT = 10;"))
+
+    val query = "SELECT COUNT (*), MAX(id), NOW (), my_func (1), t.sum (2) FROM t;"
+    // the space only matters to MySQL
+    assertEmpty(findings(query))
+    val mysql = DbDataSource().apply { name = "my"; dbms = Dbms.MYSQL; url = "jdbc:mysql://127.0.0.1:1/none"; user = "x" }
+    DbDataSourceService.getInstance(project).save(mysql, CharArray(0))
+    dataSources.add(mysql)
+    assertEquals(listOf("FunctionSpace: COUNT (", "FunctionSpace: NOW ("), findings(query, mysql))
+    findings("SELECT COUNT (*) FROM t;", mysql)
+    applyFix(PhantomDbBundle.message("sql.fix.remove.space"))
+    myFixture.checkResult("SELECT COUNT(*) FROM t;")
+  }
+
+  fun testGeneratedColumnsAndMisleadingReferencesOnH2() {
+    val ds = DbDataSource().apply {
+      name = "shop"
+      dbms = Dbms.H2
+      url = "jdbc:h2:mem:sql_gen_${System.nanoTime()};DB_CLOSE_DELAY=-1"
+      user = "sa"
+    }
+    DbDataSourceService.getInstance(project).save(ds, CharArray(0))
+    dataSources.add(ds)
+    runBlocking {
+      DbExecutor.execute(project, ds, listOf(
+        "CREATE TABLE item (id BIGINT AUTO_INCREMENT PRIMARY KEY, price INT, total INT GENERATED ALWAYS AS (price * 2))",
+        "CREATE TABLE orders (order_no BIGINT PRIMARY KEY, item_id BIGINT)",
+      ))
+      SqlSchema.getInstance(project).load(ds)!!.let { snapshot ->
+        for (name in listOf("item", "orders")) {
+          val table = snapshot.find(name, null).single()
+          DbMetadataCache.getInstance(project).columns(ds, table)
+          DbObjectCache.getInstance(project).columnDetails(ds, table)
+        }
+      }
+    }
+    assertEquals(listOf("InsertIntoGeneratedColumn: total"), findings("INSERT INTO item (price, total) VALUES (1, 2);", ds))
+    assertEmpty(findings("INSERT INTO item (id, price) VALUES (1, 2); INSERT INTO item (price, total) VALUES (1, DEFAULT);", ds))
+
+    assertEquals(listOf("MisleadingReference: id"), findings("SELECT * FROM item i WHERE i.id IN (SELECT id FROM orders);", ds))
+    applyFix(PhantomDbBundle.message("sql.fix.qualify", "i"))
+    myFixture.checkResult("SELECT * FROM item i WHERE i.id IN (SELECT i.id FROM orders);")
+    assertEmpty(findings("SELECT * FROM item i WHERE i.id IN (SELECT item_id FROM orders); " +
+                         "SELECT * FROM item WHERE EXISTS (SELECT 1 FROM orders o WHERE o.item_id = item.id); " +
+                         "SELECT * FROM item WHERE id IN (SELECT x FROM (SELECT 1 x) d);", ds))
   }
 
   fun testQuickFixes() {

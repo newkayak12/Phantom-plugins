@@ -5,6 +5,7 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
+import com.intellij.psi.util.PsiTreeUtil
 import dev.phantom.db.core.exec.DbColumnDetail
 import dev.phantom.db.core.exec.DbColumnInfo
 
@@ -242,5 +243,47 @@ object SqlLiterals {
       }
     }
     return out.toString()
+  }
+}
+
+/** A value written into a generated (computed) column, which the database rejects; `DEFAULT` is allowed. */
+class SqlInsertIntoGeneratedColumnInspection : SqlSchemaInspection() {
+  override fun checkStatement(statement: SqlStatement, holder: ProblemsHolder) {
+    val insert = SqlQueries.insert(statement) ?: return
+    val tableRef = insert.target ?: return
+    val target = tableOf(tableRef) ?: return
+    val details = SqlSchema.getInstance(statement.project).columnDetails(target.dataSource, target.table) ?: return
+    for ((i, column) in insert.columns.withIndex()) {
+      val detail = details.firstOrNull { SqlNames.same(it.name, column.name) } ?: continue
+      if (!detail.generated || detail.autoIncrement) continue
+      // VALUES (DEFAULT) in every row is accepted
+      if (insert.select == null && insert.rows.isNotEmpty() && insert.rows.all { it.values.getOrNull(i)?.singleOrNull()?.isKeyword("DEFAULT") == true }) continue
+      holder.registerProblem(column.element, PhantomDbBundle.message("sql.inspection.insert.generated", detail.name))
+    }
+  }
+}
+
+/**
+ * An unqualified column in a subquery that none of the subquery's own tables has, so it silently refers to a table of
+ * the outer query: `WHERE id IN (SELECT id FROM orders)` when orders has no `id` compares the outer id with itself.
+ */
+class SqlMisleadingReferenceInspection : SqlSchemaInspection() {
+  override fun checkQuery(query: SqlScope, items: List<SqlItem>, holder: ProblemsHolder) {
+    if (query !is SqlSubquery) return
+    val own = SqlScopes.direct(query, SqlTableRef::class.java)
+    // a derived table or table function: its columns are not known
+    if (own.isEmpty() || SqlScopes.direct(query, SqlAlias::class.java).any { it.table == null }) return
+    val ownTargets = own.map { tableOf(it) ?: return }.map { it.dataSource.id to it.table }.toSet()
+    for (item in items) {
+      val ref = item.element as? SqlColumnRef ?: continue
+      if (ref.qualifier != null || ref.isInsertColumn) continue
+      val target = (SqlResolver.column(ref) as? SqlResolution.Found)?.target as? SqlDbTarget ?: continue
+      if ((target.dataSource.id to target.table) in ownTargets) continue
+      val outer = PsiTreeUtil.findChildrenOfType(PsiTreeUtil.getParentOfType(query, SqlStatement::class.java), SqlTableRef::class.java)
+        .firstOrNull { !PsiTreeUtil.isAncestor(query, it, false) && tableOf(it)?.let { t -> t.dataSource.id == target.dataSource.id && t.table == target.table } == true }
+      val name = outer?.let { it.alias?.name ?: it.tableName } ?: target.table.name
+      holder.registerProblem(ref, PhantomDbBundle.message("sql.inspection.misleading.reference", ref.columnName, name), ProblemHighlightType.WEAK_WARNING,
+                             SqlTextFix(PhantomDbBundle.message("sql.fix.qualify", name), "$name.", SqlTextFix.Mode.INSERT_BEFORE))
+    }
   }
 }

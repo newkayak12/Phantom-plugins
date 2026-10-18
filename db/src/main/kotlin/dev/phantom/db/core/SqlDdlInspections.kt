@@ -91,3 +91,22 @@ class SqlDeprecatedTypeInspection : SqlInspection() {
     val FLOATS = setOf("FLOAT", "DOUBLE", "REAL")
   }
 }
+
+/** Two `AUTO_INCREMENT` columns in one CREATE TABLE: MySQL, MariaDB and H2 allow one per table. */
+class SqlAutoIncrementDuplicateInspection : SqlInspection() {
+  override fun checkDdl(statement: SqlStatement, holder: ProblemsHolder) {
+    val items = SqlQueries.items(statement)
+    if (items.firstOrNull()?.isKeyword("CREATE") != true || items.take(4).none { it.isKeyword("TABLE") }) return
+    val table = items.indexOfFirst { it.element is SqlTableRef }
+    if (table < 0) return
+    val open = (table + 1 until items.size).firstOrNull { items[it].depth == 0 && items[it].type == SqlTokens.LPAREN } ?: return
+    val close = SqlClauses.closing(items, open) ?: return
+    val depth = items[open].depth + 1
+    val autoColumns = SqlClauses.arguments(items, open, close).values.mapNotNull { definition ->
+      definition.firstOrNull { it.depth == depth && it.text.equals("AUTO_INCREMENT", ignoreCase = true) }
+    }
+    for (extra in autoColumns.drop(1)) {
+      holder.registerProblem(extra.element, PhantomDbBundle.message("sql.inspection.auto.increment.duplicate"))
+    }
+  }
+}

@@ -60,6 +60,15 @@ object ComposeSchema {
 
   fun validRestart(value: String): Boolean = RESTART.matches(value)
 
+  val PULL_POLICIES: List<String> = listOf("always", "never", "missing", "if_not_present", "build", "daily", "weekly")
+  private val PULL_EVERY = Regex("""every_\d+[smhdw]?(\d+[smhdw])*""")
+
+  fun validPullPolicy(value: String): Boolean = value in PULL_POLICIES || PULL_EVERY.matches(value)
+
+  /** `network_mode`: none, host, bridge, or another service's or container's network. */
+  fun validNetworkMode(value: String): Boolean =
+    value in setOf("none", "host", "bridge", "default") || value.startsWith("service:") || value.startsWith("container:")
+
   fun allowed(key: String, known: Set<String>): Boolean = key in known || key.startsWith("x-") || key == "<<"
 }
 
