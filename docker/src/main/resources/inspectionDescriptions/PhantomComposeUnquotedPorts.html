@@ -1,0 +1,5 @@
+<html>
+<body>
+Reports unquoted short port mappings such as <code>22:22</code>. YAML 1.1 parsers read digits separated by colons, each part after the first below 60, as a base-60 number, so the mapping becomes another port. A quick fix quotes it.
+</body>
+</html>
