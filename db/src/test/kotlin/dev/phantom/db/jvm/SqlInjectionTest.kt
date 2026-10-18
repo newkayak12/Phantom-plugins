@@ -85,4 +85,28 @@ class SqlInjectionTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals(myFixture.file.language.id + " " + injected, 1, injected.size)
     assertTrue(injected[0], injected[0].contains("WHERE restaurant_id = :restaurantId"))
   }
+
+  fun testInspectionsRunInInjectedSqlButNotInTemplates() {
+    myFixture.enableInspections(dev.phantom.db.core.SqlWithoutWhereInspection::class.java, dev.phantom.db.core.SqlJoinWithoutOnInspection::class.java)
+    myFixture.configureByText("Repo.java", """
+      import org.springframework.data.jpa.repository.*;
+      interface Repo {
+        @Query(value = "UPDATE reservation SET status = 'DONE'", nativeQuery = true) void closeAll();
+        @Query(value = "UPDATE reservation SET status = 'DONE' WHERE id = :id", nativeQuery = true) void close(long id);
+      }
+    """.trimIndent())
+    val java = myFixture.doHighlighting().filter { it.inspectionToolId == "PhantomSqlWithoutWhere" }.map { it.text }
+    assertEquals(listOf("UPDATE"), java)
+
+    myFixture.configureByText("Repo.kt", ("""
+      import org.springframework.data.jpa.repository.Query
+      const val BY_ID = "WHERE id = :id"
+      interface Repo {
+          @Query(nativeQuery = true, value = "DELETE FROM reservation ${'$'}BY_ID")
+          fun delete(id: Long)
+      }
+    """).trimIndent())
+    assertEquals(listOf("DELETE FROM reservation ${'$'}BY_ID"), injectedStrings())
+    assertEmpty(myFixture.doHighlighting().filter { it.inspectionToolId?.startsWith("PhantomSql") == true })
+  }
 }

@@ -9,10 +9,12 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
+import dev.phantom.db.core.exec.DbColumnDetail
 import dev.phantom.db.core.exec.DbColumnInfo
 import dev.phantom.db.core.exec.DbConnectionService
 import dev.phantom.db.core.exec.DbConsoles
 import dev.phantom.db.core.exec.DbMetadataCache
+import dev.phantom.db.core.exec.DbObjectCache
 import dev.phantom.db.core.exec.DbSchemaRef
 import dev.phantom.db.core.exec.DbTableRef
 import kotlinx.coroutines.CompletableDeferred
@@ -80,6 +82,15 @@ class SqlSchema(private val project: Project) {
     val job = start("columns:" + table) { DbMetadataCache.getInstance(project).columns(dataSource, table) } ?: return null
     await(job)
     return DbMetadataCache.cachedColumns(project, table)
+  }
+
+  /** Nullability, defaults and auto-increment of [table]'s columns, or null when they are not loaded. */
+  fun columnDetails(dataSource: DbDataSource, table: DbTableRef, load: Boolean = true): List<DbColumnDetail>? {
+    DbObjectCache.getInstanceIfCreated(project)?.cachedColumnDetails(table)?.let { return it }
+    if (!load) return null
+    val job = start("details:" + table) { DbObjectCache.getInstance(project).columnDetails(dataSource, table) } ?: return null
+    await(job)
+    return DbObjectCache.getInstanceIfCreated(project)?.cachedColumnDetails(table)
   }
 
   /** Loads the schema list and the current schema's tables now; for tests and callers already in a coroutine. */
