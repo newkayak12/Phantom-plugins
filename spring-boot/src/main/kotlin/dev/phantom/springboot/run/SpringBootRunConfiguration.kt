@@ -53,7 +53,16 @@ class SpringBootRunConfiguration(name: String, project: Project, factory: Config
 
   override fun createAdditionalTabComponents(manager: AdditionalTabComponentManager, startedProcess: com.intellij.execution.process.ProcessHandler?) {
     super.createAdditionalTabComponents(manager, startedProcess)
-    if (startedProcess != null) manager.addAdditionalTabComponent(ActuatorTab(startedProcess), "phantom.actuator")
+    if (startedProcess != null && hasActuator()) manager.addAdditionalTabComponent(ActuatorTab(startedProcess), "phantom.actuator")
+  }
+
+  /** Whether the module's runtime classpath has Spring Boot Actuator; true when that cannot be told yet (indexing). */
+  fun hasActuator(): Boolean {
+    val module = configurationModule.module ?: return true
+    if (com.intellij.openapi.project.DumbService.isDumb(project)) return true
+    return ReadAction.compute<Boolean, RuntimeException> {
+      com.intellij.psi.JavaPsiFacade.getInstance(project).findClass(ACTUATOR_ENDPOINT, module.getModuleRuntimeScope(false)) != null
+    }
   }
 
   override fun getRunClass(): String? = ReadAction.compute<String?, RuntimeException> {
@@ -94,6 +103,7 @@ class SpringBootRunConfiguration(name: String, project: Project, factory: Config
   companion object {
     const val MAIN_CLASS_OPTION: String = "SPRING_BOOT_MAIN_CLASS"
     const val PROFILES_OPTION: String = "ACTIVE_PROFILES"
+    const val ACTUATOR_ENDPOINT: String = "org.springframework.boot.actuate.endpoint.annotation.Endpoint"
   }
 }
 

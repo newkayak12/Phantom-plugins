@@ -124,6 +124,11 @@ object ActuatorJson {
     return seen.values.sortedBy { it.name }
   }
 
+  /** Boot 3 masks every value (`******`) unless `management.endpoint.env.show-values` says otherwise. */
+  fun masked(properties: List<Property>): Boolean = properties.isNotEmpty() && properties.all { it.value == "******" }
+
+  const val MASKED_HINT: String = "Boot hides the values. Set management.endpoint.env.show-values=always (or when-authorized) to see them."
+
   /** `UP`, plus one line per component: `db: UP (MySQL)`. */
   fun health(root: JsonElement): Pair<String, List<String>> {
     val o = root.asJsonObject
@@ -144,6 +149,23 @@ object ActuatorJson {
   private fun JsonObject.str(name: String): String = get(name)?.takeIf { it.isJsonPrimitive }?.asString.orEmpty()
 }
 
+/** One actuator endpoint as JSON. Blocking: call it off the EDT. */
+object ActuatorClient {
+  fun newClient(): HttpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build()
+
+  fun get(client: HttpClient, base: String, endpoint: String): JsonElement {
+    val response = client.send(HttpRequest.newBuilder(URI("$base/$endpoint")).timeout(Duration.ofSeconds(5))
+                                 .header("Accept", "application/json").GET().build(), HttpResponse.BodyHandlers.ofString())
+    // health answers 503 with a body when the application is DOWN
+    if (response.statusCode() == 404) {
+      throw IllegalStateException(if (endpoint == "health") "No /actuator/health: is spring-boot-starter-actuator a dependency, and is the health endpoint exposed?"
+                                  else "/actuator/$endpoint is not exposed. Add it to management.endpoints.web.exposure.include")
+    }
+    if (response.statusCode() >= 400 && !(endpoint == "health" && response.statusCode() == 503)) throw IllegalStateException("HTTP ${response.statusCode()} from /actuator/$endpoint")
+    return JsonParser.parseString(response.body())
+  }
+}
+
 /**
  * The "Actuator" tab of a running Spring Boot application, next to its console in Run and Services. It waits for the
  * startup log line with the port, then reads `/actuator/health`, `beans`, `mappings` and `env`. Requests go out only
@@ -159,7 +181,7 @@ class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent
   private val env = RowView(listOf("Property", "Value", "Source")) { p: ActuatorJson.Property -> listOf(p.name, p.value, p.source) }
   private val poll = Alarm(Alarm.ThreadToUse.POOLED_THREAD, this)
   private val loaded = HashSet<Int>()
-  private val client: HttpClient by lazy { HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build() }
+  private val client: HttpClient by lazy { ActuatorClient.newClient() }
 
   init {
     tabs.addTab("Health", ScrollPaneFactory.createScrollPane(health, true))
@@ -214,14 +236,7 @@ class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent
 
   private fun fetch(base: String, tab: Int) {
     val endpoint = ENDPOINTS[tab]
-    val result: Result<JsonElement> = runCatching {
-      val response = client.send(HttpRequest.newBuilder(URI("$base/$endpoint")).timeout(Duration.ofSeconds(5))
-                                   .header("Accept", "application/json").GET().build(), HttpResponse.BodyHandlers.ofString())
-      // health answers 503 with a body when the application is DOWN
-      if (response.statusCode() == 404) throw IllegalStateException("/actuator/$endpoint is not exposed. Add it to management.endpoints.web.exposure.include")
-      if (response.statusCode() >= 400 && !(endpoint == "health" && response.statusCode() == 503)) throw IllegalStateException("HTTP ${response.statusCode()} from /actuator/$endpoint")
-      JsonParser.parseString(response.body())
-    }
+    val result: Result<JsonElement> = runCatching { ActuatorClient.get(client, base, endpoint) }
     ApplicationManager.getApplication().invokeLater({
       result.fold({ show(tab, it) }, { e ->
         loaded.remove(tab)
@@ -246,7 +261,7 @@ class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent
         }
         1 -> beans.show(ActuatorJson.beans(json))
         2 -> mappings.show(ActuatorJson.mappings(json))
-        else -> env.show(ActuatorJson.environment(json))
+        else -> ActuatorJson.environment(json).let { env.show(it, if (ActuatorJson.masked(it)) ActuatorJson.MASKED_HINT else null) }
       }
     }.onFailure { e -> if (tab == 0) health.text = "Unexpected answer: ${e.message}" }
   }
@@ -274,6 +289,7 @@ class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent
       override fun getValueAt(row: Int, column: Int) = rows[row][column]
     }
     private val table = JBTable(model)
+    private val note = JBLabel().apply { border = JBUI.Borders.empty(4, 8); isVisible = false }
     private val sorter = TableRowSorter(model)
     private val filter = SearchTextField(false)
 
@@ -301,15 +317,19 @@ class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent
       filter.border = JBUI.Borders.empty(2, 4)
       add(filter, BorderLayout.NORTH)
       add(ScrollPaneFactory.createScrollPane(table, true), BorderLayout.CENTER)
+      add(note, BorderLayout.SOUTH)
     }
 
-    fun show(items: List<T>) {
+    fun show(items: List<T>, hint: String? = null) {
+      note.text = hint.orEmpty()
+      note.isVisible = hint != null
       rows = items.map(cells)
       model.fireTableDataChanged()
       table.emptyText.text = "Nothing reported"
     }
 
     fun showError(message: String) {
+      note.isVisible = false
       rows = emptyList()
       model.fireTableDataChanged()
       table.emptyText.setText(message, com.intellij.ui.SimpleTextAttributes.ERROR_ATTRIBUTES)

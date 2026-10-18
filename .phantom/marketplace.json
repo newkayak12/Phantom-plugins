@@ -53,9 +53,9 @@
     {
       "id": "dev.phantom.spring.boot",
       "name": "Phantom Spring Boot",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "source": "spring-boot",
-      "description": "Spring Boot support: File → New → Project → Spring Boot generates projects with Spring Initializr, and application*.yml / application*.properties get completion and quick documentation for keys and values, from library metadata and the project's own @ConfigurationProperties, in Java and Kotlin. An Actuator tab beside the console of a running app (health, beans, mappings, environment, polled only while shown), and completion and Ctrl+B for ${...} placeholders in @Value from the project's application.yml/properties and Spring Boot metadata.",
+      "description": "Spring Boot support: File → New → Project → Spring Boot generates projects with Spring Initializr, and application*.yml / application*.properties get completion and quick documentation for keys and values, from library metadata and the project's own @ConfigurationProperties, in Java and Kotlin. An Actuator tab beside the console of a running app (health, beans, mappings, environment, polled only while shown; only for modules with spring-boot-starter-actuator), and completion and Ctrl+B for ${...} placeholders in @Value from the project's application.yml/properties and Spring Boot metadata.",
       "vendor": "Phantom",
       "category": "Frameworks",
       "since": "262",
@@ -64,7 +64,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-boot-0.4.0/spring-boot-0.4.0.zip",
+      "download": "spring-boot-0.4.1/spring-boot-0.4.1.zip",
       "detect": [
         "org.springframework.boot:spring-boot",
         "org.springframework.boot:spring-boot-autoconfigure"

@@ -2,6 +2,15 @@
 package dev.phantom.docker
 
 import com.intellij.execution.actions.ConfigurationContext
+import com.intellij.execution.executors.DefaultRunExecutor
+import com.intellij.execution.process.ProcessAdapter
+import com.intellij.execution.process.ProcessEvent
+import com.intellij.execution.runners.ExecutionEnvironmentBuilder
+import com.intellij.openapi.util.Key
+import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.psi.PsiManager
+import com.intellij.testFramework.PlatformTestUtil
+import java.nio.file.Files
 import com.intellij.execution.lineMarker.RunLineMarkerContributor
 import com.intellij.openapi.util.JDOMUtil
 import com.intellij.psi.PsiElement
@@ -80,5 +89,39 @@ class DockerComposeTest : BasePlatformTestCase() {
     val version = DockerCli.run("version", "--format", "{{.Server.Version}}")
     if (version.exitCode != 0) return // no daemon running
     DockerCli.containers().forEach { assertTrue(it.id.isNotEmpty() && it.state.isNotEmpty()) }
+  }
+
+  /**
+   * Runs the configuration the gutter icon makes, against the machine's docker, in a compose project of its own
+   * (never the user's), and checks that only the chosen service starts and the Docker window would list it.
+   */
+  fun testRealComposeRunsOnlyTheChosenService() {
+    if (DockerCli.executable() == null || DockerCli.run("version", "--format", "{{.Server.Version}}").exitCode != 0) return
+    val project = "phantom-compose-test"
+    val dir = Files.createTempDirectory("phantom-compose")
+    val composeFile = dir.resolve("compose.yaml")
+    Files.writeString(composeFile, "name: $project\nservices:\n  first:\n    image: redis:latest\n  second:\n    image: redis:latest\n")
+    val vFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(composeFile)!!
+    val psi = PsiManager.getInstance(getProject()).findFile(vFile)!!
+    val configuration = ConfigurationContext(psi.findElementAt(psi.text.indexOf("second:"))!!).configuration!!
+    val output = StringBuffer()
+    val environment = ExecutionEnvironmentBuilder.create(DefaultRunExecutor.getRunExecutorInstance(), configuration).build()
+    val handler = environment.state!!.execute(environment.executor, environment.runner)!!.processHandler
+    handler.addProcessListener(object : ProcessAdapter() {
+      override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) { output.append(event.text) }
+    })
+    handler.startNotify()
+    try {
+      val started = { DockerCli.containers().filter { it.composeProject == project && it.running } }
+      PlatformTestUtil.waitWithEventsDispatching({ "service did not start:\n$output" }, { started().isNotEmpty() || handler.isProcessTerminated }, 90)
+      assertEquals(output.toString(), listOf("second"), started().map { it.composeService })
+      println("compose started: " + started().map { "${it.name} ${it.status}" })
+    }
+    finally {
+      handler.destroyProcess()
+      handler.waitFor(20_000)
+      DockerCli.run("compose", "-p", project, "down", "--remove-orphans", timeoutMs = 60_000)
+      dir.toFile().deleteRecursively()
+    }
   }
 }

@@ -8,6 +8,7 @@ import com.intellij.execution.process.NopProcessHandler
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import dev.phantom.springboot.run.ActuatorAddress
+import dev.phantom.springboot.run.ActuatorClient
 import dev.phantom.springboot.run.ActuatorJson
 import dev.phantom.springboot.run.ActuatorTab
 import dev.phantom.springboot.run.SpringBootConfigurationType
@@ -75,5 +76,40 @@ class ActuatorTest : BasePlatformTestCase() {
     finally {
       added.forEach { Disposer.dispose(it) }
     }
+  }
+
+  fun testNoTabWhenTheModuleHasNoActuator() {
+    val configuration = SpringBootRunConfiguration("app", project, SpringBootConfigurationType.getInstance().factory)
+    configuration.setModule(module)
+    assertFalse(configuration.hasActuator())
+    val added = ArrayList<AdditionalTabComponent>()
+    configuration.createAdditionalTabComponents(object : AdditionalTabComponentManager {
+      override fun addAdditionalTabComponent(component: AdditionalTabComponent, id: String) { added.add(component) }
+      override fun removeAdditionalTabComponent(component: AdditionalTabComponent) {}
+    }, NopProcessHandler())
+    assertEmpty(added)
+  }
+
+  /**
+   * Against a real Boot 3.4 application (web + actuator, a `@GetMapping("/hello/{id}")` on `DemoApplication`, exposing
+   * health, beans, mappings and env) started by hand on port 18081 with context path /api; skipped when nothing listens there.
+   */
+  fun testRealApplication() {
+    val line = "2026-10-18T14:57:59.324+09:00  INFO 62054 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 18081 (http) with context path '/api'"
+    val base = ActuatorAddress.baseUrl(listOf(ActuatorAddress.parse(line)!!))!!
+    assertEquals("http://localhost:18081/api/actuator", base)
+    val client = ActuatorClient.newClient()
+    val health = try { ActuatorClient.get(client, base, "health") } catch (e: java.net.ConnectException) { println("no application on 18081"); return }
+    assertEquals("UP", ActuatorJson.health(health).first)
+    assertTrue(ActuatorJson.health(health).second.any { it.startsWith("diskSpace: UP") })
+    assertContainsElements(ActuatorJson.beans(ActuatorClient.get(client, base, "beans")).map { it.name }, "demoApplication")
+    assertContainsElements(ActuatorJson.mappings(ActuatorClient.get(client, base, "mappings")),
+                           ActuatorJson.Mapping("GET", "/hello/{id}", "DemoApplication.hello"))
+    // Boot 3 masks environment values by default
+    val env = ActuatorJson.environment(ActuatorClient.get(client, base, "env"))
+    assertContainsElements(env.map { it.name to it.value }, "server.port" to "******")
+    assertTrue(ActuatorJson.masked(env))
+    val missing = runCatching { ActuatorClient.get(client, base, "loggers") }.exceptionOrNull()
+    assertTrue("$missing", missing is IllegalStateException && missing.message!!.contains("management.endpoints.web.exposure.include"))
   }
 }
