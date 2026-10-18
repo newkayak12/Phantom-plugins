@@ -24,13 +24,20 @@ class SqlInspectionsTest : BasePlatformTestCase() {
       SqlRedundantCoalesceInspection::class.java, SqlRedundantLimitInspection::class.java, SqlUnusedSubqueryItemInspection::class.java,
       SqlDuplicateColumnInspection::class.java, SqlOrderByPositionInspection::class.java, SqlAddNotNullColumnInspection::class.java,
       SqlDeprecatedTypeInspection::class.java, SqlAutoIncrementDuplicateInspection::class.java, SqlFunctionSpaceInspection::class.java,
+      SqlFunctionArgumentsInspection::class.java, SqlIfFunctionInspection::class.java, SqlReservedIdentifierInspection::class.java,
+      SqlTriggerTransitionInspection::class.java, SqlTransactionInTriggerInspection::class.java, SqlUnusedVariableInspection::class.java,
+      SqlMissingReturnInspection::class.java,
     )
     val SCHEMA: List<Class<out LocalInspectionTool>> = listOf(
       SqlAmbiguousColumnInspection::class.java, SqlInsertNullIntoNotNullInspection::class.java,
       SqlStringLengthExceededInspection::class.java, SqlTypeMismatchInspection::class.java,
       SqlUsingColumnsInspection::class.java, SqlNotNullColumnTestInspection::class.java,
       SqlInsertIntoGeneratedColumnInspection::class.java, SqlMisleadingReferenceInspection::class.java,
+      SqlDropIndexedColumnInspection::class.java,
     )
+    /** The checks of wave 10, which the user-project samples also go through with a MySQL dialect. */
+    val ROUTINE_AND_DIALECT = setOf("FunctionArguments", "IfFunction", "ReservedIdentifier", "TriggerTransition", "TransactionInTrigger",
+                                    "UnusedVariable", "MissingReturn", "DropIndexedColumn")
   }
 
   private val dataSources = ArrayList<DbDataSource>()
@@ -307,6 +314,139 @@ class SqlInspectionsTest : BasePlatformTestCase() {
     assertTrue(files.size > 20)
     val all = files.flatMap { path -> findings(java.nio.file.Files.readString(path), name = path.fileName.toString()).map { "${path.fileName}: $it" } }
     assertEmpty(all)
+    // the project runs on MySQL: the dialect-gated checks of wave 10 find nothing either
+    val mysql = unattached(Dbms.MYSQL)
+    val dialect = files.flatMap { path ->
+      findings(java.nio.file.Files.readString(path), mysql, name = path.fileName.toString())
+        .filter { it.substringBefore(':') in ROUTINE_AND_DIALECT }.map { "${path.fileName}: $it" }
+    }
+    assertEmpty(dialect)
+  }
+
+  /** A data source that is never connected: it only gives the dialect. */
+  private fun unattached(dbms: Dbms): DbDataSource {
+    val ds = DbDataSource().apply { name = dbms.name.lowercase(); this.dbms = dbms; url = dbms.urlPrefix + "//127.0.0.1:1/none"; user = "x" }
+    DbDataSourceService.getInstance(project).save(ds, CharArray(0))
+    dataSources.add(ds)
+    return ds
+  }
+
+  fun testFunctionArgumentsFollowTheDialect() {
+    val query = "SELECT NULLIF(a), COALESCE(), IFNULL(a, b, c), DATE_FORMAT(d), SUBSTRING(s FROM 2), s.nullif(1), " +
+                "TO_CHAR(d), LOWER(a, b), CONCAT_WS(','), ROUND(x, 2), IFNULL(a, b) FROM t;"
+    // no data source: only the functions every dialect agrees on
+    assertEquals(listOf("FunctionArguments: NULLIF(a)", "FunctionArguments: COALESCE()", "FunctionArguments: LOWER(a, b)"), findings(query))
+    assertEquals(listOf("FunctionArguments: NULLIF(a)", "FunctionArguments: COALESCE()", "FunctionArguments: IFNULL(a, b, c)",
+                        "FunctionArguments: DATE_FORMAT(d)", "FunctionArguments: LOWER(a, b)", "FunctionArguments: CONCAT_WS(',')"),
+                 findings(query, unattached(Dbms.MYSQL)))
+    assertEquals(listOf("FunctionArguments: NULLIF(a)", "FunctionArguments: COALESCE()", "FunctionArguments: TO_CHAR(d)",
+                        "FunctionArguments: LOWER(a, b)"),
+                 findings(query, unattached(Dbms.POSTGRESQL)))
+    assertEquals(PhantomDbBundle.message("sql.inspection.function.arguments", "NULLIF", "2", 1),
+                 myFixture.doHighlighting().first { it.inspectionToolId == "PhantomSqlFunctionArguments" }.description)
+  }
+
+  fun testIfFunctionOnMysql() {
+    val mysql = unattached(Dbms.MYSQL)
+    assertEmpty(findings("SELECT IF(a > 1, 'x', 'y') FROM t;"))
+    assertEquals(listOf("IfFunction: IF(a > 1, 'x', 'y')"), findings("SELECT IF(a > 1, 'x', 'y') FROM t;", mysql))
+    applyFix(PhantomDbBundle.message("sql.fix.replace.with", "CASE"))
+    myFixture.checkResult("SELECT CASE WHEN a > 1 THEN 'x' ELSE 'y' END FROM t;")
+  }
+
+  fun testReservedIdentifiers() {
+    val ddl = "CREATE TABLE ranking (id BIGINT PRIMARY KEY, rank INT, `groups` INT, user VARCHAR(10), KEY idx_rank (id));\n" +
+              "ALTER TABLE ranking ADD COLUMN system INT, ADD INDEX i (id);\nCREATE TABLE order (id INT);"
+    assertEmpty(findings(ddl))
+    assertEquals(listOf("ReservedIdentifier: rank", "ReservedIdentifier: system", "ReservedIdentifier: order"), findings(ddl, unattached(Dbms.MYSQL)))
+    assertEquals(listOf("ReservedIdentifier: user", "ReservedIdentifier: order"), findings(ddl, unattached(Dbms.POSTGRESQL)))
+    // after a dot a reserved word is a name already (the user's migrations create `prototype_reservation.table`)
+    assertEmpty(findings("CREATE TABLE app.table (id INT);", dataSources.first { it.dbms == Dbms.MYSQL }))
+    findings("CREATE TABLE t (rank INT);", dataSources.first { it.dbms == Dbms.MYSQL })
+    applyFix(PhantomDbBundle.message("sql.fix.quote.identifier"))
+    myFixture.checkResult("CREATE TABLE t (`rank` INT);")
+  }
+
+  fun testTriggerBodies() {
+    val triggers = """
+      CREATE TRIGGER audit_insert AFTER INSERT ON orders FOR EACH ROW
+      BEGIN
+        DECLARE unused_flag INT DEFAULT 0;
+        DECLARE amount INT;
+        SET amount = NEW.total;
+        IF amount > 10 THEN
+          INSERT INTO audit (order_id, old_total) VALUES (NEW.id, OLD.total);
+        END IF;
+        SET NEW.total = 0;
+        COMMIT;
+      END;
+      CREATE TRIGGER clean_up BEFORE DELETE ON orders FOR EACH ROW DELETE FROM lines WHERE order_id = NEW.id;
+      CREATE TRIGGER keep BEFORE UPDATE ON orders FOR EACH ROW SET NEW.updated = OLD.updated + 1;
+      CREATE TRIGGER fixup BEFORE UPDATE ON orders FOR EACH ROW SET OLD.updated = 1;
+      CREATE TRIGGER pg_style BEFORE INSERT ON orders FOR EACH ROW EXECUTE FUNCTION f();
+    """.trimIndent()
+    val expected = listOf("UnusedVariable: unused_flag", "TriggerTransition: OLD.total", "TriggerTransition: NEW.total",
+                          "TransactionInTrigger: COMMIT", "TriggerTransition: NEW.id", "TriggerTransition: OLD.updated")
+    assertEquals(expected, findings(triggers))
+    assertEquals(expected, findings(triggers, unattached(Dbms.MYSQL)))
+    // PostgreSQL writes trigger bodies as functions: nothing of this applies there
+    assertEmpty(findings(triggers, unattached(Dbms.POSTGRESQL)))
+  }
+
+  fun testRoutineBodies() {
+    val routines = """
+      CREATE DEFINER = `root`@`localhost` FUNCTION total_of(id BIGINT) RETURNS INT DETERMINISTIC
+      BEGIN
+        DECLARE result INT DEFAULT 0;
+        SELECT CASE WHEN total > 0 THEN total ELSE 0 END INTO result FROM orders o WHERE o.id = id;
+        COMMIT;
+      END;
+      CREATE FUNCTION answer() RETURNS INT
+      BEGIN
+        DECLARE n INT DEFAULT 42;
+        loop_label: LOOP
+          LEAVE loop_label;
+        END LOOP;
+        CASE n WHEN 1 THEN SET n = 2; ELSE BEGIN END; END CASE;
+        RETURN n;
+      END;
+      CREATE PROCEDURE archive()
+      BEGIN
+        DECLARE done INT DEFAULT 0;
+        DECLARE c CURSOR FOR SELECT id FROM orders;
+        DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+        START TRANSACTION;
+        ROLLBACK;
+        COMMIT;
+      END;
+      CREATE OR REPLACE FUNCTION pg_total() RETURNS INT AS ${'$'}${'$'} BEGIN DECLARE x INT; END ${'$'}${'$'} LANGUAGE plpgsql;
+    """.trimIndent()
+    assertEquals(listOf("MissingReturn: BEGIN", "TransactionInTrigger: COMMIT"), findings(routines))
+  }
+
+  fun testDropIndexedColumnOnH2() {
+    val ds = DbDataSource().apply {
+      name = "idx"
+      dbms = Dbms.H2
+      url = "jdbc:h2:mem:sql_idx_${System.nanoTime()};DB_CLOSE_DELAY=-1"
+      user = "sa"
+    }
+    DbDataSourceService.getInstance(project).save(ds, CharArray(0))
+    dataSources.add(ds)
+    runBlocking {
+      DbExecutor.execute(project, ds, listOf(
+        "CREATE TABLE booking (id BIGINT PRIMARY KEY, guest_id BIGINT, booked_on DATE, note VARCHAR(20))",
+        "CREATE INDEX idx_guest_day ON booking (guest_id, booked_on)",
+      ))
+      SqlSchema.getInstance(project).load(ds)!!.let { snapshot ->
+        val table = snapshot.find("booking", null).single()
+        DbMetadataCache.getInstance(project).columns(ds, table)
+        DbObjectCache.getInstance(project).indexes(ds, table)
+      }
+    }
+    assertEquals(listOf("DropIndexedColumn: DROP COLUMN guest_id", "DropIndexedColumn: DROP id"),
+                 findings("ALTER TABLE booking DROP COLUMN guest_id; ALTER TABLE booking DROP id; ALTER TABLE booking DROP COLUMN note;", ds))
+    assertEmpty(findings("ALTER TABLE booking DROP INDEX idx_guest_day, DROP COLUMN guest_id;", ds))
   }
 
   fun testSchemaInspectionsOnH2() {

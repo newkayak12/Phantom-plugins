@@ -13,8 +13,10 @@ import dev.phantom.db.core.exec.DbColumnDetail
 import dev.phantom.db.core.exec.DbColumnInfo
 import dev.phantom.db.core.exec.DbConnectionService
 import dev.phantom.db.core.exec.DbConsoles
+import dev.phantom.db.core.exec.DbIndex
 import dev.phantom.db.core.exec.DbMetadataCache
 import dev.phantom.db.core.exec.DbObjectCache
+import dev.phantom.db.core.exec.DbPrimaryKey
 import dev.phantom.db.core.exec.DbSchemaRef
 import dev.phantom.db.core.exec.DbTableRef
 import kotlinx.coroutines.CompletableDeferred
@@ -91,6 +93,20 @@ class SqlSchema(private val project: Project) {
     val job = start("details:" + table) { DbObjectCache.getInstance(project).columnDetails(dataSource, table) } ?: return null
     await(job)
     return DbObjectCache.getInstanceIfCreated(project)?.cachedColumnDetails(table)
+  }
+
+  /** The primary key and the other indexes of [table], or null when they are not loaded. */
+  fun indexes(dataSource: DbDataSource, table: DbTableRef, load: Boolean = true): Pair<DbPrimaryKey, List<DbIndex>>? {
+    fun cached(): Pair<DbPrimaryKey, List<DbIndex>>? {
+      val cache = DbObjectCache.getInstanceIfCreated(project) ?: return null
+      val indexes = cache.cachedIndexes(table) ?: return null
+      return (cache.cachedPrimaryKey(table) ?: return null) to indexes
+    }
+    cached()?.let { return it }
+    if (!load) return null
+    val job = start("indexes:" + table) { DbObjectCache.getInstance(project).indexes(dataSource, table) } ?: return null
+    await(job)
+    return cached()
   }
 
   /** Loads the schema list and the current schema's tables now; for tests and callers already in a coroutine. */
