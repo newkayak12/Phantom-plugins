@@ -32,15 +32,18 @@ import org.jetbrains.uast.visitor.AbstractUastNonRecursiveVisitor
  *
  * Silent when the module has no Gradle build script, since then the compiler plugins are unknown.
  */
-class KotlinJpaEntityInspection : AbstractBaseUastLocalInspectionTool() {
+open class KotlinJpaEntityInspection : AbstractBaseUastLocalInspectionTool() {
+  /** The `val` check is its own inspection, so it can be turned off alone: some teams keep entity fields immutable on purpose. */
+  protected open val valAttributesOnly: Boolean = false
+
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (holder.file.language.id != "kotlin") return PsiElementVisitor.EMPTY_VISITOR
     val module = ModuleUtilCore.findModuleForPsiElement(holder.file) ?: return PsiElementVisitor.EMPTY_VISITOR
     if (!JpaGate.isJpaModule(module)) return PsiElementVisitor.EMPTY_VISITOR
-    return UastHintedVisitorAdapter.create(holder.file.language, Visitor(holder, KotlinCompilerPlugins.of(module)), arrayOf(UClass::class.java), true)
+    return UastHintedVisitorAdapter.create(holder.file.language, Visitor(holder, KotlinCompilerPlugins.of(module), valAttributesOnly), arrayOf(UClass::class.java), true)
   }
 
-  private class Visitor(private val holder: ProblemsHolder, private val plugins: KotlinCompilerPlugins.Config?) : AbstractUastNonRecursiveVisitor() {
+  private class Visitor(private val holder: ProblemsHolder, private val plugins: KotlinCompilerPlugins.Config?, private val valOnly: Boolean) : AbstractUastNonRecursiveVisitor() {
     override fun visitClass(node: UClass): Boolean {
       val psiClass = node.javaPsi
       if (!JpaModel.isPersistent(psiClass)) return true
@@ -48,6 +51,10 @@ class KotlinJpaEntityInspection : AbstractBaseUastLocalInspectionTool() {
       val anchor = node.uastAnchor?.sourcePsi ?: return true
       val modifiers = KotlinSource.modifierKeywords(source)
       val entity = JpaModel.isEntity(psiClass)
+      if (valOnly) {
+        for (field in node.fields) checkVal(field)
+        return true
+      }
 
       if (entity && "data" in modifiers) holder.registerProblem(anchor, PhantomJpaBundle.message("kotlin.data.class", psiClass.name ?: ""))
       if (plugins != null) {
@@ -87,7 +94,7 @@ class KotlinJpaEntityInspection : AbstractBaseUastLocalInspectionTool() {
       }
     }
 
-    private fun checkField(field: UField) {
+    private fun checkVal(field: UField) {
       val source = field.sourcePsi ?: return
       if (field.isStatic || !KotlinSource.isProperty(source)) return
       if (JpaMapping.has(field, "Transient")) return
@@ -97,8 +104,16 @@ class KotlinJpaEntityInspection : AbstractBaseUastLocalInspectionTool() {
       // `val items: MutableList<…>` is the usual shape: the collection object stays, its contents change
       if (keyword?.text == "val" && !toMany && !JpaMapping.has(field, "ElementCollection") &&
           !JpaMapping.has(field, "Id") && !JpaMapping.has(field, "EmbeddedId")) {
-        holder.registerProblem(keyword, PhantomJpaBundle.message("kotlin.val.attribute", field.name), ProblemHighlightType.WEAK_WARNING, ValToVarFix())
+        holder.registerProblem(keyword, PhantomJpaBundle.message("kotlin.val.attribute", field.name), ValToVarFix())
       }
+    }
+
+    private fun checkField(field: UField) {
+      val source = field.sourcePsi ?: return
+      if (field.isStatic || !KotlinSource.isProperty(source)) return
+      if (JpaMapping.has(field, "Transient")) return
+      val relation = JpaMapping.relation(field)
+      val toMany = relation != null && JpaMapping.kind(relation) in setOf("OneToMany", "ManyToMany")
       if (toMany) {
         val readOnly = KotlinSource.readOnlyCollectionType(source)
         if (readOnly != null) {
@@ -181,4 +196,8 @@ internal object KotlinSource {
     val typeReference = source.children.firstOrNull { it.javaClass.simpleName == "KtTypeReference" } ?: return null
     return typeReference.takeIf { Regex("""^(kotlin\.collections\.)?(List|Set|Collection|Map)\s*<""").containsMatchIn(it.text) }
   }
+}
+
+class KotlinJpaValAttributeInspection : KotlinJpaEntityInspection() {
+  override val valAttributesOnly: Boolean = true
 }

@@ -32,9 +32,9 @@
     {
       "id": "dev.phantom.spring",
       "name": "Phantom Spring",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "source": "spring",
-      "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, Spring MVC handlers for the Endpoints tool window, Spring Security path and expression support, and Kafka/RabbitMQ/JMS sender-receiver navigation.",
+      "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, Spring MVC handlers for the Endpoints tool window, Spring Security path and expression support, and Kafka/RabbitMQ/JMS sender-receiver navigation. 0.4.0: proxy pitfalls (self-invocation of @Transactional/@Cacheable/@Async, private/final/static proxied methods, Kotlin classes not opened by kotlin-spring), @Scheduled/@Async/@EventListener contracts, field and static injection, duplicate bean names, @Scope values, @Sql paths, @DirtiesContext, publishEvent \u2194 listener gutters, @Qualifier/@DependsOn bean name completion and Ctrl+B.",
       "vendor": "Phantom",
       "category": "Frameworks",
       "since": "262",
@@ -43,7 +43,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-0.3.0/spring-0.3.0.zip",
+      "download": "spring-0.4.0/spring-0.4.0.zip",
       "detect": [
         "org.springframework:spring-context",
         "org.springframework:spring-web",
@@ -73,9 +73,9 @@
     {
       "id": "dev.phantom.jpa",
       "name": "Phantom JPA",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "source": "jpa",
-      "description": "JPA, Hibernate and Spring Data JPA for Java and Kotlin: JPQL in @Query with completion and errors, derived query method checks, a @Modifying check, entity mapping checks, and repository/entity gutter navigation. An Entity Diagram tool window: entities, columns and relations drawn from the code, copyable as a Mermaid erDiagram.",
+      "description": "JPA, Hibernate and Spring Data JPA for Java and Kotlin: JPQL in @Query with completion and errors, derived query method checks, a @Modifying check, entity mapping checks, and repository/entity gutter navigation. An Entity Diagram tool window: entities, columns and relations drawn from the code, copyable as a Mermaid erDiagram. 0.3.0: entity checks (several @Id, no-arg constructor, mappedBy, raw collections, converters), attribute checks (@Column on associations, LAZY on the inverse @OneToOne, @ManyToMany cascade REMOVE, unmapped entity fields, @Enumerated), Kotlin entity checks (kotlin-jpa/all-open, data class, val attributes, read-only collections), Lombok on entities, repository return and parameter types and Pageable.",
       "vendor": "Phantom",
       "category": "Frameworks",
       "since": "262",
@@ -84,7 +84,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "jpa-0.2.0/jpa-0.2.0.zip",
+      "download": "jpa-0.3.0/jpa-0.3.0.zip",
       "detect": [
         "org.springframework.data:spring-data-jpa",
         "org.hibernate.orm:hibernate-core",

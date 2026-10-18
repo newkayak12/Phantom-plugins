@@ -18,7 +18,7 @@ class KotlinJpaEntityTest : LightJavaCodeInsightFixtureTestCase() {
   override fun setUp() {
     super.setUp()
     JpaStubs.add(myFixture)
-    myFixture.enableInspections(JpaEntityInspection::class.java, JpaAttributeInspection::class.java, KotlinJpaEntityInspection::class.java,
+    myFixture.enableInspections(JpaEntityInspection::class.java, JpaAttributeInspection::class.java, KotlinJpaEntityInspection::class.java, dev.phantom.jpa.core.KotlinJpaValAttributeInspection::class.java,
                                 RepositoryMethodInspection::class.java)
   }
 
