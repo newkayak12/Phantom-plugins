@@ -1,0 +1,10 @@
+<html>
+<body>
+Reports entity listener classes in <code>@EntityListeners</code> that are never useful:
+<ul>
+  <li>a listener without any lifecycle callback method (<code>@PrePersist</code>, <code>@PostLoad</code>, ...), which JPA never calls;</li>
+  <li>a listener without a no-argument constructor, which JPA cannot create. Not reported when Spring's
+    <code>SpringBeanContainer</code> is on the classpath: Spring Boot lets it create listeners as beans, with constructor injection.</li>
+</ul>
+</body>
+</html>

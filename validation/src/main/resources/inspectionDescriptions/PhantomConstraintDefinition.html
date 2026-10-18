@@ -1,0 +1,11 @@
+<html>
+<body>
+Reports a custom constraint annotation (meta-annotated with <code>@Constraint</code>) that the Bean Validation
+provider rejects the first time it meets it:
+<ul>
+  <li>one of the required attributes <code>message()</code>, <code>groups()</code> or <code>payload()</code> is missing;</li>
+  <li>a class in <code>validatedBy</code> does not implement <code>ConstraintValidator</code>, or implements it for another annotation.</li>
+</ul>
+<p>Without them validation fails with a <code>ConstraintDefinitionException</code> at runtime.</p>
+</body>
+</html>

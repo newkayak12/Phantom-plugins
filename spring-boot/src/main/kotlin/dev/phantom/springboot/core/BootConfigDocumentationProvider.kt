@@ -22,7 +22,7 @@ class ConfigKeyDocElement(val lookup: ConfigLookupObject, private val context: P
 /** Quick documentation (Ctrl+Q and the completion popup) for configuration keys. */
 abstract class BootConfigDocumentationProvider(private val syntax: ConfigSyntax) : AbstractDocumentationProvider() {
   override fun getCustomDocumentationElement(editor: Editor, file: PsiFile, contextElement: PsiElement?, targetOffset: Int): PsiElement? {
-    if (contextElement == null || !BootConfigFiles.isConfigFile(file.name)) return null
+    if (contextElement == null || !BootConfigFiles.isConfigFile(file)) return null
     val module = ModuleUtilCore.findModuleForPsiElement(file) ?: return null
     if (!SpringBootGate.isBootModule(module)) return null
     val name = syntax.keyAt(editor.document.charsSequence, targetOffset) ?: return null

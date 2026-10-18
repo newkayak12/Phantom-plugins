@@ -61,6 +61,14 @@
                      bundle="messages.PhantomJpaBundle" key="callback.inspection.display.name"
                      groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
                      implementationClass="dev.phantom.jpa.core.JpaEntityListenerInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomJpaEntityListenerUsage"
+                     bundle="messages.PhantomJpaBundle" key="listener.usage.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.JpaEntityListenerUsageInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomJpaNamedQuery"
+                     bundle="messages.PhantomJpaBundle" key="named.query.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.JpaNamedQueryInspection"/>
     <toolWindow id="Entity Diagram" anchor="right" secondary="false" icon="AllIcons.Nodes.DataTables" doNotActivateOnStart="true"
                 factoryClass="dev.phantom.jpa.core.EntityDiagramToolWindowFactory"/>
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.jpa.core.JpaRepositoryLineMarkerProvider"/>

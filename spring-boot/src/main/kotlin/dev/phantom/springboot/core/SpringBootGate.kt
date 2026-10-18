@@ -25,4 +25,13 @@ object BootConfigFiles {
   private val NAME = Regex("""(application|bootstrap)([-.][\w.-]*)?\.(ya?ml|properties)""")
 
   fun isConfigFile(fileName: String): Boolean = NAME.matches(fileName)
+
+  /** An `application*` / `bootstrap*` file, or one that `spring.config.import` pulls in. */
+  fun isConfigFile(file: com.intellij.psi.PsiFile): Boolean {
+    if (isConfigFile(file.name)) return true
+    val name = file.name
+    if (!name.endsWith(".yml") && !name.endsWith(".yaml") && !name.endsWith(".properties")) return false
+    val virtualFile = file.originalFile.virtualFile ?: return false
+    return virtualFile in BootConfigImports.importedFiles(file.project)
+  }
 }

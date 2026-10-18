@@ -17,7 +17,7 @@ object JpaStubs {
     fixture.addClass("package jakarta.persistence; public enum FetchType { LAZY, EAGER }")
     fixture.addClass("package jakarta.persistence; public enum CascadeType { ALL, PERSIST, MERGE, REMOVE, REFRESH, DETACH }")
     fixture.addClass("package jakarta.persistence; public enum EnumType { ORDINAL, STRING }")
-    fixture.addClass("package jakarta.persistence; $member public @interface ManyToOne { FetchType fetch() default FetchType.EAGER; CascadeType[] cascade() default {}; }")
+    fixture.addClass("package jakarta.persistence; $member public @interface ManyToOne { FetchType fetch() default FetchType.EAGER; CascadeType[] cascade() default {}; boolean optional() default true; }")
     fixture.addClass("package jakarta.persistence; $member public @interface OneToMany { String mappedBy() default \"\"; Class targetEntity() default void.class; FetchType fetch() default FetchType.LAZY; CascadeType[] cascade() default {}; }")
     fixture.addClass("package jakarta.persistence; $member public @interface OneToOne { String mappedBy() default \"\"; FetchType fetch() default FetchType.EAGER; CascadeType[] cascade() default {}; }")
     fixture.addClass("package jakarta.persistence; $member public @interface ManyToMany { String mappedBy() default \"\"; Class targetEntity() default void.class; FetchType fetch() default FetchType.LAZY; CascadeType[] cascade() default {}; }")

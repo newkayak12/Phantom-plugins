@@ -17,7 +17,7 @@ import com.intellij.psi.PsiFile
 class BootConfigKeyInspection : LocalInspectionTool() {
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor = object : PsiElementVisitor() {
     override fun visitFile(file: PsiFile) {
-      if (!BootConfigFiles.isConfigFile(file.name)) return
+      if (!BootConfigFiles.isConfigFile(file)) return
       val yaml = !file.name.endsWith(".properties")
       val syntax = if (yaml) YamlConfigSyntax else PropertiesConfigSyntax
       val module = ModuleUtilCore.findModuleForPsiElement(file) ?: return
