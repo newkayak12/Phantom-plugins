@@ -28,6 +28,26 @@
                      groupBundle="messages.PhantomKubernetesBundle" groupKey="group.name"
                      implementationClass="dev.phantom.kubernetes.HelmValuesInspection"/>
     <!-- Kubernetes manifests: built-in kinds only, files without template syntax -->
+    <localInspection language="yaml" enabledByDefault="true" level="ERROR" shortName="PhantomK8sUnknownKind"
+                     bundle="messages.PhantomKubernetesBundle" key="k8s.kind.name"
+                     groupBundle="messages.PhantomKubernetesBundle" groupKey="group.k8s"
+                     implementationClass="dev.phantom.kubernetes.K8sUnknownResourceInspection"/>
+    <localInspection language="yaml" enabledByDefault="true" level="ERROR" shortName="PhantomK8sValues"
+                     bundle="messages.PhantomKubernetesBundle" key="k8s.values.name"
+                     groupBundle="messages.PhantomKubernetesBundle" groupKey="group.k8s"
+                     implementationClass="dev.phantom.kubernetes.K8sUnknownValuesInspection"/>
+    <localInspection language="yaml" enabledByDefault="true" level="WARNING" shortName="PhantomK8sDeprecated"
+                     bundle="messages.PhantomKubernetesBundle" key="k8s.deprecated.name"
+                     groupBundle="messages.PhantomKubernetesBundle" groupKey="group.k8s"
+                     implementationClass="dev.phantom.kubernetes.K8sDeprecatedInspection"/>
+    <localInspection language="yaml" enabledByDefault="true" level="WEAK WARNING" shortName="PhantomK8sServerFields"
+                     bundle="messages.PhantomKubernetesBundle" key="k8s.server.name"
+                     groupBundle="messages.PhantomKubernetesBundle" groupKey="group.k8s"
+                     implementationClass="dev.phantom.kubernetes.K8sNonEditableKeysInspection"/>
+    <localInspection language="yaml" enabledByDefault="true" level="ERROR" shortName="PhantomHelmChart"
+                     bundle="messages.PhantomKubernetesBundle" key="helm.chart.name"
+                     groupBundle="messages.PhantomKubernetesBundle" groupKey="group.name"
+                     implementationClass="dev.phantom.kubernetes.HelmChartInspection"/>
     <localInspection language="yaml" enabledByDefault="true" level="ERROR" shortName="PhantomK8sApiVersion"
                      bundle="messages.PhantomKubernetesBundle" key="k8s.api.name"
                      groupBundle="messages.PhantomKubernetesBundle" groupKey="group.k8s"

@@ -373,3 +373,30 @@ class SqlOrderByPositionInspection : SqlInspection() {
     }
   }
 }
+
+/**
+ * A space between a built-in function name and `(` on MySQL: without the IGNORE_SPACE SQL mode, `COUNT (*)` is read as
+ * a call of a stored function named COUNT and fails. Only the functions the MySQL parser treats this way are reported.
+ */
+class SqlFunctionSpaceInspection : SqlInspection() {
+  override fun checkQuery(query: SqlScope, items: List<SqlItem>, holder: ProblemsHolder) {
+    val dbms = SqlSchema.dataSourceFor(holder.file, strict = false)?.dbms ?: return
+    if (dbms != Dbms.MYSQL && dbms != Dbms.MARIADB) return
+    for (i in 0 until items.size - 1) {
+      val name = items[i]
+      val paren = items[i + 1]
+      if (paren.type != SqlTokens.LPAREN || name.text.uppercase() !in FUNCTIONS) continue
+      if (name.element.textRange.endOffset >= paren.element.textRange.startOffset) continue
+      if (items.getOrNull(i - 1)?.type == SqlTokens.DOT) continue
+      register(holder, name.element, paren.element, PhantomDbBundle.message("sql.inspection.function.space", name.text),
+               ProblemHighlightType.GENERIC_ERROR_OR_WARNING, SqlTextFix(PhantomDbBundle.message("sql.fix.remove.space"), name.text + "("))
+    }
+  }
+
+  private companion object {
+    /** The functions MySQL parses specially (its manual's "Function Name Parsing" list). */
+    val FUNCTIONS = setOf("ADDDATE", "BIT_AND", "BIT_OR", "BIT_XOR", "CAST", "COUNT", "CURDATE", "CURTIME", "DATE_ADD", "DATE_SUB", "EXTRACT",
+                          "GROUP_CONCAT", "MAX", "MID", "MIN", "NOW", "POSITION", "SESSION_USER", "STD", "STDDEV", "STDDEV_POP", "STDDEV_SAMP",
+                          "SUBDATE", "SUBSTR", "SUBSTRING", "SUM", "SYSDATE", "SYSTEM_USER", "TRIM", "VARIANCE", "VAR_POP", "VAR_SAMP")
+  }
+}

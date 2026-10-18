@@ -47,15 +47,19 @@ class ComposeChecksTest : BasePlatformTestCase() {
             context: .
             dockerfil: Dockerfile
           environment: FOO
+          pull_policy: allways
+          network_mode: hostt
           depends_on:
             db:
               condition: service_ready
       volumez: {}
     """.trimIndent())
     assertEquals(listOf(
+      "'allways' is not a pull policy; use one of always, never, missing, if_not_present, build, daily, weekly or every_<duration>",
       "'dockerfil' is not a Compose key in build",
       "'enviroment' is not a Compose key in a service",
       "'environment' must be a list or a mapping",
+      "'hostt' is not a network mode; use none, host, bridge, service:<name> or container:<name>",
       "'intervall' is not a Compose key in healthcheck",
       "'ports' must be a list",
       "'service_ready' is not a depends_on condition; use one of service_started, service_healthy, service_completed_successfully",

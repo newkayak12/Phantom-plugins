@@ -63,7 +63,7 @@ class ComposeUnknownKeysInspection : ComposeInspection() {
   }
 }
 
-/** Values of the wrong shape or outside the allowed set: ports, environment, depends_on, condition, restart. */
+/** Values of the wrong shape or outside the allowed set: ports, environment, depends_on, condition, restart, pull_policy, network_mode. */
 class ComposeValuesInspection : ComposeInspection() {
   override fun check(file: YAMLFile, root: YAMLMapping, model: ComposeModel, problems: Problems) {
     for (service in services(root)) {
@@ -89,6 +89,16 @@ class ComposeValuesInspection : ComposeInspection() {
       (body.getKeyValueByKey("restart")?.value as? YAMLScalar)?.let { restart ->
         if (!restart.textValue.contains('$') && !ComposeSchema.validRestart(restart.textValue)) {
           problems.add(restart, PhantomDockerBundle.message("compose.value.restart", restart.textValue))
+        }
+      }
+      (body.getKeyValueByKey("pull_policy")?.value as? YAMLScalar)?.let { policy ->
+        if (!policy.textValue.contains('$') && !ComposeSchema.validPullPolicy(policy.textValue)) {
+          problems.add(policy, PhantomDockerBundle.message("compose.value.pull.policy", policy.textValue, ComposeSchema.PULL_POLICIES.joinToString(", ")))
+        }
+      }
+      (body.getKeyValueByKey("network_mode")?.value as? YAMLScalar)?.let { mode ->
+        if (!mode.textValue.contains('$') && !ComposeSchema.validNetworkMode(mode.textValue)) {
+          problems.add(mode, PhantomDockerBundle.message("compose.value.network.mode", mode.textValue))
         }
       }
     }

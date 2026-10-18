@@ -1,0 +1,5 @@
+<html>
+<body>
+Reports an unqualified column in a subquery that none of the subquery's own tables has. It then refers to a table of the outer query, as in <code>WHERE id IN (SELECT id FROM orders)</code> when <code>orders</code> has no <code>id</code>: the condition compares the outer value with itself. Qualify the column to make the intent clear. Needs the data source schema.
+</body>
+</html>
