@@ -24,8 +24,7 @@ import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.ProcessingContext
-import dev.phantom.db.core.exec.DbConsoles
-import dev.phantom.db.core.exec.DbMetadataCache
+import dev.phantom.db.core.exec.DbColumnInfo
 import dev.phantom.db.core.exec.DbTableRef
 
 object SqlColors {
@@ -97,73 +96,86 @@ class SqlBraceMatcher : PairedBraceMatcher {
 }
 
 /**
- * Keywords, plus table and column names the schema tree has already loaded for the file's data source. Completion
- * never opens a connection: with an empty cache only keywords are offered.
+ * Keywords, tables and columns. The data source's schema loads on demand (completion waits for it briefly, never on
+ * the EDT), so this works before the Database tree was opened. After `t.`: the columns of `t`, whether a table or an
+ * alias. In a FROM list: tables, schemas and CTEs. Elsewhere: the columns of the query's tables, its aliases, keywords.
  */
 class SqlCompletionContributor : CompletionContributor() {
   init {
     extend(CompletionType.BASIC, PlatformPatterns.psiElement().withLanguage(SqlLanguage), object : CompletionProvider<CompletionParameters>() {
-      override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, result: CompletionResultSet) {
+      override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, resultSet: CompletionResultSet) {
         val position = parameters.position
         if (position.node.elementType in SqlTokens.COMMENTS || position.node.elementType == SqlTokens.STRING) return
-        val file = parameters.originalFile
-        val tables = cachedTables(file)
-        val qualifier = qualifierBefore(position)
-        if (qualifier != null) {
-          val table = aliasTarget(position, qualifier) ?: qualifier
-          tables.firstOrNull { it.name.equals(table, ignoreCase = true) }?.let { t ->
-            DbMetadataCache.cachedColumns(file.project, t)?.forEach { column ->
-              result.addElement(LookupElementBuilder.create(column.name).withIcon(AllIcons.Nodes.DataColumn).withTypeText(column.typeName))
+        val result = resultSet.caseInsensitive()
+        val project = position.project
+        val dataSource = SqlSchema.dataSourceFor(parameters.originalFile, strict = false)
+        val schema = dataSource?.let { SqlSchema.getInstance(project).snapshot(it) }
+        val columns = { table: DbTableRef -> dataSource?.let { SqlSchema.getInstance(project).columns(it, table) }.orEmpty() }
+        when (val parent = position.parent) {
+          is SqlColumnRef -> {
+            val q = parent.qualifier
+            if (q != null) {
+              qualifiedTable(q)?.let { t -> schema?.let { tableOf(t, it) } }?.let { columns(it).forEach { c -> result.addElement(column(c, null)) } }
+              return
             }
+            if (parent.isInsertColumn) {
+              SqlScopes.chain(parent).firstOrNull()?.let { SqlScopes.direct(it, SqlTableRef::class.java).firstOrNull() }
+                ?.let { t -> schema?.let { tableOf(t, it) } }?.let { columns(it).forEach { c -> result.addElement(column(c, null)) } }
+              return
+            }
+            for (scope in SqlScopes.chain(parent)) {
+              for (ref in SqlScopes.direct(scope, SqlTableRef::class.java)) {
+                val table = schema?.let { tableOf(ref, it) } ?: continue
+                columns(table).forEach { result.addElement(column(it, ref.alias?.name ?: table.name)) }
+                ref.alias?.let { result.addElement(PrioritizedLookupElement.withPriority(LookupElementBuilder.create(it.name).withIcon(AllIcons.Nodes.Alias).withTypeText(table.name), 5.0)) }
+              }
+            }
+            keywords(result)
           }
-          return
-        }
-        if (previousKeyword(position) in TABLE_CONTEXT) {
-          for (t in tables) {
-            result.addElement(LookupElementBuilder.create(t.name).withIcon(AllIcons.Nodes.DataTables).withTypeText(t.schema))
+          is SqlTableRef -> {
+            val schemaName = parent.schemaName
+            val tables = if (schemaName == null || dataSource == null) schema
+            else schema?.schema(schemaName)?.let { SqlSchema.getInstance(project).withSchema(dataSource, it) }
+            tables?.tables?.filter { schemaName == null || SqlNames.same(it.schema ?: it.catalog.orEmpty(), schemaName) }?.forEach { result.addElement(table(it)) }
+            if (schemaName != null) return
+            schema?.schemas?.forEach { result.addElement(PrioritizedLookupElement.withPriority(LookupElementBuilder.create(it.name).withIcon(AllIcons.Nodes.DataSchema), 2.0)) }
+            SqlScopes.ctes(parent).forEach { result.addElement(PrioritizedLookupElement.withPriority(LookupElementBuilder.create(it.name).withIcon(AllIcons.Nodes.DataTables).withTypeText("CTE"), 8.0)) }
+            keywords(result)
           }
-        }
-        val upper = result.prefixMatcher.prefix.firstOrNull()?.isUpperCase() != false
-        for (k in SqlTokens.KEYWORDS) {
-          result.addElement(LookupElementBuilder.create(if (upper) k else k.lowercase()).bold())
+          else -> {
+            if (previousKeyword(position) in TABLE_CONTEXT) schema?.tables?.forEach { result.addElement(table(it)) }
+            keywords(result)
+          }
         }
       }
     })
   }
 
-  private fun cachedTables(file: PsiFile): List<DbTableRef> {
-    val vFile = file.virtualFile ?: file.viewProvider.virtualFile
-    // SQL injected into a Java or Kotlin string has no console of its own: use a data source whose schema is loaded
-    val dataSource = DbConsoles.dataSourceFor(file.project, vFile)
-                     ?: DbDataSourceService.getInstance(file.project).dataSources.takeIf {
-                       com.intellij.lang.injection.InjectedLanguageManager.getInstance(file.project).isInjectedFragment(file)
-                     }?.firstOrNull { DbMetadataCache.cachedTables(file.project, it.id).isNotEmpty() }
-                     ?: return emptyList()
-    return DbMetadataCache.cachedTables(file.project, dataSource.id)
-  }
-
-  /** `t` in `t.<caret>`. */
-  private fun qualifierBefore(position: PsiElement): String? {
-    val dot = PsiTreeUtil.prevLeaf(position) ?: return null
-    if (dot.node.elementType != SqlTokens.DOT) return null
-    val name = PsiTreeUtil.prevLeaf(dot) ?: return null
-    return if (name.node.elementType in SqlTokens.NAMES || name.node.elementType == SqlTokens.KEYWORD) unquote(name.text) else null
-  }
-
-  /** `reservation` for alias `r` in `FROM reservation r` / `JOIN reservation AS r`. */
-  private fun aliasTarget(position: PsiElement, alias: String): String? {
-    val statement = PsiTreeUtil.getParentOfType(position, SqlStatement::class.java) ?: return null
-    val tokens = generateSequence(PsiTreeUtil.firstChild(statement)) { PsiTreeUtil.nextLeaf(it) }
-      .takeWhile { it.textRange.endOffset <= statement.textRange.endOffset }
-      .filter { it.node.elementType != TokenType.WHITE_SPACE && it.node.elementType !in SqlTokens.COMMENTS }
-      .toList()
-    for (i in 1 until tokens.size) {
-      if (tokens[i].node.elementType !in SqlTokens.NAMES || !unquote(tokens[i].text).equals(alias, ignoreCase = true)) continue
-      var j = i - 1
-      if (tokens[j].text.equals("AS", ignoreCase = true) && j > 0) j--
-      if (tokens[j].node.elementType in SqlTokens.NAMES) return unquote(tokens[j].text)
+  /** The table `t` stands for in `t.x`: through an alias, or a table in FROM, or the name itself. */
+  private fun qualifiedTable(q: SqlQualifier): SqlTableRef? = when (val r = SqlResolver.qualifier(q)) {
+    is SqlResolution.Found -> when (val t = r.target) {
+      is SqlTableRef -> t
+      is SqlAlias -> t.table
+      else -> null
     }
-    return null
+    else -> null
+  } ?: PsiTreeUtil.getParentOfType(q, SqlStatement::class.java)?.let { st ->
+    PsiTreeUtil.findChildrenOfType(st, SqlTableRef::class.java).firstOrNull { SqlNames.same(it.tableName, q.qualifierName) }
+  }
+
+  private fun tableOf(ref: SqlTableRef, schema: SqlSchemaSnapshot): DbTableRef? = schema.find(ref.tableName, ref.schemaName).firstOrNull()
+
+  private fun column(c: DbColumnInfo, owner: String?) = PrioritizedLookupElement.withPriority(
+    LookupElementBuilder.create(c.name).withIcon(AllIcons.Nodes.DataColumn).withTypeText(c.typeName).withTailText(owner?.let { " ($it)" }, true), 10.0)
+
+  private fun table(t: DbTableRef) = PrioritizedLookupElement.withPriority(
+    LookupElementBuilder.create(t.name).withIcon(AllIcons.Nodes.DataTables).withTypeText(t.schema ?: t.catalog), 5.0)
+
+  private fun keywords(result: CompletionResultSet) {
+    val upper = result.prefixMatcher.prefix.firstOrNull()?.isUpperCase() != false
+    for (k in SqlTokens.KEYWORDS) {
+      result.addElement(LookupElementBuilder.create(if (upper) k else k.lowercase()).bold())
+    }
   }
 
   private fun previousKeyword(position: PsiElement): String? {
@@ -176,7 +188,5 @@ class SqlCompletionContributor : CompletionContributor() {
 
   private companion object {
     val TABLE_CONTEXT = setOf("FROM", "JOIN", "INTO", "UPDATE", "TABLE", "DESCRIBE", "DESC", "EXPLAIN")
-
-    fun unquote(s: String): String = s.trim('`', '"', '[', ']')
   }
 }

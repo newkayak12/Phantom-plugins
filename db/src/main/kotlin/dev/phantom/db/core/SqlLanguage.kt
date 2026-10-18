@@ -103,6 +103,14 @@ object SqlTokens {
 object SqlElements {
   @JvmField val FILE: IFileElementType = IFileElementType(SqlLanguage)
   @JvmField val STATEMENT: IElementType = IElementType("STATEMENT", SqlLanguage)
+  @JvmField val SUBQUERY: IElementType = IElementType("SUBQUERY", SqlLanguage)
+  @JvmField val TABLE_REF: IElementType = IElementType("TABLE_REF", SqlLanguage)
+  @JvmField val COLUMN_REF: IElementType = IElementType("COLUMN_REF", SqlLanguage)
+  @JvmField val INSERT_COLUMN: IElementType = IElementType("INSERT_COLUMN", SqlLanguage)
+  @JvmField val QUALIFIER: IElementType = IElementType("QUALIFIER", SqlLanguage)
+  @JvmField val ALIAS: IElementType = IElementType("ALIAS", SqlLanguage)
+  @JvmField val CTE_NAME: IElementType = IElementType("CTE_NAME", SqlLanguage)
+  @JvmField val COLUMN_ALIAS: IElementType = IElementType("COLUMN_ALIAS", SqlLanguage)
 }
 
 class SqlFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, SqlLanguage) {
@@ -125,8 +133,8 @@ class SqlFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, SqlLan
   }
 }
 
-/** One statement, up to and including its `;`. The tree below it is flat: tokens only. */
-class SqlStatement(node: ASTNode) : ASTWrapperPsiElement(node) {
+/** One statement, up to and including its `;`. Below it: tokens, names ([SqlTableRef], [SqlColumnRef], ...) and subqueries. */
+class SqlStatement(node: ASTNode) : ASTWrapperPsiElement(node), SqlScope {
   /** Text to send to the driver: without the trailing `;` and surrounding blanks. */
   val executableText: String
     get() {
@@ -145,9 +153,11 @@ class SqlStatement(node: ASTNode) : ASTWrapperPsiElement(node) {
 
 object SqlStatements {
   internal fun firstKeyword(first: ASTNode?): String? {
-    var n = first
+    // `(SELECT ...)` starts with a subquery element: look at the leaves
+    val end = first?.treeParent
+    var n = first?.let { com.intellij.psi.impl.source.tree.TreeUtil.findFirstLeaf(it) }
     while (n != null && (n.elementType == TokenType.WHITE_SPACE || n.elementType in SqlTokens.COMMENTS || n.elementType == SqlTokens.LPAREN)) {
-      n = n.treeNext
+      n = com.intellij.psi.impl.source.tree.TreeUtil.nextLeaf(n)?.takeIf { end == null || it.startOffset < end.startOffset + end.textLength }
     }
     return n?.takeIf { it.elementType == SqlTokens.KEYWORD }?.text?.uppercase()
   }
@@ -176,27 +186,12 @@ object SqlStatements {
   }
 }
 
-/** File → statements. Never reports errors: a half-typed statement is still a statement. */
-class SqlParser : PsiParser {
-  override fun parse(root: IElementType, builder: PsiBuilder): ASTNode {
-    val file = builder.mark()
-    while (!builder.eof()) {
-      val statement = builder.mark()
-      while (!builder.eof() && builder.tokenType != SqlTokens.SEMICOLON) builder.advanceLexer()
-      if (!builder.eof()) builder.advanceLexer()
-      statement.done(SqlElements.STATEMENT)
-    }
-    file.done(root)
-    return builder.treeBuilt
-  }
-}
-
 class SqlParserDefinition : ParserDefinition {
   override fun createLexer(project: Project?): Lexer = SqlLexer()
   override fun createParser(project: Project?): PsiParser = SqlParser()
   override fun getFileNodeType(): IFileElementType = SqlElements.FILE
   override fun getCommentTokens(): TokenSet = SqlTokens.COMMENTS
   override fun getStringLiteralElements(): TokenSet = SqlTokens.STRINGS
-  override fun createElement(node: ASTNode): PsiElement = SqlStatement(node)
+  override fun createElement(node: ASTNode): PsiElement = elementFor(node) ?: SqlStatement(node)
   override fun createFile(viewProvider: FileViewProvider): PsiFile = SqlFile(viewProvider)
 }

@@ -445,6 +445,10 @@ class DbMetadataCache(private val project: Project) {
 
   fun cachedColumns(table: DbTableRef): List<DbColumnInfo>? = columns[table]
 
+  fun cachedSchemas(dataSourceId: String): List<DbSchemaRef>? = schemas[dataSourceId]
+
+  fun hasCachedTables(schema: DbSchemaRef): Boolean = tables.containsKey(schema)
+
   fun invalidate(dataSourceId: String) {
     schemas.remove(dataSourceId)
     tables.keys.removeIf { it.dataSourceId == dataSourceId }

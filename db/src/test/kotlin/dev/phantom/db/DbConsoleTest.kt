@@ -190,9 +190,9 @@ class DbConsoleTest : BasePlatformTestCase() {
     val file = myFixture.configureByText("q.sql", "SELECT * FROM <caret>").virtualFile
     DbConsoles.attach(project, file, ds.id)
 
-    // nothing loaded yet: keywords only, and no connection is opened by completion
+    // nothing in the tree yet: completion loads the current schema's tables itself
     myFixture.completeBasic()
-    assertDoesntContain(myFixture.lookupElementStrings!!, "RESERVATION")
+    assertContainsElements(myFixture.lookupElementStrings!!, "RESERVATION", "GUESTS")
 
     val panel = DbExplorerPanel(project, testRootDisposable)
     val tree = panel.tree

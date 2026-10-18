@@ -13,6 +13,9 @@
     <lang.commenter language="SQL" implementationClass="dev.phantom.db.core.SqlCommenter"/>
     <lang.braceMatcher language="SQL" implementationClass="dev.phantom.db.core.SqlBraceMatcher"/>
     <completion.contributor language="SQL" implementationClass="dev.phantom.db.core.SqlCompletionContributor"/>
+    <annotator language="SQL" implementationClass="dev.phantom.db.core.SqlUnresolvedAnnotator"/>
+    <lang.formatter language="SQL" implementationClass="dev.phantom.db.core.SqlFormattingModelBuilder"/>
+    <lang.findUsagesProvider language="SQL" implementationClass="dev.phantom.db.core.SqlFindUsagesProvider"/>
     <runLineMarkerContributor language="SQL" implementationClass="dev.phantom.db.core.exec.SqlRunLineMarkerContributor"/>
     <editorNotificationProvider implementation="dev.phantom.db.core.exec.SqlDataSourceNotificationProvider"/>
     <actionPromoter implementation="dev.phantom.db.core.exec.SqlActionPromoter"/>
