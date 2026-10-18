@@ -1,0 +1,6 @@
+<html><body>
+Reports constraints and <code>@Valid</code> written on a Kotlin constructor property without a use-site target, as in
+<code>class SignUp(@NotBlank val name: String)</code>. Kotlin puts such an annotation on the constructor parameter, so
+validating the object (for example a <code>@Valid @RequestBody</code>) never checks it. The quick fix writes
+<code>@field:NotBlank</code>.
+</body></html>
