@@ -20,10 +20,15 @@ class SqlInspectionsTest : BasePlatformTestCase() {
       SqlUnionColumnCountInspection::class.java, SqlMultipleLimitInspection::class.java, SqlRedundantOrderingDirectionInspection::class.java,
       SqlCaseVsCoalesceInspection::class.java, SqlRedundantElseNullInspection::class.java, SqlShouldBeInGroupByInspection::class.java,
       SqlDerivedTableAliasInspection::class.java, SqlMissingColumnAliasesInspection::class.java,
+      SqlNullComparisonInspection::class.java, SqlConstantConditionInspection::class.java, SqlAggregateMisuseInspection::class.java,
+      SqlRedundantCoalesceInspection::class.java, SqlRedundantLimitInspection::class.java, SqlUnusedSubqueryItemInspection::class.java,
+      SqlDuplicateColumnInspection::class.java, SqlOrderByPositionInspection::class.java, SqlAddNotNullColumnInspection::class.java,
+      SqlDeprecatedTypeInspection::class.java,
     )
     val SCHEMA: List<Class<out LocalInspectionTool>> = listOf(
       SqlAmbiguousColumnInspection::class.java, SqlInsertNullIntoNotNullInspection::class.java,
       SqlStringLengthExceededInspection::class.java, SqlTypeMismatchInspection::class.java,
+      SqlUsingColumnsInspection::class.java, SqlNotNullColumnTestInspection::class.java,
     )
   }
 
@@ -83,7 +88,8 @@ class SqlInspectionsTest : BasePlatformTestCase() {
     assertEquals(listOf("RedundantAlias: AS users"), findings("SELECT * FROM users AS users;"))
 
     assertEquals(listOf("ShadowingAlias: r", "ShadowingAlias: r"),
-                 findings("SELECT * FROM room r JOIN rate r ON 1 = 1 WHERE EXISTS (SELECT 1 FROM rate r WHERE r.id = 1);"))
+                 findings("SELECT * FROM room r JOIN rate r ON 1 = 1 WHERE EXISTS (SELECT 1 FROM rate r WHERE r.id = 1);")
+                   .filter { it.startsWith("Shadowing") })
     // a derived table may reuse its inner alias as its own name, and CTE bodies are not nested in the main query
     assertEmpty(findings("SELECT x.id FROM (SELECT x.id FROM t x) x; WITH c AS (SELECT u.id FROM users u) SELECT u.id FROM c JOIN users u ON u.id = c.id;"))
   }
@@ -114,7 +120,7 @@ class SqlInspectionsTest : BasePlatformTestCase() {
              count(DISTINCT CASE WHEN o.released_at IS NULL THEN o.id END)
       FROM t GROUP BY a;
     """.trimIndent()).filter { !it.startsWith("RedundantElseNull") })
-    // DDL is not checked: the user's generated column keeps its ELSE NULL
+    // the query checks leave DDL alone: the user's generated column keeps its ELSE NULL
     assertEmpty(findings("ALTER TABLE t ADD COLUMN m TINYINT GENERATED ALWAYS AS (CASE WHEN r IS NULL THEN 1 ELSE NULL END) STORED;"))
   }
 
@@ -142,7 +148,87 @@ class SqlInspectionsTest : BasePlatformTestCase() {
 
   fun testMissingColumnAliasesIsOffByDefaultButWorks() {
     assertEquals(listOf("MissingColumnAliases: count(*)"),
-                 findings("SELECT d.a FROM (SELECT a, count(*), b AS c FROM t GROUP BY a, b) d; WITH x (n) AS (SELECT count(*) FROM t) SELECT n FROM x;"))
+                 findings("SELECT d.a FROM (SELECT a, count(*), b AS c FROM t GROUP BY a, b) d; WITH x (n) AS (SELECT count(*) FROM t) SELECT n FROM x;")
+                   .filter { it.startsWith("Missing") })
+  }
+
+  fun testNullComparisonAndConstantConditions() {
+    assertEquals(listOf("NullComparison: = NULL", "NullComparison: <> NULL", "NullComparison: != NULL"),
+                 findings("SELECT * FROM t WHERE a = NULL OR b <> NULL; SELECT CASE WHEN c != NULL THEN 1 END FROM t;"))
+    assertEmpty(findings("UPDATE t SET a = NULL WHERE b IS NULL; INSERT INTO t (a) VALUES (1) ON DUPLICATE KEY UPDATE a = NULL; SELECT * FROM t WHERE a <=> NULL;"))
+    findings("SELECT * FROM t WHERE a <> NULL;")
+    applyFix(PhantomDbBundle.message("sql.fix.replace.with", "IS NOT NULL"))
+    myFixture.checkResult("SELECT * FROM t WHERE a IS NOT NULL;")
+
+    assertEquals(listOf("ConstantCondition: 1 = 0", "ConstantCondition: 'x' = 'x'", "ConstantCondition: 2 > 1"),
+                 findings("SELECT * FROM t WHERE 1 = 0 OR 'x' = 'x'; SELECT * FROM a JOIN b ON 2 > 1;"))
+    assertEmpty(findings("SELECT * FROM t WHERE a = 1 AND 'a' = 'A' AND a + 1 = 2 AND 1 = a AND 2 = 1 + a; SELECT 1 = 0 FROM t;"))
+  }
+
+  fun testAggregatesCoalesceAndSubqueryLimits() {
+    assertEquals(listOf("AggregateMisuse: count", "AggregateMisuse: max", "AggregateMisuse: sum"),
+                 findings("SELECT a FROM t WHERE count(*) > 1 GROUP BY max(b); SELECT max(sum(a)) FROM t GROUP BY b;").filter { it.startsWith("Aggregate") })
+    assertEmpty(findings("""
+      SELECT a, count(*) FROM t GROUP BY a HAVING count(*) > 1 ORDER BY count(*);
+      SELECT sum(count(*)) OVER () FROM t GROUP BY a;
+      SELECT * FROM t WHERE a > (SELECT max(b) FROM s);
+      SELECT t.max FROM t WHERE row_number() OVER (ORDER BY a) > 1;
+    """.trimIndent()).filter { it.startsWith("Aggregate") })
+
+    assertEquals(listOf("RedundantCoalesce: , b", "RedundantCoalesce: , NULL", "RedundantCoalesce: COALESCE(a)"),
+                 findings("SELECT coalesce(a, 0, b), COALESCE(a, b, NULL), COALESCE(a) FROM t;"))
+    assertEmpty(findings("SELECT COALESCE(a, b, 0), COALESCE(NULL, a) FROM t;"))
+    findings("SELECT COALESCE(a, 'none', b, c) FROM t;")
+    applyFix(PhantomDbBundle.message("sql.fix.remove.arguments"))
+    myFixture.checkResult("SELECT COALESCE(a, 'none') FROM t;")
+
+    assertEquals(listOf("RedundantLimit: ORDER BY", "RedundantLimit: LIMIT", "RedundantLimit: ORDER BY"),
+                 findings("SELECT * FROM t WHERE EXISTS (SELECT 1 FROM s ORDER BY x LIMIT 1) AND a IN (SELECT b FROM s ORDER BY b);"))
+    assertEmpty(findings("SELECT * FROM t WHERE NOT EXISTS (SELECT 1 FROM s LIMIT 0) AND a IN (SELECT b FROM s ORDER BY b LIMIT 3); SELECT * FROM (SELECT a FROM t ORDER BY a) d;")
+                  .filter { it.startsWith("RedundantLimit") })
+  }
+
+  fun testUnusedSubqueryItemsDuplicatesAndPositions() {
+    assertEquals(listOf("UnusedSubqueryItem: b", "UnusedSubqueryItem: count(*) n"),
+                 findings("SELECT d.a FROM (SELECT a, b FROM t) d; WITH c AS (SELECT a, count(*) n FROM t GROUP BY a) SELECT a FROM c;"))
+    assertEmpty(findings("""
+      SELECT * FROM (SELECT a, b FROM t) d;
+      SELECT d.* FROM (SELECT a, b FROM t) d;
+      SELECT count(*) FROM (SELECT a, b FROM t) d;
+      SELECT d.a FROM (SELECT DISTINCT a, b FROM t) d;
+      SELECT x.a FROM (SELECT a, count(*) c FROM t GROUP BY a HAVING c > 1) x;
+      WITH c AS (SELECT a, b FROM t) SELECT c.a FROM c JOIN s ON s.b = c.b;
+      WITH RECURSIVE n (i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 3) SELECT i FROM n;
+    """.trimIndent()))
+
+    assertEquals(listOf("DuplicateColumn: a", "DuplicateColumn: a", "DuplicateColumn: b AS a", "DuplicateColumn: id"),
+                 findings("""
+                   UPDATE t SET a = 1, b = 2, a = 3 WHERE id = 1;
+                   INSERT INTO t (a) VALUES (1) ON DUPLICATE KEY UPDATE a = 2, a = 3;
+                   SELECT d.a FROM (SELECT a, b AS a FROM t) d;
+                   CREATE TABLE x (id BIGINT, name TEXT, id INT, PRIMARY KEY (id));
+                 """.trimIndent()).filter { it.startsWith("Duplicate") })
+    assertEmpty(findings("UPDATE t JOIN s ON s.id = t.id SET t.a = 1, s.a = 2; SELECT a, a FROM t; CREATE TABLE y (id INT, KEY k (id), UNIQUE (id));")
+                  .filter { it.startsWith("Duplicate") })
+
+    assertEquals(listOf("OrderByPosition: 3", "OrderByPosition: 0", "OrderByPosition: 2"),
+                 findings("SELECT a, b FROM t ORDER BY 3; SELECT a FROM t GROUP BY 0; SELECT a FROM t UNION SELECT b FROM s ORDER BY 2 DESC;"))
+    assertEmpty(findings("SELECT a, b FROM t GROUP BY 1, 2 ORDER BY 2 DESC, 1 LIMIT 5; SELECT * FROM t ORDER BY 7; SELECT a, row_number() OVER (ORDER BY 5) FROM t;"))
+  }
+
+  fun testDdlChecksFollowTheDialect() {
+    val ddl = "ALTER TABLE t ADD COLUMN c INT NOT NULL, ADD d INT NOT NULL DEFAULT 0, ADD CONSTRAINT u UNIQUE (c), ADD e SERIAL NOT NULL;\n" +
+              "CREATE TABLE z (id INT(11) NOT NULL, flag TINYINT(1), n BIGINT(20) UNSIGNED ZEROFILL, f FLOAT(7,2), name VARCHAR(20));"
+    // with no data source the dialect is unknown: nothing
+    assertEmpty(findings(ddl))
+    val pg = DbDataSource().apply { name = "pg"; dbms = Dbms.POSTGRESQL; url = "jdbc:postgresql://127.0.0.1:1/none"; user = "x" }
+    val mysql = DbDataSource().apply { name = "my"; dbms = Dbms.MYSQL; url = "jdbc:mysql://127.0.0.1:1/none"; user = "x" }
+    for (ds in listOf(pg, mysql)) {
+      DbDataSourceService.getInstance(project).save(ds, CharArray(0))
+      dataSources.add(ds)
+    }
+    assertEquals(listOf("AddNotNullColumn: ADD COLUMN c"), findings(ddl, pg))
+    assertEquals(listOf("DeprecatedType: (11)", "DeprecatedType: (20)", "DeprecatedType: ZEROFILL", "DeprecatedType: (7,2)"), findings(ddl, mysql))
   }
 
   fun testQuickFixes() {
@@ -212,6 +298,15 @@ class SqlInspectionsTest : BasePlatformTestCase() {
     assertEmpty(findings("INSERT INTO reservation (guest_id, note) VALUES (1, 'it''s'); UPDATE reservation SET note = 'ab' || note WHERE id = 1;", ds))
 
     assertEquals(listOf("TypeMismatch: 'abc'"), findings("SELECT * FROM reservation WHERE room_no = 'abc' OR room_no = '12' OR status = 'abc';", ds))
+
+    assertEquals(listOf("UsingColumns: email", "UsingColumns: status"),
+                 findings("SELECT * FROM guest g JOIN reservation r USING (email); SELECT * FROM reservation r JOIN guest g USING (id, status);", ds))
+    assertEmpty(findings("SELECT * FROM guest g JOIN reservation r USING (id); SELECT * FROM (SELECT 1 status) d JOIN reservation r USING (status);", ds))
+
+    assertEquals(listOf("NotNullColumnTest: name IS NULL", "NotNullColumnTest: r.guest_id IS NOT NULL"),
+                 findings("SELECT * FROM guest WHERE name IS NULL OR email IS NULL; SELECT * FROM reservation r WHERE r.guest_id IS NOT NULL;", ds))
+    // an outer join puts NULLs into NOT NULL columns
+    assertEmpty(findings("SELECT g.id FROM guest g LEFT JOIN reservation r ON r.guest_id = g.id WHERE r.guest_id IS NULL;", ds))
 
     // without a data source the schema checks say nothing
     assertEmpty(findings("SELECT id FROM guest g JOIN reservation r ON r.guest_id = g.id;", name = "detached.sql"))

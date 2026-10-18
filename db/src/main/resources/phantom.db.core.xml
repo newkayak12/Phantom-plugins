@@ -50,6 +50,30 @@
                      enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlStringLengthExceededInspection"/>
     <localInspection language="SQL" shortName="PhantomSqlTypeMismatch" key="inspection.PhantomSqlTypeMismatch" groupKey="inspection.group.sql"
                      enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlTypeMismatchInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlNullComparison" key="inspection.PhantomSqlNullComparison" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlNullComparisonInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlConstantCondition" key="inspection.PhantomSqlConstantCondition" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlConstantConditionInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlAggregateMisuse" key="inspection.PhantomSqlAggregateMisuse" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlAggregateMisuseInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlRedundantCoalesce" key="inspection.PhantomSqlRedundantCoalesce" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlRedundantCoalesceInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlRedundantLimit" key="inspection.PhantomSqlRedundantLimit" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlRedundantLimitInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlUnusedSubqueryItem" key="inspection.PhantomSqlUnusedSubqueryItem" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnusedSubqueryItemInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlDuplicateColumn" key="inspection.PhantomSqlDuplicateColumn" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlDuplicateColumnInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlOrderByPosition" key="inspection.PhantomSqlOrderByPosition" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlOrderByPositionInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlAddNotNullColumn" key="inspection.PhantomSqlAddNotNullColumn" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlAddNotNullColumnInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlDeprecatedType" key="inspection.PhantomSqlDeprecatedType" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlDeprecatedTypeInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlUsingColumns" key="inspection.PhantomSqlUsingColumns" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUsingColumnsInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlNotNullColumnTest" key="inspection.PhantomSqlNotNullColumnTest" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlNotNullColumnTestInspection"/>
     <lang.formatter language="SQL" implementationClass="dev.phantom.db.core.SqlFormattingModelBuilder"/>
     <lang.findUsagesProvider language="SQL" implementationClass="dev.phantom.db.core.SqlFindUsagesProvider"/>
     <runLineMarkerContributor language="SQL" implementationClass="dev.phantom.db.core.exec.SqlRunLineMarkerContributor"/>

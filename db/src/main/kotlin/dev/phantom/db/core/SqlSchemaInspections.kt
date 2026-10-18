@@ -165,6 +165,63 @@ class SqlTypeMismatchInspection : SqlSchemaInspection() {
   }
 }
 
+/** `JOIN b USING (x)` where `b`, or every table before the JOIN, has no column `x`. */
+class SqlUsingColumnsInspection : SqlSchemaInspection() {
+  override fun checkQuery(query: SqlScope, items: List<SqlItem>, holder: ProblemsHolder) {
+    val schema = SqlSchema.getInstance(query.project)
+    for ((index, item) in items.withIndex()) {
+      if (!item.isKeyword("USING")) continue
+      val join = (index - 1 downTo 0).firstOrNull { items[it].depth == item.depth && items[it].isKeyword("JOIN") } ?: continue
+      val open = items.getOrNull(index + 1)?.takeIf { it.type == SqlTokens.LPAREN } ?: continue
+      val close = (index + 2 until items.size).firstOrNull { items[it].depth == open.depth && items[it].type == SqlTokens.RPAREN } ?: continue
+      val columns = items.subList(index + 2, close).mapNotNull { it.element as? SqlColumnRef }
+      // the joined table, when it is one table (not a derived table or a nested join)
+      val right = items.subList(join + 1, index).filter { it.depth == item.depth }.mapNotNull { it.element as? SqlTableRef }.singleOrNull()
+                    ?.takeIf { items.subList(join + 1, index).none { it.element is SqlSubquery || it.type == SqlTokens.LPAREN } }
+      val rightColumns = right?.let { tableOf(it) }?.let { schema.columns(it.dataSource, it.table) }
+      // the tables before the JOIN; any derived table or unknown table makes them unknown
+      val before = items.subList(0, join)
+      val leftRefs = before.mapNotNull { it.element as? SqlTableRef }
+      val leftColumns = if (leftRefs.isEmpty() || before.any { it.element is SqlSubquery }) null
+                        else leftRefs.map { ref -> tableOf(ref)?.let { schema.columns(it.dataSource, it.table) } }.takeIf { it.none { c -> c == null } }
+      for (column in columns) {
+        val name = column.columnName
+        if (rightColumns != null && rightColumns.none { SqlNames.same(it.name, name) }) {
+          holder.registerProblem(column, PhantomDbBundle.message("sql.inspection.using.not.in.table", name, right?.tableName.orEmpty()))
+        }
+        else if (leftColumns != null && leftColumns.none { table -> table!!.any { SqlNames.same(it.name, name) } }) {
+          holder.registerProblem(column, PhantomDbBundle.message("sql.inspection.using.not.on.left", name))
+        }
+      }
+    }
+  }
+}
+
+/** `WHERE c IS NULL` for a NOT NULL column: always false (`IS NOT NULL`: always true), unless an outer join adds NULLs. */
+class SqlNotNullColumnTestInspection : SqlSchemaInspection() {
+  override fun checkQuery(query: SqlScope, items: List<SqlItem>, holder: ProblemsHolder) {
+    val statement = com.intellij.psi.util.PsiTreeUtil.getParentOfType(query, SqlStatement::class.java, false) ?: return
+    var outerJoin: Boolean? = null
+    for ((i, item) in items.withIndex()) {
+      if (!item.isKeyword("IS")) continue
+      val not = items.getOrNull(i + 1)?.isKeyword("NOT") == true
+      val nullAt = i + if (not) 2 else 1
+      if (items.getOrNull(nullAt)?.isKeyword("NULL") != true) continue
+      val ref = items.getOrNull(i - 1)?.takeIf { it.depth == item.depth }?.element as? SqlColumnRef ?: continue
+      // `a + b IS NULL`: the test is about the expression
+      if (items.getOrNull(i - 2)?.let { it.type == SqlTokens.OPERATOR || it.type == SqlTokens.DOT } == true) continue
+      if (SqlClauses.clauseOf(items, i) != "WHERE") continue
+      val column = columnOf(ref) ?: continue
+      if (column.nullable) continue
+      if (outerJoin == null) outerJoin = SqlClauses.hasOuterJoin(statement)
+      if (outerJoin) return
+      register(holder, ref, items[nullAt].element,
+               PhantomDbBundle.message(if (not) "sql.inspection.not.null.test.true" else "sql.inspection.not.null.test.false", column.name),
+               ProblemHighlightType.WEAK_WARNING)
+    }
+  }
+}
+
 /** The text of a SQL string literal. */
 object SqlLiterals {
   /** `'it''s'` → `it's`; `N'x'`, `E'x'` and (MySQL) backslash escapes too. Null for `$$...$$`, `X'..'` and `B'..'`. */
