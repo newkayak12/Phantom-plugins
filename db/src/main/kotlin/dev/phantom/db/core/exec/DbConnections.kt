@@ -232,6 +232,43 @@ object DbExecutor {
     return outcomes
   }
 
+  /**
+   * Runs one prepared statement from a grid edit on the console connection, so in a manual-commit data source it joins
+   * the open transaction and shows up in Database Changes under its [DbStatement.display] text.
+   */
+  suspend fun execute(project: Project, dataSource: DbDataSource, statement: DbStatement): DbOutcome =
+    DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.CONSOLE) { connection ->
+      val started = System.nanoTime()
+      val outcome = withContext(Dispatchers.IO) {
+        try {
+          connection.prepareStatement(statement.sql).use { ps ->
+            if (dataSource.queryTimeoutSeconds > 0) ps.queryTimeout = dataSource.queryTimeoutSeconds
+            statement.params.forEachIndexed { i, p ->
+              val type = DbEditTargets.bindType(p.sqlType)
+              if (p.value == null) ps.setNull(i + 1, type) else ps.setObject(i + 1, p.value, type)
+            }
+            DbOutcome.Updated(statement.display, ps.executeLargeUpdateOrPlain(), (System.nanoTime() - started) / 1_000_000)
+          }
+        }
+        catch (e: SQLException) {
+          DbOutcome.Failed(statement.display, message(e), (System.nanoTime() - started) / 1_000_000)
+        }
+      }
+      if (!connection.autoCommit) DbPendingChanges.getInstance(project).afterStatement(dataSource, outcome.sql, listOf(outcome))
+      outcome
+    }
+
+  private fun java.sql.PreparedStatement.executeLargeUpdateOrPlain(): Long =
+    try {
+      executeLargeUpdate()
+    }
+    catch (_: UnsupportedOperationException) {
+      executeUpdate().toLong()
+    }
+    catch (_: SQLFeatureNotSupportedException) {
+      executeUpdate().toLong()
+    }
+
   private suspend fun runOne(connection: Connection, dataSource: DbDataSource, sql: String): List<DbOutcome> = withContext(Dispatchers.IO) {
     val started = System.nanoTime()
     fun elapsed() = (System.nanoTime() - started) / 1_000_000

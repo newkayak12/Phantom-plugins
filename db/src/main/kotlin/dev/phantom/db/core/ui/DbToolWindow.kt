@@ -124,6 +124,9 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       Separator.getInstance(),
       action("db.action.refresh.text", AllIcons.Actions.Refresh) { refresh() },
       action("db.action.console.text", AllIcons.Debugger.Console, { selectedSource() != null }) { selectedSource()?.let { openConsole(it, null) } },
+      action("db.action.compare.text", AllIcons.Actions.Diff, { selectedNode() is DbNode.Schema }) {
+        (selectedNode() as? DbNode.Schema)?.let { DbSchemaCompare.chooseAndCompare(project, DbSchemaSide(it.dataSource, it.ref), tree) }
+      },
     )
     val toolbar = ActionManager.getInstance().createActionToolbar("PhantomDbExplorer", group, true)
     toolbar.targetComponent = tree

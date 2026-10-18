@@ -21,6 +21,7 @@
     <toolWindow id="Database Changes" anchor="bottom" secondary="false" icon="AllIcons.Vcs.Changelist"
                 factoryClass="dev.phantom.db.core.ui.DbChangesToolWindowFactory"/>
     <projectCloseHandler implementation="dev.phantom.db.core.exec.DbPendingChangesCloseHandler"/>
+    <notificationGroup id="Phantom Database" displayType="BALLOON" bundle="messages.PhantomDbBundle" key="db.notification.group"/>
   </extensions>
   <actions resource-bundle="messages.PhantomDbBundle">
     <action id="PhantomDb.RunStatement" class="dev.phantom.db.core.exec.SqlRunStatementAction" icon="AllIcons.Actions.Execute">

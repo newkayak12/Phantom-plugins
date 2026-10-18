@@ -9,6 +9,7 @@ Spring Boot support: new projects from Spring Initializr, and configuration supp
   - Dependencies that the chosen Spring Boot version doesn't support are marked, with the versions they need.
   - The server URL can point at your own Initializr instance.
 
+- **Run configuration:** Run, Debug or Profile on a `@SpringBootApplication` class or its Kotlin `main` creates a **Spring Boot** configuration instead of a plain Application one, with an **Active profiles** field (passed as `-Dspring.profiles.active`). It uses the same type and options as IntelliJ IDEA, so Spring Boot configurations already in `.idea/workspace.xml` open as they are. Spring Boot applications show in the **Services** tool window.
 - **Completion** for keys and values.
   - Keys come from the `spring-configuration-metadata.json` of the project's libraries.
   - They also come from the project's own `@ConfigurationProperties` classes in Java and Kotlin, which helps when the project has no configuration processor.

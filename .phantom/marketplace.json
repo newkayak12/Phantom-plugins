@@ -9,9 +9,9 @@
     {
       "id": "dev.phantom.db",
       "name": "Phantom Database Console",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "source": "db",
-      "description": "Connect to MySQL, PostgreSQL or H2 over JDBC and run SQL from the editor: highlighting, Ctrl+Enter to run the statement at the caret, a sortable result grid and a lazily loaded schema tree. Drivers come from the project's dependencies or the local Gradle/Maven cache. Manual-commit data sources keep changes in an open transaction you review, commit or roll back in the Database Changes tool window.",
+      "description": "Connect to MySQL, PostgreSQL or H2 over JDBC and run SQL from the editor: highlighting, Ctrl+Enter to run the statement at the caret, a sortable result grid and a lazily loaded schema tree. Drivers come from the project's dependencies or the local Gradle/Maven cache. Manual-commit data sources keep changes in an open transaction you review, commit or roll back in the Database Changes tool window. Edit single-table results in the grid, and compare two schemas with the SQL to make them match.",
       "vendor": "Phantom",
       "category": "Database",
       "since": "262",
@@ -20,7 +20,7 @@
         "com.intellij.modules.lang",
         "intellij.grid.core.plugin"
       ],
-      "download": "db-0.2.0/db-0.2.0.zip",
+      "download": "db-0.3.0/db-0.3.0.zip",
       "detect": [
         "com.mysql:mysql-connector-j",
         "mysql:mysql-connector-java",
@@ -32,7 +32,7 @@
     {
       "id": "dev.phantom.spring",
       "name": "Phantom Spring",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "source": "spring",
       "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, Spring MVC handlers for the Endpoints tool window, Spring Security path and expression support, and Kafka/RabbitMQ/JMS sender-receiver navigation.",
       "vendor": "Phantom",
@@ -43,7 +43,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-0.2.0/spring-0.2.0.zip",
+      "download": "spring-0.3.0/spring-0.3.0.zip",
       "detect": [
         "org.springframework:spring-context",
         "org.springframework:spring-web",
@@ -53,7 +53,7 @@
     {
       "id": "dev.phantom.spring.boot",
       "name": "Phantom Spring Boot",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "source": "spring-boot",
       "description": "Spring Boot support: File → New → Project → Spring Boot generates projects with Spring Initializr, and application*.yml / application*.properties get completion and quick documentation for keys and values, from library metadata and the project's own @ConfigurationProperties, in Java and Kotlin.",
       "vendor": "Phantom",
@@ -64,7 +64,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-boot-0.2.0/spring-boot-0.2.0.zip",
+      "download": "spring-boot-0.3.0/spring-boot-0.3.0.zip",
       "detect": [
         "org.springframework.boot:spring-boot",
         "org.springframework.boot:spring-boot-autoconfigure"

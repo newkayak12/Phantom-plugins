@@ -19,4 +19,6 @@ Java와 Kotlin 프로젝트를 위한 Spring 지원입니다.
 
 프로젝트가 `spring-context`나 `spring-web`에 의존하면 Phantom이 이 플러그인 설치를 제안합니다. Spring을 쓰지 않는 프로젝트에서는 아무 동작도 하지 않습니다.
 
+- **Spring Beans** 툴 윈도우: 프로젝트의 모든 빈을 모듈과 종류(컨트롤러, 서비스, 리포지터리, 컴포넌트, 설정 클래스와 그 `@Bean` 메서드)별로 보여 줍니다. 빈을 펼치면 주입받는 빈과 각 주입 지점을 채우는 빈, 그리고 이 빈을 주입받는 곳이 나옵니다. 두 번 클릭하면 소스로 이동합니다. 창을 열 때나 Refresh를 누를 때만 계산합니다.
+
 아직 없는 것: WebFlux 함수형 라우트, Spring Security 필터 체인 보기. Spring Data 리포지토리는 [Phantom JPA](../jpa/KOR.md)에 있습니다.

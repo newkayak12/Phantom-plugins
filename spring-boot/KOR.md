@@ -9,6 +9,7 @@ Spring Boot 지원입니다. Spring Initializr로 새 프로젝트를 만들고,
   - 고른 Spring Boot 버전에서 쓸 수 없는 의존성은 표시하고, 필요한 버전을 알려 줍니다.
   - 서버 주소를 바꾸면 직접 운영하는 Initializr 서버를 쓸 수 있습니다.
 
+- **실행 구성:** `@SpringBootApplication` 클래스나 그 Kotlin `main`에서 Run, Debug, Profile을 누르면 일반 Application 대신 **Spring Boot** 구성이 만들어집니다. **Active profiles** 칸은 `-Dspring.profiles.active`로 넘어갑니다. IntelliJ IDEA와 같은 형식을 써서 `.idea/workspace.xml`에 있던 Spring Boot 구성이 그대로 열리고, Spring Boot 앱은 **Services** 창에 나옵니다.
 - **자동완성:** 키와 값을 채워 줍니다.
   - 키는 라이브러리의 `spring-configuration-metadata.json`에서 읽습니다.
   - 프로젝트가 직접 만든 `@ConfigurationProperties` 클래스(Java, Kotlin)에서도 읽기 때문에, 설정 프로세서를 쓰지 않는 프로젝트에서도 키가 나옵니다.

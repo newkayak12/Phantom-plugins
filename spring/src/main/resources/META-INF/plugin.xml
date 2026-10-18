@@ -5,7 +5,8 @@
   <category>Frameworks</category>
   <description><![CDATA[
   Spring Framework support for Phantom IDEA: bean injection navigation in both directions
-  and correct "unused" analysis for Spring-managed classes and methods. Works for Java and Kotlin.
+  and correct "unused" analysis for Spring-managed classes and methods, and a Spring Beans tool window with each bean's
+  dependencies and dependents. Works for Java and Kotlin.
   Does nothing in projects without spring-context on the classpath.
   ]]></description>
 

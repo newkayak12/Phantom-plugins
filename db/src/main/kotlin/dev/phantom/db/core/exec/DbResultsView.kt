@@ -2,10 +2,9 @@
 package dev.phantom.db.core.exec
 
 import com.intellij.database.datagrid.*
-import com.intellij.database.run.ui.grid.GridMutationModel
-import com.intellij.database.run.ui.grid.GridStorageAndModelUpdater
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.EDT
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
@@ -23,7 +22,9 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import dev.phantom.db.core.DbDataSource
 import dev.phantom.db.core.PhantomDbBundle
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.TestOnly
 import java.awt.BorderLayout
 import java.awt.FlowLayout
@@ -38,6 +39,13 @@ import javax.swing.JPanel
  */
 class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disposable {
   var job: Job? = null
+
+  /** The data source the shown results came from; a single-table result from it can be edited in place. */
+  var dataSource: DbDataSource? = null
+
+  @get:TestOnly
+  var shownEditing: DbGridEdits? = null
+    private set
   private var shown: Disposable? = null
 
   @get:TestOnly
@@ -115,19 +123,32 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
 
   private fun grid(rows: DbOutcome.Rows, parent: Disposable): JComponent {
     val model = DataGridListModel { a, b -> a == b }
-    val hookUp = CachedGridDataHookUp(project, model)
+    val hookUp = DbEditableHookUp(project, model)
     val grid = GridUtil.createDataGrid(project, hookUp, GridUtil.getGridPopupActions(),
                                        BiConsumer { g, appearance ->
-                                         // the read-only setup the community CSV viewer uses: helpers, renderers, formatters
+                                         // the setup the community CSV editor uses: helpers, renderers, formatters, cell editors
                                          GridUtil.configureCsvTable(g, appearance)
                                          GridUtil.configureFullSizeTable(g, appearance)
                                        })
     Disposer.register(parent, grid)
     // fill through the updater so the grid gets the column and row events it lays itself out from
-    val updater = GridStorageAndModelUpdater(model, hookUp.mutationModel as GridMutationModel, null)
+    val updater = hookUp.createUpdater()
     updater.setColumns(rows.columns.mapIndexed { i, c -> DataConsumer.Column(i, c.name, c.sqlType, c.typeName, c.className) })
     updater.addRows(rows.rows.mapIndexed { i, values -> DataConsumer.Row.create(i, values) })
     updater.afterLastRowAdded()
+    shownEditing = null
+    val source = dataSource
+    if (source != null) {
+      // finding the table and its primary key needs the database; until then the grid is read-only
+      val resolving = DbConnectionService.getInstance(project).launch {
+        val target = DbEditTargets.resolve(project, source, rows) ?: return@launch
+        withContext(Dispatchers.EDT) {
+          if (Disposer.isDisposed(grid)) return@withContext
+          hookUp.editing = DbGridEdits(project, source, target, hookUp).also { shownEditing = it }
+        }
+      }
+      Disposer.register(parent) { resolving.cancel() }
+    }
     return grid.panel.component
   }
 
@@ -172,13 +193,13 @@ object DbResultsToolWindow {
     val manager = toolWindow.contentManager
     val title = if (DbConsoles.isConsole(file)) dataSource.name else "${file.name} · ${dataSource.name}"
     val existing = manager.contents.firstOrNull { it.displayName == title && !it.isPinned }
-    val panel = existing?.component as? DbResultPanel ?: DbResultPanel(project).also { panel ->
+    val panel = (existing?.component as? DbResultPanel ?: DbResultPanel(project).also { panel ->
       val content = ContentFactory.getInstance().createContent(panel, title, false)
       content.setDisposer(panel)
       manager.addContent(content)
       val unpinned = manager.contents.filter { !it.isPinned }
       if (unpinned.size > MAX_TABS) unpinned.take(unpinned.size - MAX_TABS).forEach { manager.removeContent(it, true) }
-    }
+    }).also { it.dataSource = dataSource }
     manager.contents.firstOrNull { it.component === panel }?.let { manager.setSelectedContent(it) }
     toolWindow.show()
     return panel
