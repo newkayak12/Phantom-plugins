@@ -1,0 +1,32 @@
+<idea-plugin>
+  <id>dev.phantom.openapi</id>
+  <name>Phantom OpenAPI</name>
+  <vendor>Phantom</vendor>
+  <category>Microservices</category>
+  <description><![CDATA[
+  OpenAPI and Swagger specifications in YAML and JSON: <code>$ref</code> navigation (local pointers and other files),
+  completion of <code>#/components/...</code> names, unresolved <code>$ref</code> errors, and gutter links between a
+  spec operation and the code that serves it (any framework Phantom's Endpoints view knows, such as Spring MVC).
+  Works only in files that start with <code>openapi:</code> or <code>swagger:</code>.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+    <plugin id="org.jetbrains.plugins.yaml"/>
+    <plugin id="com.intellij.modules.json"/>
+  </dependencies>
+
+  <resource-bundle>messages.PhantomOpenApiBundle</resource-bundle>
+  <extensions defaultExtensionNs="com.intellij">
+    <psi.referenceContributor language="yaml" implementation="dev.phantom.openapi.OpenApiReferenceContributor"/>
+    <psi.referenceContributor language="JSON" implementation="dev.phantom.openapi.OpenApiReferenceContributor"/>
+    <localInspection enabledByDefault="true" level="ERROR" shortName="PhantomOpenApiRef"
+                     bundle="messages.PhantomOpenApiBundle" key="ref.display.name"
+                     groupBundle="messages.PhantomOpenApiBundle" groupKey="group.name"
+                     implementationClass="dev.phantom.openapi.OpenApiRefInspection"/>
+    <codeInsight.lineMarkerProvider language="yaml" implementationClass="dev.phantom.openapi.SpecOperationLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JSON" implementationClass="dev.phantom.openapi.SpecOperationLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.openapi.EndpointSpecLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.openapi.EndpointSpecLineMarkerProvider"/>
+  </extensions>
+</idea-plugin>

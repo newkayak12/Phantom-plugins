@@ -32,6 +32,9 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom Ktor | [ktor](./ktor/KOR.md) · [English](./ktor/README.md) | Ktor 라우트를 Endpoints 툴 윈도우에 표시 (`Route` 확장 함수 안의 라우트 포함) |
 | Phantom Kubernetes | [kubernetes](./kubernetes/KOR.md) · [English](./kubernetes/README.md) | Helm 템플릿: `.Values` 자동완성, 이동, 없는 값 경고 |
 | Phantom Profiler | [profiler](./profiler/KOR.md) · [English](./profiler/README.md) | JFR 프로파일링: Profile 실행, 실행 중인 JVM 녹화, 플레임 그래프·콜 트리 보기 |
+| Phantom Bean Validation | [validation](./validation/KOR.md) · [English](./validation/README.md) | 모순된 범위, 맞지 않는 타입의 제약, Kotlin `@field:` 대상, 빠진 `@Valid` / `@Validated` |
+| Phantom Migrations | [migrations](./migrations/KOR.md) · [English](./migrations/README.md) | Flyway 파일 이름과 중복 버전, Liquibase 중복 changeset과 없는 include |
+| Phantom OpenAPI | [openapi](./openapi/KOR.md) · [English](./openapi/README.md) | OpenAPI/Swagger 스펙의 `$ref` 이동·자동완성·오류, 스펙 ↔ 핸들러 거터 |
 
 ## 저장소 형식
 

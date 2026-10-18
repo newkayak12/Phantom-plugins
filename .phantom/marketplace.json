@@ -234,6 +234,72 @@
         "org.springframework.kafka:spring-kafka",
         "io.projectreactor.kafka:reactor-kafka"
       ]
+    },
+    {
+      "id": "dev.phantom.validation",
+      "name": "Phantom Bean Validation",
+      "version": "0.1.0",
+      "source": "validation",
+      "description": "Bean Validation checks for Java and Kotlin: contradictory bounds (@Min above @Max, @Size min above max), constraints on types they cannot validate, Kotlin constructor properties whose constraint lands on the parameter (quick fix: @field:), nested objects with constraints but no @Valid, and Spring beans with method constraints but no @Validated.",
+      "vendor": "Phantom",
+      "since": "262",
+      "until": "262.*",
+      "category": "Frameworks",
+      "depends": [
+        "com.intellij.modules.lang",
+        "com.intellij.java"
+      ],
+      "download": "validation-0.1.0/validation-0.1.0.zip",
+      "detect": [
+        "jakarta.validation:jakarta.validation-api",
+        "javax.validation:validation-api",
+        "org.hibernate.validator:hibernate-validator",
+        "org.springframework.boot:spring-boot-starter-validation"
+      ]
+    },
+    {
+      "id": "dev.phantom.migrations",
+      "name": "Phantom Migrations",
+      "version": "0.1.0",
+      "source": "migrations",
+      "description": "Flyway and Liquibase checks: migration names Flyway skips (single underscore, lower-case prefix, no description) and duplicate versions in db/migration and spring.flyway.locations; duplicate changeset id and author and missing include/includeAll paths in XML, YAML and formatted SQL changelogs.",
+      "vendor": "Phantom",
+      "since": "262",
+      "until": "262.*",
+      "category": "Database",
+      "depends": [
+        "com.intellij.modules.lang",
+        "org.jetbrains.plugins.yaml"
+      ],
+      "download": "migrations-0.1.0/migrations-0.1.0.zip",
+      "detect": [
+        "org.flywaydb:flyway-core",
+        "org.liquibase:liquibase-core"
+      ]
+    },
+    {
+      "id": "dev.phantom.openapi",
+      "name": "Phantom OpenAPI",
+      "version": "0.1.0",
+      "source": "openapi",
+      "description": "OpenAPI and Swagger specs in YAML and JSON: $ref navigation to local pointers and other files, #/components/... completion, unresolved $ref errors, and gutter links between a spec operation and its handler (Spring MVC and any framework in the Endpoints view).",
+      "vendor": "Phantom",
+      "since": "262",
+      "until": "262.*",
+      "category": "Microservices",
+      "depends": [
+        "com.intellij.modules.lang",
+        "org.jetbrains.plugins.yaml",
+        "com.intellij.modules.json"
+      ],
+      "download": "openapi-0.1.0/openapi-0.1.0.zip",
+      "detect": [
+        "org.springdoc:springdoc-openapi-starter-webmvc-ui",
+        "org.springdoc:springdoc-openapi-starter-webflux-ui",
+        "io.swagger.core.v3:swagger-annotations",
+        "org.openapitools:openapi-generator-gradle-plugin",
+        "com.epages:restdocs-api-spec"
+      ]
     }
   ]
 }
