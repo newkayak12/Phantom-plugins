@@ -23,5 +23,7 @@
                      implementationClass="dev.phantom.springboot.core.BootDatasourceDriverInspection"/>
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.springboot.core.BootConfigPropertiesLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.springboot.core.BootConfigPropertiesLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.springboot.core.BootApplicationConfigLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.springboot.core.BootApplicationConfigLineMarkerProvider"/>
   </extensions>
 </idea-plugin>

@@ -21,6 +21,7 @@
     <completion.contributor language="any" order="first" implementationClass="dev.phantom.kubernetes.HelmCompletionContributor"/>
     <typedHandler implementation="dev.phantom.kubernetes.HelmTypedHandler"/>
     <gotoDeclarationHandler implementation="dev.phantom.kubernetes.HelmGotoDeclarationHandler"/>
+    <codeInsight.lineMarkerProvider language="yaml" implementationClass="dev.phantom.kubernetes.K8sLineMarkerProvider"/>
     <!-- _helpers.tpl holds the chart's define blocks; opened as text so completion and Ctrl+B work there too -->
     <fileType name="PLAIN_TEXT" extensions="tpl"/>
     <localInspection enabledByDefault="true" level="WEAK WARNING" shortName="PhantomHelmValues"
