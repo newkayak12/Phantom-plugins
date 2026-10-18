@@ -191,3 +191,88 @@ class MethodSecurityExpressionInspection : AbstractBaseUastLocalInspectionTool()
 internal object PhantomSecurityMessages {
   fun unknownArgument(name: String): String = dev.phantom.spring.core.PhantomSpringBundle.message("security.unknown.argument", name)
 }
+
+/** Which kinds of method security annotations the project's `@Enable…MethodSecurity` configuration switches on. */
+internal object MethodSecuritySwitches {
+  private const val ENABLE = "org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity"
+  private const val ENABLE_GLOBAL = "org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity"
+  private const val ENABLE_REACTIVE = "org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity"
+
+  enum class Kind(val attribute: String) { PRE_POST("prePostEnabled"), SECURED("securedEnabled"), JSR250("jsr250Enabled") }
+
+  val ANNOTATIONS: Map<String, Kind> = mapOf(
+    "org.springframework.security.access.prepost.PreAuthorize" to Kind.PRE_POST,
+    "org.springframework.security.access.prepost.PostAuthorize" to Kind.PRE_POST,
+    "org.springframework.security.access.prepost.PreFilter" to Kind.PRE_POST,
+    "org.springframework.security.access.prepost.PostFilter" to Kind.PRE_POST,
+    "org.springframework.security.access.annotation.Secured" to Kind.SECURED,
+    "jakarta.annotation.security.RolesAllowed" to Kind.JSR250,
+    "javax.annotation.security.RolesAllowed" to Kind.JSR250,
+  )
+
+  /**
+   * The enabled kinds, or null when nothing can be said: the enabling annotations are not on the classpath (an
+   * unusual setup this check does not know). Searched in sources and libraries, cached until the next PSI change.
+   */
+  fun state(project: Project): Found? = com.intellij.psi.util.CachedValuesManager.getManager(project).getCachedValue(project) {
+    com.intellij.psi.util.CachedValueProvider.Result.create(find(project), com.intellij.psi.util.PsiModificationTracker.getInstance(project))
+  }?.takeIf { it.known }
+
+  /** [used]: some configuration carries an enabling annotation; [kinds]: what it switches on. */
+  class Found(val known: Boolean, val used: Boolean, val kinds: Set<Kind>)
+
+  private fun find(project: Project): Found {
+    val facade = JavaPsiFacade.getInstance(project)
+    val all = GlobalSearchScope.allScope(project)
+    val classes = listOf(ENABLE, ENABLE_GLOBAL, ENABLE_REACTIVE).mapNotNull { fqn -> facade.findClass(fqn, all)?.let { fqn to it } }
+    if (classes.isEmpty()) return Found(false, false, emptySet())
+    val kinds = HashSet<Kind>()
+    var used = false
+    for ((fqn, annotationClass) in classes) {
+      com.intellij.psi.search.searches.AnnotatedElementsSearch.searchPsiClasses(annotationClass, all).forEach { configuration ->
+        val annotation = configuration.getAnnotation(fqn) ?: return@forEach
+        used = true
+        if (fqn == ENABLE_REACTIVE) { kinds += Kind.entries; return@forEach }
+        for (kind in Kind.entries) {
+          // @EnableMethodSecurity turns pre/post on by default; @EnableGlobalMethodSecurity turns nothing on by default
+          val default = fqn == ENABLE && kind == Kind.PRE_POST
+          if (flag(annotation, kind.attribute) ?: default) kinds += kind
+        }
+      }
+    }
+    return Found(true, used, kinds)
+  }
+
+  private fun flag(annotation: com.intellij.psi.PsiAnnotation, name: String): Boolean? {
+    val value = annotation.findDeclaredAttributeValue(name) ?: return null
+    return (JavaPsiFacade.getInstance(annotation.project).constantEvaluationHelper.computeConstantExpression(value) as? Boolean)
+           ?: value.text.trim().toBooleanStrictOrNull()
+  }
+}
+
+/**
+ * `@PreAuthorize`, `@Secured` or `@RolesAllowed` that Spring ignores because no configuration enables that kind of
+ * method security: the method runs for everyone. Quiet when the enabling annotations cannot be found at all.
+ */
+class MethodSecurityDisabledInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
+    if (!SecurityGate.isSecurityProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
+    return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
+      override fun visitMethod(node: UMethod): Boolean { check(node.uAnnotations); return true }
+      override fun visitClass(node: org.jetbrains.uast.UClass): Boolean { check(node.uAnnotations); return true }
+
+      private fun check(annotations: List<UAnnotation>) {
+        for (annotation in annotations) {
+          val kind = MethodSecuritySwitches.ANNOTATIONS[annotation.qualifiedName] ?: continue
+          val state = MethodSecuritySwitches.state(holder.project) ?: return
+          if (kind in state.kinds) continue
+          val anchor = annotation.sourcePsi ?: continue
+          val name = "@" + annotation.qualifiedName!!.substringAfterLast('.')
+          val message = if (!state.used) dev.phantom.spring.core.PhantomSpringBundle.message("security.disabled.none", name)
+                        else dev.phantom.spring.core.PhantomSpringBundle.message("security.disabled.attribute", name, "${kind.attribute} = true")
+          holder.registerProblem(anchor, message)
+        }
+      }
+    }, arrayOf(UMethod::class.java, org.jetbrains.uast.UClass::class.java), true)
+  }
+}

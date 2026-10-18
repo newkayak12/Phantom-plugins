@@ -86,6 +86,40 @@ class SpringMessagingTest : LightJavaCodeInsightFixtureTestCase() {
     assertTrue("Senders to order.placed, order.cancelled" in myFixture.findAllGutters().mapNotNull { it.tooltipText })
   }
 
+  fun testPlaceholdersResolveFromConfig() {
+    myFixture.addFileToProject("application.yml", """
+      spring:
+        kafka:
+          bootstrap-servers: localhost:9092 # local broker
+      app:
+        topics:
+          refund: "order.refunded"
+    """.trimIndent())
+    myFixture.addFileToProject("application-local.properties", "app.topics.audit=order.audit\n")
+    myFixture.addClass("""
+      package app;
+      import org.springframework.kafka.annotation.KafkaListener;
+      public class RefundListener {
+        @KafkaListener(topics = "${'$'}{app.topics.refund}") public void onRefund(String body) {}
+        @KafkaListener(topics = "${'$'}{app.topics.audit}") public void onAudit(String body) {}
+        @KafkaListener(topics = "${'$'}{app.topics.missing:order.fallback}") public void onFallback(String body) {}
+        @KafkaListener(topics = "${'$'}{app.topics.unknown}") public void onUnknown(String body) {}
+      }
+    """.trimIndent())
+    myFixture.addClass("""
+      package app;
+      public class RefundPublisher {
+        org.springframework.kafka.core.KafkaTemplate<String, String> template;
+        public void refund(String body) { template.send("order.refunded", body); }
+      }
+    """.trimIndent())
+    val received = MessagingModel.all(project).filter { !it.sends && it.label.startsWith("RefundListener") }.map { it.channel }.sorted()
+    assertEquals(listOf("\${app.topics.unknown}", "order.audit", "order.fallback", "order.refunded"), received)
+    myFixture.configureFromExistingVirtualFile(myFixture.findClass("app.RefundPublisher").containingFile.virtualFile)
+    myFixture.doHighlighting()
+    assertTrue("Receivers of order.refunded" in myFixture.findAllGutters().mapNotNull { it.tooltipText })
+  }
+
   fun testTopicCompletion() {
     myFixture.configureByText("Listener.java", """
       import org.springframework.kafka.annotation.KafkaListener;
