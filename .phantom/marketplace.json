@@ -9,9 +9,9 @@
     {
       "id": "dev.phantom.db",
       "name": "Phantom Database Console",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "source": "db",
-      "description": "Connect to MySQL, PostgreSQL or H2 over JDBC and run SQL from the editor: highlighting, Ctrl+Enter to run the statement at the caret, a sortable result grid and a lazily loaded schema tree. Drivers come from the project's dependencies or the local Gradle/Maven cache. Manual-commit data sources keep changes in an open transaction you review, commit or roll back in the Database Changes tool window. Edit single-table results in the grid, and compare two schemas with the SQL to make them match. SQL in @Query(nativeQuery = true), @NativeQuery and JdbcTemplate/JdbcClient strings is highlighted and completed. Query history (Ctrl+Alt+E), result export to CSV, TSV, JSON, SQL INSERT or Markdown, and JPA entity generation from a table. 0.5.0: SQL that understands names (alias-aware completion with schema loaded on demand, Ctrl+B to the table or column, unknown table/column warnings, Reformat), a table data view with WHERE/ORDER BY filters, paging and foreign-key navigation, keys/foreign keys/indexes/routines/triggers in the tree, Show DDL and Modify Table, manual-commit transactions, Explain Plan/Analyze and query parameters. 0.6.0: 18 SQL inspections, each toggleable (UPDATE/DELETE without WHERE, JOIN without ON, unused CTE, alias problems, VALUES count, UNION column count, GROUP BY, CASE vs COALESCE, and with the schema loaded: ambiguous columns, NOT NULL columns, string length, type mismatch). Wave 6: 12 more SQL checks (= NULL, constant conditions, aggregates in WHERE, redundant COALESCE/LIMIT, unused subquery columns, duplicate columns, ADD NOT NULL without default, deprecated MySQL types, USING columns, ORDER BY position). Wave 7: duplicate AUTO_INCREMENT, MySQL function-name space, insert into generated columns, misleading subquery references.",
+      "description": "Connect to MySQL, PostgreSQL or H2 over JDBC and run SQL from the editor: highlighting, Ctrl+Enter to run the statement at the caret, a sortable result grid and a lazily loaded schema tree. Drivers come from the project's dependencies or the local Gradle/Maven cache. Manual-commit data sources keep changes in an open transaction you review, commit or roll back in the Database Changes tool window. Edit single-table results in the grid, and compare two schemas with the SQL to make them match. SQL in @Query(nativeQuery = true), @NativeQuery and JdbcTemplate/JdbcClient strings is highlighted and completed. Query history (Ctrl+Alt+E), result export to CSV, TSV, JSON, SQL INSERT or Markdown, and JPA entity generation from a table. 0.5.0: SQL that understands names (alias-aware completion with schema loaded on demand, Ctrl+B to the table or column, unknown table/column warnings, Reformat), a table data view with WHERE/ORDER BY filters, paging and foreign-key navigation, keys/foreign keys/indexes/routines/triggers in the tree, Show DDL and Modify Table, manual-commit transactions, Explain Plan/Analyze and query parameters. 0.6.0: 18 SQL inspections, each toggleable (UPDATE/DELETE without WHERE, JOIN without ON, unused CTE, alias problems, VALUES count, UNION column count, GROUP BY, CASE vs COALESCE, and with the schema loaded: ambiguous columns, NOT NULL columns, string length, type mismatch). Wave 6: 12 more SQL checks (= NULL, constant conditions, aggregates in WHERE, redundant COALESCE/LIMIT, unused subquery columns, duplicate columns, ADD NOT NULL without default, deprecated MySQL types, USING columns, ORDER BY position). Wave 7: duplicate AUTO_INCREMENT, MySQL function-name space, insert into generated columns, misleading subquery references. Wave 8: JPA entities checked against the real schema (unknown tables/columns, optional nullability) and @Table/@Column name completion from the database.",
       "vendor": "Phantom",
       "category": "Database",
       "since": "262",
@@ -20,7 +20,7 @@
         "com.intellij.modules.lang",
         "intellij.grid.core.plugin"
       ],
-      "download": "db-0.8.0/db-0.8.0.zip",
+      "download": "db-0.9.0/db-0.9.0.zip",
       "detect": [
         "com.mysql:mysql-connector-j",
         "mysql:mysql-connector-java",
@@ -32,9 +32,9 @@
     {
       "id": "dev.phantom.spring",
       "name": "Phantom Spring",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "source": "spring",
-      "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, Spring MVC handlers for the Endpoints tool window, Spring Security path and expression support, and Kafka/RabbitMQ/JMS sender-receiver navigation. 0.4.0: proxy pitfalls (self-invocation of @Transactional/@Cacheable/@Async, private/final/static proxied methods, Kotlin classes not opened by kotlin-spring), @Scheduled/@Async/@EventListener contracts, field and static injection, duplicate bean names, @Scope values, @Sql paths, @DirtiesContext, publishEvent ↔ listener gutters, @Qualifier/@DependsOn bean name completion and Ctrl+B. Wave 6: @Value placeholders (follows spring.config.import), SpEL syntax, cache names, caching on interfaces, @Qualifier/@DependsOn near-miss names, MVC path variables, endpoint and AOP advice gutters, method security not enabled, pointcut syntax. Wave 7: @Cacheable+@CachePut, abstract beans, @Value literal types, @Bean method shape, scan packages, AspectJ autoproxy, @Autowired outside beans, resource locations, @TestBean factories, @Around/pointcut/argNames/@DeclareParents, Security debug/self-invocation/bean refs.",
+      "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, Spring MVC handlers for the Endpoints tool window, Spring Security path and expression support, and Kafka/RabbitMQ/JMS sender-receiver navigation. 0.4.0: proxy pitfalls (self-invocation of @Transactional/@Cacheable/@Async, private/final/static proxied methods, Kotlin classes not opened by kotlin-spring), @Scheduled/@Async/@EventListener contracts, field and static injection, duplicate bean names, @Scope values, @Sql paths, @DirtiesContext, publishEvent ↔ listener gutters, @Qualifier/@DependsOn bean name completion and Ctrl+B. Wave 6: @Value placeholders (follows spring.config.import), SpEL syntax, cache names, caching on interfaces, @Qualifier/@DependsOn near-miss names, MVC path variables, endpoint and AOP advice gutters, method security not enabled, pointcut syntax. Wave 7: @Cacheable+@CachePut, abstract beans, @Value literal types, @Bean method shape, scan packages, AspectJ autoproxy, @Autowired outside beans, resource locations, @TestBean factories, @Around/pointcut/argNames/@DeclareParents, Security debug/self-invocation/bean refs. Wave 8: @Bean init/destroy methods, @Lookup, Resource @Value, @Profile expressions and unknown profiles, bean name convention, argNames bindings; cache, @Scheduled and @Import gutters.",
       "vendor": "Phantom",
       "category": "Frameworks",
       "since": "262",
@@ -43,7 +43,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-0.6.0/spring-0.6.0.zip",
+      "download": "spring-0.7.0/spring-0.7.0.zip",
       "detect": [
         "org.springframework:spring-context",
         "org.springframework:spring-web",
@@ -53,9 +53,9 @@
     {
       "id": "dev.phantom.spring.boot",
       "name": "Phantom Spring Boot",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "source": "spring-boot",
-      "description": "Spring Boot support: File → New → Project → Spring Boot generates projects with Spring Initializr, and application*.yml / application*.properties get completion and quick documentation for keys and values, from library metadata and the project's own @ConfigurationProperties, in Java and Kotlin. An Actuator tab beside the console of a running app (health, beans, mappings, environment, polled only while shown; only for modules with spring-boot-starter-actuator), and completion and Ctrl+B for ${...} placeholders in @Value from the project's application.yml/properties and Spring Boot metadata. Wave 7: datasource driver missing, config key <-> @Value/@ConfigurationProperties gutters, spring.config.import files count as config.",
+      "description": "Spring Boot support: File → New → Project → Spring Boot generates projects with Spring Initializr, and application*.yml / application*.properties get completion and quick documentation for keys and values, from library metadata and the project's own @ConfigurationProperties, in Java and Kotlin. An Actuator tab beside the console of a running app (health, beans, mappings, environment, polled only while shown; only for modules with spring-boot-starter-actuator), and completion and Ctrl+B for ${...} placeholders in @Value from the project's application.yml/properties and Spring Boot metadata. Wave 7: datasource driver missing, config key <-> @Value/@ConfigurationProperties gutters, spring.config.import files count as config. Wave 8: profile override gutters between application-<profile> and base config, @SpringBootApplication -> config files.",
       "vendor": "Phantom",
       "category": "Frameworks",
       "since": "262",
@@ -64,7 +64,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-boot-0.5.0/spring-boot-0.5.0.zip",
+      "download": "spring-boot-0.6.0/spring-boot-0.6.0.zip",
       "detect": [
         "org.springframework.boot:spring-boot",
         "org.springframework.boot:spring-boot-autoconfigure"
@@ -139,9 +139,9 @@
     {
       "id": "dev.phantom.kubernetes",
       "name": "Phantom Kubernetes",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "source": "kubernetes",
-      "description": "Helm chart templates: .Values completion and navigation from values.yaml, .Release/.Chart fields, include/define navigation, and a warning for values that values.yaml does not define. 0.2.0: manifest checks for built-in kinds (removed API versions, unknown and missing keys with key completion, duplicate env vars, selector/template label mismatch); YAML in Markdown fences is skipped. Wave 7: unknown kinds, enum values, deprecated keys/resources, server-set fields, Chart.yaml.",
+      "description": "Helm chart templates: .Values completion and navigation from values.yaml, .Release/.Chart fields, include/define navigation, and a warning for values that values.yaml does not define. 0.2.0: manifest checks for built-in kinds (removed API versions, unknown and missing keys with key completion, duplicate env vars, selector/template label mismatch); YAML in Markdown fences is skipped. Wave 7: unknown kinds, enum values, deprecated keys/resources, server-set fields, Chart.yaml. Wave 8: gutters Service <-> workloads, ConfigMap/Secret/ServiceAccount references, Ingress backends.",
       "vendor": "Phantom",
       "category": "Cloud",
       "since": "262",
@@ -150,7 +150,7 @@
         "com.intellij.modules.lang",
         "org.jetbrains.plugins.yaml"
       ],
-      "download": "kubernetes-0.3.0/kubernetes-0.3.0.zip",
+      "download": "kubernetes-0.4.0/kubernetes-0.4.0.zip",
       "detectFiles": [
         "Chart.yaml"
       ]
@@ -174,9 +174,9 @@
     {
       "id": "dev.phantom.docker",
       "name": "Phantom Docker",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "source": "docker",
-      "description": "Docker Compose through the docker CLI: run icons on compose services, a Docker Compose run configuration shown in Services, and a Docker tool window listing containers by compose project with start, stop, restart, remove, logs and compose down. Polls only while open. 0.2.0: Compose checks (unknown keys and values, undefined services/networks/volumes with Ctrl+B and completion, missing image, unquoted base-60 ports, duplicate container names) and Dockerfile checks (continuations, argument counts, exec form, heredocs, stages, COPY/ADD paths). Wave 7: Compose pull_policy and network_mode values.",
+      "description": "Docker Compose through the docker CLI: run icons on compose services, a Docker Compose run configuration shown in Services, and a Docker tool window listing containers by compose project with start, stop, restart, remove, logs and compose down. Polls only while open. 0.2.0: Compose checks (unknown keys and values, undefined services/networks/volumes with Ctrl+B and completion, missing image, unquoted base-60 ports, duplicate container names) and Dockerfile checks (continuations, argument counts, exec form, heredocs, stages, COPY/ADD paths). Wave 7: Compose pull_policy and network_mode values. Wave 8: Compose build -> Dockerfile and depends_on gutters, Dockerfile stage Ctrl+B.",
       "vendor": "Phantom",
       "since": "262",
       "until": "262.*",
@@ -185,7 +185,7 @@
         "com.intellij.modules.lang",
         "org.jetbrains.plugins.yaml"
       ],
-      "download": "docker-0.3.0/docker-0.3.0.zip",
+      "download": "docker-0.4.0/docker-0.4.0.zip",
       "detectFiles": [
         "compose.yaml",
         "compose.yml",
@@ -260,9 +260,9 @@
     {
       "id": "dev.phantom.migrations",
       "name": "Phantom Migrations",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "source": "migrations",
-      "description": "Flyway and Liquibase checks: migration names Flyway skips (single underscore, lower-case prefix, no description) and duplicate versions in db/migration and spring.flyway.locations; duplicate changeset id and author and missing include/includeAll paths in XML, YAML and formatted SQL changelogs.",
+      "description": "Flyway and Liquibase checks: migration names Flyway skips (single underscore, lower-case prefix, no description) and duplicate versions in db/migration and spring.flyway.locations; duplicate changeset id and author and missing include/includeAll paths in XML, YAML and formatted SQL changelogs. Wave 8: Flyway previous/next migration gutters, Liquibase include navigation.",
       "vendor": "Phantom",
       "since": "262",
       "until": "262.*",
@@ -271,7 +271,7 @@
         "com.intellij.modules.lang",
         "org.jetbrains.plugins.yaml"
       ],
-      "download": "migrations-0.1.0/migrations-0.1.0.zip",
+      "download": "migrations-0.2.0/migrations-0.2.0.zip",
       "detect": [
         "org.flywaydb:flyway-core",
         "org.liquibase:liquibase-core"
