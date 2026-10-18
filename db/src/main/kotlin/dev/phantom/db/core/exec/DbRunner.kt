@@ -87,6 +87,7 @@ object DbConsoles {
 object SqlSafety {
   private val READ_ONLY_ALLOWED = setOf("SELECT", "SHOW", "EXPLAIN", "DESCRIBE", "DESC", "WITH", "VALUES", "TABLE", "USE", "SET")
   private val DDL = setOf("CREATE", "ALTER", "DROP", "RENAME", "TRUNCATE")
+  private val TRANSACTION_CONTROL = setOf("COMMIT", "ROLLBACK", "BEGIN", "START", "SAVEPOINT", "RELEASE")
 
   sealed interface Verdict {
     data object Ok : Verdict
@@ -107,6 +108,12 @@ object SqlSafety {
   }
 
   fun isDdl(sql: String): Boolean = firstKeyword(sql) in DDL
+
+  /** Whether the statement can change data or schema, i.e. is not a plain read. */
+  fun changesData(sql: String): Boolean = firstKeyword(sql).let { it != null && it !in READ_ONLY_ALLOWED && it !in TRANSACTION_CONTROL }
+
+  /** `COMMIT` or `ROLLBACK` typed in the console: it ends the open transaction itself. */
+  fun endsTransaction(sql: String): Boolean = firstKeyword(sql) in setOf("COMMIT", "ROLLBACK")
 
   /** `UPDATE t SET …` or `DELETE FROM t` without a `WHERE` anywhere in the statement. */
   fun missingWhere(sql: String): Boolean {

@@ -71,6 +71,8 @@ class DbDataSource {
   var url: String = ""
   var user: String = ""
   var readOnly: Boolean = false
+  /** Changes stay in an open transaction until committed from the Database Changes tool window. */
+  var manualCommit: Boolean = false
   /** Driver jars chosen by hand. Empty: find the driver in project libraries, then in the Gradle and Maven caches. */
   @XCollection(style = XCollection.Style.v2)
   var driverJars: MutableList<String> = ArrayList()
@@ -78,7 +80,7 @@ class DbDataSource {
   var queryTimeoutSeconds: Int = 60
 
   fun copy(): DbDataSource = DbDataSource().also {
-    it.id = id; it.name = name; it.dbms = dbms; it.url = url; it.user = user; it.readOnly = readOnly
+    it.id = id; it.name = name; it.dbms = dbms; it.url = url; it.user = user; it.readOnly = readOnly; it.manualCommit = manualCommit
     it.driverJars = ArrayList(driverJars); it.maxRows = maxRows; it.queryTimeoutSeconds = queryTimeoutSeconds
   }
 

@@ -71,13 +71,19 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
             block(connection)
           }
           catch (e: SQLException) {
-            if (!runCatching { connection.isValid(2) }.getOrDefault(false)) closeQuietly(session)
+            if (!runCatching { connection.isValid(2) }.getOrDefault(false)) {
+              closeQuietly(session)
+              // a lost connection takes its open transaction with it
+              DbPendingChanges.getInstanceIfCreated(project)?.discard(dataSource.id)
+            }
             throw e
           }
         }
       }
       finally {
-        if (session.connection != null) {
+        // an open transaction keeps the connection: closing it would silently roll the changes back
+        val pending = purpose == Purpose.CONSOLE && DbPendingChanges.getInstanceIfCreated(project)?.hasPending(dataSource.id) == true
+        if (session.connection != null && !pending) {
           session.idleClose = cs.launch {
             delay(IDLE)
             session.mutex.withLock { closeQuietly(session) }
@@ -93,8 +99,32 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
   fun isConnected(dataSourceId: String): Boolean =
     Purpose.entries.any { sessions[dataSourceId to it]?.connection?.let { c -> runCatching { !c.isClosed }.getOrDefault(false) } == true }
 
-  /** Closes the data source's connections, e.g. after it was edited or removed. */
+  /**
+   * Commits or rolls back the console connection's open transaction. Fails when the connection is gone, since its
+   * changes went with it.
+   */
+  suspend fun endTransaction(dataSource: DbDataSource, commit: Boolean) {
+    val session = sessions[dataSource.id to Purpose.CONSOLE]
+    if (session == null) {
+      DbPendingChanges.getInstanceIfCreated(project)?.discard(dataSource.id)
+      throw DbException(PhantomDbBundle.message("db.changes.connection.lost", dataSource.name))
+    }
+    session.mutex.withLock {
+      withContext(Dispatchers.IO) {
+        val connection = session.connection?.takeUnless { runCatching { it.isClosed }.getOrDefault(true) }
+        if (connection == null) {
+          DbPendingChanges.getInstanceIfCreated(project)?.discard(dataSource.id)
+          throw DbException(PhantomDbBundle.message("db.changes.connection.lost", dataSource.name))
+        }
+        if (commit) connection.commit() else connection.rollback()
+        DbPendingChanges.getInstanceIfCreated(project)?.discard(dataSource.id)
+      }
+    }
+  }
+
+  /** Closes the data source's connections, e.g. after it was edited or removed. Uncommitted changes are rolled back. */
   fun disconnect(dataSourceId: String) {
+    DbPendingChanges.getInstanceIfCreated(project)?.discard(dataSourceId)
     for (purpose in Purpose.entries) {
       val session = sessions.remove(dataSourceId to purpose) ?: continue
       session.idleClose?.cancel()
@@ -129,6 +159,7 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
     val connection = driver.connect(dataSource.url.trim(), props)
                      ?: throw DbException(PhantomDbBundle.message("db.driver.url.rejected", dataSource.url, located.description))
     if (dataSource.readOnly) runCatching { connection.isReadOnly = true }
+    else if (dataSource.manualCommit) connection.autoCommit = false
     return connection
   }
 
@@ -148,13 +179,17 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
     session.idleClose = null
     val c = session.connection ?: return
     session.connection = null
+    runCatching { if (!c.autoCommit) c.rollback() }
     runCatching { c.close() }
   }
 
   override fun dispose() {
     for (session in sessions.values) {
       session.idleClose?.cancel()
-      session.connection?.let { runCatching { it.close() } }
+      session.connection?.let {
+        runCatching { if (!it.autoCommit) it.rollback() }
+        runCatching { it.close() }
+      }
     }
     sessions.clear()
     for (loader in loaders.values) {
@@ -191,6 +226,7 @@ object DbExecutor {
         if (outcome.any { it is DbOutcome.Updated } && SqlSafety.isDdl(sql)) {
           DbMetadataCache.getInstanceIfCreated(project)?.invalidate(dataSource.id)
         }
+        if (!connection.autoCommit) DbPendingChanges.getInstance(project).afterStatement(dataSource, sql, outcome)
       }
     }
     return outcomes

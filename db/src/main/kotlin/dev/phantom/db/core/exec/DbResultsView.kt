@@ -99,9 +99,14 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
 
   private fun summary(outcome: DbOutcome): String = when (outcome) {
     is DbOutcome.Rows -> PhantomDbBundle.message("db.run.rows", outcome.rows.size, if (outcome.truncated) "+" else "", outcome.elapsedMs)
-    is DbOutcome.Updated -> PhantomDbBundle.message("db.run.updated", outcome.count, outcome.elapsedMs)
+    is DbOutcome.Updated -> PhantomDbBundle.message("db.run.updated", outcome.count, outcome.elapsedMs) +
+                            (if (pendingIn(outcome)) " " + PhantomDbBundle.message("db.run.not.committed") else "")
     is DbOutcome.Failed -> firstLine(outcome.message)
   }
+
+  /** Whether [outcome]'s statement is waiting in an open transaction (manual-commit data source). */
+  private fun pendingIn(outcome: DbOutcome): Boolean =
+    DbPendingChanges.getInstanceIfCreated(project)?.let { p -> p.dataSourcesWithChanges().any { ds -> p.of(ds.id).any { it.sql == outcome.sql } } } == true
 
   private fun line(outcome: DbOutcome): String {
     val mark = if (outcome is DbOutcome.Failed) "✗" else "✓"

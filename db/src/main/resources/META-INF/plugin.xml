@@ -7,6 +7,8 @@
   Connect to MySQL, PostgreSQL or H2 over JDBC and run SQL from the editor: highlighting for .sql files, Ctrl+Enter to
   run the statement at the caret, results in a sortable grid, and a lazily loaded schema tree. Drivers come from the
   project's own dependencies or the local Gradle/Maven cache, so no download is needed. Nothing runs at startup.
+  A data source in manual-commit mode keeps changes in an open transaction: review them in the Database Changes tool
+  window and commit or roll them back; closing the project asks first.
   ]]></description>
 
   <dependencies>

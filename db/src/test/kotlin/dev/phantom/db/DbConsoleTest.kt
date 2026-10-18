@@ -12,6 +12,7 @@ import com.intellij.openapi.vfs.JarFileSystem
 import com.intellij.openapi.vfs.LocalFileSystem
 import dev.phantom.db.core.*
 import dev.phantom.db.core.exec.*
+import dev.phantom.db.core.ui.DbChangesToolWindowFactory
 import dev.phantom.db.core.ui.DbDataSourceDialog
 import dev.phantom.db.core.ui.DbExplorerPanel
 import dev.phantom.db.core.ui.DbNode
@@ -35,11 +36,12 @@ class DbConsoleTest : BasePlatformTestCase() {
 
   private var counter = 0
 
-  private fun h2(name: String = "db${counter++}", readOnly: Boolean = false): DbDataSource {
+  private fun h2(name: String = "db${counter++}", readOnly: Boolean = false, manualCommit: Boolean = false, url: String? = null): DbDataSource {
     val ds = DbDataSource().apply {
       this.name = name
       dbms = Dbms.H2
-      url = "jdbc:h2:mem:${name}_${System.nanoTime()};DB_CLOSE_DELAY=-1"
+      this.url = url ?: "jdbc:h2:mem:${name}_${System.nanoTime()};DB_CLOSE_DELAY=-1"
+      this.manualCommit = manualCommit
       user = "sa"
       this.readOnly = readOnly
       maxRows = 2
@@ -256,5 +258,52 @@ class DbConsoleTest : BasePlatformTestCase() {
     finally {
       toolWindow()?.contentManager?.removeAllContents(true)
     }
+  }
+
+  fun testManualCommitKeepsChangesUntilCommitted() {
+    val manual = h2("manual", manualCommit = true)
+    val auto = h2("auto", url = manual.url)
+    val pending = DbPendingChanges.getInstance(project)
+    fun count(ds: DbDataSource) = ((exec(ds, "SELECT COUNT(*) FROM t").single() as DbOutcome.Rows).rows.single()[0] as Number).toInt()
+
+    exec(manual, "CREATE TABLE t(id INT)")
+    assertFalse("H2 commits DDL itself", pending.hasPending(manual.id))
+
+    exec(manual, "INSERT INTO t VALUES (1)", "INSERT INTO t VALUES (2)")
+    assertEquals(listOf("INSERT INTO t VALUES (1)", "INSERT INTO t VALUES (2)"), pending.of(manual.id).map { it.sql })
+    assertEquals(listOf(1L, 1L), pending.of(manual.id).map { it.rows })
+    assertEquals("the other connection does not see uncommitted rows", 0, count(auto))
+    assertEquals("reads add nothing to the transaction", 2, pending.of(manual.id).size)
+
+    runBlocking { pending.rollback(manual) }
+    assertFalse(pending.hasPending(manual.id))
+    assertEquals(0, count(manual))
+
+    exec(manual, "INSERT INTO t VALUES (3)")
+    runBlocking { pending.commit(manual) }
+    assertEquals(1, count(auto))
+
+    exec(manual, "UPDATE t SET id = 4 WHERE id = 3")
+    exec(manual, "COMMIT")
+    assertFalse("COMMIT typed in the console ends the transaction too", pending.hasPending(manual.id))
+    assertEquals(4, ((exec(auto, "SELECT id FROM t").single() as DbOutcome.Rows).rows.single()[0] as Number).toInt())
+  }
+
+  fun testDisconnectRollsBackAndForgetsChanges() {
+    val manual = h2("manual", manualCommit = true)
+    val auto = h2("auto", url = manual.url)
+    exec(manual, "CREATE TABLE t(id INT)")
+    exec(manual, "INSERT INTO t VALUES (1)")
+    DbConnectionService.getInstance(project).disconnect(manual.id)
+    assertFalse(DbPendingChanges.getInstance(project).hasPending(manual.id))
+    PlatformTestUtil.waitWithEventsDispatching("connection not closed", { !DbConnectionService.getInstance(project).isConnected(manual.id) }, 10)
+    assertEquals(0L, ((exec(auto, "SELECT COUNT(*) FROM t").single() as DbOutcome.Rows).rows.single()[0] as Number).toLong())
+  }
+
+  fun testChangesToolWindowOnlyForManualCommit() {
+    h2("auto")
+    assertFalse(runBlocking { DbChangesToolWindowFactory().isApplicableAsync(project) })
+    h2("manual", manualCommit = true)
+    assertTrue(runBlocking { DbChangesToolWindowFactory().isApplicableAsync(project) })
   }
 }

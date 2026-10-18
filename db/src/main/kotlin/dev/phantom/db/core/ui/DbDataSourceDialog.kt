@@ -52,6 +52,7 @@ class DbDataSourceDialog private constructor(private val project: Project, exist
   private val userField = JBTextField(source.user)
   private val passwordField = JBPasswordField()
   private val readOnlyBox = JBCheckBox(PhantomDbBundle.message("db.dialog.read.only"), source.readOnly)
+  private val manualCommitBox = JBCheckBox(PhantomDbBundle.message("db.dialog.manual.commit"), source.manualCommit)
   private val driverLabel = JBLabel(" ")
   private val maxRowsField = JBIntSpinner(source.maxRows, 1, 10_000)
   private val timeoutField = JBIntSpinner(source.queryTimeoutSeconds, 0, 3_600)
@@ -94,6 +95,7 @@ class DbDataSourceDialog private constructor(private val project: Project, exist
     row(PhantomDbBundle.message("db.dialog.user")) { cell(userField).align(AlignX.FILL) }
     row(PhantomDbBundle.message("db.dialog.password")) { cell(passwordField).align(AlignX.FILL) }
     row { cell(readOnlyBox) }
+    row { cell(manualCommitBox).comment(PhantomDbBundle.message("db.dialog.manual.commit.hint")) }
     collapsibleGroup(PhantomDbBundle.message("db.dialog.options")) {
       row(PhantomDbBundle.message("db.dialog.driver")) {
         cell(driverLabel)
@@ -124,6 +126,7 @@ class DbDataSourceDialog private constructor(private val project: Project, exist
     user = userField.text.trim()
     name = nameField.text.trim().ifEmpty { defaultName(dbms, url) }
     readOnly = readOnlyBox.isSelected
+    manualCommit = manualCommitBox.isSelected
     driverJars = this@DbDataSourceDialog.driverJars.toMutableList()
     maxRows = maxRowsField.number
     queryTimeoutSeconds = timeoutField.number
@@ -178,6 +181,7 @@ class DbDataSourceDialog private constructor(private val project: Project, exist
     val password = if (passwordEdited || isNew) passwordField.password else null
     DbDataSourceService.getInstance(project).save(saved, password)
     DbConnectionService.getInstance(project).disconnect(saved.id)
+    if (saved.manualCommit && !saved.readOnly) DbChangesToolWindowFactory.ensureRegistered(project)
     DbMetadataCache.getInstanceIfCreated(project)?.invalidate(saved.id)
     result = saved
     super.doOKAction()
