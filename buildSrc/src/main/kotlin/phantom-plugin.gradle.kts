@@ -20,8 +20,14 @@ java {
 
 dependencies {
   intellijPlatform {
-    // Plugins compile against an installed Phantom IDEA, not a downloaded IntelliJ
-    local(providers.gradleProperty("phantomIde"))
+    // Plugins compile against an installed Phantom IDEA, not a downloaded IntelliJ. CI (-PplatformFromRepository) has no
+    // Phantom installed and takes the IntelliJ Community build Phantom is forked from instead.
+    if (providers.gradleProperty("platformFromRepository").isPresent) {
+      intellijIdeaCommunity(providers.gradleProperty("platformTestBuild")) { useInstaller = false }
+    }
+    else {
+      local(providers.gradleProperty("phantomIde"))
+    }
     // Phantom is a fork of this IntelliJ build, whose test framework is published
     testFramework(TestFrameworkType.Platform, providers.gradleProperty("platformTestBuild"))
   }

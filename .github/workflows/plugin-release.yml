@@ -1,0 +1,99 @@
+# Builds and tests one plugin, then publishes its zip as the GitHub release the marketplace points to.
+#   tag push:  `<dir>-<version>` (e.g. kafka-0.1.1, the release tag style of .phantom/marketplace.json)
+#   manual:    Actions → Plugin release → plugin=<dir>; dry_run builds and tests without touching releases
+# CI has no Phantom IDEA installed, so it compiles and tests against the IntelliJ Community build Phantom is forked
+# from (platformTestBuild in gradle.properties); local builds keep using the installed Phantom.
+name: Plugin release
+
+on:
+  push:
+    tags: ['*-[0-9]*']
+  workflow_dispatch:
+    inputs:
+      plugin:
+        description: Plugin directory (db, spring, kafka, ...)
+        required: true
+      dry_run:
+        description: Build and test only, no release
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: plugin-release-${{ github.ref_name }}-${{ inputs.plugin }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Plugin and version
+        id: plugin
+        env:
+          INPUT_PLUGIN: ${{ inputs.plugin }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            tag="$GITHUB_REF_NAME"; dir="${tag%-*}"; expected="${tag##*-}"
+          else
+            dir="$INPUT_PLUGIN"; expected=""
+          fi
+          [[ -f "$dir/build.gradle.kts" ]] || { echo "::error::no plugin directory '$dir'"; exit 1; }
+          version=$(sed -nE 's/^version = "([^"]+)"/\1/p' "$dir/build.gradle.kts")
+          if [[ -n "$expected" && "$expected" != "$version" ]]; then
+            echo "::error::tag $GITHUB_REF_NAME but $dir/build.gradle.kts has version $version"; exit 1
+          fi
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$dir-$version" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Test and build
+        run: >
+          ./gradlew --no-configuration-cache -PplatformFromRepository=true
+          -Porg.gradle.java.installations.paths="$JAVA_HOME"
+          :${{ steps.plugin.outputs.dir }}:test :${{ steps.plugin.outputs.dir }}:buildPlugin
+
+      - name: Test report
+        if: always()
+        run: |
+          python3 - "${{ steps.plugin.outputs.dir }}" <<'EOF'
+          import glob, sys, xml.etree.ElementTree as E
+          d = sys.argv[1]; t = f = 0
+          for x in glob.glob(f"{d}/build/test-results/test/*.xml"):
+              r = E.parse(x).getroot(); t += int(r.get("tests")); f += int(r.get("failures")) + int(r.get("errors"))
+              for c in r.iter("testcase"):
+                  for fl in list(c.findall("failure")) + list(c.findall("error")):
+                      print(f"::error::{c.get('classname')}.{c.get('name')}: {(fl.get('message') or '')[:300]}")
+          print(f"{d}: {t} tests, {f} failed")
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.plugin.outputs.tag }}
+          path: ${{ steps.plugin.outputs.dir }}/build/distributions/${{ steps.plugin.outputs.tag }}.zip
+          if-no-files-found: error
+
+      - name: Release
+        if: github.event_name == 'push' || !inputs.dry_run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.plugin.outputs.tag }}
+          ZIP: ${{ steps.plugin.outputs.dir }}/build/distributions/${{ steps.plugin.outputs.tag }}.zip
+        run: |
+          # a release created by hand for the same tag only gets its zip replaced
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" "$ZIP" --clobber
+          else
+            gh release create "$TAG" "$ZIP" --title "$TAG" --notes "Built by GitHub Actions from $GITHUB_SHA"
+          fi
