@@ -1,0 +1,10 @@
+<html>
+<body>
+Reports <code>spring.datasource.url</code> (or <code>spring.datasource.hikari.jdbc-url</code>) whose JDBC vendor, such as
+<code>jdbc:mysql:</code> or <code>jdbc:postgresql:</code>, has no driver anywhere on the project's classpath. Spring Boot then
+fails at startup because it cannot load the driver class.
+<p>The driver is looked up in every module and library of the project, so a <code>runtimeOnly</code> driver in another module
+is accepted. When <code>spring.datasource.driver-class-name</code> is set in the same file, that class is checked instead.
+URLs built from placeholders and unknown vendors (Testcontainers' <code>jdbc:tc:</code>, P6Spy) are skipped.</p>
+</body>
+</html>

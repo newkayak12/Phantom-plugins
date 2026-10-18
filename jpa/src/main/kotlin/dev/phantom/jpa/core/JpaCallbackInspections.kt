@@ -135,3 +135,47 @@ class JpaEntityListenerInspection : AbstractBaseUastLocalInspectionTool() {
     val EVENTS = listOf("PrePersist", "PostPersist", "PreUpdate", "PostUpdate", "PreRemove", "PostRemove", "PostLoad")
   }
 }
+
+/**
+ * Entity listener classes named in `@EntityListeners` that JPA cannot use or that do nothing: a listener without a
+ * no-argument constructor (unless Spring's bean container creates the listeners, as Spring Boot sets up), and a
+ * listener without any lifecycle callback method.
+ */
+class JpaEntityListenerUsageInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
+    val module = ModuleUtilCore.findModuleForPsiElement(holder.file) ?: return PsiElementVisitor.EMPTY_VISITOR
+    if (!JpaGate.isJpaModule(module)) return PsiElementVisitor.EMPTY_VISITOR
+    val springCreatesListeners by lazy {
+      val scope = module.getModuleWithDependenciesAndLibrariesScope(false)
+      SPRING_BEAN_CONTAINER.any { JavaPsiFacade.getInstance(holder.project).findClass(it, scope) != null }
+    }
+    return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
+      override fun visitClass(node: UClass): Boolean {
+        val owner = node.javaPsi
+        if (!JpaModel.isPersistent(owner)) return true
+        val annotation = LISTENERS.firstNotNullOfOrNull { owner.getAnnotation(it) } ?: return true
+        val anchor = node.uastAnchor?.sourcePsi ?: return true
+        for (value in AnnotationUtil.arrayAttributeValues(annotation.findDeclaredAttributeValue("value"))) {
+          val literal = value as? PsiClassObjectAccessExpression ?: continue
+          val listener = com.intellij.psi.util.PsiUtil.resolveClassInClassTypeOnly(literal.operand.type) ?: continue
+          val target = if (value.isPhysical && value.containingFile == holder.file && value.textLength > 0) value else anchor
+          if (listener.allMethods.none { method -> CALLBACK_EVENTS.any { event -> PACKAGES.any { method.hasAnnotation("$it.$event") } } }) {
+            holder.registerProblem(target, PhantomJpaBundle.message("listener.no.callbacks", listener.name ?: ""), com.intellij.codeInspection.ProblemHighlightType.WEAK_WARNING)
+          }
+          else if (!springCreatesListeners && listener.constructors.isNotEmpty() && listener.constructors.none { it.parameterList.isEmpty }) {
+            holder.registerProblem(target, PhantomJpaBundle.message("listener.constructor", listener.name ?: ""))
+          }
+        }
+        return true
+      }
+    }, arrayOf(UClass::class.java), true)
+  }
+
+  private companion object {
+    /** Spring Boot hands Hibernate this container, which creates listeners as Spring beans (constructor injection works). */
+    val SPRING_BEAN_CONTAINER = listOf("org.springframework.orm.hibernate5.SpringBeanContainer", "org.springframework.orm.jpa.hibernate.SpringBeanContainer")
+    val LISTENERS = listOf("jakarta.persistence.EntityListeners", "javax.persistence.EntityListeners")
+    val PACKAGES = listOf("jakarta.persistence", "javax.persistence")
+    val CALLBACK_EVENTS = listOf("PrePersist", "PostPersist", "PreUpdate", "PostUpdate", "PreRemove", "PostRemove", "PostLoad")
+  }
+}

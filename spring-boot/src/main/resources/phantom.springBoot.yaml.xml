@@ -6,5 +6,6 @@
   <extensions defaultExtensionNs="com.intellij">
     <completion.contributor order="first" language="yaml" implementationClass="dev.phantom.springboot.yaml.BootYamlCompletionContributor"/>
     <lang.documentationProvider language="yaml" order="first" implementationClass="dev.phantom.springboot.yaml.BootYamlDocumentationProvider"/>
+    <codeInsight.lineMarkerProvider language="yaml" implementationClass="dev.phantom.springboot.core.BootConfigKeyLineMarkerProvider"/>
   </extensions>
 </idea-plugin>

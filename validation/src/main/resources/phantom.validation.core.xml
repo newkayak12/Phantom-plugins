@@ -29,5 +29,9 @@
                      bundle="messages.PhantomValidationBundle" key="validated.display.name"
                      groupBundle="messages.PhantomValidationBundle" groupKey="group.name"
                      implementationClass="dev.phantom.validation.core.MissingValidatedInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomConstraintDefinition"
+                     bundle="messages.PhantomValidationBundle" key="definition.display.name"
+                     groupBundle="messages.PhantomValidationBundle" groupKey="group.name"
+                     implementationClass="dev.phantom.validation.core.ConstraintDefinitionInspection"/>
   </extensions>
 </idea-plugin>

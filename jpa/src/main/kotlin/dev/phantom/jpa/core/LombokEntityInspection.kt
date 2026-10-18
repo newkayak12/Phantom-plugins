@@ -18,6 +18,7 @@ import com.intellij.psi.PsiField
  * Lombok on Java entities:
  * - `@Data`, `@EqualsAndHashCode` or `@ToString` that read a lazy association, so equals/hashCode/toString load it
  *   (or fail outside a session) and two-way associations recurse
+ * - `@AllArgsConstructor` without `@NoArgsConstructor`: the class then has no constructor Hibernate can call
  * - `@Builder` without both `@NoArgsConstructor` and `@AllArgsConstructor`: Hibernate needs the first, and the builder
  *   needs the second once the first exists
  */
@@ -40,6 +41,11 @@ class LombokEntityInspection : AbstractBaseJavaLocalInspectionTool() {
             holder.registerProblem(annotation, PhantomJpaBundle.message("lombok.lazy.read", "@" + annotationName.substringAfterLast('.'), names(shown)))
           }
         }
+        aClass.getAnnotation(ALL_ARGS)?.let { allArgs ->
+          if (aClass.getAnnotation(BUILDER) == null && aClass.getAnnotation(NO_ARGS) == null && !hasWrittenNoArgConstructor(aClass)) {
+            holder.registerProblem(allArgs, PhantomJpaBundle.message("lombok.all.args"), from(AddAnnotationModCommandAction(NO_ARGS, aClass))!!)
+          }
+        }
         val builder = aClass.getAnnotation(BUILDER) ?: return
         val missing = listOf(NO_ARGS, ALL_ARGS).filter { aClass.getAnnotation(it) == null }
         if (missing.isEmpty()) return
@@ -48,6 +54,9 @@ class LombokEntityInspection : AbstractBaseJavaLocalInspectionTool() {
       }
     }
   }
+
+  private fun hasWrittenNoArgConstructor(aClass: PsiClass): Boolean =
+    aClass.constructors.any { it.parameterList.isEmpty && it !is com.intellij.psi.impl.light.LightElement }
 
   private fun names(fields: List<PsiField>): String = fields.joinToString(", ") { it.name }
 

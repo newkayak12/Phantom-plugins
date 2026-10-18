@@ -17,5 +17,11 @@
                      bundle="messages.PhantomSpringBootBundle" key="inspection.key.display.name"
                      groupBundle="messages.PhantomSpringBootBundle" groupKey="inspection.group.name"
                      implementationClass="dev.phantom.springboot.core.BootConfigKeyInspection"/>
+    <localInspection enabledByDefault="true" level="WARNING" shortName="PhantomBootDatasourceDriver"
+                     bundle="messages.PhantomSpringBootBundle" key="inspection.driver.display.name"
+                     groupBundle="messages.PhantomSpringBootBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.springboot.core.BootDatasourceDriverInspection"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.springboot.core.BootConfigPropertiesLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.springboot.core.BootConfigPropertiesLineMarkerProvider"/>
   </extensions>
 </idea-plugin>

@@ -94,6 +94,22 @@ open class KotlinJpaEntityInspection : AbstractBaseUastLocalInspectionTool() {
       }
     }
 
+    /**
+     * A non-null Kotlin type on an attribute the mapping explicitly declares nullable: the column may hold NULL, and
+     * reading such a row puts null into a property Kotlin assumes is never null (or fails for `Int`, `Long`, ...).
+     */
+    private fun checkNullability(field: UField, source: PsiElement) {
+      if (KotlinSource.isNullableType(source) != false) return
+      if (JpaMapping.has(field, "Id", "EmbeddedId", "Version")) return
+      for ((annotationName, attribute) in NULLABLE_ATTRIBUTES) {
+        val annotation = JpaMapping.annotation(field, annotationName) ?: continue
+        if (annotation.findDeclaredAttributeValue(attribute)?.evaluate() != true) continue
+        val anchor = annotation.sourcePsi?.takeIf { it.containingFile == holder.file } ?: field.uastAnchor?.sourcePsi ?: return
+        holder.registerProblem(anchor, PhantomJpaBundle.message("kotlin.nullable.column", field.name, "@$annotationName($attribute = true)"))
+        return
+      }
+    }
+
     private fun checkVal(field: UField) {
       val source = field.sourcePsi ?: return
       if (field.isStatic || !KotlinSource.isProperty(source)) return
@@ -112,6 +128,7 @@ open class KotlinJpaEntityInspection : AbstractBaseUastLocalInspectionTool() {
       val source = field.sourcePsi ?: return
       if (field.isStatic || !KotlinSource.isProperty(source)) return
       if (JpaMapping.has(field, "Transient")) return
+      checkNullability(field, source)
       val relation = JpaMapping.relation(field)
       val toMany = relation != null && JpaMapping.kind(relation) in setOf("OneToMany", "ManyToMany")
       if (toMany) {
@@ -170,6 +187,8 @@ open class KotlinJpaEntityInspection : AbstractBaseUastLocalInspectionTool() {
  * Kotlin syntax read without the Kotlin plugin's PSI classes (this plugin does not depend on Kotlin): elements are
  * recognized by their PSI class names and leaf texts.
  */
+private val NULLABLE_ATTRIBUTES = listOf("Column" to "nullable", "JoinColumn" to "nullable", "ManyToOne" to "optional", "OneToOne" to "optional")
+
 internal object KotlinSource {
   private val KEYWORDS = setOf("open", "abstract", "sealed", "data", "final", "inner", "enum", "annotation", "value", "private", "internal", "protected", "public")
 
@@ -188,6 +207,12 @@ internal object KotlinSource {
   fun isProperty(source: PsiElement): Boolean = source.javaClass.simpleName.let { it == "KtProperty" || it == "KtParameter" }
 
   fun isSecondaryConstructor(source: PsiElement?): Boolean = source?.javaClass?.simpleName == "KtSecondaryConstructor"
+
+  /** Whether the declared type is nullable (`String?`); null when the type is inferred and not written. */
+  fun isNullableType(source: PsiElement): Boolean? {
+    val typeReference = source.children.firstOrNull { it.javaClass.simpleName == "KtTypeReference" } ?: return null
+    return typeReference.text.trim().endsWith("?")
+  }
 
   fun valOrVar(source: PsiElement): PsiElement? = source.node.getChildren(null).firstOrNull { it.text == "val" || it.text == "var" }?.psi
 

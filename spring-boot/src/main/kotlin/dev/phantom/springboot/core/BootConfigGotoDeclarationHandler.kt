@@ -18,7 +18,7 @@ import com.intellij.psi.util.PsiUtil
 class BootConfigGotoDeclarationHandler : GotoDeclarationHandler {
   override fun getGotoDeclarationTargets(sourceElement: PsiElement?, offset: Int, editor: Editor?): Array<PsiElement>? {
     val file = sourceElement?.containingFile ?: return null
-    if (editor == null || !BootConfigFiles.isConfigFile(file.name)) return null
+    if (editor == null || !BootConfigFiles.isConfigFile(file)) return null
     val module = ModuleUtilCore.findModuleForPsiElement(file) ?: return null
     if (!SpringBootGate.isBootModule(module)) return null
     val syntax = if (file.name.endsWith(".properties")) PropertiesConfigSyntax else YamlConfigSyntax

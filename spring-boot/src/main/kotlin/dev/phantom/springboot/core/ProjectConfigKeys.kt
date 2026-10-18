@@ -2,9 +2,7 @@
 package dev.phantom.springboot.core
 
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
@@ -18,7 +16,7 @@ class ConfigKeyLocation(val file: VirtualFile, val offset: Int, val value: Strin
 
 /**
  * The keys the project's own `application*.yml` / `application*.properties` set, including custom ones no metadata
- * describes (`jwt.secret`), for `@Value("${...}")`. Read from the resource roots of every module, as Spring Boot
+ * describes (`jwt.secret`), for `@Value("${...}")`. Read from the resource roots of every module and the files they import, as Spring Boot
  * merges them on the runtime classpath; recomputed after a PSI or VFS change, nothing is indexed.
  */
 object ProjectConfigKeys {
@@ -42,17 +40,8 @@ object ProjectConfigKeys {
     return all.entries.filter { ConfigNames.normalize(it.key) == normalized }.flatMap { it.value }
   }
 
-  private fun configFiles(project: Project): List<VirtualFile> {
-    val out = LinkedHashSet<VirtualFile>()
-    for (module in ModuleManager.getInstance(project).modules) {
-      for (root in ModuleRootManager.getInstance(module).getSourceRoots(false)) {
-        for (dir in listOfNotNull(root, root.findChild("config"))) {
-          dir.children.filterTo(out) { !it.isDirectory && BootConfigFiles.isConfigFile(it.name) }
-        }
-      }
-    }
-    return out.toList()
-  }
+  private fun configFiles(project: Project): List<VirtualFile> =
+    BootRoots.baseConfigFiles(project) + BootConfigImports.importedFiles(project)
 }
 
 /** Flattens configuration text into `(key, offset of the key's last segment, value)`, without a YAML parser. */

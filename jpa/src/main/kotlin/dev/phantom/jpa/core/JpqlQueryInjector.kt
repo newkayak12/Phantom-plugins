@@ -14,7 +14,7 @@ import com.intellij.psi.util.CachedValuesManager
 import org.jetbrains.uast.*
 
 /**
- * Injects JPQL into `@Query`/`@NamedQuery` strings, including the common Kotlin style where the annotation names a
+ * Injects JPQL into `@Query`/`@NamedQuery` strings and `EntityManager.createQuery` arguments, including the common Kotlin style where the annotation names a
  * `const val` holding a template. Most strings are rejected by a text check before any UAST conversion.
  */
 class JpqlQueryInjector : MultiHostInjector {
@@ -71,8 +71,18 @@ class JpqlQueryInjector : MultiHostInjector {
         val variable = parent as UVariable
         variable.uastInitializer?.sourcePsi == host && variable.name in queryConstantNames(host.containingFile)
       }
+      is UCallExpression -> isQueryCall(parent, expression)
       else -> false
     }
+  }
+
+  /** `entityManager.createQuery("select ...")`: the first argument of EntityManager's string `createQuery`. */
+  private fun isQueryCall(call: UCallExpression, argument: UExpression): Boolean {
+    if (call.methodName != "createQuery") return false
+    if (com.intellij.openapi.project.DumbService.isDumb(argument.sourcePsi?.project ?: return false)) return false
+    if (call.valueArguments.firstOrNull()?.sourcePsi != argument.sourcePsi) return false
+    val owner = call.resolve()?.containingClass?.qualifiedName ?: return false
+    return owner in ENTITY_MANAGERS
   }
 
   private fun isQueryAnnotation(annotation: UAnnotation): Boolean {
@@ -83,6 +93,7 @@ class JpqlQueryInjector : MultiHostInjector {
   private companion object {
     const val MIN_LENGTH = 8
     val QUERY_WORD = Regex("""(?i)\b(select|from|update|delete)\b""")
+    val ENTITY_MANAGERS = setOf("jakarta.persistence.EntityManager", "javax.persistence.EntityManager")
     val QUERY_ATTRIBUTES = setOf(null, "value", "query", "countQuery")
     val QUERY_ANNOTATIONS = setOf(
       "org.springframework.data.jpa.repository.Query",

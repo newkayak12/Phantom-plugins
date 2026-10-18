@@ -50,7 +50,8 @@ class JpaEntityInspection : AbstractBaseUastLocalInspectionTool() {
           holder.registerProblem(anchor, PhantomJpaBundle.message("entity.several.ids", psiClass.name ?: ""))
         }
         // Kotlin classes get their constructor from the kotlin-jpa plugin; PhantomKotlinJpaEntity checks that
-        if (node.sourcePsi?.language == JavaLanguage.INSTANCE && !psiClass.isInterface && !hasNoArgConstructor(psiClass)) {
+        if (node.sourcePsi?.language == JavaLanguage.INSTANCE && !psiClass.isInterface && !hasNoArgConstructor(psiClass) &&
+            !lombokReportsConstructor(psiClass)) {
           holder.registerProblem(anchor, PhantomJpaBundle.message("entity.no.default.constructor", psiClass.name ?: ""))
         }
       }
@@ -77,6 +78,10 @@ class JpaEntityInspection : AbstractBaseUastLocalInspectionTool() {
 
     private fun hasIdClass(psiClass: PsiClass): Boolean =
       generateSequence(psiClass) { it.superClass }.any { JpaMapping.hasOn(it, "IdClass") }
+
+    /** PhantomLombokEntity reports these with a fix that adds `@NoArgsConstructor`. */
+    private fun lombokReportsConstructor(psiClass: PsiClass): Boolean =
+      psiClass.hasAnnotation("lombok.Builder") || psiClass.hasAnnotation("lombok.AllArgsConstructor") && !psiClass.hasAnnotation("lombok.NoArgsConstructor")
 
     private fun hasNoArgConstructor(psiClass: PsiClass): Boolean =
       psiClass.constructors.isEmpty() || psiClass.constructors.any { it.parameterList.isEmpty }

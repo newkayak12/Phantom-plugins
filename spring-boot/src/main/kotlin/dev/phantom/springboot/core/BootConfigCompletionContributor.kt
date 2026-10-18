@@ -24,7 +24,7 @@ abstract class BootConfigCompletionContributor(private val syntax: ConfigSyntax,
   override fun fillCompletionVariants(parameters: CompletionParameters, result: CompletionResultSet) {
     if (parameters.completionType != CompletionType.BASIC) return
     val file = parameters.originalFile
-    if (!BootConfigFiles.isConfigFile(file.name)) return
+    if (!BootConfigFiles.isConfigFile(file)) return
     val module = ModuleUtilCore.findModuleForPsiElement(file) ?: return
     if (!SpringBootGate.isBootModule(module)) return
 
