@@ -31,6 +31,7 @@ Public repositories need no token.
 | Phantom Reactive Streams | [reactive-streams](./reactive-streams/README.md) · [한국어](./reactive-streams/KOR.md) | Unsubscribed `Mono`/`Flux` and blocking calls inside operators (Reactor, RxJava) |
 | Phantom Ktor | [ktor](./ktor/README.md) · [한국어](./ktor/KOR.md) | Ktor routes in the Endpoints tool window, including routes in `Route` extension functions |
 | Phantom Kubernetes | [kubernetes](./kubernetes/README.md) · [한국어](./kubernetes/KOR.md) | Helm templates: `.Values` completion, navigation and missing-value warnings |
+| Phantom Profiler | [profiler](./profiler/README.md) · [한국어](./profiler/KOR.md) | JFR profiling: Profile run action, record running JVMs, flame graph and call tree viewer |
 
 ## Repository format
 

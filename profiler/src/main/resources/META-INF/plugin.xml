@@ -1,0 +1,35 @@
+<idea-plugin>
+  <id>dev.phantom.profiler</id>
+  <name>Phantom Profiler</name>
+  <vendor>Phantom</vendor>
+  <category>Profiling</category>
+  <description><![CDATA[
+  CPU and allocation profiling for Java and Kotlin with Java Flight Recorder, which ships with the JDK:
+  a Profile action next to Run and Debug that opens the recording when the program ends, a Profiler tool window that
+  starts and stops recording in any running JVM, and a viewer for .jfr files with a flame graph, call tree, hot
+  methods, allocations by class and GC summary. Double-click a frame to open its source. Nothing runs until you profile.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+    <plugin id="com.intellij.java"/>
+    <module name="intellij.java.psi"/>
+    <module name="intellij.java"/>
+    <module name="intellij.java.execution"/>
+    <module name="intellij.java.execution.impl"/>
+  </dependencies>
+
+  <resource-bundle>messages.PhantomProfilerBundle</resource-bundle>
+  <extensions defaultExtensionNs="com.intellij">
+    <executor implementation="dev.phantom.profiler.ProfileExecutor" id="PhantomProfile"/>
+    <programRunner implementation="dev.phantom.profiler.ProfileProgramRunner"/>
+    <fileType name="JFR" implementationClass="dev.phantom.profiler.JfrFileType" fieldName="INSTANCE" extensions="jfr"/>
+    <fileEditorProvider implementation="dev.phantom.profiler.JfrEditorProvider"/>
+    <toolWindow id="Profiler" anchor="bottom" secondary="false" icon="AllIcons.Actions.Profile" doNotActivateOnStart="true"
+                factoryClass="dev.phantom.profiler.ProfilerToolWindowFactory"/>
+    <notificationGroup id="Phantom Profiler" displayType="BALLOON" key="notification.group"/>
+  </extensions>
+  <projectListeners>
+    <listener class="dev.phantom.profiler.ProfileExecutionListener" topic="com.intellij.execution.ExecutionListener"/>
+  </projectListeners>
+</idea-plugin>

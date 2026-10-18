@@ -154,6 +154,22 @@
       "detectFiles": [
         "Chart.yaml"
       ]
+    },
+    {
+      "id": "dev.phantom.profiler",
+      "name": "Phantom Profiler",
+      "version": "0.1.0",
+      "source": "profiler",
+      "description": "CPU and allocation profiling for Java and Kotlin with Java Flight Recorder: a Profile action next to Run and Debug, a Profiler tool window that records any running JVM, and a .jfr viewer with flame graph, call tree, hot methods, allocations and GC summary.",
+      "vendor": "Phantom",
+      "category": "Profiling",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang",
+        "com.intellij.java"
+      ],
+      "download": "profiler-0.1.0/profiler-0.1.0.zip"
     }
   ]
 }
