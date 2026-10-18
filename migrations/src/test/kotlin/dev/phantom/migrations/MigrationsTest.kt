@@ -130,4 +130,20 @@ class MigrationsTest : BasePlatformTestCase() {
     myFixture.addFileToProject("application.yaml", "spring:\n  application:\n    name: app\n")
     assertEmpty(problemsIn("application.yaml"))
   }
+
+  /** Gradle projects keep migrations in a resource root (`src/main/resources`), which is not a Java source root. */
+  fun testMigrationsInAResourceRoot() {
+    val resources = myFixture.tempDirFixture.findOrCreateDir("module/src/main/resources")
+    com.intellij.testFramework.PsiTestUtil.addSourceRoot(module, resources, org.jetbrains.jps.model.java.JavaResourceRootType.RESOURCE)
+    try {
+      myFixture.addFileToProject("module/src/main/resources/db/migration/V1_0__init.sql", "")
+      myFixture.addFileToProject("module/src/main/resources/db/migration/V1_init.sql", "")
+      assertEmpty(problemsIn("module/src/main/resources/db/migration/V1_0__init.sql"))
+      assertEquals(listOf("Flyway skips 'V1_init.sql': versioned migrations are named V<version>__<description>.sql (two underscores)"),
+                   problemsIn("module/src/main/resources/db/migration/V1_init.sql"))
+    }
+    finally {
+      com.intellij.testFramework.PsiTestUtil.removeSourceRoot(module, resources)
+    }
+  }
 }

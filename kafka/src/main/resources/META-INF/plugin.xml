@@ -15,7 +15,7 @@
   </dependencies>
 
   <extensions defaultExtensionNs="com.intellij">
-    <toolWindow id="Kafka" anchor="right" secondary="false" icon="/icons/phantom/kafka.svg" doNotActivateOnStart="true"
+    <toolWindow id="Kafka" anchor="right" secondary="false" icon="/icons/phantom/toolwindow/kafka.svg" doNotActivateOnStart="true"
                 factoryClass="dev.phantom.kafka.KafkaToolWindowFactory"/>
   </extensions>
 </idea-plugin>

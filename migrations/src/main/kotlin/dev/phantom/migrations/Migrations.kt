@@ -50,14 +50,20 @@ object MigrationsGate {
   }
 }
 
-/** A source or resource root of the module, with the path below it. */
-internal fun relativeToRoot(module: Module, file: VirtualFile): Pair<VirtualFile, String>? {
-  for (root in ModuleRootManager.getInstance(module).getSourceRoots(true)) {
-    val relative = VfsUtilCore.getRelativePath(file, root) ?: continue
-    return root to relative
+/**
+ * Source and resource roots of the module. `ModuleRootManager.getSourceRoots` returns only Java source roots, and
+ * migrations and `application.yml` live in resource roots.
+ */
+internal fun sourceAndResourceRoots(module: Module, includingTests: Boolean): List<VirtualFile> =
+  ModuleRootManager.getInstance(module).contentEntries.flatMap { entry ->
+    entry.sourceFolders.filter { includingTests || !it.isTestSource }.mapNotNull { it.file }
   }
-  return null
-}
+
+/** A source or resource root of the module, with the path below it. */
+internal fun relativeToRoot(module: Module, file: VirtualFile): Pair<VirtualFile, String>? =
+  // the innermost root: a resource root may sit inside a content root that is itself a source root
+  sourceAndResourceRoots(module, true).filter { VfsUtilCore.isAncestor(it, file, false) }.maxByOrNull { it.path.length }
+    ?.let { root -> VfsUtilCore.getRelativePath(file, root)?.let { root to it } }
 
 /**
  * Flyway's migration locations of a module: `db/migration` plus `spring.flyway.locations` from the module's YAML and
@@ -71,7 +77,7 @@ object FlywayLocations {
   fun of(module: Module): List<String> = CachedValuesManager.getManager(module.project).getCachedValue(module, LOCATIONS, {
     val found = linkedSetOf("db/migration")
     val psiManager = PsiManager.getInstance(module.project)
-    for (root in ModuleRootManager.getInstance(module).getSourceRoots(false)) {
+    for (root in sourceAndResourceRoots(module, false)) {
       VfsUtilCore.iterateChildrenRecursively(root, { it.isDirectory || it.extension in setOf("yml", "yaml", "properties") }) { file ->
         if (!file.isDirectory && file.length < 512 * 1024) {
           val text = VfsUtilCore.loadText(file)
@@ -138,7 +144,7 @@ object FlywayMigrations {
   fun of(module: Module): List<Pair<VirtualFile, FlywayName>> = CachedValuesManager.getManager(module.project).getCachedValue(module, MIGRATIONS, {
     val result = ArrayList<Pair<VirtualFile, FlywayName>>()
     val locations = FlywayLocations.of(module)
-    for (root in ModuleRootManager.getInstance(module).getSourceRoots(true)) {
+    for (root in sourceAndResourceRoots(module, true)) {
       for (prefix in locations.map(FlywayLocations::fixedPrefix).distinct()) {
         val dir = (if (prefix.isEmpty()) root else root.findFileByRelativePath(prefix)) ?: continue
         VfsUtilCore.iterateChildrenRecursively(dir, null) { file ->

@@ -27,7 +27,7 @@
     <runConfigurationProducer implementation="dev.phantom.docker.ComposeRunProducer"/>
     <runLineMarkerContributor language="yaml" implementationClass="dev.phantom.docker.ComposeRunLineMarkerContributor"/>
     <runDashboardDefaultTypesProvider implementation="dev.phantom.docker.ComposeDashboardTypes"/>
-    <toolWindow id="Docker" anchor="bottom" secondary="false" icon="/icons/phantom/docker.svg" doNotActivateOnStart="true"
+    <toolWindow id="Docker" anchor="bottom" secondary="false" icon="/icons/phantom/toolwindow/docker.svg" doNotActivateOnStart="true"
                 factoryClass="dev.phantom.docker.DockerToolWindowFactory"/>
     <notificationGroup id="Phantom Docker" displayType="BALLOON"/>
 

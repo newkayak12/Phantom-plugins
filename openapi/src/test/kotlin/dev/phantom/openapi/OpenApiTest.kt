@@ -163,4 +163,37 @@ class OpenApiTest : LightJavaCodeInsightFixtureTestCase() {
     myFixture.configureFromExistingVirtualFile(controller)
     assertEquals(listOf("Go to GET /pets/{petId} in petstore.yaml"), myFixture.findAllGutters().map { it.tooltipText }.filter { it?.startsWith("Go to") == true })
   }
+
+  /** The probe the real project check used: a spec in a module's resource root with a `$ref` to a missing schema. */
+  fun testSpecInAResourceRoot() {
+    val resources = myFixture.tempDirFixture.findOrCreateDir("module/src/main/resources")
+    com.intellij.testFramework.PsiTestUtil.addSourceRoot(module, resources, org.jetbrains.jps.model.java.JavaResourceRootType.RESOURCE)
+    try {
+      val file = myFixture.addFileToProject("module/src/main/resources/probe-openapi.yaml", """
+        openapi: 3.0.1
+        info:
+          title: probe
+          version: "1"
+        paths:
+          /x:
+            get:
+              responses:
+                "200":
+                  description: ok
+                  content:
+                    application/json:
+                      schema:
+                        ${'$'}ref: "#/components/schemas/Missing"
+        components:
+          schemas:
+            Present:
+              type: object
+      """.trimIndent())
+      myFixture.configureFromExistingVirtualFile(file.virtualFile)
+      assertEquals(1, errors().size)
+    }
+    finally {
+      com.intellij.testFramework.PsiTestUtil.removeSourceRoot(module, resources)
+    }
+  }
 }

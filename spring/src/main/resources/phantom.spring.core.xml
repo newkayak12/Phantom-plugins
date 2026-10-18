@@ -62,7 +62,7 @@
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringEventLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringEventLineMarkerProvider"/>
     <psi.referenceContributor language="UAST" implementation="dev.phantom.spring.core.ide.SpringBeanNameReferenceContributor"/>
-    <toolWindow id="Spring Beans" anchor="right" secondary="true" icon="/icons/phantom/springBean.svg"
+    <toolWindow id="Spring Beans" anchor="right" secondary="true" icon="/icons/phantom/toolwindow/springBeans.svg"
                 factoryClass="dev.phantom.spring.core.ide.SpringBeansToolWindowFactory"/>
   </extensions>
   <extensions defaultExtensionNs="com.intellij.microservices">

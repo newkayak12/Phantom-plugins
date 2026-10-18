@@ -15,7 +15,7 @@
   </dependencies>
 
   <extensions defaultExtensionNs="com.intellij">
-    <toolWindow id="Redis" anchor="right" secondary="false" icon="/icons/phantom/redis.svg" doNotActivateOnStart="true"
+    <toolWindow id="Redis" anchor="right" secondary="false" icon="/icons/phantom/toolwindow/redis.svg" doNotActivateOnStart="true"
                 factoryClass="dev.phantom.redis.RedisToolWindowFactory"/>
   </extensions>
 </idea-plugin>

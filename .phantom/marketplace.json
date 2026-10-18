@@ -9,9 +9,9 @@
     {
       "id": "dev.phantom.db",
       "name": "Phantom Database Console",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "source": "db",
-      "description": "Connect to MySQL, PostgreSQL or H2 over JDBC and run SQL from the editor: highlighting, Ctrl+Enter to run the statement at the caret, a sortable result grid and a lazily loaded schema tree. Drivers come from the project's dependencies or the local Gradle/Maven cache. Manual-commit data sources keep changes in an open transaction you review, commit or roll back in the Database Changes tool window. Edit single-table results in the grid, and compare two schemas with the SQL to make them match. SQL in @Query(nativeQuery = true), @NativeQuery and JdbcTemplate/JdbcClient strings is highlighted and completed. Query history (Ctrl+Alt+E), result export to CSV, TSV, JSON, SQL INSERT or Markdown, and JPA entity generation from a table. 0.5.0: SQL that understands names (alias-aware completion with schema loaded on demand, Ctrl+B to the table or column, unknown table/column warnings, Reformat), a table data view with WHERE/ORDER BY filters, paging and foreign-key navigation, keys/foreign keys/indexes/routines/triggers in the tree, Show DDL and Modify Table, manual-commit transactions, Explain Plan/Analyze and query parameters.",
+      "description": "Connect to MySQL, PostgreSQL or H2 over JDBC and run SQL from the editor: highlighting, Ctrl+Enter to run the statement at the caret, a sortable result grid and a lazily loaded schema tree. Drivers come from the project's dependencies or the local Gradle/Maven cache. Manual-commit data sources keep changes in an open transaction you review, commit or roll back in the Database Changes tool window. Edit single-table results in the grid, and compare two schemas with the SQL to make them match. SQL in @Query(nativeQuery = true), @NativeQuery and JdbcTemplate/JdbcClient strings is highlighted and completed. Query history (Ctrl+Alt+E), result export to CSV, TSV, JSON, SQL INSERT or Markdown, and JPA entity generation from a table. 0.5.0: SQL that understands names (alias-aware completion with schema loaded on demand, Ctrl+B to the table or column, unknown table/column warnings, Reformat), a table data view with WHERE/ORDER BY filters, paging and foreign-key navigation, keys/foreign keys/indexes/routines/triggers in the tree, Show DDL and Modify Table, manual-commit transactions, Explain Plan/Analyze and query parameters. 0.6.0: 18 SQL inspections, each toggleable (UPDATE/DELETE without WHERE, JOIN without ON, unused CTE, alias problems, VALUES count, UNION column count, GROUP BY, CASE vs COALESCE, and with the schema loaded: ambiguous columns, NOT NULL columns, string length, type mismatch).",
       "vendor": "Phantom",
       "category": "Database",
       "since": "262",
@@ -20,7 +20,7 @@
         "com.intellij.modules.lang",
         "intellij.grid.core.plugin"
       ],
-      "download": "db-0.5.0/db-0.5.0.zip",
+      "download": "db-0.6.0/db-0.6.0.zip",
       "detect": [
         "com.mysql:mysql-connector-j",
         "mysql:mysql-connector-java",
@@ -32,7 +32,7 @@
     {
       "id": "dev.phantom.spring",
       "name": "Phantom Spring",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "source": "spring",
       "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, Spring MVC handlers for the Endpoints tool window, Spring Security path and expression support, and Kafka/RabbitMQ/JMS sender-receiver navigation. 0.4.0: proxy pitfalls (self-invocation of @Transactional/@Cacheable/@Async, private/final/static proxied methods, Kotlin classes not opened by kotlin-spring), @Scheduled/@Async/@EventListener contracts, field and static injection, duplicate bean names, @Scope values, @Sql paths, @DirtiesContext, publishEvent \u2194 listener gutters, @Qualifier/@DependsOn bean name completion and Ctrl+B.",
       "vendor": "Phantom",
@@ -43,7 +43,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-0.4.0/spring-0.4.0.zip",
+      "download": "spring-0.4.1/spring-0.4.1.zip",
       "detect": [
         "org.springframework:spring-context",
         "org.springframework:spring-web",
@@ -139,9 +139,9 @@
     {
       "id": "dev.phantom.kubernetes",
       "name": "Phantom Kubernetes",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "source": "kubernetes",
-      "description": "Helm chart templates: .Values completion and navigation from values.yaml, .Release/.Chart fields, include/define navigation, and a warning for values that values.yaml does not define.",
+      "description": "Helm chart templates: .Values completion and navigation from values.yaml, .Release/.Chart fields, include/define navigation, and a warning for values that values.yaml does not define. 0.2.0: manifest checks for built-in kinds (removed API versions, unknown and missing keys with key completion, duplicate env vars, selector/template label mismatch); YAML in Markdown fences is skipped.",
       "vendor": "Phantom",
       "category": "Cloud",
       "since": "262",
@@ -150,7 +150,7 @@
         "com.intellij.modules.lang",
         "org.jetbrains.plugins.yaml"
       ],
-      "download": "kubernetes-0.1.0/kubernetes-0.1.0.zip",
+      "download": "kubernetes-0.2.0/kubernetes-0.2.0.zip",
       "detectFiles": [
         "Chart.yaml"
       ]
@@ -174,9 +174,9 @@
     {
       "id": "dev.phantom.docker",
       "name": "Phantom Docker",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "source": "docker",
-      "description": "Docker Compose through the docker CLI: run icons on compose services, a Docker Compose run configuration shown in Services, and a Docker tool window listing containers by compose project with start, stop, restart, remove, logs and compose down. Polls only while open.",
+      "description": "Docker Compose through the docker CLI: run icons on compose services, a Docker Compose run configuration shown in Services, and a Docker tool window listing containers by compose project with start, stop, restart, remove, logs and compose down. Polls only while open. 0.2.0: Compose checks (unknown keys and values, undefined services/networks/volumes with Ctrl+B and completion, missing image, unquoted base-60 ports, duplicate container names) and Dockerfile checks (continuations, argument counts, exec form, heredocs, stages, COPY/ADD paths).",
       "vendor": "Phantom",
       "since": "262",
       "until": "262.*",
@@ -185,7 +185,7 @@
         "com.intellij.modules.lang",
         "org.jetbrains.plugins.yaml"
       ],
-      "download": "docker-0.1.0/docker-0.1.0.zip",
+      "download": "docker-0.2.0/docker-0.2.0.zip",
       "detectFiles": [
         "compose.yaml",
         "compose.yml",
@@ -197,7 +197,7 @@
     {
       "id": "dev.phantom.redis",
       "name": "Phantom Redis",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "redis",
       "description": "A Redis browser and console: keys by SCAN pattern, values of every type with JSON indented, delete, and a redis-cli style command line with history. Password, ACL user, database and TLS. Connects only while the Redis tool window is shown.",
       "vendor": "Phantom",
@@ -207,7 +207,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "redis-0.1.0/redis-0.1.0.zip",
+      "download": "redis-0.1.1/redis-0.1.1.zip",
       "detect": [
         "org.springframework.data:spring-data-redis",
         "io.lettuce:lettuce-core",
@@ -218,7 +218,7 @@
     {
       "id": "dev.phantom.kafka",
       "name": "Phantom Kafka",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "kafka",
       "description": "A Kafka browser: topics with partitions and offsets, latest/earliest/since-time messages read without joining a group, sending with key, headers and partition, consumer group lag, create and delete topics. SASL/SSL via client properties in the password safe.",
       "vendor": "Phantom",
@@ -228,7 +228,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "kafka-0.1.0/kafka-0.1.0.zip",
+      "download": "kafka-0.1.1/kafka-0.1.1.zip",
       "detect": [
         "org.apache.kafka:kafka-clients",
         "org.springframework.kafka:spring-kafka",

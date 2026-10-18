@@ -144,7 +144,7 @@ class LiquibaseChangelogInspection : LocalInspectionTool() {
     val candidates = buildList {
       changelog.parent?.findFileByRelativePath(clean)?.let(::add)
       if (!relative) {
-        for (root in com.intellij.openapi.roots.ModuleRootManager.getInstance(module).getSourceRoots(true)) root.findFileByRelativePath(clean.trimStart('/'))?.let(::add)
+        for (root in sourceAndResourceRoots(module, true)) root.findFileByRelativePath(clean.trimStart('/'))?.let(::add)
       }
     }
     return candidates.firstOrNull { it.isDirectory == directory }
