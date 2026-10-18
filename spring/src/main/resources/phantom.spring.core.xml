@@ -186,6 +186,20 @@
     <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringScheduledLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringImportLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringImportLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringTransactionalLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringTransactionalLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringComponentScanLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringComponentScanLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.AopAdvisedMethodLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.AopAdvisedMethodLineMarkerProvider"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringApiVersionNotConfigured"
+                     bundle="messages.PhantomSpringBundle" key="inspection.api.version.unconfigured.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringApiVersionNotConfiguredInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringApiVersionSyntax"
+                     bundle="messages.PhantomSpringBundle" key="inspection.api.version.syntax.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringApiVersionSyntaxInspection"/>
   </extensions>
   <extensions defaultExtensionNs="com.intellij.microservices">
     <endpointsProvider implementation="dev.phantom.spring.core.ide.SpringMvcEndpointsProvider"/>
