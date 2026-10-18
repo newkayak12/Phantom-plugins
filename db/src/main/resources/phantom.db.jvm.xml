@@ -7,5 +7,17 @@
   </dependencies>
   <extensions defaultExtensionNs="com.intellij">
     <multiHostInjector implementation="dev.phantom.db.jvm.SqlStringInjector"/>
+    <!-- JPA entities against the data source's schema; nothing without JPA or without a data source to match -->
+    <localInspection language="UAST" shortName="PhantomJpaTableUnknown" bundle="messages.PhantomDbBundle" key="inspection.PhantomJpaTableUnknown"
+                     groupBundle="messages.PhantomDbBundle" groupKey="inspection.group.jpa" enabledByDefault="true" level="ERROR"
+                     implementationClass="dev.phantom.db.jvm.JpaTableUnknownInspection"/>
+    <localInspection language="UAST" shortName="PhantomJpaColumnUnknown" bundle="messages.PhantomDbBundle" key="inspection.PhantomJpaColumnUnknown"
+                     groupBundle="messages.PhantomDbBundle" groupKey="inspection.group.jpa" enabledByDefault="true" level="ERROR"
+                     implementationClass="dev.phantom.db.jvm.JpaColumnUnknownInspection"/>
+    <localInspection language="UAST" shortName="PhantomJpaColumnNullability" bundle="messages.PhantomDbBundle" key="inspection.PhantomJpaColumnNullability"
+                     groupBundle="messages.PhantomDbBundle" groupKey="inspection.group.jpa" enabledByDefault="false" level="WEAK WARNING"
+                     implementationClass="dev.phantom.db.jvm.JpaColumnNullabilityInspection"/>
+    <completion.contributor language="JAVA" implementationClass="dev.phantom.db.jvm.JpaSchemaCompletionContributor"/>
+    <completion.contributor language="kotlin" implementationClass="dev.phantom.db.jvm.JpaSchemaCompletionContributor"/>
   </extensions>
 </idea-plugin>

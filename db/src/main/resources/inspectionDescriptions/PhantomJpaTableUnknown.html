@@ -1,0 +1,11 @@
+<html>
+<body>
+Reports a JPA entity whose table is not in the database of the project's data source.
+<p>The table name is the one Hibernate uses: <code>@Table(name)</code>, or the entity name, turned into a physical name by
+the naming strategy the configuration sets (Spring Boot's default puts <code>_</code> between words and lower-cases;
+<code>PhysicalNamingStrategyStandardImpl</code> keeps names as written). A <code>SINGLE_TABLE</code> subclass uses its root's table.</p>
+<p>Runs only when the project has a data source that the configuration's <code>spring.datasource.url</code> points to (or
+the only data source, when the configuration names none). The schema is read when needed, in the background, into the
+cache the Database tool window uses; nothing is reported until it is loaded.</p>
+</body>
+</html>
