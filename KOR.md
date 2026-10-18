@@ -35,6 +35,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom Bean Validation | [validation](./validation/KOR.md) · [English](./validation/README.md) | 모순된 범위, 맞지 않는 타입의 제약, Kotlin `@field:` 대상, 빠진 `@Valid` / `@Validated` |
 | Phantom Migrations | [migrations](./migrations/KOR.md) · [English](./migrations/README.md) | Flyway 파일 이름과 중복 버전, Liquibase 중복 changeset과 없는 include |
 | Phantom OpenAPI | [openapi](./openapi/KOR.md) · [English](./openapi/README.md) | OpenAPI/Swagger 스펙의 `$ref` 이동·자동완성·오류, 스펙 ↔ 핸들러 거터 |
+| Phantom HTTP Client | [http-client](./http-client/KOR.md) · [English](./http-client/README.md) | `.http` / `.rest` 요청을 에디터에서 실행: 환경 변수, `import` / `run`, 검사, 응답 창 |
 
 ## 저장소 형식
 

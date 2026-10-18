@@ -22,7 +22,10 @@ dependencies {
   intellijPlatform {
     // Plugins compile against an installed Phantom IDEA, not a downloaded IntelliJ. CI (-PplatformFromRepository) has no
     // Phantom installed and takes the IntelliJ Community build Phantom is forked from instead.
-    if (providers.gradleProperty("platformFromRepository").isPresent) {
+    // Also for the plugins listed in platformFromRepositoryFor: their id is still bundled in the installed Phantom, which
+    // would shadow the plugin under test (a bundled copy with a higher version wins).
+    val fromRepositoryFor = providers.gradleProperty("platformFromRepositoryFor").orNull.orEmpty().split(',').map { it.trim() }
+    if (providers.gradleProperty("platformFromRepository").isPresent || project.name in fromRepositoryFor) {
       intellijIdeaCommunity(providers.gradleProperty("platformTestBuild")) { useInstaller = false }
     }
     else {
