@@ -1,0 +1,10 @@
+<html>
+<body>
+Reports an entity attribute whose column is not in the entity's table in the database of the project's data source.
+<p>Column names follow <code>@Column(name)</code>, <code>@JoinColumn(name)</code> or the attribute name, and the naming
+strategy. Attributes of embeddables count (with <code>@AttributeOverride</code>), and so do those of mapped
+superclasses; a missing one of those is reported on the entity. A <code>@ManyToOne</code> without <code>@JoinColumn</code>
+uses <code>attribute_referencedColumn</code>. Collections, <code>@Transient</code>, <code>mappedBy</code> sides, join tables and
+columns of secondary tables are not checked, nor entities with property access.</p>
+</body>
+</html>

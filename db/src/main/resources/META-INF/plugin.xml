@@ -11,7 +11,8 @@
   window and commit or roll them back; closing the project asks first. A result from one table with its primary key
   can be edited in the grid, and Compare With on a schema diffs two schemas and writes the SQL to make them match.
   SQL in Spring Data `@Query(nativeQuery = true)`, `@NativeQuery` and JdbcTemplate / JdbcClient strings is highlighted
-  and completed like a console.
+  and completed like a console. JPA entities are checked against the data source's schema (tables and columns that do
+  not exist, nullable columns mapped to non-null attributes), and @Table / @Column names complete from it.
   ]]></description>
 
   <dependencies>
