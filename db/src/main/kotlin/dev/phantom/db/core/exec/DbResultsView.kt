@@ -22,6 +22,7 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import dev.phantom.db.core.DbDataSource
 import dev.phantom.db.core.PhantomDbBundle
+import dev.phantom.db.core.ui.DbForeignKeyActions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
@@ -42,6 +43,12 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
 
   /** The data source the shown results came from; a single-table result from it can be edited in place. */
   var dataSource: DbDataSource? = null
+
+  /** The table a data view shows; its grid then offers the foreign key actions. */
+  var table: DbTableRef? = null
+
+  /** Called with each new grid, so a data view can tell which grid is current. */
+  var onGrid: ((DataGrid) -> Unit)? = null
 
   @get:TestOnly
   var shownEditing: DbGridEdits? = null
@@ -131,13 +138,18 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
   private fun grid(rows: DbOutcome.Rows, parent: Disposable): JComponent {
     val model = DataGridListModel { a, b -> a == b }
     val hookUp = DbEditableHookUp(project, model)
-    val grid = GridUtil.createDataGrid(project, hookUp, GridUtil.getGridPopupActions(),
+    val popup = if (table == null) GridUtil.getGridPopupActions()
+                else com.intellij.openapi.actionSystem.DefaultActionGroup(DbForeignKeyActions.group(), com.intellij.openapi.actionSystem.Separator.getInstance(),
+                                                                          GridUtil.getGridPopupActions())
+    val grid = GridUtil.createDataGrid(project, hookUp, popup,
                                        BiConsumer { g, appearance ->
                                          // the setup the community CSV editor uses: helpers, renderers, formatters, cell editors
                                          GridUtil.configureCsvTable(g, appearance)
                                          GridUtil.configureFullSizeTable(g, appearance)
                                        })
     Disposer.register(parent, grid)
+    if (table != null) DbForeignKeyActions.installShortcut(grid)
+    onGrid?.invoke(grid)
     // fill through the updater so the grid gets the column and row events it lays itself out from
     val updater = hookUp.createUpdater()
     updater.setColumns(rows.columns.mapIndexed { i, c -> DataConsumer.Column(i, c.name, c.sqlType, c.typeName, c.className) })
@@ -210,6 +222,21 @@ object DbResultsToolWindow {
     manager.contents.firstOrNull { it.component === panel }?.let { manager.setSelectedContent(it) }
     toolWindow.show()
     return panel
+  }
+
+  /** A tab for a table's data view, one per table, reused when the table is opened again. */
+  fun tableTab(project: Project, title: String, existing: (JComponent) -> Boolean, create: () -> JComponent): JComponent {
+    val toolWindow = toolWindow(project)
+    val manager = toolWindow.contentManager
+    val content = manager.contents.firstOrNull { existing(it.component) } ?: ContentFactory.getInstance().createContent(create(), title, false).also { content ->
+      (content.component as? Disposable)?.let { content.setDisposer(it) }
+      manager.addContent(content)
+      val unpinned = manager.contents.filter { !it.isPinned }
+      if (unpinned.size > MAX_TABS) unpinned.take(unpinned.size - MAX_TABS).forEach { manager.removeContent(it, true) }
+    }
+    manager.setSelectedContent(content)
+    toolWindow.show()
+    return content.component
   }
 
   private fun toolWindow(project: Project): ToolWindow {

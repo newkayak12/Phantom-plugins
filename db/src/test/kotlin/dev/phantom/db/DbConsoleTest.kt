@@ -204,7 +204,7 @@ class DbConsoleTest : BasePlatformTestCase() {
     assertEquals("VIEW", (tableNode(sourceNode, "GUESTS")!!.userObject as DbNode.Table).ref.kind)
     tree.expandPath(TreePath(table.path))
     PlatformTestUtil.waitWithEventsDispatching("columns not loaded", { (table.getChildAt(0) as DefaultMutableTreeNode).userObject is DbNode.Column }, 20)
-    val columns = (0 until table.childCount).map { (table.getChildAt(it) as DefaultMutableTreeNode).userObject as DbNode.Column }
+    val columns = (0 until table.childCount).mapNotNull { (table.getChildAt(it) as DefaultMutableTreeNode).userObject as? DbNode.Column }
     assertEquals(listOf("ID", "GUEST_NAME"), columns.map { it.info.name })
     assertTrue(columns[0].info.primaryKey)
     assertEquals("SELECT * FROM PUBLIC.RESERVATION;", panel.selectAll(table.userObject as DbNode.Table))

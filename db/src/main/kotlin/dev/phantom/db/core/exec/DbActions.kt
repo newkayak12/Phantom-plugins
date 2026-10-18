@@ -87,21 +87,43 @@ class SqlActionPromoter : ActionPromoter {
 }
 
 /**
- * One line above a `.sql` file that is not a console, once the project has data sources: which one Ctrl+Enter runs on,
- * with a link to change it. Consoles need no banner: the tab name is the data source.
+ * One line above a `.sql` file once the project has data sources: which one Ctrl+Enter runs on (with a link to change
+ * it; consoles are tied to theirs), and the commit mode: Auto-commit, or Manual with the open transaction's statement
+ * count and Commit / Roll Back links.
  */
 class SqlDataSourceNotificationProvider : EditorNotificationProvider {
   override fun collectNotificationData(project: Project, file: VirtualFile): Function<in FileEditor, out JComponent?>? {
-    if (file.fileType != SqlFileType.INSTANCE || DbConsoles.isConsole(file)) return null
+    if (file.fileType != SqlFileType.INSTANCE) return null
     val service = DbDataSourceService.getInstance(project)
     if (service.dataSources.isEmpty()) return null
+    val console = DbConsoles.isConsole(file)
     val selected = DbConsoles.dataSourceFor(project, file)
+    if (console && selected == null) return null
     return Function { editor ->
       EditorNotificationPanel(editor, EditorNotificationPanel.Status.Info).apply {
-        text = PhantomDbBundle.message("db.datasource.current", selected?.name ?: PhantomDbBundle.message("db.datasource.none"))
+        val source = PhantomDbBundle.message("db.datasource.current", selected?.name ?: PhantomDbBundle.message("db.datasource.none"))
+        val pending = selected?.let { DbPendingChanges.getInstanceIfCreated(project)?.of(it.id)?.size } ?: 0
+        val mode = when {
+          selected == null -> null
+          selected.readOnly -> PhantomDbBundle.message("db.tree.read.only")
+          selected.manualCommit -> PhantomDbBundle.message("db.tx.manual", pending)
+          else -> PhantomDbBundle.message("db.tx.auto")
+        }
+        text = listOfNotNull(if (console) null else source, mode).joinToString("  ·  ")
         selected?.let { icon(it.dbms.icon) }
-        createActionLabel(PhantomDbBundle.message("db.datasource.change")) {
-          DbRunner.chooseDataSource(project, file, this) {}
+        if (!console) {
+          createActionLabel(PhantomDbBundle.message("db.datasource.change")) {
+            DbRunner.chooseDataSource(project, file, this) {}
+          }
+        }
+        if (selected != null && !selected.readOnly) {
+          if (selected.manualCommit && pending > 0) {
+            createActionLabel(PhantomDbBundle.message("db.changes.commit")) { DbEndTransactionAction.end(project, selected, commit = true) }
+            createActionLabel(PhantomDbBundle.message("db.changes.rollback")) { DbEndTransactionAction.end(project, selected, commit = false) }
+          }
+          createActionLabel(PhantomDbBundle.message(if (selected.manualCommit) "db.tx.to.auto" else "db.tx.to.manual")) {
+            DbTransactions.setManual(project, selected, !selected.manualCommit)
+          }
         }
       }
     }

@@ -68,7 +68,12 @@ class DbPendingChanges(private val project: Project) {
     Disposer.register(parent) { listeners.remove(listener) }
   }
 
-  private fun changed() = listeners.forEach { it() }
+  private fun changed() {
+    listeners.forEach { it() }
+    // the SQL editor banner shows the open transaction's size
+    ApplicationManager.getApplication().invokeLater({ com.intellij.ui.EditorNotifications.getInstance(project).updateAllNotifications() },
+                                                    { project.isDisposed })
+  }
 
   companion object {
     fun getInstance(project: Project): DbPendingChanges = project.service()

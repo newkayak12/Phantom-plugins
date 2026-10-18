@@ -35,6 +35,21 @@
       <keyboard-shortcut keymap="$default" first-keystroke="control alt E"/>
       <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.SelectDataSource"/>
     </action>
+    <action id="PhantomDb.ExplainPlan" class="dev.phantom.db.core.exec.DbExplainPlanAction">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.RunStatement"/>
+    </action>
+    <action id="PhantomDb.ExplainAnalyze" class="dev.phantom.db.core.exec.DbExplainAnalyzeAction">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.ExplainPlan"/>
+    </action>
+    <action id="PhantomDb.ManualCommit" class="dev.phantom.db.core.exec.DbManualCommitToggleAction">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.ShowHistory"/>
+    </action>
+    <action id="PhantomDb.Commit" class="dev.phantom.db.core.exec.DbCommitAction" icon="AllIcons.Actions.Commit">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.ManualCommit"/>
+    </action>
+    <action id="PhantomDb.Rollback" class="dev.phantom.db.core.exec.DbRollbackAction" icon="AllIcons.Actions.Rollback">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.Commit"/>
+    </action>
     <action id="PhantomDb.ShowDatabase" class="dev.phantom.db.core.ui.DbShowToolWindowAction" icon="AllIcons.Nodes.DataTables">
       <add-to-group group-id="ToolsMenu" anchor="last"/>
     </action>

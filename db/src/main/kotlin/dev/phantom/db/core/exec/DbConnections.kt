@@ -122,6 +122,20 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
     }
   }
 
+  /**
+   * Puts the open console connection, if any, into the data source's commit mode. Switching to auto-commit commits
+   * whatever is open, so end the transaction first.
+   */
+  suspend fun applyCommitMode(dataSource: DbDataSource) {
+    val session = sessions[dataSource.id to Purpose.CONSOLE] ?: return
+    session.mutex.withLock {
+      withContext(Dispatchers.IO) {
+        val connection = session.connection?.takeUnless { runCatching { it.isClosed }.getOrDefault(true) } ?: return@withContext
+        if (!dataSource.readOnly) connection.autoCommit = !dataSource.manualCommit
+      }
+    }
+  }
+
   /** Closes the data source's connections, e.g. after it was edited or removed. Uncommitted changes are rolled back. */
   fun disconnect(dataSourceId: String) {
     DbPendingChanges.getInstanceIfCreated(project)?.discard(dataSourceId)
@@ -449,6 +463,7 @@ class DbMetadataCache(private val project: Project) {
     schemas.remove(dataSourceId)
     tables.keys.removeIf { it.dataSourceId == dataSourceId }
     columns.keys.removeIf { it.dataSourceId == dataSourceId }
+    DbObjectCache.getInstanceIfCreated(project)?.invalidate(dataSourceId)
   }
 
   private suspend fun <T> metadata(dataSource: DbDataSource, block: (DatabaseMetaData, Connection) -> T): T =

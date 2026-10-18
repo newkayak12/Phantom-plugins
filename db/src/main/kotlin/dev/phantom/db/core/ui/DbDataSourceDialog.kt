@@ -26,6 +26,7 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.UIUtil
 import dev.phantom.db.core.*
 import dev.phantom.db.core.exec.DbConnectionService
+import dev.phantom.db.core.exec.DbTransactions
 import dev.phantom.db.core.exec.DbExecutor
 import dev.phantom.db.core.exec.DbMetadataCache
 import java.sql.SQLException
@@ -177,6 +178,8 @@ class DbDataSourceDialog private constructor(private val project: Project, exist
   }
 
   override fun doOKAction() {
+    // saving reconnects, which would roll back an open transaction unnoticed
+    if (!isNew && !DbTransactions.endOrKeep(project, current(), title)) return
     val saved = current()
     val password = if (passwordEdited || isNew) passwordField.password else null
     DbDataSourceService.getInstance(project).save(saved, password)

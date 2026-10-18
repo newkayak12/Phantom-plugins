@@ -143,23 +143,31 @@ object SqlSafety {
 
 /** Runs SQL from an editor: picks the data source on the EDT, checks safety, executes on IO, shows results. */
 object DbRunner {
-  fun run(project: Project, file: VirtualFile, statements: List<String>, popupOwner: Component?) {
+  /**
+   * Runs [statements] on the file's data source, asking for one when needed. [prepare] can rewrite them once the data
+   * source is known (Explain needs its dialect), or return null to stop.
+   */
+  fun run(project: Project, file: VirtualFile, statements: List<String>, popupOwner: Component?,
+          prepare: ((DbDataSource) -> List<String>?)? = null) {
     val sql = statements.map { it.trim() }.filter { it.isNotEmpty() }
     if (sql.isEmpty()) return
+    fun go(dataSource: DbDataSource) {
+      start(project, file, dataSource, if (prepare == null) sql else prepare(dataSource) ?: return)
+    }
     val chosen = DbConsoles.dataSourceFor(project, file)
     val all = DbDataSourceService.getInstance(project).dataSources
     when {
-      chosen != null -> start(project, file, chosen, sql)
+      chosen != null -> go(chosen)
       all.size == 1 -> {
         DbConsoles.attach(project, file, all[0].id)
-        start(project, file, all[0], sql)
+        go(all[0])
       }
       all.isEmpty() -> {
         val created = dev.phantom.db.core.ui.DbDataSourceDialog.create(project) ?: return
         DbConsoles.attach(project, file, created.id)
-        start(project, file, created, sql)
+        go(created)
       }
-      else -> chooseDataSource(project, file, popupOwner) { start(project, file, it, sql) }
+      else -> chooseDataSource(project, file, popupOwner) { go(it) }
     }
   }
 
@@ -178,7 +186,9 @@ object DbRunner {
     if (owner != null && owner.isShowing) popup.showInCenterOf(owner) else popup.showCenteredInCurrentWindow(project)
   }
 
-  fun start(project: Project, file: VirtualFile, dataSource: DbDataSource, sql: List<String>) {
+  fun start(project: Project, file: VirtualFile, dataSource: DbDataSource, statements: List<String>) {
+    val names = DbParameters.names(statements)
+    val sql = if (names.isEmpty()) statements else DbParameters.substitute(statements, DbParameters.ask(project, statements, names) ?: return)
     when (val verdict = SqlSafety.check(dataSource, sql)) {
       is SqlSafety.Verdict.Blocked -> {
         DbResultsToolWindow.tabFor(project, file, dataSource).showError(verdict.message)
