@@ -35,6 +35,7 @@ Public repositories need no token.
 | Phantom Bean Validation | [validation](./validation/README.md) · [한국어](./validation/KOR.md) | Contradictory bounds, constraints on the wrong type, Kotlin `@field:` targets, missing `@Valid` / `@Validated` |
 | Phantom Migrations | [migrations](./migrations/README.md) · [한국어](./migrations/KOR.md) | Flyway file names and duplicate versions; Liquibase duplicate changesets and missing includes |
 | Phantom OpenAPI | [openapi](./openapi/README.md) · [한국어](./openapi/KOR.md) | `$ref` navigation, completion and errors in OpenAPI/Swagger specs; spec ↔ handler gutters |
+| Phantom HTTP Client | [http-client](./http-client/README.md) · [한국어](./http-client/KOR.md) | `.http` / `.rest` requests run from the editor: environments, `import` / `run`, checks, response view |
 
 ## Repository format
 
