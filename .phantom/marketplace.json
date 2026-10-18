@@ -96,7 +96,7 @@
     {
       "id": "dev.phantom.reactive",
       "name": "Phantom Reactive Streams",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "reactive-streams",
       "description": "Reactor and RxJava checks for Java and Kotlin: a Mono, Flux or RxJava source created and dropped without being subscribed, and blocking calls inside reactive operators.",
       "vendor": "Phantom",
@@ -107,7 +107,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "reactive-streams-0.1.0/reactive-streams-0.1.0.zip",
+      "download": "reactive-streams-0.1.1/reactive-streams-0.1.1.zip",
       "detect": [
         "io.projectreactor:reactor-core",
         "org.reactivestreams:reactive-streams",
@@ -118,7 +118,7 @@
     {
       "id": "dev.phantom.ktor",
       "name": "Phantom Ktor",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "ktor",
       "description": "Ktor server routes from the routing DSL, including routes in Route extension functions with the prefixes of their callers, in the Endpoints tool window.",
       "vendor": "Phantom",
@@ -130,7 +130,7 @@
         "com.intellij.java",
         "org.jetbrains.kotlin"
       ],
-      "download": "ktor-0.1.0/ktor-0.1.0.zip",
+      "download": "ktor-0.1.1/ktor-0.1.1.zip",
       "detect": [
         "io.ktor:ktor-server-core",
         "io.ktor:ktor-server-core-jvm"

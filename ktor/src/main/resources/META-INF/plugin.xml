@@ -11,6 +11,9 @@
   <dependencies>
     <plugin id="com.intellij.modules.lang"/>
     <plugin id="com.intellij.java"/>
+    <module name="intellij.java.psi"/>
+    <module name="intellij.java"/>
+    <module name="intellij.platform.uast"/>
     <plugin id="org.jetbrains.kotlin"/>
   </dependencies>
 
