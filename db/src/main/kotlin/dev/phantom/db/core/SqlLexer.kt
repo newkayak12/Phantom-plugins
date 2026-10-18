@@ -161,10 +161,13 @@ class SqlLexer : LexerBase() {
     return true
   }
 
-  /** A run like `<=`, `::` or `->>`, stopping before a comment start. */
+  /** A run like `<=`, `::` or `->>`, stopping before a comment start and before a sign that ends it (`>-1`: `>` then `-`). */
   private fun operatorEnd(from: Int): Int {
     var i = from + 1
-    while (i < end && buffer[i] in OPERATOR_CHARS && !(buffer[i] == '-' && at(i + 1) == '-') && !(buffer[i] == '/' && at(i + 1) == '*')) i++
+    while (i < end && buffer[i] in OPERATOR_CHARS && !(buffer[i] == '-' && at(i + 1) == '-') && !(buffer[i] == '/' && at(i + 1) == '*')) {
+      if ((buffer[i] == '-' || buffer[i] == '+') && at(i + 1) !in OPERATOR_CHARS) break
+      i++
+    }
     return i
   }
 
