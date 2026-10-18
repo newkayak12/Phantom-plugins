@@ -29,6 +29,8 @@ import org.jetbrains.yaml.psi.YAMLValue
 abstract class K8sInspection : LocalInspectionTool() {
   override fun checkFile(file: PsiFile, manager: InspectionManager, isOnTheFly: Boolean): Array<ProblemDescriptor>? {
     if (file !is YAMLFile) return null
+    // YAML in a Markdown fence or a string is an example, often cut short on purpose
+    if (com.intellij.lang.injection.InjectedLanguageManager.getInstance(file.project).isInjectedFragment(file)) return null
     val resources = K8sResource.all(file)
     if (resources.isEmpty()) return null
     val out = ArrayList<ProblemDescriptor>()
