@@ -18,3 +18,11 @@ dependencies {
     bundledModule("intellij.grid.impl")
   }
 }
+
+// The tests load H2 the way users' drivers are loaded: from the local Gradle cache, in its own class loader.
+// Resolving it here puts it in the cache on a fresh machine (CI) without adding it to the test classpath.
+val testDrivers by configurations.creating
+dependencies { testDrivers("com.h2database:h2:2.3.232") }
+tasks.named<Test>("test") {
+  inputs.files(testDrivers)
+}
