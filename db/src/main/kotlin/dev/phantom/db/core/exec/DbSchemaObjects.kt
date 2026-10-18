@@ -128,6 +128,8 @@ class DbObjectCache(private val project: Project) {
 
   fun cachedForeignKeys(table: DbTableRef): List<DbForeignKey>? = foreignKeys[table]
 
+  fun cachedColumnDetails(table: DbTableRef): List<DbColumnDetail>? = details[table]
+
   fun invalidate(dataSourceId: String) {
     for (map in listOf(details, primaryKeys, foreignKeys, referencing, indexes)) map.keys.removeIf { it.dataSourceId == dataSourceId }
     for (map in listOf(routines, triggers)) map.keys.removeIf { it.dataSourceId == dataSourceId }

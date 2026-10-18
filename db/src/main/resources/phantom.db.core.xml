@@ -14,6 +14,42 @@
     <lang.braceMatcher language="SQL" implementationClass="dev.phantom.db.core.SqlBraceMatcher"/>
     <completion.contributor language="SQL" implementationClass="dev.phantom.db.core.SqlCompletionContributor"/>
     <annotator language="SQL" implementationClass="dev.phantom.db.core.SqlUnresolvedAnnotator"/>
+    <localInspection language="SQL" shortName="PhantomSqlWithoutWhere" key="inspection.PhantomSqlWithoutWhere" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlWithoutWhereInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlJoinWithoutOn" key="inspection.PhantomSqlJoinWithoutOn" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlJoinWithoutOnInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlUnusedCte" key="inspection.PhantomSqlUnusedCte" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnusedCteInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlRedundantAlias" key="inspection.PhantomSqlRedundantAlias" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlRedundantAliasInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlShadowingAlias" key="inspection.PhantomSqlShadowingAlias" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlShadowingAliasInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlInsertValues" key="inspection.PhantomSqlInsertValues" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlInsertValuesInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlUnionColumnCount" key="inspection.PhantomSqlUnionColumnCount" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnionColumnCountInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlMultipleLimit" key="inspection.PhantomSqlMultipleLimit" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlMultipleLimitInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlRedundantOrderingDirection" key="inspection.PhantomSqlRedundantOrderingDirection" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlRedundantOrderingDirectionInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlCaseVsCoalesce" key="inspection.PhantomSqlCaseVsCoalesce" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlCaseVsCoalesceInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlRedundantElseNull" key="inspection.PhantomSqlRedundantElseNull" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlRedundantElseNullInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlShouldBeInGroupBy" key="inspection.PhantomSqlShouldBeInGroupBy" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlShouldBeInGroupByInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlDerivedTableAlias" key="inspection.PhantomSqlDerivedTableAlias" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlDerivedTableAliasInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlMissingColumnAliases" key="inspection.PhantomSqlMissingColumnAliases" groupKey="inspection.group.sql"
+                     enabledByDefault="false" level="WARNING" implementationClass="dev.phantom.db.core.SqlMissingColumnAliasesInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlAmbiguousColumn" key="inspection.PhantomSqlAmbiguousColumn" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlAmbiguousColumnInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlInsertNullIntoNotNull" key="inspection.PhantomSqlInsertNullIntoNotNull" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlInsertNullIntoNotNullInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlStringLengthExceeded" key="inspection.PhantomSqlStringLengthExceeded" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlStringLengthExceededInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlTypeMismatch" key="inspection.PhantomSqlTypeMismatch" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlTypeMismatchInspection"/>
     <lang.formatter language="SQL" implementationClass="dev.phantom.db.core.SqlFormattingModelBuilder"/>
     <lang.findUsagesProvider language="SQL" implementationClass="dev.phantom.db.core.SqlFindUsagesProvider"/>
     <runLineMarkerContributor language="SQL" implementationClass="dev.phantom.db.core.exec.SqlRunLineMarkerContributor"/>
