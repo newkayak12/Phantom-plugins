@@ -25,5 +25,13 @@
     <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.springboot.core.BootConfigPropertiesLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.springboot.core.BootApplicationConfigLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.springboot.core.BootApplicationConfigLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.springboot.core.BootConditionalPropertyLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.springboot.core.BootConditionalPropertyLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.springboot.core.BootEnableConfigPropertiesLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.springboot.core.BootEnableConfigPropertiesLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.springboot.core.BootTestPropertiesLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.springboot.core.BootTestPropertiesLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.springboot.core.BootConfigPropertyFieldLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.springboot.core.BootConfigPropertyFieldLineMarkerProvider"/>
   </extensions>
 </idea-plugin>

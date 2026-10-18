@@ -8,5 +8,6 @@
     <lang.documentationProvider language="Properties" order="first" implementationClass="dev.phantom.springboot.properties.BootPropertiesDocumentationProvider"/>
     <codeInsight.lineMarkerProvider language="Properties" implementationClass="dev.phantom.springboot.core.BootConfigKeyLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="Properties" implementationClass="dev.phantom.springboot.core.BootProfileOverrideLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="Properties" implementationClass="dev.phantom.springboot.core.BootProfileValueLineMarkerProvider"/>
   </extensions>
 </idea-plugin>

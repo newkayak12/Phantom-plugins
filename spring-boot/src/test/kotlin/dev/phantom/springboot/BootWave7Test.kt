@@ -101,8 +101,11 @@ class BootWave7Test : LightJavaCodeInsightFixtureTestCase() {
     myFixture.configureByText("MailProperties.java", """
       package app;
       @org.springframework.boot.context.properties.ConfigurationProperties(prefix = "app.mail")
-      public class MailProperties { private String host; }
+      public class MailProperties {
+        private String host;
+      }
     """.trimIndent())
+    // the field's own key gutter (BootCodeMarkersTest) sits on its own line
     assertEquals(listOf("Keys set under app.mail"), tooltips())
   }
 }
