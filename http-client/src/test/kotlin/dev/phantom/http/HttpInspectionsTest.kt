@@ -161,4 +161,77 @@ class HttpInspectionsTest : BasePlatformTestCase() {
     assertEquals("Trailing comma", JsonCheck.firstError("[1,]")?.second)
     assertEquals("Invalid number", JsonCheck.firstError("[-x]")?.second)
   }
+
+  fun testXmlBodyFollowedByRequestNeedsSeparator() {
+    myFixture.enableInspections(HttpMissingSeparatorInspection())
+    assertEquals(listOf(msg("http.inspection.missing.separator") to "GET http://localhost/b"), problems("""
+      POST http://localhost/a
+      Content-Type: application/xml
+
+      <order><id>1</id></order>
+      GET http://localhost/b
+    """.trimIndent()))
+  }
+
+  fun testAuthIds() {
+    myFixture.enableInspections(HttpUnresolvedAuthIdInspection())
+    myFixture.addFileToProject("http-client.env.json", """
+      {"dev": {"host": "http://localhost", "Security": {"Auths": {"keycloak": {"Type": "OAuth2", "Grant Type": "Client Credentials",
+        "Client ID": "app", "Token URL": "http://localhost/token"}}}}}
+    """.trimIndent())
+    assertEquals(listOf(msg("http.inspection.auth.unknown", "keyclaok") to "{{${'$'}auth.token(\"keyclaok\")}}"), problems("""
+      GET {{host}}/a
+      Authorization: Bearer {{${'$'}auth.token("keycloak")}}
+
+      ###
+      GET {{host}}/b
+      Authorization: Bearer {{${'$'}auth.token("keyclaok")}}
+    """.trimIndent()))
+    // the auth reference is neither an unresolved variable nor a dead end for Ctrl+B
+    myFixture.configureByText("b.http", "GET http://localhost\nAuthorization: Bearer {{${'$'}auth.token(\"key<caret>cloak\")}}\n")
+    assertEmpty(myFixture.doHighlighting(HighlightSeverity.WARNING).filter { it.description?.startsWith("Unresolved") == true })
+    val ref = myFixture.file.findReferenceAt(myFixture.caretOffset)!!
+    assertEquals("http-client.env.json", ref.resolve()?.containingFile?.name)
+  }
+
+  fun testProtocolAndEncoding() {
+    myFixture.enableInspections(HttpProtocolInspection(), HttpAmbiguousEncodingInspection())
+    assertEquals(listOf(
+      msg("http.inspection.protocol.websocket", "ws") to "ws",
+      msg("http.inspection.protocol.unknown", "ftp") to "ftp",
+      msg("http.inspection.encoding.char", "|", "%7C") to "|",
+      msg("http.inspection.encoding.percent") to "%",
+    ), problems("""
+      GET ws://localhost/socket
+
+      ###
+      GET ftp://files.local/a
+
+      ###
+      GET http://localhost/search?q=a|b&ok=%20&{{q}}
+
+      ###
+      GET http://localhost/rate?p=50%
+    """.trimIndent()))
+  }
+
+  fun testAuthConfiguration() {
+    myFixture.enableInspections(HttpAuthConfigurationInspection())
+    myFixture.configureByText("http-client.env.json", """
+      {
+        "dev": {"Security": {"Auths": {
+          "ok": {"Type": "OAuth2", "Grant Type": "Authorization Code", "Client ID": "{{clientId}}", "Auth URL": "a", "Token URL": "t"},
+          "device": {"Type": "OAuth2", "Grant Type": "Device Authorization", "Client ID": "c", "Token URL": "t"},
+          "typo": {"Type": "OAuth2", "Grant Type": "Client Credential", "Client ID": "c"},
+          "untyped": {"Client ID": "c"}
+        }}}
+      }
+    """.trimIndent())
+    val found = myFixture.doHighlighting(HighlightSeverity.WEAK_WARNING).mapNotNull { it.description }.sorted()
+    assertEquals(listOf(
+      msg("http.inspection.auth.missing.for", "Device Auth URL", "Device Authorization"),
+      msg("http.inspection.auth.missing", "Type"),
+      msg("http.inspection.auth.grant", "Client Credential", "Authorization Code, Client Credentials, Device Authorization, Implicit, Password"),
+    ).sorted(), found)
+  }
 }

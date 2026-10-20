@@ -62,6 +62,19 @@
     <localInspection language="PhantomHttpRequest" shortName="PhantomHttpRunRequestName" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpRunRequestName.display.name"
                      groupKey="inspection.group" enabledByDefault="true" level="ERROR"
                      implementationClass="dev.phantom.http.core.HttpRunRequestNameInspection"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpUnresolvedAuthId" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpUnresolvedAuthId.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="ERROR"
+                     implementationClass="dev.phantom.http.core.HttpUnresolvedAuthIdInspection"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpProtocol" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpProtocol.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="ERROR"
+                     implementationClass="dev.phantom.http.core.HttpProtocolInspection"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpAmbiguousEncoding" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpAmbiguousEncoding.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="WARNING"
+                     implementationClass="dev.phantom.http.core.HttpAmbiguousEncodingInspection"/>
+    <!-- env files are JSON; checked by name, whatever their file type -->
+    <localInspection shortName="PhantomHttpAuthConfiguration" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpAuthConfiguration.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="ERROR"
+                     implementationClass="dev.phantom.http.core.HttpAuthConfigurationInspection"/>
     <actionPromoter implementation="dev.phantom.http.core.exec.HttpActionPromoter"/>
   </extensions>
   <actions resource-bundle="messages.PhantomHttpBundle">

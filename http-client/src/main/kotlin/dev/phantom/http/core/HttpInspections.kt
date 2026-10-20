@@ -406,3 +406,110 @@ class HttpRunRequestNameInspection : HttpInspection() {
     }
   }
 }
+
+/** `{{$auth.token("id")}}` naming an auth id that no `Security.Auths` of the env files defines for the environment. */
+class HttpUnresolvedAuthIdInspection : HttpInspection() {
+  override fun check(element: PsiElement, holder: ProblemsHolder) {
+    if (element !is HttpVariableRef) return
+    val id = HttpVariables.authId(element.variableName) ?: return
+    if (id in HttpVariables.authIds(element.containingFile)) return
+    holder.report(element, null, "http.inspection.auth.unknown", id)
+  }
+}
+
+/**
+ * A request URL with a scheme this client does not speak: `ws://`/`wss://` (WebSocket) or anything other than
+ * `http`/`https`. Such a request fails when it is run.
+ */
+class HttpProtocolInspection : HttpInspection() {
+  override fun check(element: PsiElement, holder: ProblemsHolder) {
+    if (element !is HttpRequestTarget) return
+    val text = element.text
+    val m = SCHEME.find(text) ?: return
+    val scheme = m.groupValues[1].lowercase()
+    if (scheme == "http" || scheme == "https") return
+    val range = TextRange(m.range.first, m.range.first + m.groupValues[1].length)
+    if (scheme == "ws" || scheme == "wss") holder.report(element, range, "http.inspection.protocol.websocket", m.groupValues[1])
+    else holder.report(element, range, "http.inspection.protocol.unknown", m.groupValues[1])
+  }
+
+  private companion object {
+    val SCHEME = Regex("""^\s*([A-Za-z][A-Za-z0-9+.-]*)://""")
+  }
+}
+
+/**
+ * Characters a URL cannot hold as written (`|`, `"`, `<`, `>`, `\`, `^`, `` ` ``, `{`, `}`) and a `%` that does not start
+ * a `%XX` escape. They are not encoded for you, so the request is rejected before it is sent; `{{variables}}` are skipped.
+ */
+class HttpAmbiguousEncodingInspection : HttpInspection() {
+  override fun check(element: PsiElement, holder: ProblemsHolder) {
+    if (element !is HttpRequestTarget) return
+    val text = VARIABLE.replace(element.text) { m -> "x".repeat(m.value.length) }
+    for ((i, c) in text.withIndex()) {
+      when {
+        c == '%' -> if (!isHex(text.getOrNull(i + 1)) || !isHex(text.getOrNull(i + 2))) {
+          holder.report(element, TextRange(i, i + 1), "http.inspection.encoding.percent")
+        }
+        c in ILLEGAL -> holder.report(element, TextRange(i, i + 1), "http.inspection.encoding.char", c.toString(), "%%%02X".format(c.code))
+      }
+    }
+  }
+
+  private fun isHex(c: Char?): Boolean = c != null && (c.isDigit() || c.lowercaseChar() in 'a'..'f')
+
+  private companion object {
+    val VARIABLE = Regex("""\{\{.*?}}""")
+    const val ILLEGAL = "|\"<>\\^`{}"
+  }
+}
+
+/**
+ * `Security.Auths` entries of `http-client.env.json` / `http-client.private.env.json` that cannot get a token: no
+ * `Type`, an OAuth2 entry without `Grant Type` or with one that does not exist, and settings the grant type needs
+ * (`Client ID`, `Token URL`, `Auth URL`, `Device Auth URL`, `Username`/`Password`). Values with `{{variables}}` count as set.
+ */
+class HttpAuthConfigurationInspection : com.intellij.codeInspection.LocalInspectionTool() {
+  override fun checkFile(file: com.intellij.psi.PsiFile, manager: com.intellij.codeInspection.InspectionManager, isOnTheFly: Boolean): Array<com.intellij.codeInspection.ProblemDescriptor>? {
+    if (file.name != HttpEnvironmentService.PUBLIC_ENV && file.name != HttpEnvironmentService.PRIVATE_ENV) return null
+    val text = file.text
+    val root = try { kotlinx.serialization.json.Json.parseToJsonElement(text) as? kotlinx.serialization.json.JsonObject } catch (_: Exception) { null } ?: return null
+    val out = ArrayList<com.intellij.codeInspection.ProblemDescriptor>()
+    var searchFrom = 0
+    for ((_, env) in root) {
+      val auths = ((env as? kotlinx.serialization.json.JsonObject)?.get("Security") as? kotlinx.serialization.json.JsonObject)?.get("Auths") as? kotlinx.serialization.json.JsonObject ?: continue
+      val authsAt = text.indexOf("\"Auths\"", searchFrom).takeIf { it >= 0 } ?: break
+      searchFrom = authsAt + 1
+      for ((id, value) in auths) {
+        val config = value as? kotlinx.serialization.json.JsonObject ?: continue
+        val idAt = text.indexOf("\"" + id + "\"", authsAt)
+        val range = if (idAt >= 0) TextRange(idAt, idAt + id.length + 2) else TextRange(authsAt, authsAt + 7)
+        for (message in problems(config)) {
+          out += manager.createProblemDescriptor(file, range, message, ProblemHighlightType.GENERIC_ERROR_OR_WARNING, isOnTheFly)
+        }
+      }
+    }
+    return out.toTypedArray()
+  }
+
+  private fun problems(config: kotlinx.serialization.json.JsonObject): List<String> {
+    fun value(key: String): String? = (config[key] as? kotlinx.serialization.json.JsonPrimitive)?.content?.takeIf { it.isNotBlank() }
+    val type = value("Type") ?: return listOf(PhantomHttpBundle.message("http.inspection.auth.missing", "Type"))
+    if (!type.equals("OAuth2", ignoreCase = true)) return emptyList()
+    val grant = value("Grant Type") ?: return listOf(PhantomHttpBundle.message("http.inspection.auth.missing", "Grant Type"))
+    if (grant.contains("{{")) return emptyList()
+    val required = GRANTS.entries.firstOrNull { it.key.equals(grant, ignoreCase = true) }?.value
+                   ?: return listOf(PhantomHttpBundle.message("http.inspection.auth.grant", grant, GRANTS.keys.joinToString(", ")))
+    return (listOf("Client ID") + required).filter { value(it) == null }.map { PhantomHttpBundle.message("http.inspection.auth.missing.for", it, grant) }
+  }
+
+  private companion object {
+    val GRANTS = linkedMapOf(
+      "Authorization Code" to listOf("Auth URL", "Token URL"),
+      "Client Credentials" to listOf("Token URL"),
+      "Device Authorization" to listOf("Device Auth URL", "Token URL"),
+      "Implicit" to listOf("Auth URL"),
+      "Password" to listOf("Token URL", "Username", "Password"),
+    )
+  }
+}

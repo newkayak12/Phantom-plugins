@@ -26,8 +26,12 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ThreadLocalRandom
 
-/** One `http-client.env.json` or `http-client.private.env.json`. */
-class HttpEnvFile(val file: VirtualFile, val environments: Map<String, Map<String, String>>) {
+/**
+ * One `http-client.env.json` or `http-client.private.env.json`. [auths] holds each environment's `Security.Auths`
+ * entries (auth id to its settings), which requests use as `{{$auth.token("id")}}`.
+ */
+class HttpEnvFile(val file: VirtualFile, val environments: Map<String, Map<String, String>>,
+                  val auths: Map<String, Map<String, Map<String, String>>> = emptyMap()) {
   val shared: Map<String, String> get() = environments[SHARED].orEmpty()
   val names: List<String> get() = environments.keys.filter { it != SHARED }
 
@@ -57,6 +61,17 @@ class HttpEnvironments(val public: HttpEnvFile?, val private: HttpEnvFile?) {
       if (envs.any { file.environments[it]?.containsKey(name) == true }) return file.file
     }
     return null
+  }
+
+  /** Auth ids of `Security.Auths` in [env] and `$shared`; with no environment chosen, of any environment. */
+  fun authIds(env: String?): Set<String> {
+    val envs = if (env != null) listOf(env, HttpEnvFile.SHARED) else names + HttpEnvFile.SHARED
+    return listOfNotNull(private, public).flatMap { f -> envs.flatMap { f.auths[it]?.keys.orEmpty() } }.toSet()
+  }
+
+  fun authDefiningFile(env: String?, id: String): VirtualFile? {
+    val envs = if (env != null) listOf(env, HttpEnvFile.SHARED) else names + HttpEnvFile.SHARED
+    return listOfNotNull(private, public).firstOrNull { f -> envs.any { f.auths[it]?.containsKey(id) == true } }?.file
   }
 
   fun keys(env: String?): Set<String> {
@@ -93,13 +108,22 @@ class HttpEnvironmentService(private val project: Project) {
     parsed[file.url]?.takeIf { it.stamp == stamp }?.let { return it.env }
     val env = try {
       val root = Json.parseToJsonElement(VfsUtilCore.loadText(file)) as? JsonObject
-      root?.let { HttpEnvFile(file, it.mapNotNull { (name, value) -> (value as? JsonObject)?.let { name to flatten(it) } }.toMap()) }
+      root?.let {
+        val environments = it.mapNotNull { (name, value) -> (value as? JsonObject)?.let { name to flatten(it) } }.toMap()
+        val auths = it.mapNotNull { (name, value) -> (value as? JsonObject)?.let { env -> authsOf(env)?.let { name to it } } }.toMap()
+        HttpEnvFile(file, environments, auths)
+      }
     }
     catch (_: Exception) {
       null // a half-edited env file: no variables from it until it parses again
     }
     parsed[file.url] = Parsed(stamp, env)
     return env
+  }
+
+  private fun authsOf(env: JsonObject): Map<String, Map<String, String>>? {
+    val auths = ((env["Security"] as? JsonObject)?.get("Auths") as? JsonObject) ?: return null
+    return auths.mapNotNull { (id, config) -> (config as? JsonObject)?.let { id to flatten(it) } }.toMap()
   }
 
   private fun flatten(obj: JsonObject): Map<String, String> =
@@ -146,6 +170,18 @@ object HttpVariables {
 
   fun isDynamic(name: String): Boolean = name in DYNAMIC || name.startsWith("\$env.")
 
+  /** `$auth.token("id")` / `$auth.idToken("id")`: group 1 is the function, group 2 the auth id. */
+  val AUTH: Regex = Regex("""^\${'$'}auth\.(token|idToken)\(\s*["']([^"']*)["']\s*\)$""")
+
+  /** The auth id a variable reference names, or null when it is not an auth reference. */
+  fun authId(name: String): String? = AUTH.matchEntire(name.trim())?.groupValues?.get(2)
+
+  /** Auth ids the env files define for [file]'s selected environment (any environment when none is chosen). */
+  fun authIds(file: PsiFile): Set<String> {
+    val (envs, selected) = environments(file)
+    return envs.authIds(selected)
+  }
+
   fun fileVariables(file: PsiFile): Map<String, HttpFileVariable> = CachedValuesManager.getCachedValue(file) {
     val map = LinkedHashMap<String, HttpFileVariable>()
     for (v in PsiTreeUtil.findChildrenOfType(file, HttpFileVariable::class.java)) map.putIfAbsent(v.name, v)
@@ -176,6 +212,8 @@ object HttpVariables {
 
   /** Whether [name] can get a value at run time; with no environment chosen, any environment counts. */
   fun isKnown(file: PsiFile, name: String): Boolean {
+    // auth references are judged by their own inspection, which knows the auth ids
+    if (authId(name) != null) return true
     if (isDynamic(name) || name in fileVariables(file) || name in handlerGlobals(file) || name in importedFileVariables(file)) return true
     val (envs, selected) = environments(file)
     return envs.definingFile(selected, name) != null
@@ -185,6 +223,13 @@ object HttpVariables {
     val file = ref.containingFile
     val name = ref.variableName
     val (envs, selected) = environments(file)
+    authId(name)?.let { id ->
+      val vFile = envs.authDefiningFile(selected, id) ?: return null
+      val envPsi = PsiManager.getInstance(file.project).findFile(vFile) ?: return null
+      val auths = envPsi.text.indexOf("\"Auths\"")
+      val offset = if (auths >= 0) envPsi.text.indexOf("\"" + StringUtil.escapeStringCharacters(id) + "\"", auths) else -1
+      return if (offset >= 0) envPsi.findElementAt(offset + 1) ?: envPsi else envPsi
+    }
     envs.definingFile(selected, name)?.let { vFile ->
       val envPsi = PsiManager.getInstance(file.project).findFile(vFile) ?: return null
       val offset = envPsi.text.indexOf("\"" + StringUtil.escapeStringCharacters(name) + "\"")
@@ -203,6 +248,7 @@ object HttpVariables {
     for ((name, v) in importedFileVariables(file)) result.putIfAbsent(name, v.containingFile.name)
     for (name in handlerGlobals(file)) result.putIfAbsent(name, "set by handler")
     for ((name, description) in DYNAMIC) result.putIfAbsent(name, description)
+    for (id in envs.authIds(selected)) result.putIfAbsent("\$auth.token(\"$id\")", "auth token")
     return result.map { it.key to it.value }
   }
 
