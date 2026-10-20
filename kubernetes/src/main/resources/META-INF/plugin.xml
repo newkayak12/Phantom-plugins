@@ -28,6 +28,20 @@
                      bundle="messages.PhantomKubernetesBundle" key="values.display.name"
                      groupBundle="messages.PhantomKubernetesBundle" groupKey="group.name"
                      implementationClass="dev.phantom.kubernetes.HelmValuesInspection"/>
+    <localInspection enabledByDefault="true" level="ERROR" shortName="PhantomHelmUnknownTemplate"
+                     bundle="messages.PhantomKubernetesBundle" key="helm.template.unknown.name"
+                     groupBundle="messages.PhantomKubernetesBundle" groupKey="group.name"
+                     implementationClass="dev.phantom.kubernetes.HelmUnknownTemplateInspection"/>
+    <localInspection enabledByDefault="true" level="WARNING" shortName="PhantomHelmWhitespaceTrim"
+                     bundle="messages.PhantomKubernetesBundle" key="helm.trim.name"
+                     groupBundle="messages.PhantomKubernetesBundle" groupKey="group.name"
+                     implementationClass="dev.phantom.kubernetes.HelmWhitespaceTrimInspection"/>
+    <!-- every language: define blocks live in .tpl files, which open as plain text -->
+    <codeInsight.lineMarkerProvider language="" implementationClass="dev.phantom.kubernetes.HelmDefineLineMarkerProvider"/>
+    <localInspection language="yaml" enabledByDefault="true" level="WARNING" shortName="PhantomK8sDeprecatedLabels"
+                     bundle="messages.PhantomKubernetesBundle" key="k8s.label.deprecated.name"
+                     groupBundle="messages.PhantomKubernetesBundle" groupKey="group.k8s"
+                     implementationClass="dev.phantom.kubernetes.K8sDeprecatedLabelsInspection"/>
     <!-- Kubernetes manifests: built-in kinds only, files without template syntax -->
     <localInspection language="yaml" enabledByDefault="true" level="ERROR" shortName="PhantomK8sUnknownKind"
                      bundle="messages.PhantomKubernetesBundle" key="k8s.kind.name"

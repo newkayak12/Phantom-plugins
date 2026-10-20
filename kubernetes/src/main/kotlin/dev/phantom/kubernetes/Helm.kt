@@ -83,9 +83,7 @@ internal class HelmChart(val root: VirtualFile) {
   /** `{{- define "name" -}}` blocks in the chart's templates, by name. */
   fun defines(project: Project): Map<String, PsiElement> {
     val result = LinkedHashMap<String, PsiElement>()
-    val templates = root.findChild("templates") ?: return result
-    for (file in templates.children) {
-      if (file.isDirectory) continue
+    for (file in templateFiles()) {
       val psi = PsiManager.getInstance(project).findFile(file) ?: continue
       for (match in DEFINE.findAll(psi.text)) {
         psi.findElementAt(match.groups[1]!!.range.first)?.let { result.putIfAbsent(match.groupValues[1], it) }
@@ -94,8 +92,31 @@ internal class HelmChart(val root: VirtualFile) {
     return result
   }
 
+  /** Files under `templates/`, subfolders included. */
+  fun templateFiles(): List<VirtualFile> {
+    val templates = root.findChild("templates") ?: return emptyList()
+    val result = ArrayList<VirtualFile>()
+    com.intellij.openapi.vfs.VfsUtilCore.iterateChildrenRecursively(templates, null) { file ->
+      if (!file.isDirectory) result.add(file)
+      true
+    }
+    return result
+  }
+
+  /**
+   * Whether templates can come from outside this chart: subcharts in `charts/` (library charts hold shared `define`s)
+   * or `dependencies` in Chart.yaml.
+   */
+  fun hasDependencies(): Boolean {
+    if (root.findChild("charts")?.children?.isNotEmpty() == true) return true
+    val chartYaml = root.findChild("Chart.yaml") ?: return false
+    return runCatching { com.intellij.openapi.vfs.VfsUtilCore.loadText(chartYaml) }.getOrDefault("").contains(Regex("""(?m)^dependencies\s*:"""))
+  }
+
   companion object {
-    private val DEFINE = Regex("""\{\{-?\s*define\s+"([^"]+)"""")
+    val DEFINE = Regex("""\{\{-?\s*define\s+"([^"]+)"""")
+    /** `include "name"` and `template "name"`; group 1 is the name. */
+    val INCLUDE = Regex("""\b(?:include|template)\s+"([^"]+)"""")
 
     fun of(file: PsiFile?): HelmChart? {
       val virtualFile = file?.originalFile?.virtualFile ?: return null

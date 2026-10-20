@@ -87,4 +87,62 @@ class HelmTest : BasePlatformTestCase() {
     myFixture.configureByText("application.yaml", "name: {{ .Values.<caret> }}")
     assertFalse(myFixture.completeBasic().orEmpty().any { it.lookupString == "mysql" })
   }
+
+  fun testUnknownTemplateName() {
+    myFixture.enableInspections(HelmUnknownTemplateInspection::class.java)
+    myFixture.addFileToProject("deploy/charts/data-plane/templates/sub/_more.tpl", "{{- define \"data-plane.more\" -}}x{{- end }}")
+    template("""
+      labels: {{- include "data-plane.labels" . | nindent 4 }}
+      more: {{ include "data-plane.more" . }}
+      typo: {{ include "data-plane.lables" . }}
+      old: {{ template "data-plane.missing" . }}
+      # include "not.in.an.action" is plain text
+    """.trimIndent())
+    val errors = myFixture.doHighlighting(HighlightSeverity.WEAK_WARNING).mapNotNull(HighlightInfo::getDescription).filter { "No template" in it }
+    assertSameElements(errors,
+                       "No template named 'data-plane.lables' is defined in chart 'data-plane'",
+                       "No template named 'data-plane.missing' is defined in chart 'data-plane'")
+  }
+
+  fun testUnknownTemplateSkippedWithDependencies() {
+    myFixture.enableInspections(HelmUnknownTemplateInspection::class.java)
+    myFixture.addFileToProject("deploy/charts/app/Chart.yaml", "apiVersion: v2\nname: app\nversion: 0.1.0\ndependencies:\n  - name: common\n    version: 2.x\n")
+    val file = myFixture.addFileToProject("deploy/charts/app/templates/d.yaml", "labels: {{ include \"common.labels\" . }}")
+    myFixture.configureFromExistingVirtualFile(file.virtualFile)
+    assertEmpty(myFixture.doHighlighting(HighlightSeverity.WEAK_WARNING).mapNotNull(HighlightInfo::getDescription).filter { "No template" in it })
+  }
+
+  fun testWhitespaceTrimJoiningLines() {
+    myFixture.enableInspections(HelmWhitespaceTrimInspection::class.java)
+    template("""
+      metadata:
+        name: app
+        labels:
+          {{- include "data-plane.labels" . | nindent 4 }}
+          {{- with .Values.podAnnotations }}
+          {{- toYaml . | nindent 4 }}
+          {{- end }}
+      spec:
+        image:
+          {{- .Values.mysql.image }}
+        storage:
+          {{- toYaml .Values.mysql.storage | indent 4 }}
+        {{- ${'$'}x := 1 }}
+        {{- /* a comment */}}
+        version: {{ .Values.kafka.version }}
+          {{- .Values.kafka.clusterName }}
+    """.trimIndent())
+    val found = myFixture.doHighlighting(HighlightSeverity.WEAK_WARNING).filter { it.description?.contains("trim marker") == true }
+      .map { myFixture.editor.document.getLineNumber(it.startOffset) }.sorted()
+    // lines 9 and 11; line 16 follows a template line, so it is not judged
+    assertEquals(listOf(9, 11), found)
+  }
+
+  fun testDefineUsageMarker() {
+    template("labels: {{- include \"data-plane.labels\" . | nindent 4 }}")
+    template("other: {{ template \"data-plane.labels\" . }}")
+    myFixture.configureFromExistingVirtualFile(myFixture.findFileInTempDir("deploy/charts/data-plane/templates/_helpers.tpl"))
+    val tooltips = myFixture.findAllGutters().mapNotNull { it.tooltipText }.filter { it.startsWith("Template") }
+    assertEquals(listOf("Template 'data-plane.labels' is included 2 times"), tooltips)
+  }
 }

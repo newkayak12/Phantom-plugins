@@ -1,0 +1,10 @@
+<html>
+<body>
+Reports <code>{{-</code> at the start of a line whose action writes text. The dash removes the line break before
+the action, so its output is appended to the previous line: <code>image:</code> followed by a line
+<code>{{- .Values.image }}</code> renders as <code>image:nginx</code>, which is no longer a key with a value.
+Control actions (<code>if</code>, <code>range</code>, <code>with</code>, <code>end</code>), assignments, comments and
+pipelines ending in <code>nindent</code> are not reported, nor actions after another template line. Helper files
+(<code>_helpers.tpl</code>) are skipped.
+</body>
+</html>

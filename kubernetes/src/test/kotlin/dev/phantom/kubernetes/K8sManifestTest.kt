@@ -166,4 +166,76 @@ class K8sManifestTest : BasePlatformTestCase() {
     myFixture.completeBasic()
     assertTrue(myFixture.file.text, myFixture.file.text.contains("imagePullPolicy"))
   }
+
+  fun testRequiredKeysOfListItems() {
+    myFixture.configureByText("pod.yaml", """
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: p
+      spec:
+        volumes:
+          - emptyDir: {}
+        containers:
+          - name: app
+            image: app:1
+            ports:
+              - name: http
+            env:
+              - value: x
+            volumeMounts:
+              - name: data
+      ---
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: s
+      spec:
+        ports:
+          - targetPort: 8080
+    """.trimIndent())
+    assertEquals(listOf(
+      "An item of env[] needs 'name'",
+      "An item of ports[] needs 'containerPort'",
+      "An item of ports[] needs 'port'",
+      "An item of volumeMounts[] needs 'mountPath'",
+      "An item of volumes[] needs 'name'",
+    ), problems())
+  }
+
+  fun testDeprecatedLabels() {
+    myFixture.enableInspections(K8sDeprecatedLabelsInspection::class.java)
+    myFixture.configureByText("deploy.yaml", """
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: p
+        labels:
+          kubernetes.io/os: linux
+        annotations:
+          kubernetes.io/ingress.class: nginx
+          container.apparmor.security.beta.kubernetes.io/app: runtime/default
+      spec:
+        nodeSelector:
+          beta.kubernetes.io/os: linux
+        tolerations:
+          - key: node-role.kubernetes.io/master
+            effect: NoSchedule
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 1
+                podAffinityTerm:
+                  topologyKey: topology.kubernetes.io/zone
+        containers:
+          - name: app
+            image: app:1
+    """.trimIndent())
+    assertEquals(listOf(
+      "'beta.kubernetes.io/os' is deprecated; use 'kubernetes.io/os'",
+      "'container.apparmor.security.beta.kubernetes.io/app' is no longer read by Kubernetes; use securityContext.appArmorProfile",
+      "'kubernetes.io/ingress.class' is deprecated; use 'spec.ingressClassName'",
+      "'node-role.kubernetes.io/master' is deprecated; use 'node-role.kubernetes.io/control-plane'",
+    ), problems())
+  }
 }

@@ -1,0 +1,8 @@
+<html>
+<body>
+Reports <code>include "name"</code> and <code>template "name"</code> in Helm chart templates when no
+<code>define "name"</code> exists in the chart's <code>templates/</code> folder. Helm fails to render such a chart.
+Charts with subcharts in <code>charts/</code> or <code>dependencies</code> in <code>Chart.yaml</code> are not checked,
+because library charts provide templates of their own.
+</body>
+</html>

@@ -104,6 +104,26 @@ class K8sKeysInspection : K8sInspection() {
           report(container.keyValues.firstOrNull()?.key ?: container, PhantomKubernetesBundle.message("k8s.container.missing", key), ProblemHighlightType.GENERIC_ERROR_OR_WARNING)
         }
       }
+      // list items of a container that the API server rejects without these keys
+      requireInItems(container, "ports", listOf("containerPort"), report)
+      requireInItems(container, "env", listOf("name"), report)
+      requireInItems(container, "volumeMounts", listOf("name", "mountPath"), report)
+    }
+    K8sSchema.podSpecPath(resource.kind)?.let { mappingAt(resource.root, it) }?.let { pod -> requireInItems(pod, "volumes", listOf("name"), report) }
+    if (resource.kind == "Service") mappingAt(resource.root, listOf("spec"))?.let { requireInItems(it, "ports", listOf("port"), report) }
+  }
+
+  /** Each mapping item of the list under [listKey] must have [keys]; items written as aliases or templates are skipped. */
+  private fun requireInItems(owner: YAMLMapping, listKey: String, keys: List<String>, report: (PsiElement, String, ProblemHighlightType) -> Unit) {
+    val items = (owner.getKeyValueByKey(listKey)?.value as? YAMLSequence)?.items ?: return
+    for (item in items) {
+      val mapping = item.value as? YAMLMapping ?: continue
+      if (mapping.getKeyValueByKey("<<") != null) continue
+      for (key in keys) {
+        if (mapping.getKeyValueByKey(key) == null) {
+          report(mapping.keyValues.firstOrNull()?.key ?: mapping, PhantomKubernetesBundle.message("k8s.item.missing", "$listKey[]", key), ProblemHighlightType.GENERIC_ERROR_OR_WARNING)
+        }
+      }
     }
   }
 }
