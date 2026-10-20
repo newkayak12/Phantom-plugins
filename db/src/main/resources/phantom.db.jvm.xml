@@ -17,6 +17,8 @@
     <localInspection language="UAST" shortName="PhantomJpaColumnNullability" bundle="messages.PhantomDbBundle" key="inspection.PhantomJpaColumnNullability"
                      groupBundle="messages.PhantomDbBundle" groupKey="inspection.group.jpa" enabledByDefault="false" level="WEAK WARNING"
                      implementationClass="dev.phantom.db.jvm.JpaColumnNullabilityInspection"/>
+    <!-- CREATE TABLE in SQL files → the entities mapped to that table -->
+    <codeInsight.lineMarkerProvider language="SQL" implementationClass="dev.phantom.db.jvm.SqlEntityLineMarkerProvider"/>
     <completion.contributor language="JAVA" implementationClass="dev.phantom.db.jvm.JpaSchemaCompletionContributor"/>
     <completion.contributor language="kotlin" implementationClass="dev.phantom.db.jvm.JpaSchemaCompletionContributor"/>
     <!-- find usages and rename of a database table or column include the JPA mappings that name it -->

@@ -291,4 +291,22 @@ class JpaSchemaTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals("mysql://localhost:3306/app", JpaSpringConfig.key("jdbc:mysql://127.0.0.1/app?useSSL=false"))
     assertEquals("mysql://localhost:3306/app", JpaSpringConfig.key("jdbc:mariadb://localhost:3306/app"))
   }
+
+  fun testCreateTableMarksItsEntities() {
+    myFixture.addClass("package org.springframework.boot.autoconfigure; public @interface SpringBootApplication {}")
+    myFixture.addClass("package app; import jakarta.persistence.*; @Entity public class RoomBooking { @Id Long id; }")
+    myFixture.addClass("package app; import jakarta.persistence.*; @Entity @Table(name = \"guest\") public class G { @Id Long id; }")
+    myFixture.configureByText("V1__init.sql", """
+      CREATE TABLE IF NOT EXISTS room_booking (id BIGINT PRIMARY KEY);
+      CREATE TABLE `GUEST` (id BIGINT PRIMARY KEY);
+      CREATE TABLE audit (id BIGINT);
+      SELECT * FROM room_booking;
+      CREATE INDEX ix ON guest (id);
+    """.trimIndent())
+    myFixture.doHighlighting()
+    val markers = com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl.getLineMarkers(myFixture.editor.document, project)
+      .filter { it.lineMarkerTooltip?.startsWith("Mapped by") == true }
+      .map { "${it.element!!.text} -> ${it.lineMarkerTooltip}" }
+    assertEquals(listOf("room_booking -> Mapped by RoomBooking", "`GUEST` -> Mapped by G"), markers)
+  }
 }

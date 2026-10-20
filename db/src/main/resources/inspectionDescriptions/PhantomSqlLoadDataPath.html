@@ -1,0 +1,5 @@
+<html>
+<body>
+Reports a <code>LOAD DATA INFILE</code> or <code>LOAD XML INFILE</code> path with single backslashes, as in Windows paths. In a MySQL string a backslash escapes the next character (<code>\t</code> is a tab, <code>\d</code> is <code>d</code>), so the server reads another file. The fix writes forward slashes, which MySQL accepts on every platform.
+</body>
+</html>

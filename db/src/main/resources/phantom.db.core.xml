@@ -107,6 +107,20 @@
                      enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnusedVariableInspection"/>
     <localInspection language="SQL" shortName="PhantomSqlMissingReturn" key="inspection.PhantomSqlMissingReturn" groupKey="inspection.group.sql"
                      enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlMissingReturnInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlUnreachableCode" key="inspection.PhantomSqlUnreachableCode" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnreachableCodeInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlIllegalCursorState" key="inspection.PhantomSqlIllegalCursorState" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="ERROR" implementationClass="dev.phantom.db.core.SqlIllegalCursorStateInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlSideEffects" key="inspection.PhantomSqlSideEffects" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlSideEffectsInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlDateTimeLiteral" key="inspection.PhantomSqlDateTimeLiteral" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="ERROR" implementationClass="dev.phantom.db.core.SqlDateTimeLiteralInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlLoadDataPath" key="inspection.PhantomSqlLoadDataPath" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlLoadDataPathInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlJoinCount" key="inspection.PhantomSqlJoinCount" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlJoinCountInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlNoDataSource" key="inspection.PhantomSqlNoDataSource" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlNoDataSourceInspection"/>
     <lang.formatter language="SQL" implementationClass="dev.phantom.db.core.SqlFormattingModelBuilder"/>
     <lang.findUsagesProvider language="SQL" implementationClass="dev.phantom.db.core.SqlFindUsagesProvider"/>
     <referencesSearch implementation="dev.phantom.db.core.SqlDbReferenceSearcher"/>

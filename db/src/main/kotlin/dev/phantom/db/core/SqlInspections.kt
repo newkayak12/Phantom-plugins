@@ -262,6 +262,7 @@ abstract class SqlInspection : LocalInspectionTool() {
             checkQuery(element, SqlQueries.items(element), holder)
           }
           else if (element.firstKeyword in DDL) checkDdl(element, holder)
+          else checkOther(element, holder)
           is SqlSubquery -> {
             val statement = PsiTreeUtil.getParentOfType(element, SqlStatement::class.java) ?: return
             if (SqlQueries.isDml(statement)) checkQuery(element, SqlQueries.items(element), holder)
@@ -275,6 +276,9 @@ abstract class SqlInspection : LocalInspectionTool() {
 
   /** CREATE and ALTER statements, which the query checks leave alone. */
   protected open fun checkDdl(statement: SqlStatement, holder: ProblemsHolder) {}
+
+  /** Statements that are neither queries nor CREATE / ALTER: LOAD DATA, CALL, SET, ... */
+  protected open fun checkOther(statement: SqlStatement, holder: ProblemsHolder) {}
 
   /** [query] is the statement or a subquery; [items] are its own, not those of nested subqueries. */
   protected open fun checkQuery(query: SqlScope, items: List<SqlItem>, holder: ProblemsHolder) {}

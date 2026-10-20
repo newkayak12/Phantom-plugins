@@ -26,7 +26,9 @@ class SqlInspectionsTest : BasePlatformTestCase() {
       SqlDeprecatedTypeInspection::class.java, SqlAutoIncrementDuplicateInspection::class.java, SqlFunctionSpaceInspection::class.java,
       SqlFunctionArgumentsInspection::class.java, SqlIfFunctionInspection::class.java, SqlReservedIdentifierInspection::class.java,
       SqlTriggerTransitionInspection::class.java, SqlTransactionInTriggerInspection::class.java, SqlUnusedVariableInspection::class.java,
-      SqlMissingReturnInspection::class.java,
+      SqlMissingReturnInspection::class.java, SqlUnreachableCodeInspection::class.java, SqlIllegalCursorStateInspection::class.java,
+      SqlSideEffectsInspection::class.java, SqlDateTimeLiteralInspection::class.java, SqlLoadDataPathInspection::class.java,
+      SqlJoinCountInspection::class.java,
     )
     val SCHEMA: List<Class<out LocalInspectionTool>> = listOf(
       SqlAmbiguousColumnInspection::class.java, SqlInsertNullIntoNotNullInspection::class.java,
@@ -37,7 +39,8 @@ class SqlInspectionsTest : BasePlatformTestCase() {
     )
     /** The checks of wave 10, which the user-project samples also go through with a MySQL dialect. */
     val ROUTINE_AND_DIALECT = setOf("FunctionArguments", "IfFunction", "ReservedIdentifier", "TriggerTransition", "TransactionInTrigger",
-                                    "UnusedVariable", "MissingReturn", "DropIndexedColumn")
+                                    "UnusedVariable", "MissingReturn", "DropIndexedColumn",
+                                    "UnreachableCode", "IllegalCursorState", "SideEffects", "LoadDataPath")
   }
 
   private val dataSources = ArrayList<DbDataSource>()
@@ -501,5 +504,88 @@ class SqlInspectionsTest : BasePlatformTestCase() {
 
     // without a data source the schema checks say nothing
     assertEmpty(findings("SELECT id FROM guest g JOIN reservation r ON r.guest_id = g.id;", name = "detached.sql"))
+  }
+
+  fun testRoutineFlow() {
+    val routines = """
+      CREATE FUNCTION f(n INT) RETURNS INT READS SQL DATA
+      BEGIN
+        DECLARE c CURSOR FOR SELECT id FROM t;
+        DECLARE EXIT HANDLER FOR SQLEXCEPTION RETURN 0;
+        IF n > 1 THEN RETURN 1; ELSE SET n = 2; END IF;
+        FETCH c INTO n;
+        CLOSE c;
+        INSERT INTO audit (v) VALUES (n);
+        SELECT id INTO n FROM t FOR UPDATE;
+        RETURN n;
+        SET n = 3;
+      END;
+      CREATE PROCEDURE p() NO SQL
+      BEGIN
+        DECLARE d CURSOR FOR SELECT id FROM t;
+        DECLARE done INT DEFAULT 0;
+        OPEN d;
+        lbl: LOOP
+          FETCH NEXT FROM d INTO done;
+          IF done THEN LEAVE lbl; END IF;
+          ITERATE lbl;
+          SET done = 1;
+        END LOOP;
+        CLOSE d;
+        UPDATE t SET x = done WHERE id = 1;
+        CASE done WHEN 1 THEN LEAVE p_end; WHEN 2 THEN SET done = 0; END CASE;
+      END;
+      CREATE PROCEDURE q() MODIFIES SQL DATA
+      BEGIN
+        DELETE FROM t WHERE id = 1;
+        LEAVE q;
+        lbl2: LOOP SET @x = 1; END LOOP;
+      END;
+    """.trimIndent()
+    assertEquals(listOf("IllegalCursorState: c", "IllegalCursorState: c", "SideEffects: INSERT", "UnreachableCode: SET n = 3",
+                        "UnreachableCode: SET done = 1", "SideEffects: UPDATE", "UnreachableCode: lbl2"),
+                 findings(routines).filter { it.substringBefore(':') in setOf("IllegalCursorState", "SideEffects", "UnreachableCode") })
+    // PostgreSQL bodies are not followed
+    assertEmpty(findings(routines, unattached(Dbms.POSTGRESQL)).filter { it.substringBefore(':') in setOf("IllegalCursorState", "SideEffects", "UnreachableCode") })
+  }
+
+  fun testDateTimeLiterals() {
+    assertEquals(listOf("DateTimeLiteral: '2024-02-30'", "DateTimeLiteral: '2024-13-01'", "DateTimeLiteral: '2024-01-01 24:00:00'",
+                        "DateTimeLiteral: '10:61'"),
+                 findings("SELECT DATE '2024-02-30', DATE '2024-13-01', TIMESTAMP '2024-01-01 24:00:00', TIME '10:61', " +
+                          "DATE '2024-02-29', DATE '0000-00-00', TIME '100:00:00', TIMESTAMP '2024-01-01T10:00:00.123', DATE '2024/02/30', " +
+                          "t.date '2024-02-30', DATE('2024-02-30') FROM t WHERE d = '2024-02-30';").filter { it.startsWith("DateTimeLiteral") })
+  }
+
+  fun testLoadDataPath() {
+    val sql = "LOAD DATA INFILE 'C:\\data\\x.csv' INTO TABLE t;\nLOAD DATA LOCAL INFILE 'C:\\\\ok\\\\x.csv' INTO TABLE t;\nLOAD DATA INFILE '/tmp/x.csv' INTO TABLE t;"
+    assertEquals(listOf("LoadDataPath: 'C:\\data\\x.csv'"), findings(sql).filter { it.startsWith("LoadDataPath") })
+    applyFix("Use forward slashes")
+    assertTrue(myFixture.editor.document.text.startsWith("LOAD DATA INFILE 'C:/data/x.csv'"))
+    assertEmpty(findings(sql, unattached(Dbms.POSTGRESQL)).filter { it.startsWith("LoadDataPath") })
+  }
+
+  fun testJoinCount() {
+    val joins = (1..11).joinToString(" ") { "JOIN t$it ON t$it.id = t0.id" }
+    assertEquals(listOf("JoinCount: JOIN"), findings("SELECT * FROM t0 $joins;"))
+    assertEmpty(findings("SELECT * FROM t0 ${(1..10).joinToString(" ") { "JOIN t$it ON t$it.id = t0.id" }};"))
+    // joins of a subquery count for the subquery
+    assertEmpty(findings("SELECT * FROM t0 JOIN (SELECT * FROM a ${(1..6).joinToString(" ") { "JOIN b$it USING (id)" }}) s USING (id) " +
+                         (1..5).joinToString(" ") { "JOIN c$it USING (id)" } + ";"))
+  }
+
+  fun testNoDataSource() {
+    myFixture.enableInspections(SqlNoDataSourceInspection())
+    fun noDataSource(): List<String> = myFixture.doHighlighting(HighlightSeverity.INFORMATION)
+      .filter { it.inspectionToolId == "PhantomSqlNoDataSource" }.map { it.text }
+    myFixture.configureByText("a.sql", "SELECT 1;")
+    // the project has no data source: nothing to choose
+    assertEmpty(noDataSource())
+    val ds = unattached(Dbms.MYSQL)
+    myFixture.configureByText("b.sql", "-- x\nSELECT 1;")
+    assertEquals(listOf("SELECT"), noDataSource())
+    myFixture.configureByText("c.sql", "SELECT 1;")
+    DbConsoles.attach(project, myFixture.file.virtualFile, ds.id)
+    assertEmpty(noDataSource())
   }
 }
