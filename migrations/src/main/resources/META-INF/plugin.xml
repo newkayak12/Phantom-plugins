@@ -26,6 +26,10 @@
                      bundle="messages.PhantomMigrationsBundle" key="liquibase.display.name"
                      groupBundle="messages.PhantomMigrationsBundle" groupKey="group.name"
                      implementationClass="dev.phantom.migrations.LiquibaseChangelogInspection"/>
+    <localInspection language="XML" enabledByDefault="true" level="WARNING" shortName="PhantomLiquibaseUnresolvedProperty"
+                     bundle="messages.PhantomMigrationsBundle" key="liquibase.property.display.name"
+                     groupBundle="messages.PhantomMigrationsBundle" groupKey="group.name"
+                     implementationClass="dev.phantom.migrations.LiquibaseUnresolvedPropertyInspection"/>
     <!-- every language (language=""): a migration may open as plain text; the provider returns at once for everything but a .sql file's first leaf -->
     <codeInsight.lineMarkerProvider language="" implementationClass="dev.phantom.migrations.FlywayLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="XML" implementationClass="dev.phantom.migrations.LiquibaseIncludeLineMarkerProvider"/>

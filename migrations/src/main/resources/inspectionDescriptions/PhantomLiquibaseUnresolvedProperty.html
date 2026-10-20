@@ -1,0 +1,10 @@
+<html>
+<body>
+Reports <code>${name}</code> in XML changelogs when no changelog property defines it. Properties are looked up in
+every changelog of the module (<code>&lt;property name="…"/&gt;</code>, YAML <code>property</code>, formatted SQL
+<code>--property</code>), in <code>liquibase*.properties</code> and in <code>spring.liquibase.parameters.*</code>.
+Liquibase leaves an undefined placeholder as written, so the SQL runs with a literal <code>${name}</code>.
+Upper-case names (environment variables) and JVM system properties are not reported, and the check is off when
+parameters are set in YAML Spring configuration or in code (<code>setChangeLogParameters</code>).
+</body>
+</html>

@@ -146,4 +146,27 @@ class MigrationsTest : BasePlatformTestCase() {
       com.intellij.testFramework.PsiTestUtil.removeSourceRoot(module, resources)
     }
   }
+
+  fun testLiquibaseUnresolvedProperty() {
+    myFixture.enableInspections(LiquibaseUnresolvedPropertyInspection::class.java)
+    myFixture.addFileToProject("db/changelog/master.xml", """
+      <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog">
+        <property name="schema" value="app"/>
+        <include file="parts/tables.xml" relativeToChangelogFile="true"/>
+      </databaseChangeLog>
+    """.trimIndent())
+    myFixture.addFileToProject("liquibase.properties", "parameter.tablePrefix=t_\n")
+    myFixture.addFileToProject("db/changelog/parts/tables.xml", """
+      <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog">
+        <property name="idType" value="bigint"/>
+        <changeSet id="1" author="kim">
+          <!-- ${'$'}{inAComment} is not read -->
+          <sql>create table ${'$'}{schema}.${'$'}{tablePrefix}users (id ${'$'}{idType}, owner ${'$'}{user.name}, home ${'$'}{HOME})</sql>
+          <sql>insert into ${'$'}{schmea}.log values (1)</sql>
+        </changeSet>
+      </databaseChangeLog>
+    """.trimIndent())
+    assertEquals(listOf("Changelog property 'schmea' is not defined; Liquibase leaves the placeholder in the SQL as written"),
+                 problemsIn("db/changelog/parts/tables.xml"))
+  }
 }
