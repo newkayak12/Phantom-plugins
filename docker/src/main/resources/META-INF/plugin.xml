@@ -76,5 +76,7 @@
     <gotoDeclarationHandler implementation="dev.phantom.docker.compose.ComposeGotoDeclarationHandler"/>
     <gotoDeclarationHandler implementation="dev.phantom.docker.dockerfile.DockerfileStageGotoDeclarationHandler"/>
     <codeInsight.lineMarkerProvider language="yaml" implementationClass="dev.phantom.docker.compose.ComposeLineMarkerProvider"/>
+    <!-- every language: a Dockerfile is plain or TextMate text; returns at once for other files -->
+    <codeInsight.lineMarkerProvider language="" implementationClass="dev.phantom.docker.dockerfile.DockerfileStageLineMarkerProvider"/>
   </extensions>
 </idea-plugin>

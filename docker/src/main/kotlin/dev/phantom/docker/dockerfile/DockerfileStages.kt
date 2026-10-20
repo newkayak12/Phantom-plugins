@@ -42,7 +42,11 @@ class DockerfileStageGotoDeclarationHandler : GotoDeclarationHandler {
     }
 
     /** The stage name under [offset] in [instruction], with its range. */
-    fun nameAt(instruction: Dockerfile.Instruction, text: CharSequence, offset: Int): Pair<String, TextRange>? {
+    fun nameAt(instruction: Dockerfile.Instruction, text: CharSequence, offset: Int): Pair<String, TextRange>? =
+      names(instruction, text).firstOrNull { (_, range) -> offset >= range.startOffset && offset <= range.endOffset }
+
+    /** Every place in [instruction] that can name a stage: `--from=` of COPY/ADD, `from=` of a RUN mount, the image of FROM. */
+    fun names(instruction: Dockerfile.Instruction, text: CharSequence): List<Pair<String, TextRange>> {
       val args = text.subSequence(instruction.argsRange.startOffset, instruction.argsRange.endOffset).toString()
       val base = instruction.argsRange.startOffset
       val candidates = buildList {
@@ -54,8 +58,14 @@ class DockerfileStageGotoDeclarationHandler : GotoDeclarationHandler {
           }
         }
       }
-      val hit = candidates.firstOrNull { offset >= base + it.range.first && offset <= base + it.range.last + 1 } ?: return null
-      return hit.value to TextRange(base + hit.range.first, base + hit.range.last + 1)
+      return candidates.map { it.value to TextRange(base + it.range.first, base + it.range.last + 1) }
+    }
+
+    /** Where later instructions use [stage], up to a stage that takes the same name again. */
+    fun usages(dockerfile: Dockerfile, text: CharSequence, stage: Stage, stages: List<Stage>): List<TextRange> {
+      val redefined = stages.firstOrNull { it.offset > stage.offset && it.name.equals(stage.name, ignoreCase = true) }?.offset ?: Int.MAX_VALUE
+      return dockerfile.instructions.filter { it.keywordRange.startOffset > stage.offset && it.keywordRange.startOffset < redefined }
+        .flatMap { names(it, text) }.filter { it.first.equals(stage.name, ignoreCase = true) }.map { it.second }
     }
 
     private fun indexIn(text: CharSequence, range: TextRange, word: String, wholeWord: Boolean): Int? {

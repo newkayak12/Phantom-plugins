@@ -83,4 +83,22 @@ class DockerNavigationTest : BasePlatformTestCase() {
     // an image, not a stage
     assertNull(stageTarget(text.replace("eclipse-temurin:21", "eclipse-<caret>temurin:21")))
   }
+
+  fun testStageUsageMarkers() {
+    myFixture.configureByText("Dockerfile", """
+      FROM gradle:8 AS build
+      RUN gradle bootJar
+      FROM build AS test
+      FROM alpine AS unused
+      FROM eclipse-temurin:21
+      COPY --from=build /app.jar /app.jar
+      RUN --mount=type=cache,from=test,target=/cache true
+    """.trimIndent())
+    val markers = myFixture.findAllGutters().filter { it.tooltipText?.startsWith("Stage ") == true }.map { g ->
+      val info = (g as LineMarkerInfo.LineMarkerGutterIconRenderer<*>).lineMarkerInfo as RelatedItemLineMarkerInfo<*>
+      val line = myFixture.editor.document.getLineNumber(info.startOffset)
+      "$line ${g.tooltipText} -> " + info.createGotoRelatedItems().map { myFixture.editor.document.getLineNumber(it.element!!.textOffset) }
+    }.sorted()
+    assertEquals(listOf("0 Stage 'build' is used 2 times -> [2, 5]", "2 Stage 'test' is used once -> [6]"), markers)
+  }
 }
