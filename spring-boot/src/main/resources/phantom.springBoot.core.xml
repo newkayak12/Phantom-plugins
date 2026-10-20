@@ -21,6 +21,14 @@
                      bundle="messages.PhantomSpringBootBundle" key="inspection.driver.display.name"
                      groupBundle="messages.PhantomSpringBootBundle" groupKey="inspection.group.name"
                      implementationClass="dev.phantom.springboot.core.BootDatasourceDriverInspection"/>
+    <localInspection enabledByDefault="true" level="WARNING" shortName="PhantomBootBootstrapConfig"
+                     bundle="messages.PhantomSpringBootBundle" key="inspection.bootstrap.display.name"
+                     groupBundle="messages.PhantomSpringBootBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.springboot.core.BootBootstrapConfigInspection"/>
+    <localInspection enabledByDefault="true" level="WARNING" shortName="PhantomBootCloudStreamBinding"
+                     bundle="messages.PhantomSpringBootBundle" key="inspection.stream.display.name"
+                     groupBundle="messages.PhantomSpringBootBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.springboot.core.BootCloudStreamBindingInspection"/>
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.springboot.core.BootConfigPropertiesLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.springboot.core.BootConfigPropertiesLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.springboot.core.BootApplicationConfigLineMarkerProvider"/>

@@ -25,5 +25,9 @@
                      bundle="messages.PhantomSpringBundle" key="security.bean.reference.name"
                      groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
                      implementationClass="dev.phantom.spring.security.SecurityBeanReferenceInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSecurityRolePrefix"
+                     bundle="messages.PhantomSpringBundle" key="security.role.prefix.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.security.SecurityRolePrefixInspection"/>
   </extensions>
 </idea-plugin>

@@ -150,3 +150,67 @@ class SpringTestBeanFactoryInspection : AbstractBaseUastLocalInspectionTool() {
     @NonNls const val TEST_BEAN: String = "org.springframework.test.context.bean.override.convention.TestBean"
   }
 }
+
+/**
+ * Transaction settings of Spring tests that do not do what they say:
+ * - `@Commit` and `@Rollback` on the same test or class (they contradict each other)
+ * - `@Commit`/`@Rollback` where the test does not run in a test-managed transaction: nothing to commit or roll back
+ * - `@BeforeTransaction`/`@AfterTransaction` methods in a class without transactional tests: they never run
+ * - a transactional `@SpringBootTest` with a real web server (`RANDOM_PORT`, `DEFINED_PORT`): requests are served on
+ *   other threads, so what they write is committed and not rolled back with the test
+ */
+class SpringTestTransactionInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
+    if (!SpringProjectGate.isSpringProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
+    return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
+      override fun visitClass(node: UClass): Boolean {
+        val psiClass = node.javaPsi
+        if (psiClass.isInterface || !SpringTestNames.hasSpringContext(psiClass)) return true
+        val classTransactional = hierarchy(psiClass).any { SpringProxies.isTransactional(it) }
+        val transactionalMethods = psiClass.allMethods.filter { SpringProxies.isTransactional(it) }
+
+        check(node, classTransactional || transactionalMethods.isNotEmpty())
+        for (method in node.methods) check(method, classTransactional || SpringProxies.isTransactional(method.javaPsi))
+
+        if (!classTransactional && transactionalMethods.isEmpty() && !psiClass.hasModifierProperty(PsiModifier.ABSTRACT)) {
+          for (method in node.methods) {
+            val hook = method.uAnnotations.firstOrNull { it.qualifiedName in HOOKS } ?: continue
+            holder.registerProblem(hook.sourcePsi ?: continue, PhantomSpringBundle.message("inspection.test.tx.hook", "@" + hook.qualifiedName!!.substringAfterLast('.')))
+          }
+        }
+
+        if (classTransactional || transactionalMethods.isNotEmpty()) {
+          val boot = hierarchy(psiClass).firstNotNullOfOrNull { it.getAnnotation(SPRING_BOOT_TEST) }
+          val web = boot?.findDeclaredAttributeValue("webEnvironment")?.text
+          if (web != null && (web.contains("RANDOM_PORT") || web.contains("DEFINED_PORT"))) {
+            val anchor = node.uAnnotations.firstOrNull { it.qualifiedName == SPRING_BOOT_TEST }?.sourcePsi
+            if (anchor != null) holder.registerProblem(anchor, PhantomSpringBundle.message("inspection.test.tx.server"), ProblemHighlightType.WEAK_WARNING)
+          }
+        }
+        return true
+      }
+
+      private fun check(owner: UDeclaration, transactional: Boolean) {
+        val commit = owner.uAnnotations.firstOrNull { it.qualifiedName == COMMIT }
+        val rollback = owner.uAnnotations.firstOrNull { it.qualifiedName == ROLLBACK }
+        if (commit != null && rollback != null) {
+          holder.registerProblem(rollback.sourcePsi ?: return, PhantomSpringBundle.message("inspection.test.tx.both"))
+          return
+        }
+        val annotation = commit ?: rollback ?: return
+        if (transactional) return
+        holder.registerProblem(annotation.sourcePsi ?: return, PhantomSpringBundle.message("inspection.test.tx.none", "@" + annotation.qualifiedName!!.substringAfterLast('.')))
+      }
+
+      private fun hierarchy(psiClass: PsiClass): Set<PsiClass> =
+        LinkedHashSet<PsiClass>().apply { add(psiClass); InheritanceUtil.getSuperClasses(psiClass, this, false) }
+    }, arrayOf(UClass::class.java), true)
+  }
+
+  private companion object {
+    @NonNls const val COMMIT = "org.springframework.test.annotation.Commit"
+    @NonNls const val ROLLBACK = "org.springframework.test.annotation.Rollback"
+    @NonNls const val SPRING_BOOT_TEST = "org.springframework.boot.test.context.SpringBootTest"
+    @NonNls val HOOKS = setOf("org.springframework.test.context.transaction.BeforeTransaction", "org.springframework.test.context.transaction.AfterTransaction")
+  }
+}
