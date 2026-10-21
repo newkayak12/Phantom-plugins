@@ -8,7 +8,7 @@ MySQL, MariaDB, PostgreSQL, H2, AWS, Oracle, SQL Server 등을 위한 JDBC 콘�
 - **Ctrl+Enter**로 커서가 있는 문장을 실행합니다. 문장마다 왼쪽 여백에 실행 아이콘이 붙습니다.
 - 결과는 정렬할 수 있는 그리드에 나오고, 오래 걸리는 쿼리는 취소할 수 있습니다.
 - **Database** 툴 윈도우에서 데이터 소스와 스키마 트리를 봅니다. 트리는 펼칠 때 한 단계씩 불러옵니다.
-- **드라이버는 데이터입니다.** 프리셋 13개(MySQL, MariaDB, PostgreSQL, H2, MySQL·PostgreSQL용 AWS JDBC Wrapper, Amazon Redshift, Amazon Athena, Oracle, SQL Server, SQLite, ClickHouse, Snowflake)와 직접 만든 드라이버를 씁니다. **Drivers…** 대화상자(도구 창, 또는 오류의 **Configure Drivers…**)에서 드라이버를 추가, 복제, 삭제, 초기화합니다. jar 파일이나 Maven 좌표, 버전(`LATEST`는 다운로드 때 고정, **Check for updates**), URL 템플릿, URL 접두사, 기본 속성, 방언, 추가 Maven 저장소(Maven Central이 항상 먼저)를 정할 수 있고, 드라이버 클래스는 jar에서 자동으로 찾습니다.
+- **드라이버는 데이터입니다.** 프리셋 14개(MySQL, MariaDB, PostgreSQL, H2, MySQL·PostgreSQL용 AWS JDBC Wrapper, AWS JDBC Driver for MySQL(`jdbc:mysql:aws:`), Amazon Redshift, Amazon Athena, Oracle, SQL Server, SQLite, ClickHouse, Snowflake)와 직접 만든 드라이버를 씁니다. **Drivers…** 대화상자(도구 창, 또는 오류의 **Configure Drivers…**)에서 드라이버를 추가, 복제, 삭제, 초기화합니다. jar 파일이나 Maven 좌표, 버전(`LATEST`는 다운로드 때 고정, **Check for updates**), URL 템플릿, URL 접두사, 기본 속성, 방언, 추가 Maven 저장소(Maven Central이 항상 먼저)를 정할 수 있고, 드라이버 클래스는 jar에서 자동으로 찾습니다.
 - **jar를 찾는 순서**: 직접 고른 jar, 드라이버 파일, 프로젝트 라이브러리, 로컬 Gradle/Maven 캐시, 내려받은 jar(IDE 시스템 디렉터리). 기존 MySQL, MariaDB, PostgreSQL, H2 설정은 내려받기 없이 그대로 동작합니다.
 - **내려받기는 요청할 때만** 합니다: **Download**, **Test Connection**, 알림의 **Download driver**. 전이 의존성을 함께 풀고 SHA-1을 확인합니다.
 - 데이터 소스 대화상자에는 드라이버 콤보(URL을 붙여넣으면 드라이버가 선택됨), 호스트/포트/데이터베이스 입력 또는 URL 직접 입력, 인증(사용자/비밀번호, 없음, **AWS IAM**: AWS 프로필과 리전, 드라이버 자체 IAM 지원에 위임), 드라이버 속성 표가 있습니다.

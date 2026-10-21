@@ -144,6 +144,17 @@ class DbGenericDialectTest : BasePlatformTestCase() {
     assertEquals("jdbc:redshift://c:5439/dev", connectionUrl(def, ds))
   }
 
+  fun testRejectedUrlNamesTheRightDriver() {
+    val registry = DbDriverRegistry.getInstance()
+    assertEquals("aws-mysql-jdbc", registry.forUrl("jdbc:mysql:aws://db-1.rds.amazonaws.com:3306/app")?.id)
+    val wrapper = registry.find("aws-wrapper-mysql")!!
+    val other = rejectedUrlMessage(wrapper, "jdbc:mysql:aws://db-1.rds.amazonaws.com:3306/app", "x.jar")
+    assertTrue(other, other.contains("AWS JDBC Driver for MySQL"))
+    assertTrue(other, other.contains("jdbc:aws-wrapper:mysql://"))
+    val expected = rejectedUrlMessage(wrapper, "jdbc:nothing://h", "x.jar")
+    assertTrue(expected, expected.contains("jdbc:aws-wrapper:mysql://{host}:{port}/{database}"))
+  }
+
   fun testUnknownDriverErrorMentionsDriver() {
     val ds = DbDataSource().apply { driverId = "nope"; url = "jdbc:nope://x"; dbms = Dbms.GENERIC }
     val e = runCatching { DbConnectionService.getInstance(project).open(ds, "") }.exceptionOrNull()

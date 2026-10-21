@@ -9,7 +9,7 @@
     {
       "id": "dev.phantom.db",
       "name": "Phantom Database Console",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "source": "db",
       "description": "Connect to MySQL, MariaDB, PostgreSQL, H2, AWS JDBC Wrapper, Redshift, Athena, Oracle, SQL Server, SQLite, ClickHouse, Snowflake or any JDBC driver you add, and run SQL from the editor: highlighting for .sql files, Ctrl+Enter to run the statement at the caret, results in a sortable grid, and a lazily loaded schema tree. Drivers are data you can edit: each is found in the project's own dependencies, the local Gradle/Maven cache or jars you choose, and is downloaded from Maven only when you ask (Download, Test Connection). Nothing runs at startup. A data source in manual-commit mode keeps changes in an open transaction: review them in the Database Changes tool window and commit or roll them back; closing the project asks first. A result from one table with its primary key can be edited in the grid, and Compare With on a schema diffs two schemas and writes the SQL to make them match. SQL in Spring Data `@Query(nativeQuery = true)`, `@NativeQuery` and JdbcTemplate / JdbcClient strings is highlighted and completed like a console. JPA entities are checked against the data source's schema (tables and columns that do not exist, nullable columns mapped to non-null attributes), and @Table / @Column names complete from it.",
       "vendor": "Phantom",
@@ -20,7 +20,7 @@
         "com.intellij.modules.lang",
         "intellij.grid.core.plugin"
       ],
-      "download": "db-0.11.0/db-0.11.0.zip",
+      "download": "db-0.11.1/db-0.11.1.zip",
       "detect": [
         "com.mysql:mysql-connector-j",
         "mysql:mysql-connector-java",
@@ -28,6 +28,7 @@
         "org.postgresql:postgresql",
         "com.h2database:h2",
         "software.amazon.jdbc:aws-advanced-jdbc-wrapper",
+        "software.aws.rds:aws-mysql-jdbc",
         "com.amazon.redshift:redshift-jdbc42",
         "com.amazon.athena:athena-jdbc",
         "com.oracle.database.jdbc:ojdbc11",

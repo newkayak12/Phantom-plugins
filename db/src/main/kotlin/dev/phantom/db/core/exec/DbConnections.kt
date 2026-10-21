@@ -11,6 +11,7 @@ import com.intellij.openapi.project.Project
 import dev.phantom.db.core.*
 import dev.phantom.db.core.drivers.DbDriverActions
 import dev.phantom.db.core.drivers.DbDriverDefinition
+import dev.phantom.db.core.drivers.DbDriverRegistry
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -178,7 +179,7 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
     val props = connectionProperties(definition, dataSource, secret)
     // drivers that find others or load SDK parts through the context loader (AWS JDBC Wrapper, AWS SDK) must see their own jars
     val connection = withContextClassLoader(driver.javaClass.classLoader) { driver.connect(connectionUrl(definition, dataSource).trim(), props) }
-                     ?: throw DbException(PhantomDbBundle.message("db.driver.url.rejected", dataSource.url, located.description))
+                     ?: throw DbException(rejectedUrlMessage(definition, dataSource.url, located.description))
     if (dataSource.readOnly) runCatching { connection.isReadOnly = true }
     else if (dataSource.manualCommit) connection.autoCommit = false
     return connection
@@ -278,6 +279,15 @@ internal fun connectionUrl(definition: DbDriverDefinition, dataSource: DbDataSou
   val from = definition.iamUrlFrom
   val to = definition.iamUrlTo
   return if (dataSource.authKind == DbAuthKind.AWS_IAM && !from.isNullOrEmpty() && to != null && url.startsWith(from)) to + url.removePrefix(from) else url
+}
+
+/** A driver turned [url] down: name the driver the URL is written for, or else the form this driver expects. */
+internal fun rejectedUrlMessage(definition: DbDriverDefinition, url: String, driverDescription: String): String {
+  val rejected = PhantomDbBundle.message("db.driver.url.rejected", url, driverDescription)
+  val other = DbDriverRegistry.getInstance().forUrl(url)?.takeIf { it.id != definition.id }
+  val hint = if (other != null) PhantomDbBundle.message("db.driver.url.other", other.name, definition.urlTemplate)
+             else PhantomDbBundle.message("db.driver.url.expected", definition.urlTemplate)
+  return "$rejected. $hint"
 }
 
 /** Runs SQL text on a data source's console connection. */

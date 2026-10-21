@@ -88,6 +88,26 @@
     <option name="dialect" value="MYSQL" />
   </driver>
   <driver>
+    <option name="id" value="aws-mysql-jdbc" />
+    <option name="icon" value="mysql" />
+    <option name="name" value="AWS JDBC Driver for MySQL" />
+    <option name="driverClass" value="software.aws.rds.jdbc.mysql.Driver" />
+    <option name="urlTemplate" value="jdbc:mysql:aws://{host}:{port}/{database}" />
+    <option name="defaultPort" value="3306" />
+    <urlPrefixes>
+      <option value="jdbc:mysql:aws:" />
+    </urlPrefixes>
+    <artifacts>
+      <option value="software.aws.rds:aws-mysql-jdbc" />
+    </artifacts>
+    <option name="iamProperties">
+      <map>
+        <entry key="useAwsIam" value="true" />
+      </map>
+    </option>
+    <option name="dialect" value="MYSQL" />
+  </driver>
+  <driver>
     <option name="id" value="aws-wrapper-postgresql" />
     <option name="icon" value="postgresql" />
     <option name="name" value="AWS JDBC Wrapper (PostgreSQL)" />

@@ -40,7 +40,7 @@ class DbDriverRegistryTest : BasePlatformTestCase() {
 
   fun testBuiltInsLoad() {
     val ids = DbDriverRegistry.builtIns.map { it.id }
-    assertContainsElements(ids, "mysql", "mariadb", "postgresql", "h2", "aws-wrapper-mysql", "aws-wrapper-postgresql",
+    assertContainsElements(ids, "mysql", "mariadb", "postgresql", "h2", "aws-wrapper-mysql", "aws-mysql-jdbc", "aws-wrapper-postgresql",
                            "redshift", "athena", "oracle", "sqlserver", "sqlite", "clickhouse", "snowflake")
     assertTrue(DbDriverRegistry.builtIns.all { it.builtIn && it.driverClass.isNotBlank() })
     val redshift = DbDriverRegistry.builtIns.single { it.id == "redshift" }
@@ -259,7 +259,9 @@ class DbDriverRegistryTest : BasePlatformTestCase() {
   fun testMarketplaceDetectsEveryDriverRoot() {
     val marketplace = java.io.File("../.phantom/marketplace.json").readText()
     val db = marketplace.substring(marketplace.indexOf("\"id\": \"dev.phantom.db\""), marketplace.indexOf("\"id\": \"dev.phantom.spring\""))
-    assertTrue(db.contains("\"version\": \"0.11.0\""))
+    val version = Regex("""^version = "(.+)"""", RegexOption.MULTILINE).find(java.io.File("build.gradle.kts").readText())!!.groupValues[1]
+    assertTrue(db.contains("\"version\": \"$version\""))
+    assertTrue(db.contains("\"download\": \"db-$version/db-$version.zip\""))
     for (d in DbDriverRegistry.builtIns) {
       for (root in if (d.artifactsAreAlternatives) d.artifacts else d.artifacts.take(1)) assertTrue(root, db.contains("\"$root\""))
     }
