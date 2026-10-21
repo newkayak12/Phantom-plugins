@@ -107,6 +107,12 @@ class SqlCompletionContributor : CompletionContributor() {
         val position = parameters.position
         if (position.node.elementType in SqlTokens.COMMENTS || position.node.elementType == SqlTokens.STRING) return
         val result = resultSet.caseInsensitive()
+        // a WHERE / ORDER BY fragment over a grid: the columns it filters, then keywords
+        dev.phantom.db.core.ui.DbFilterContext.of(parameters.originalFile)?.let { filter ->
+          filter.columns().forEach { result.addElement(column(it, null)) }
+          keywords(result)
+          return
+        }
         val project = position.project
         val dataSource = SqlSchema.dataSourceFor(parameters.originalFile, strict = false)
         val schema = dataSource?.let { SqlSchema.getInstance(project).snapshotFor(parameters.originalFile, it) }

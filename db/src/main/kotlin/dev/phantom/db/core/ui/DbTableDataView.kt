@@ -5,6 +5,9 @@ import com.intellij.database.DatabaseDataKeys
 import dev.phantom.db.core.dialect
 import com.intellij.database.datagrid.DataGrid
 import com.intellij.database.datagrid.ModelIndex
+import com.intellij.database.datagrid.RowSortOrder
+import com.intellij.openapi.application.ApplicationManager
+import dev.phantom.db.core.SqlSchema
 import com.intellij.database.run.ui.DataAccessType
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
@@ -18,7 +21,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.Disposer
-import com.intellij.ui.TextFieldWithStoredHistory
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.JBUI
@@ -34,21 +36,24 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.annotations.TestOnly
 import java.awt.BorderLayout
 import java.awt.FlowLayout
-import java.awt.event.KeyAdapter
-import java.awt.event.KeyEvent
 import javax.swing.JPanel
 
 /**
- * A table's data in DB Results: WHERE and ORDER BY fields over the grid (Enter applies, earlier filters are in the
- * drop-down), one page of rows at a time, and the row count on demand. The grid is the usual result grid, so cells
- * edit in place; its popup and Ctrl+B follow foreign keys to the referenced row and back.
+ * A table's data in DB Results: WHERE and ORDER BY fields over the grid (SQL completion of the table's columns, Enter
+ * applies, earlier filters are in the drop-down), one page of rows at a time, and the row count on demand. A click on a
+ * column header sorts on the server (ORDER BY that column, then descending, then unsorted). The grid is the usual
+ * result grid, so cells edit in place; its popup and Ctrl+B follow foreign keys to the referenced row and back.
  */
 class DbTableDataView(private val project: Project, dataSource: DbDataSource, val table: DbTableRef) : JPanel(BorderLayout()), Disposable {
   internal val dataSourceId = dataSource.id
   private val fallback = dataSource
   private val key = "${dataSource.id}|${table.catalog}|${table.schema}|${table.name}"
-  private val where = TextFieldWithStoredHistory("phantom.db.where:$key")
-  private val orderBy = TextFieldWithStoredHistory("phantom.db.order:$key")
+  private var shownColumns: List<DbColumnInfo> = emptyList()
+
+  @get:TestOnly
+  val filter: DbFilterBar = DbFilterBar(project, key, DbFilterContext {
+    SqlSchema.getInstance(project).columnsNoWait(this.dataSource, table) ?: shownColumns
+  }) { load(0) }
   private val pageSizes = ComboBox(arrayOf(100, 500, 1000, 5000)).apply {
     selectedItem = PropertiesComponent.getInstance().getInt(PAGE_SIZE_KEY, 500)
     addActionListener {
@@ -58,9 +63,12 @@ class DbTableDataView(private val project: Project, dataSource: DbDataSource, va
   }
   private val range = JBLabel()
   private val total = JBLabel()
+  private var grid: DataGrid? = null
   val result: DbResultPanel = DbResultPanel(project).also {
     it.dataSource = dataSource
     it.table = table
+    it.onGrid = { g -> grid = g }
+    it.exportTable = { format -> DbTableExport.exportInBackground(project, this.dataSource, table, filter.where, filter.orderBy, format) }
     Disposer.register(this, it)
   }
   private var job: Job? = null
@@ -77,34 +85,16 @@ class DbTableDataView(private val project: Project, dataSource: DbDataSource, va
   var shownCount: Long? = null
     private set
 
+  /** The last statement run for a page. */
+  @get:TestOnly
+  var shownSql: String = ""
+    private set
+
   private val pageSize: Int get() = pageSizes.selectedItem as? Int ?: 500
 
   private val dataSource: DbDataSource get() = DbDataSourceService.getInstance(project).find(dataSourceId) ?: fallback
 
   init {
-    val enter = object : KeyAdapter() {
-      override fun keyPressed(e: KeyEvent) {
-        if (e.keyCode != KeyEvent.VK_ENTER) return
-        (e.source as? javax.swing.JComponent)?.let { (UIUtil.getParentOfType(TextFieldWithStoredHistory::class.java, it))?.addCurrentTextToHistory() }
-        load(0)
-      }
-    }
-    where.addKeyboardListener(enter)
-    orderBy.addKeyboardListener(enter)
-    (where.textEditor as? com.intellij.ui.components.JBTextField)?.emptyText?.text = PhantomDbBundle.message("db.data.where.hint")
-    (orderBy.textEditor as? com.intellij.ui.components.JBTextField)?.emptyText?.text = PhantomDbBundle.message("db.data.order.hint")
-    where.toolTipText = PhantomDbBundle.message("db.data.where.hint")
-    orderBy.toolTipText = PhantomDbBundle.message("db.data.order.hint")
-
-    val filters = JPanel(BorderLayout(JBUI.scale(6), 0)).apply {
-      border = JBUI.Borders.empty(2, 6)
-      add(JBLabel("WHERE"), BorderLayout.WEST)
-      add(where, BorderLayout.CENTER)
-      add(JPanel(BorderLayout(JBUI.scale(6), 0)).apply {
-        add(JBLabel("ORDER BY"), BorderLayout.WEST)
-        add(orderBy.also { it.preferredSize = JBUI.size(220, it.preferredSize.height) }, BorderLayout.CENTER)
-      }, BorderLayout.EAST)
-    }
     val paging = ActionManager.getInstance().createActionToolbar("PhantomDbTableData", DefaultActionGroup(
       nav(AllIcons.Actions.Play_first, "db.data.first", { offset > 0 }) { load(0) },
       nav(AllIcons.Actions.Play_back, "db.data.previous", { offset > 0 }) { load(maxOf(0, offset - pageSize)) },
@@ -121,17 +111,34 @@ class DbTableDataView(private val project: Project, dataSource: DbDataSource, va
       add(pageSizes)
     }
     add(JPanel(BorderLayout()).apply {
-      add(filters, BorderLayout.NORTH)
+      add(filter, BorderLayout.NORTH)
       add(pager, BorderLayout.SOUTH)
     }, BorderLayout.NORTH)
     add(result, BorderLayout.CENTER)
+    ApplicationManager.getApplication().messageBus.connect(this).subscribe(DataGrid.ACTIVE_GRID_CHANGED_TOPIC, object : DataGrid.ActiveGridListener {
+      override fun onColumnSortingToggled(grid: DataGrid) {
+        if (grid === this@DbTableDataView.grid) sortByHeader(grid)
+      }
+    })
   }
 
   /** Sets the filter and order and loads the first page. */
-  fun apply(whereText: String, orderText: String = orderBy.text) {
-    where.text = whereText
-    orderBy.text = orderText
-    if (whereText.isNotBlank()) where.addCurrentTextToHistory()
+  fun apply(whereText: String, orderText: String = filter.orderBy) {
+    filter.where = whereText
+    filter.orderBy = orderText
+    filter.apply()
+  }
+
+  /**
+   * A header click sorted the page in the grid; sort the table instead: ORDER BY the clicked column, then the same
+   * descending, then no order, from the first page.
+   */
+  private fun sortByHeader(grid: DataGrid) {
+    val model = grid.getDataModel(DataAccessType.DATA_WITH_MUTATIONS)
+    val clicked = (0 until model.columnCount).map { ModelIndex.forColumn(grid, it) }
+                    .firstOrNull { grid.getSortOrder(it) != RowSortOrder.Type.UNSORTED } ?: return
+    val name = model.getColumn(clicked)?.name ?: return
+    filter.orderBy = DbTableQuery.nextOrder(dataSource.dialect(), name, filter.orderBy)
     load(0)
   }
 
@@ -139,8 +146,11 @@ class DbTableDataView(private val project: Project, dataSource: DbDataSource, va
     job?.cancel()
     val ds = dataSource
     val size = pageSize
-    val sql = DbTableQuery.select(ds.dialect(), table, where.text, orderBy.text, size + 1, newOffset)
     result.dataSource = ds
+    DbTableQuery.problem(filter.where, filter.orderBy)?.let { return result.showError(it) }
+    val sql = DbTableQuery.select(ds.dialect(), table, filter.where, filter.orderBy, size + 1, newOffset, DbPaging.of(ds))
+    (SqlSafety.check(ds, listOf(sql)) as? SqlSafety.Verdict.Blocked)?.let { return result.showError(it.message) }
+    shownSql = sql
     result.showRunning(SqlSafety.preview(sql))
     shownCount = null
     total.text = ""
@@ -154,6 +164,7 @@ class DbTableDataView(private val project: Project, dataSource: DbDataSource, va
           offset = newOffset
           hasNext = rows != null && rows.rows.size > size
           range.text = if (page == null || page.rows.isEmpty()) "" else PhantomDbBundle.message("db.data.range", newOffset + 1, newOffset + page.rows.size)
+          page?.let { p -> shownColumns = p.columns.map { DbColumnInfo(it.name, it.typeName.orEmpty(), true, false) } }
           result.showOutcomes(if (page != null) listOf(page) else outcomes)
         }
       }
@@ -173,7 +184,8 @@ class DbTableDataView(private val project: Project, dataSource: DbDataSource, va
 
   private fun count(onCounted: (Long) -> Unit = {}) {
     val ds = dataSource
-    val sql = DbTableQuery.count(ds.dialect(), table, where.text)
+    if (DbTableQuery.problem(filter.where) != null) return
+    val sql = DbTableQuery.count(ds.dialect(), table, filter.where)
     total.text = PhantomDbBundle.message("db.data.counting")
     DbConnectionService.getInstance(project).launch {
       val outcome = runCatching { DbExecutor.execute(project, ds, listOf(sql)).singleOrNull() }.getOrNull()

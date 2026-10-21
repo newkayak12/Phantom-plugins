@@ -157,7 +157,7 @@ class DbModifyTableDialog(
 
     private fun run(project: Project, dataSource: DbDataSource, statements: List<String>, afterRun: () -> Unit) {
       val console = DbConsoles.consoleFile(dataSource) ?: return
-      val panel = DbResultsToolWindow.tabFor(project, console, dataSource)
+      val panel = DbResultsToolWindow.tabFor(project, console, dataSource, statements.first())
       panel.showRunning(SqlSafety.preview(statements.first()) + if (statements.size > 1) " (+${statements.size - 1})" else "")
       panel.job = DbConnectionService.getInstance(project).launch {
         val outcomes = runCatching { DbExecutor.execute(project, dataSource, statements) }

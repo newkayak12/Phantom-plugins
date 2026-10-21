@@ -64,11 +64,22 @@ class DbDataToolsTest : BasePlatformTestCase() {
 
   fun testPagingAndFilterSql() {
     val t = DbTableRef("x", "shop", null, "order", "TABLE")
-    assertEquals("SELECT * FROM shop.`order` WHERE status = 'OPEN' ORDER BY id DESC LIMIT 501 OFFSET 1000",
+    assertEquals("SELECT * FROM shop.`order` WHERE (\nstatus = 'OPEN'\n) ORDER BY id DESC\n LIMIT 501 OFFSET 1000",
                  DbTableQuery.select(Dbms.MYSQL, t, "where status = 'OPEN';", "ORDER  BY id DESC", 501, 1000))
     val pg = DbTableRef("x", null, "public", "users", "TABLE")
     assertEquals("SELECT * FROM public.users LIMIT 101", DbTableQuery.select(Dbms.POSTGRESQL, pg, " ", "", 101, 0))
-    assertEquals("SELECT COUNT(*) FROM public.users WHERE age > 3", DbTableQuery.count(Dbms.POSTGRESQL, pg, "age > 3"))
+    assertEquals("SELECT COUNT(*) FROM public.users WHERE (\nage > 3\n)", DbTableQuery.count(Dbms.POSTGRESQL, pg, "age > 3"))
+    // SQL Server needs an ORDER BY to page; Oracle pages without one
+    assertEquals("SELECT * FROM public.users ORDER BY (SELECT NULL) OFFSET 20 ROWS FETCH NEXT 10 ROWS ONLY",
+                 DbTableQuery.select(Dbms.GENERIC, pg, "", "", 10, 20, DbPaging.FETCH_ORDERED))
+    assertEquals("SELECT * FROM public.users ORDER BY id\n OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY",
+                 DbTableQuery.select(Dbms.GENERIC, pg, "", "id", 10, 0, DbPaging.FETCH))
+    assertEquals(DbPaging.FETCH_ORDERED, DbPaging.of(DbDataSource().apply { dbms = Dbms.GENERIC; url = "jdbc:sqlserver://h;databaseName=x" }))
+    assertEquals(DbPaging.FETCH, DbPaging.of(DbDataSource().apply { dbms = Dbms.GENERIC; url = "jdbc:oracle:thin:@h:1521/x" }))
+    assertEquals(DbPaging.LIMIT, DbPaging.of(DbDataSource().apply { dbms = Dbms.H2; url = "jdbc:h2:mem:x" }))
+    // a ';' would start a second statement; a trailing one, or one in a string or comment, does not
+    assertNotNull(DbTableQuery.problem("1=1; DELETE FROM t"))
+    assertNull(DbTableQuery.problem("a = ';' -- x; y", "id;"))
     // a filter word that starts like the keyword is not cut
     assertEquals("whereabouts = 1", DbTableQuery.clause("whereabouts = 1", "WHERE"))
     assertEquals(0, DbTableQuery.lastPageOffset(0, 500))

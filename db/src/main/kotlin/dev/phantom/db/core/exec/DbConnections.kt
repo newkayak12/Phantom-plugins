@@ -466,15 +466,16 @@ object DbExecutor {
   /**
    * Runs [statements] in order and stops at the first failure. Cancelling the coroutine cancels the running statement.
    * [schema] as in [DbConnectionService.withConnection]; a schema that cannot be chosen throws its [SQLException] or a [DbException].
+   * [history]: false keeps the statements out of the query history (the pages of an export).
    */
   suspend fun execute(project: Project, dataSource: DbDataSource, statements: List<String>, schema: DbSchemaChoice? = null,
-                      onOutcome: suspend (DbOutcome) -> Unit = {}): List<DbOutcome> {
+                      history: Boolean = true, onOutcome: suspend (DbOutcome) -> Unit = {}): List<DbOutcome> {
     val outcomes = ArrayList<DbOutcome>()
     DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.CONSOLE, schema) { connection ->
       for (sql in statements) {
         val outcome = runOne(connection, dataSource, sql)
         outcomes.addAll(outcome)
-        outcome.forEach { DbQueryHistory.getInstance(project).record(dataSource, it) }
+        if (history) outcome.forEach { DbQueryHistory.getInstance(project).record(dataSource, it) }
         outcome.forEach { onOutcome(it) }
         if (SqlSafety.firstKeyword(sql) in LEAVES_SCHEMA || (!connection.autoCommit && outcome.any { it is DbOutcome.Failed })) {
           DbConnectionService.getInstance(project).forgetSchema(dataSource.id)
