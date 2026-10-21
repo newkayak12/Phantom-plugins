@@ -16,18 +16,24 @@ import dev.phantom.db.core.ui.DbDataSourceDialog
 
 /** Balloon actions for a connection that has no driver: nothing is downloaded until the user clicks. */
 object DbDriverActions {
+  /** The live balloon per (data source, driver): a console retry must not stack a second one. */
+  private val live = java.util.concurrent.ConcurrentHashMap<Pair<String, String>, com.intellij.notification.Notification>()
+
   /** Task 7 retargets this to the Drivers dialog, selecting `dataSource.driverId`. */
   fun configureDrivers(project: Project, dataSource: DbDataSource) {
     invokeLater(ModalityState.nonModal()) { DbDataSourceDialog.edit(project, dataSource) }
   }
 
   fun notifyMissing(project: Project, dataSource: DbDataSource, definition: DbDriverDefinition?, message: String) {
+    val key = dataSource.id to (dataSource.driverId ?: "")
+    if (live[key]?.isExpired == false) return
     val notification = NotificationGroupManager.getInstance().getNotificationGroup("Phantom Database")
       .createNotification(PhantomDbBundle.message("db.driver.notification.title"), message, NotificationType.WARNING)
     if (definition != null && definition.artifacts.isNotEmpty()) {
       notification.addAction(NotificationAction.createSimpleExpiring(PhantomDbBundle.message("db.driver.action.download")) { download(project, definition) })
     }
     notification.addAction(NotificationAction.createSimpleExpiring(PhantomDbBundle.message("db.driver.action.configure")) { configureDrivers(project, dataSource) })
+    live[key] = notification
     notification.notify(project)
   }
 
@@ -45,6 +51,7 @@ object DbDriverActions {
           return
         }
         DbDriverRegistry.getInstance().save(downloaded)
+        live.entries.removeIf { (key, n) -> (key.second == definition.id).also { if (it) n.expire() } }
         notify(project, PhantomDbBundle.message("db.driver.download.done", definition.name), NotificationType.INFORMATION)
       }
     })

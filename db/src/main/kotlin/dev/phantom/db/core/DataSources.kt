@@ -112,10 +112,14 @@ class DbDataSource {
 
 enum class DbAuthKind { PASSWORD, NONE, AWS_IAM }
 
-/** The bound driver, else the one matching the URL, else the built-in for the saved [DbDataSource.dbms]. */
+/**
+ * The bound driver, else the one matching the URL. Only a data source bound to no driver at all falls back to the
+ * built-in for the saved [DbDataSource.dbms]; a driver id this IDE does not know is an error, not a guess.
+ */
 fun DbDataSource.driver(): DbDriverDefinition? {
   val registry = DbDriverRegistry.getInstance()
-  return registry.find(driverId) ?: registry.forUrl(url) ?: registry.builtInFor(dbms)
+  registry.find(driverId)?.let { return it }
+  return registry.forUrl(url) ?: if (driverId.isNullOrEmpty()) registry.builtInFor(dbms) else null
 }
 
 /** SQL dialect of this data source: that of its driver; [DbDataSource.dbms] is only the persisted copy. */

@@ -159,4 +159,27 @@ class DbGenericDialectTest : BasePlatformTestCase() {
     assertTrue(e is DbException)
     assertTrue(e!!.message, e.message!!.contains("nope"))
   }
+
+  fun testUnknownDriverIdDoesNotFallBackToBuiltInByDbms() {
+    val ds = DbDataSource().apply { driverId = "my-wrapper"; url = "jdbc:nope://x"; dbms = Dbms.MYSQL }
+    assertNull(ds.driver())
+    assertEquals(Dbms.MYSQL, ds.dialect())
+    val e = runCatching { DbConnectionService.getInstance(project).open(ds, "") }.exceptionOrNull()
+    assertTrue(e is DbException)
+    assertTrue(e!!.message, e.message!!.contains("my-wrapper"))
+  }
+
+  fun testMissingDriverFilesThrowWithoutDownloading() {
+    val registry = DbDriverRegistry.getInstance()
+    registry.save(DbDriverDefinition().apply {
+      id = "my-h2"; name = "Ghost"; driverClass = "x.Ghost"; urlPrefixes = mutableListOf("jdbc:ghost:")
+      artifacts = mutableListOf("com.nonexistent.phantomtest:ghost-driver"); dialect = Dbms.GENERIC
+    })
+    val ds = DbDataSource().apply { driverId = "my-h2"; url = "jdbc:ghost://x" }
+    val e = runCatching { DbConnectionService.getInstance(project).open(ds, "") }.exceptionOrNull()
+    assertTrue(e is DbException)
+    assertEquals(PhantomDbBundle.message("db.driver.missing.download", "Ghost"), e!!.message)
+    assertEmpty(registry.find("my-h2")!!.resolvedJars)
+    assertFalse(java.nio.file.Files.exists(dev.phantom.db.core.drivers.DbDriverDownloader.defaultDir().resolve("com.nonexistent.phantomtest")))
+  }
 }
