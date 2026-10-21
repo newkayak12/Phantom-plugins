@@ -8,6 +8,7 @@ import com.intellij.ide.actions.searcheverywhere.SearchEverywhereManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.psi.codeStyle.NameUtil
@@ -63,16 +64,19 @@ object DbObjectSearch {
     val result = ArrayList<DbObjectItem>()
     DbMetadataCache.getInstanceIfCreated(project)?.let { cache ->
       for (ref in cache.cachedTables()) {
+        ProgressManager.checkCanceled()
         val ds = sources[ref.dataSourceId] ?: continue
         result += DbObjectItem(ds, if (ref.isView) DbObjectItem.Kind.VIEW else DbObjectItem.Kind.TABLE, ref.name, schemaOf(ref), table = ref)
       }
       for ((ref, columns) in cache.cachedColumns()) {
+        ProgressManager.checkCanceled()
         val ds = sources[ref.dataSourceId] ?: continue
         columns.mapTo(result) { DbObjectItem(ds, DbObjectItem.Kind.COLUMN, it.name, schemaOf(ref), table = ref) }
       }
     }
     DbObjectCache.getInstanceIfCreated(project)?.let { objects ->
       for (routine in objects.cachedRoutines()) {
+        ProgressManager.checkCanceled()
         val ds = sources[routine.schema.dataSourceId] ?: continue
         result += DbObjectItem(ds, DbObjectItem.Kind.ROUTINE, routine.name, routine.schema.name, routine = routine)
       }
@@ -84,7 +88,7 @@ object DbObjectSearch {
   fun search(project: Project, pattern: String): List<DbObjectItem> {
     if (pattern.isBlank()) return emptyList()
     val matcher = NameUtil.buildMatcher("*" + pattern.trim(), NameUtil.MatchingCaseSensitivity.NONE)
-    return items(project).filter { matcher.matches(it.name) }
+    return items(project).filter { ProgressManager.checkCanceled(); matcher.matches(it.name) }
       .sortedWith(compareByDescending<DbObjectItem> { matcher.matchingDegree(it.name) }.thenBy { it.kind }.thenBy { it.name.lowercase() })
   }
 
@@ -137,6 +141,8 @@ class DbSearchEverywhereContributor(private val project: Project) : SearchEveryw
   class Factory : SearchEverywhereContributorFactory<DbObjectItem> {
     override fun createContributor(initEvent: AnActionEvent): SearchEverywhereContributor<DbObjectItem> =
       DbSearchEverywhereContributor(initEvent.project!!)
+
+    override fun isAvailable(project: Project): Boolean = DbDataSourceService.getInstance(project).dataSources.isNotEmpty()
   }
 
   companion object {

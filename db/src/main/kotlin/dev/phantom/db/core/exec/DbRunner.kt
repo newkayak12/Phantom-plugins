@@ -61,10 +61,15 @@ object DbConsoles {
 
   fun isConsole(file: VirtualFile): Boolean = consoleDataSourceId(file) != null
 
+  /** A console whose own data source is gone: it can be attached to another one. */
+  fun isOrphan(project: Project, file: VirtualFile): Boolean =
+    consoleDataSourceId(file)?.let { DbDataSourceService.getInstance(project).find(it) == null } == true
+
   fun dataSourceFor(project: Project, file: VirtualFile?): DbDataSource? {
     if (file == null) return null
     val service = DbDataSourceService.getInstance(project)
-    consoleDataSourceId(file)?.let { return service.find(it) }
+    consoleDataSourceId(file)?.let { id -> service.find(id)?.let { return it } }
+    // any other file, or a console whose data source was removed and which was attached to another one
     return service.find(PropertiesComponent.getInstance(project).getValue(KEY_PREFIX + file.url))
   }
 
@@ -115,11 +120,16 @@ object DbConsoles {
     return LocalFileSystem.getInstance().refreshAndFindFileByNioFile(dir.resolve(name).also { Files.writeString(it, "") })
   }
 
-  /** Creates a console bound to [dataSource] running in [schema] (null: where the connection opens) and opens it. */
-  fun newConsole(project: Project, dataSource: DbDataSource, schema: DbSchemaChoice?): VirtualFile? {
-    val file = newConsoleFile(dataSource) ?: return null
-    if (schema != null && !schema.isDefault) setSchema(project, file, schema)
-    FileEditorManager.getInstance(project).openTextEditor(OpenFileDescriptor(project, file), true)
+  /**
+   * Makes a new console file (on the calling thread, blocking file access), then on the EDT sets its schema ([schema]
+   * null: where the connection opens; a console that once had this name may have left a choice behind) and opens it.
+   */
+  suspend fun newConsole(project: Project, dataSource: DbDataSource, schema: DbSchemaChoice?): VirtualFile? {
+    val file = withContext(Dispatchers.IO) { newConsoleFile(dataSource) } ?: return null
+    withContext(Dispatchers.EDT) {
+      setSchema(project, file, schema)
+      FileEditorManager.getInstance(project).openTextEditor(OpenFileDescriptor(project, file), true)
+    }
     return file
   }
 

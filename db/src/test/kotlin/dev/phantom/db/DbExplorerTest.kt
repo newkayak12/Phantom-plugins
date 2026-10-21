@@ -2,6 +2,7 @@
 package dev.phantom.db
 
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.CommonProcessors
@@ -92,6 +93,14 @@ class DbExplorerTest : BasePlatformTestCase() {
     return ds
   }
 
+  /** New Console as the action does it: the file is made off the EDT, then bound and opened on it. */
+  private fun newConsole(ds: DbDataSource, schema: DbSchemaChoice?): VirtualFile {
+    var file: VirtualFile? = null
+    val job = DbConnectionService.getInstance(project).launch { file = DbNewConsoleAction.createNow(project, ds, schema) }
+    PlatformTestUtil.waitWithEventsDispatching("no console made", { job.isCompleted }, 20)
+    return file!!
+  }
+
   fun testSchemaFoldersAndObjects() {
     val ds = objectsSchema()
     val panel = DbExplorerPanel(project, testRootDisposable)
@@ -136,6 +145,9 @@ class DbExplorerTest : BasePlatformTestCase() {
     assertEquals(listOf("CHILD"), names(tables.kids()))
     assertTrue("a matching table keeps its columns", child.kids().any { it.userObject is DbNode.Column })
     assertTrue(panel.tree.isExpanded(TreePath(tables.path)))
+    assertTrue("an expanded table that still matches stays expanded", panel.tree.isExpanded(TreePath(child.path)))
+    panel.setFilter("child")
+    assertTrue(panel.tree.isExpanded(TreePath(child.path)))
 
     panel.setFilter("seq")
     assertEquals(listOf("sequences"), names(schema.kids()))
@@ -160,7 +172,8 @@ class DbExplorerTest : BasePlatformTestCase() {
   }
 
   fun testSearchEverywhereUsesTheCacheOnly() {
-    val ds = h2(url = "jdbc:h2:mem:never_${System.nanoTime()};IFEXISTS=TRUE")
+    // a data source that would connect fine: no connection means the search did not try
+    val ds = h2()
     val contributor = DbSearchEverywhereContributor(project)
     fun found(pattern: String): List<DbObjectItem> {
       val collector = CommonProcessors.CollectProcessor<DbObjectItem>()
@@ -196,9 +209,9 @@ class DbExplorerTest : BasePlatformTestCase() {
     val ds = h2("shop")
     val dir = DbConsoles.root().resolve(ds.id)
     try {
-      val first = DbNewConsoleAction.create(project, ds, null)!!
-      val second = DbNewConsoleAction.create(project, ds, DbSchemaChoice("PUBLIC"))!!
-      val third = DbNewConsoleAction.create(project, ds, null)!!
+      val first = newConsole(ds, null)
+      val second = newConsole(ds, DbSchemaChoice("PUBLIC"))
+      val third = newConsole(ds, null)
       assertEquals(listOf("shop.sql", "shop [1].sql", "shop [2].sql"), listOf(first, second, third).map { it.name })
       for (f in listOf(first, second, third)) {
         assertTrue(DbConsoles.isConsole(f))
@@ -221,5 +234,65 @@ class DbExplorerTest : BasePlatformTestCase() {
       FileEditorManager.getInstance(project).openFiles.forEach { FileEditorManager.getInstance(project).closeFile(it) }
       com.intellij.openapi.util.io.FileUtil.delete(dir)
     }
+  }
+
+  fun testFailingForeignKeyLookupKeepsTheColumns() {
+    val ds = objectsSchema()
+    for (failure in listOf<Throwable>(UnsupportedOperationException("no imported keys"), AbstractMethodError("getImportedKeys"),
+                                      java.sql.SQLFeatureNotSupportedException("nope"))) {
+      DbMetadataCache.getInstance(project).invalidate(ds.id)
+      val panel = DbExplorerPanel(project, testRootDisposable)
+      panel.foreignKeys = { _, _ -> throw failure }
+      val schema = schemaOf(panel, ds)
+      panel.expand(schema)
+      val child = panel.expand(panel.folder(schema, DbNode.Folder.Kind.TABLES)!!).first { (it.userObject as? DbNode.Table)?.ref?.name == "CHILD" }
+      val columns = panel.expand(child).mapNotNull { it.userObject as? DbNode.Column }
+      assertEquals(failure.toString(), listOf("ID", "PARENT_ID", "LABEL"), columns.map { it.info.name })
+      assertTrue(columns.none { it.foreignKey })
+    }
+  }
+
+  fun testRecreatedConsoleDoesNotInheritASchema() {
+    val ds = h2("again")
+    val dir = DbConsoles.root().resolve(ds.id)
+    try {
+      val first = newConsole(ds, DbSchemaChoice("PUBLIC"))
+      assertEquals(DbSchemaChoice("PUBLIC"), DbConsoles.schemaFor(project, first))
+      FileEditorManager.getInstance(project).closeFile(first)
+      com.intellij.openapi.application.WriteAction.run<Exception> { first.delete(this) }
+      val again = newConsole(ds, null)
+      assertEquals("again.sql", again.name)
+      assertNull(DbConsoles.schemaFor(project, again))
+    }
+    finally {
+      FileEditorManager.getInstance(project).openFiles.forEach { FileEditorManager.getInstance(project).closeFile(it) }
+      com.intellij.openapi.util.io.FileUtil.delete(dir)
+    }
+  }
+
+  fun testOrphanConsoleCanBeAttachedElsewhere() {
+    val gone = h2("gone")
+    val other = h2("other")
+    val dir = DbConsoles.root().resolve(gone.id)
+    try {
+      val console = newConsole(gone, null)
+      assertFalse(DbConsoles.isOrphan(project, console))
+      DbDataSourceService.getInstance(project).remove(gone.id)
+      assertTrue(DbConsoles.isOrphan(project, console))
+      assertNull(DbConsoles.dataSourceFor(project, console))
+      DbConsoles.attach(project, console, other.id)
+      assertEquals(other.id, DbConsoles.dataSourceFor(project, console)?.id)
+    }
+    finally {
+      FileEditorManager.getInstance(project).openFiles.forEach { FileEditorManager.getInstance(project).closeFile(it) }
+      com.intellij.openapi.util.io.FileUtil.delete(dir)
+    }
+  }
+
+  fun testPostgresMaterializedViewDdl() {
+    val view = DbTableRef("x", null, "public", "totals", "VIEW")
+    val materialized = DbTableRef("x", null, "public", "totals_mv", "MATERIALIZED VIEW")
+    assertEquals("CREATE OR REPLACE VIEW public.totals AS\n SELECT 1", DbDdl.postgresViewDdl(view, " SELECT 1\n"))
+    assertEquals("CREATE MATERIALIZED VIEW public.totals_mv AS\n SELECT 1", DbDdl.postgresViewDdl(materialized, " SELECT 1"))
   }
 }

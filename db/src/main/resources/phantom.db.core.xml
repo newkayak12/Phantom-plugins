@@ -148,7 +148,7 @@
     <action id="PhantomDb.Rollback" class="dev.phantom.db.core.exec.DbRollbackAction" icon="AllIcons.Actions.Rollback">
       <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.Commit"/>
     </action>
-    <action id="PhantomDb.NewConsole" class="dev.phantom.db.core.ui.DbNewConsoleAction" icon="AllIcons.General.Add">
+    <action id="PhantomDb.NewConsole" class="dev.phantom.db.core.ui.DbNewConsoleAction">
       <keyboard-shortcut keymap="$default" first-keystroke="control alt shift Q"/>
       <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta control N"/>
       <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta control N"/>

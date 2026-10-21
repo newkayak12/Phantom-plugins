@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.db.core.ui
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
@@ -18,11 +19,15 @@ import dev.phantom.db.core.DbDataSource
 import dev.phantom.db.core.DbDataSourceService
 import dev.phantom.db.core.PhantomDbBundle
 import dev.phantom.db.core.PhantomDbIcons
+import dev.phantom.db.core.exec.DbConnectionService
 import dev.phantom.db.core.exec.DbConsoles
 import dev.phantom.db.core.exec.DbMetadataCache
 import dev.phantom.db.core.exec.DbRunner
 import dev.phantom.db.core.exec.DbSchemaChoice
 import dev.phantom.db.core.exec.DbSchemaRef
+import com.intellij.openapi.application.EDT
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.awt.Component
 import javax.swing.Icon
 
@@ -31,6 +36,11 @@ import javax.swing.Icon
  * console's or `.sql` file's (in its schema), else the only one, else the one chosen from a list.
  */
 class DbNewConsoleAction : DumbAwareAction() {
+  init {
+    // not the toolbar's "+" of Add Data Source
+    templatePresentation.icon = AllIcons.Actions.AddFile
+  }
+
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
   override fun update(e: AnActionEvent) {
@@ -61,8 +71,15 @@ class DbNewConsoleAction : DumbAwareAction() {
   }
 
   companion object {
-    fun create(project: Project, dataSource: DbDataSource, schema: DbSchemaChoice?): VirtualFile? =
-      DbConsoles.newConsole(project, dataSource, schema).also { DbExplorerPanel.find(project)?.consolesChanged(dataSource.id) }
+    /** Makes and opens the console off the EDT. */
+    fun create(project: Project, dataSource: DbDataSource, schema: DbSchemaChoice?) {
+      DbConnectionService.getInstance(project).launch { createNow(project, dataSource, schema) }
+    }
+
+    suspend fun createNow(project: Project, dataSource: DbDataSource, schema: DbSchemaChoice?): VirtualFile? =
+      DbConsoles.newConsole(project, dataSource, schema).also {
+        withContext(Dispatchers.EDT) { DbExplorerPanel.find(project)?.consolesChanged(dataSource.id) }
+      }
 
     /** The console schema choice for a tree schema: its catalog only when the name is in several catalogs. */
     fun schemaChoice(project: Project, ref: DbSchemaRef): DbSchemaChoice {
@@ -94,8 +111,16 @@ class DbJumpToConsoleAction : DumbAwareAction() {
 
   override fun actionPerformed(e: AnActionEvent) {
     val project = e.project ?: return
-    val consoles = DbDataSourceService.getInstance(project).dataSources.flatMap { ds -> DbConsoles.consoles(ds.id).map { ds to it } }
     val owner = e.getData(PlatformCoreDataKeys.CONTEXT_COMPONENT)
+    val sources = DbDataSourceService.getInstance(project).dataSources
+    DbConnectionService.getInstance(project).launch {
+      // listing folders and finding the files is file access: not on the EDT
+      val consoles = sources.flatMap { ds -> DbConsoles.consoles(ds.id).map { ds to it } }
+      withContext(Dispatchers.EDT) { show(project, consoles, owner) }
+    }
+  }
+
+  private fun show(project: Project, consoles: List<Pair<DbDataSource, VirtualFile>>, owner: Component?) {
     if (consoles.isEmpty()) {
       JBPopupFactory.getInstance().createMessage(PhantomDbBundle.message("db.consoles.none")).showCenteredInCurrentWindow(project)
       return
