@@ -16,7 +16,12 @@
     <lang.commenter language="SQL" implementationClass="dev.phantom.db.core.SqlCommenter"/>
     <lang.braceMatcher language="SQL" implementationClass="dev.phantom.db.core.SqlBraceMatcher"/>
     <completion.contributor language="SQL" implementationClass="dev.phantom.db.core.SqlCompletionContributor"/>
-    <annotator language="SQL" implementationClass="dev.phantom.db.core.SqlUnresolvedAnnotator"/>
+    <localInspection language="SQL" shortName="PhantomSqlUnresolvedTable" key="inspection.PhantomSqlUnresolvedTable" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnresolvedTableInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlUnresolvedColumn" key="inspection.PhantomSqlUnresolvedColumn" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnresolvedColumnInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlSelectStarInjected" key="inspection.PhantomSqlSelectStarInjected" groupKey="inspection.group.sql"
+                     enabledByDefault="false" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlSelectStarInjectedInspection"/>
     <localInspection language="SQL" shortName="PhantomSqlWithoutWhere" key="inspection.PhantomSqlWithoutWhere" groupKey="inspection.group.sql"
                      enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlWithoutWhereInspection"/>
     <localInspection language="SQL" shortName="PhantomSqlJoinWithoutOn" key="inspection.PhantomSqlJoinWithoutOn" groupKey="inspection.group.sql"

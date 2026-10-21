@@ -161,6 +161,7 @@ class SqlIntelligenceTest : BasePlatformTestCase() {
   }
 
   fun testUnresolvedWarningsWithoutFalsePositives() {
+    myFixture.enableInspections(SqlUnresolvedTableInspection::class.java, SqlUnresolvedColumnInspection::class.java)
     preload("reservation", "guest", "audit.log_entry")
     sql("""
       SELECT r.id, r.nope, g.name, x.id FROM reservation r JOIN guest g ON g.id = r.guest_id WHERE missing_col = 1;
@@ -182,6 +183,7 @@ class SqlIntelligenceTest : BasePlatformTestCase() {
   }
 
   fun testNoWarningsWithoutADataSource() {
+    myFixture.enableInspections(SqlUnresolvedTableInspection::class.java, SqlUnresolvedColumnInspection::class.java)
     myFixture.configureByText("plain.sql", "SELECT nope FROM no_such_table")
     assertEmpty(myFixture.doHighlighting(HighlightSeverity.WARNING).filter { it.severity == HighlightSeverity.WARNING })
   }

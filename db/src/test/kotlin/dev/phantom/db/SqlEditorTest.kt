@@ -4,6 +4,7 @@ package dev.phantom.db
 import com.intellij.codeInsight.lookup.LookupElementPresentation
 import com.intellij.codeInsight.lookup.LookupManager
 import com.intellij.codeInsight.template.impl.TemplateManagerImpl
+import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.testFramework.PlatformTestUtil
@@ -192,4 +193,38 @@ class SqlEditorTest : BasePlatformTestCase() {
     assertEquals("ALTER TABLE PUBLIC.CUSTOMER ALTER COLUMN NAME RENAME TO full_name", SqlRename.alterStatement(targetAt(file, "name"), "full_name"))
   }
 
+  private fun warnings() = myFixture.doHighlighting(HighlightSeverity.WARNING).filter { it.severity == HighlightSeverity.WARNING }.map { it.description }
+
+  fun testUnresolvedNamesOnlyWithLoadedMetadataAndTheirFixes() {
+    myFixture.enableInspections(SqlUnresolvedTableInspection::class.java, SqlUnresolvedColumnInspection::class.java)
+    // a data source whose schema cannot be loaded: no warnings
+    val down = DbDataSource().apply { name = "down"; dbms = Dbms.H2; url = "jdbc:h2:tcp://localhost:1/nothing"; user = "sa" }
+    DbDataSourceService.getInstance(project).save(down, CharArray(0))
+    try {
+      val file = myFixture.configureByText("down.sql", "SELECT g.name, nope FROM no_such_table")
+      DbConsoles.attach(project, file.virtualFile, down.id)
+      assertEmpty(warnings())
+    }
+    finally {
+      DbDataSourceService.getInstance(project).remove(down.id)
+    }
+
+    preload()
+    sql("SELECT <caret>g.name FROM customer")
+    assertSameElements(warnings(), "Unknown table or alias 'g'")
+    myFixture.launchAction(myFixture.findSingleIntention("Add alias 'g' to customer"))
+    assertEquals("SELECT g.name FROM customer g", myFixture.editor.document.text)
+
+    sql("SELECT o.<caret>name FROM orders o JOIN customer c ON c.id = o.customer_id")
+    assertSameElements(warnings(), "Unknown column 'name'")
+    myFixture.launchAction(myFixture.findSingleIntention("Qualify with 'c'"))
+    assertEquals("SELECT c.name FROM orders o JOIN customer c ON c.id = o.customer_id", myFixture.editor.document.text)
+  }
+
+  fun testUnresolvedNamesInAnUnlistedSchemaAreLeftAlone() {
+    myFixture.enableInspections(SqlUnresolvedTableInspection::class.java, SqlUnresolvedColumnInspection::class.java)
+    preload()
+    sql("SELECT x.y FROM elsewhere.thing x")
+    assertEmpty(warnings())
+  }
 }
