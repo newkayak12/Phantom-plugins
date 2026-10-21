@@ -85,6 +85,9 @@ class DbImportDiagramTest : BasePlatformTestCase() {
     assertFalse(DbCsv.detect("ann,rome\nbob,oslo\n", listOf("NAME", "CITY")).header)
     assertEquals(listOf(1, 0, null), DbCsv.mapping(listOf("full name", "ID"), 2, listOf("ID", "FULL_NAME", "CREATED")))
     assertEquals(listOf(0, 1, null), DbCsv.mapping(null, 2, listOf("ID", "FULL_NAME", "CREATED")))
+    // JDBC FLOAT is a double; REAL a float
+    assertEquals(0.1, DbCsvImport.convert("0.1", java.sql.Types.FLOAT))
+    assertEquals(0.5f, DbCsvImport.convert("0.5", java.sql.Types.REAL))
   }
 
   fun testImportIntoH2AndRollbackOnBadRow() {

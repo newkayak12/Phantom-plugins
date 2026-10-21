@@ -274,6 +274,7 @@
         <entry key="verify-ca" value="trustServerCertificate=false" />
         <entry key="verify-full" value="trustServerCertificate=false" />
         <entry key="ca" value="trustStore={file}" />
+        <entry key="tunnel-host" value="hostNameInCertificate={host}" />
       </map>
     </option>
   </driver>

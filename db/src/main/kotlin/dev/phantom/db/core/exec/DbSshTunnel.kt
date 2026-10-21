@@ -75,7 +75,8 @@ class DbSshTunnelOpener(
       ssh.connection.keepAlive.keepAliveInterval = 30
       server = ServerSocket().apply {
         reuseAddress = true
-        bind(InetSocketAddress(InetAddress.getLoopbackAddress(), 0))
+        // the rewritten URL names 127.0.0.1 literally; the loopback address could be ::1
+        bind(InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0))
       }
       val forwarder = ssh.newLocalPortForwarder(Parameters("127.0.0.1", server.localPort, target.host, target.port), server)
       return SshTunnel(ssh, server, forwarder).also { it.start() }
@@ -209,11 +210,23 @@ internal class DbSshAgent private constructor(private val io: Io) : AutoCloseabl
     return reply.readBytes()
   }
 
+  /** An agent that does not answer (or waits for a confirmation nobody gives) is cut off after [TIMEOUT_SECONDS]. */
   private fun call(message: ByteArray): Buffer.PlainBuffer {
-    io.write(ByteBuffer.allocate(4 + message.size).putInt(message.size).put(message).array())
-    val length = ByteBuffer.wrap(io.readFully(4)).int
-    if (length <= 0 || length > 256 * 1024) throw IOException("Bad SSH agent reply")
-    return Buffer.PlainBuffer(io.readFully(length))
+    val watchdog = com.intellij.util.concurrency.AppExecutorUtil.getAppScheduledExecutorService()
+      .schedule({ runCatching { io.close() } }, TIMEOUT_SECONDS, java.util.concurrent.TimeUnit.SECONDS)
+    try {
+      io.write(ByteBuffer.allocate(4 + message.size).putInt(message.size).put(message).array())
+      val length = ByteBuffer.wrap(io.readFully(4)).int
+      if (length <= 0 || length > 256 * 1024) throw IOException("Bad SSH agent reply")
+      return Buffer.PlainBuffer(io.readFully(length))
+    }
+    catch (e: IOException) {
+      if (watchdog.isDone) throw IOException("The SSH agent did not answer in $TIMEOUT_SECONDS s", e)
+      throw e
+    }
+    finally {
+      watchdog.cancel(false)
+    }
   }
 
   override fun close() = io.close()
@@ -224,6 +237,7 @@ internal class DbSshAgent private constructor(private val io: Io) : AutoCloseabl
     private const val SIGN_REQUEST: Byte = 13
     private const val SIGN_RESPONSE: Byte = 14
     const val RSA_SHA2_256: Int = 2
+    private const val TIMEOUT_SECONDS = 30L
 
     /** `SSH_AUTH_SOCK` (a Unix socket), or the Windows OpenSSH agent's pipe. `null` when no agent runs. */
     fun connect(): DbSshAgent? {

@@ -91,8 +91,31 @@ class DbConnectionToolsTest : BasePlatformTestCase() {
     }
     catch (_: DbException) {
     }
-    val failover = "jdbc:mysql://a:3306,b:3306/db"
-    assertEquals("jdbc:mysql://127.0.0.1:40000,b:3306/db", DbTunnelUrls.rewrite(failover, DbHostPort("a", 3306), local))
+    // several hosts: the driver could reach one outside the tunnel
+    for (multi in listOf("jdbc:mysql://a:3306,b:3306/db", "jdbc:postgresql://h1:5432,h2:5432/app", "jdbc:mysql://address=(host=a)(port=3306),address=(host=b)/db")) {
+      try {
+        DbTunnelUrls.rewrite(multi, DbHostPort("a", 3306), local)
+        fail(multi)
+      }
+      catch (_: DbException) {
+      }
+      try {
+        DbTunnelUrls.target(multi, def("mysql"), ds(multi) { sshRemoteHost = "a"; sshRemotePort = 3306 })
+        fail(multi)
+      }
+      catch (_: DbException) {
+      }
+    }
+    // Oracle: the address after @ even when a // comes later
+    assertEquals("jdbc:oracle:thin:@127.0.0.1:40000/svc?x=//y", rewrite("jdbc:oracle:thin:@ora:1521/svc?x=//y", "oracle"))
+    // a SQL Server named instance finds its port over UDP
+    try {
+      DbTunnelUrls.target("jdbc:sqlserver://sql\\inst;databaseName=x", def("sqlserver"), ds(""))
+      fail("named instance")
+    }
+    catch (e: DbException) {
+      assertTrue(e.message, e.message!!.contains("inst"))
+    }
     try {
       DbTunnelUrls.rewrite(tns, DbHostPort("ora", 1521), local)
       fail("the tunnel cannot be put into this URL")
@@ -107,31 +130,91 @@ class DbConnectionToolsTest : BasePlatformTestCase() {
     }
   }
 
-  fun testTunnelSharedReopenedAndClosed() {
+  fun testTunnelSharedCountedReopenedAndClosed() {
     val opener = FakeOpener { 1234 }
     val tunnels = DbTunnels(opener)
     val a = ds("jdbc:mysql://db:3306/x").apply { sshUser = "me" }
     val target = DbHostPort("db", 3306)
     val first = tunnels.acquire(a, target) { "secret" }
-    assertSame(first, tunnels.acquire(a, target) { error("not asked again") })
+    val second = tunnels.acquire(a, target) { error("not asked again") }
+    assertSame(first.tunnel, second.tunnel)
     assertEquals(listOf(Triple(a.id, "secret", target)), opener.opened)
-    // a dead tunnel is replaced
-    (first as FakeTunnel).alive = false
-    val second = tunnels.acquire(a, target) { null }
-    assertNotSame(first, second)
-    assertTrue(first.closed)
+    // closed with the last user only
+    first.release()
+    first.release()
+    assertFalse((first.tunnel as FakeTunnel).closed)
+    second.release()
+    assertTrue((first.tunnel as FakeTunnel).closed)
+    assertFalse(tunnels.isOpen(a.id))
+    // a dead tunnel is replaced; the old one closes when its user lets go
+    val third = tunnels.acquire(a, target) { null }
+    (third.tunnel as FakeTunnel).alive = false
+    val fourth = tunnels.acquire(a, target) { null }
+    assertNotSame(third.tunnel, fourth.tunnel)
+    third.release()
+    assertTrue((third.tunnel as FakeTunnel).closed)
     // other SSH settings: a new tunnel
     a.sshUser = "other"
-    val third = tunnels.acquire(a, target) { null }
-    assertTrue((second as FakeTunnel).closed)
-    tunnels.close(a.id)
-    assertTrue((third as FakeTunnel).closed)
+    val fifth = tunnels.acquire(a, target) { null }
+    assertNotSame(fourth.tunnel, fifth.tunnel)
+    // disconnect: no longer handed out, closed once released
+    tunnels.detach(a.id)
     assertFalse(tunnels.isOpen(a.id))
+    assertFalse((fifth.tunnel as FakeTunnel).closed)
+    fifth.release()
+    assertTrue((fifth.tunnel as FakeTunnel).closed)
+    fourth.release()
     val b = ds("jdbc:mysql://db:3306/y")
-    val t1 = tunnels.acquire(a, target) { null } as FakeTunnel
-    val t2 = tunnels.acquire(b, target) { null } as FakeTunnel
+    val t1 = tunnels.acquire(a, target) { null }.tunnel as FakeTunnel
+    val t2 = tunnels.acquire(b, target) { null }.tunnel as FakeTunnel
     tunnels.closeAll()
     assertTrue(t1.closed && t2.closed)
+  }
+
+  /** Opening (slow connect, host key prompt) happens outside the lock: other calls do not wait for it; a second user waits for the same tunnel. */
+  fun testOpeningDoesNotHoldTheLock() {
+    val entered = java.util.concurrent.CountDownLatch(1)
+    val proceed = java.util.concurrent.CountDownLatch(1)
+    val opens = java.util.concurrent.atomic.AtomicInteger()
+    val tunnels = DbTunnels { _, _, _ ->
+      opens.incrementAndGet()
+      entered.countDown()
+      proceed.await()
+      FakeTunnel(1)
+    }
+    val a = ds("jdbc:mysql://db:3306/x")
+    val target = DbHostPort("db", 3306)
+    val pool = java.util.concurrent.Executors.newFixedThreadPool(2)
+    try {
+      val one = pool.submit<DbTunnelLease> { tunnels.acquire(a, target) { null } }
+      assertTrue(entered.await(10, java.util.concurrent.TimeUnit.SECONDS))
+      val two = pool.submit<DbTunnelLease> { tunnels.acquire(a, target) { null } }
+      // would block on the monitor if acquire held it while opening
+      tunnels.detach("other")
+      assertTrue(tunnels.isOpen(a.id))
+      proceed.countDown()
+      assertSame(one.get(10, java.util.concurrent.TimeUnit.SECONDS).tunnel, two.get(10, java.util.concurrent.TimeUnit.SECONDS).tunnel)
+      assertEquals(1, opens.get())
+    }
+    finally {
+      proceed.countDown()
+      pool.shutdownNow()
+    }
+  }
+
+  fun testFailedOpenIsNotKept() {
+    var fail = true
+    val tunnels = DbTunnels { _, _, _ -> if (fail) throw DbException("refused") else FakeTunnel(2) }
+    val a = ds("jdbc:mysql://db:3306/x")
+    try {
+      tunnels.acquire(a, DbHostPort("db", 3306)) { null }
+      fail("refused")
+    }
+    catch (_: DbException) {
+    }
+    assertFalse(tunnels.isOpen(a.id))
+    fail = false
+    assertEquals(2, tunnels.acquire(a, DbHostPort("db", 3306)) { null }.tunnel.localPort)
   }
 
   /** A real H2 server stands for the database behind the SSH server; the fake tunnel's local port is the server's. */
@@ -230,6 +313,16 @@ class DbConnectionToolsTest : BasePlatformTestCase() {
     assertEquals(emptyMap<String, String>(), props("sqlite", DbSslMode.REQUIRE))
     assertTrue(DbSsl.takesFile(def("postgresql"), DbSsl.KEY))
     assertFalse(DbSsl.takesFile(def("mysql"), DbSsl.KEY))
+    // through a tunnel, verify full checks the real host where the driver can be told it (SQL Server), else the dialog warns
+    val tunnelled = DbDataSource().apply { sshEnabled = true; sslEnabled = true; sslMode = DbSslMode.VERIFY_FULL }
+    assertEquals(mapOf("hostNameInCertificate" to "sql.internal"), DbSsl.tunnelProperties(def("sqlserver"), tunnelled, "sql.internal"))
+    assertEquals(emptyMap<String, String>(), DbSsl.tunnelProperties(def("postgresql"), tunnelled, "pg"))
+    assertTrue(DbSsl.verifyFullBreaksWithTunnel(def("postgresql"), tunnelled))
+    assertFalse(DbSsl.verifyFullBreaksWithTunnel(def("sqlserver"), tunnelled))
+    assertFalse(DbSsl.verifyFullBreaksWithTunnel(def("postgresql"), tunnelled.copy().apply { sslMode = DbSslMode.VERIFY_CA }))
+    assertTrue(DbSsl.isKeystore(def("mysql"), DbSsl.CA))
+    assertFalse(DbSsl.isKeystore(def("mariadb"), DbSsl.CA))
+    assertFalse(DbSsl.isKeystore(def("postgresql"), DbSsl.CA))
     // off: nothing
     assertEquals(emptyMap<String, String>(), DbSsl.properties(def("postgresql"), DbDataSource()))
     // the data source's own properties still win

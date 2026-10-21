@@ -11,6 +11,8 @@ object DbSsl {
   const val CA: String = "ca"
   const val CERT: String = "cert"
   const val KEY: String = "key"
+  /** Through an SSH tunnel the URL names 127.0.0.1: the property, if the driver has one, that checks the certificate against the real host. */
+  const val TUNNEL_HOST: String = "tunnel-host"
 
   /** The definition's map; an edited built-in saved before the map existed takes the shipped one. */
   fun mapOf(definition: DbDriverDefinition): Map<String, String> =
@@ -43,6 +45,25 @@ object DbSsl {
     dataSource.sslKeyFile.trim().takeIf { it.isNotEmpty() }?.let { apply(KEY, it) }
     return result
   }
+
+  /** Whether [kind]'s file is a Java keystore (JKS/PKCS12) for this driver, not a PEM file (MySQL Connector/J, MariaDB's client cert). */
+  fun isKeystore(definition: DbDriverDefinition?, kind: String): Boolean =
+    definition != null && mapOf(definition)[kind]?.contains("keystore", ignoreCase = true) == true
+
+  /**
+   * Host name verification (verify full) compares the certificate with the URL's host, which a tunnel makes 127.0.0.1:
+   * the properties that name the real [host] instead; empty when the driver has none (then verification fails).
+   */
+  fun tunnelProperties(definition: DbDriverDefinition, dataSource: DbDataSource, host: String): Map<String, String> {
+    if (!dataSource.sslEnabled || dataSource.sslMode != DbSslMode.VERIFY_FULL) return emptyMap()
+    val spec = mapOf(definition)[TUNNEL_HOST] ?: return emptyMap()
+    return spec.split(';').mapNotNull { p -> p.substringBefore('=').trim().takeIf { it.isNotEmpty() }?.let { it to p.substringAfter('=', "").replace("{host}", host) } }.toMap()
+  }
+
+  /** True when verify full cannot work through the tunnel: the driver has no way to name the real host. */
+  fun verifyFullBreaksWithTunnel(definition: DbDriverDefinition?, dataSource: DbDataSource): Boolean =
+    dataSource.sshEnabled && dataSource.sslEnabled && dataSource.sslMode == DbSslMode.VERIFY_FULL &&
+    definition != null && supports(definition) && mapOf(definition)[TUNNEL_HOST] == null
 
   fun modeKey(mode: DbSslMode): String = when (mode) {
     DbSslMode.REQUIRE -> "require"

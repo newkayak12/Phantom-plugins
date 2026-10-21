@@ -45,9 +45,15 @@ class DbCsvImportDialog internal constructor(
   private val project: Project,
   private val table: DbTableRef,
   private val file: Path,
-  private val sample: String,
+  /** The start of the file, decoded with the chosen encoding. */
+  private val head: ByteArray,
   private val columns: List<String>,
 ) : DialogWrapper(project) {
+  internal val charsetCombo = ComboBox(CHARSETS.mapNotNull { runCatching { java.nio.charset.Charset.forName(it) }.getOrNull() }.toTypedArray()).apply {
+    selectedItem = StandardCharsets.UTF_8
+    renderer = com.intellij.ui.dsl.listCellRenderer.textListCellRenderer { it?.name() }
+  }
+  private var sample: String = decode(head, StandardCharsets.UTF_8)
   internal val delimiterCombo = ComboBox(arrayOf(',', ';', '\t', '|')).apply {
     renderer = com.intellij.ui.dsl.listCellRenderer.textListCellRenderer { if (it == '\t') "Tab" else it?.toString() }
   }
@@ -66,10 +72,16 @@ class DbCsvImportDialog internal constructor(
     quoteCombo.selectedItem = format.quote
     headerBox.isSelected = format.header
     for (c in listOf(delimiterCombo, quoteCombo)) c.addActionListener { refresh(remap = true) }
+    charsetCombo.addActionListener {
+      sample = decode(head, charset)
+      refresh(remap = true)
+    }
     headerBox.addActionListener { refresh(remap = true) }
     init()
     refresh(remap = true)
   }
+
+  val charset: java.nio.charset.Charset get() = charsetCombo.selectedItem as java.nio.charset.Charset
 
   val format: DbCsvFormat get() = DbCsvFormat(delimiterCombo.selectedItem as Char, quoteCombo.selectedItem as Char, headerBox.isSelected)
 
@@ -88,6 +100,7 @@ class DbCsvImportDialog internal constructor(
     }
     return panel {
       row(PhantomDbBundle.message("db.csv.file")) { label(file.toString()) }
+      row(PhantomDbBundle.message("db.csv.charset")) { cell(charsetCombo) }
       row(PhantomDbBundle.message("db.csv.delimiter")) {
         cell(delimiterCombo)
         label(PhantomDbBundle.message("db.csv.quote"))
@@ -131,7 +144,11 @@ class DbCsvImportDialog internal constructor(
 
   companion object {
     const val PREVIEW: Int = 50
-    private const val SAMPLE_CHARS = 256 * 1024
+    private const val SAMPLE_BYTES = 256 * 1024
+    private val CHARSETS = listOf("UTF-8", "UTF-16", "ISO-8859-1", "windows-1252", "EUC-KR", "x-windows-949", "Shift_JIS", "GB18030")
+
+    /** For the preview: undecodable bytes show as replacement characters (the import itself reports them). */
+    private fun decode(bytes: ByteArray, charset: java.nio.charset.Charset): String = String(bytes, charset).removePrefix("\uFEFF")
 
     /** Chooses a file, reads its start and the table's columns off the EDT, then shows the dialog and imports in the background. */
     fun start(project: Project, dataSource: DbDataSource, table: DbTableRef) {
@@ -139,13 +156,9 @@ class DbCsvImportDialog internal constructor(
       val chosen = FileChooser.chooseFile(descriptor, project, null) ?: return
       val path = chosen.toNioPath()
       DbConnectionService.getInstance(project).launch {
-        val (sample, columns) = try {
-          val text = Files.newBufferedReader(path, StandardCharsets.UTF_8).use { r ->
-            val buf = CharArray(SAMPLE_CHARS)
-            val n = r.read(buf).coerceAtLeast(0)
-            String(buf, 0, n).removePrefix("﻿")
-          }
-          text to DbMetadataCache.getInstance(project).columns(dataSource, table).map { it.name }
+        val (head, columns) = try {
+          val bytes = Files.newInputStream(path).use { it.readNBytes(SAMPLE_BYTES) }
+          bytes to DbMetadataCache.getInstance(project).columns(dataSource, table).map { it.name }
         }
         catch (e: CancellationException) {
           throw e
@@ -155,19 +168,20 @@ class DbCsvImportDialog internal constructor(
           return@launch
         }
         withContext(Dispatchers.EDT) {
-          val dialog = DbCsvImportDialog(project, table, path, sample, columns)
-          if (dialog.showAndGet()) importInBackground(project, dataSource, table, path, columns, dialog.format, dialog.mapping)
+          val dialog = DbCsvImportDialog(project, table, path, head, columns)
+          if (dialog.showAndGet()) importInBackground(project, dataSource, table, path, columns, dialog.charset, dialog.format, dialog.mapping)
         }
       }
     }
 
     private fun importInBackground(project: Project, dataSource: DbDataSource, table: DbTableRef, path: Path, columns: List<String>,
-                                   format: DbCsvFormat, mapping: List<Int?>) {
+                                   charset: java.nio.charset.Charset, format: DbCsvFormat, mapping: List<Int?>) {
       ProgressManager.getInstance().run(object : Task.Backgroundable(project, PhantomDbBundle.message("db.csv.importing", path.fileName, table.name), true) {
         override fun run(indicator: ProgressIndicator) {
           val message = try {
             val result = runBlockingCancellable {
-              Files.newBufferedReader(path, StandardCharsets.UTF_8).use { r ->
+              // a strict decoder: bytes that are not text in [charset] fail instead of importing garbage
+              Files.newBufferedReader(path, charset).use { r ->
                 if (peekBom(r)) r.read()
                 DbCsvImport.run(project, dataSource, table, columns, mapping, DbCsvReader(r, format.delimiter, format.quote), format.header,
                                 indicator, "(${path.fileName})")
@@ -176,10 +190,15 @@ class DbCsvImportDialog internal constructor(
             PhantomDbBundle.message(if (result.pending) "db.csv.done.pending" else "db.csv.done", result.rows, table.name) to NotificationType.INFORMATION
           }
           catch (e: CancellationException) {
-            PhantomDbBundle.message("db.csv.cancelled", table.name) to NotificationType.WARNING
+            notify(project, PhantomDbBundle.message("db.csv.cancelled", table.name), NotificationType.WARNING)
+            throw e
           }
           catch (e: com.intellij.openapi.progress.ProcessCanceledException) {
-            PhantomDbBundle.message("db.csv.cancelled", table.name) to NotificationType.WARNING
+            notify(project, PhantomDbBundle.message("db.csv.cancelled", table.name), NotificationType.WARNING)
+            throw e
+          }
+          catch (e: java.nio.charset.CharacterCodingException) {
+            PhantomDbBundle.message("db.csv.bad.charset", charset.name()) to NotificationType.ERROR
           }
           catch (e: DbException) {
             e.message.orEmpty() to NotificationType.ERROR

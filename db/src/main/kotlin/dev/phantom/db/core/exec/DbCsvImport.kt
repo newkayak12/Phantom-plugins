@@ -160,8 +160,13 @@ object DbCsvImport {
     val sql = insert(dialect, table, used.map { columns[it] })
     return DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.CONSOLE) { c ->
       val manual = !c.autoCommit
-      val types = types(c, dialect, table, used.map { columns[it] })
+      // first the savepoint: whatever fails after it (even reading the column types) leaves the open transaction as it was
       val savepoint: Savepoint? = if (manual) c.setSavepoint() else null
+      val types = types(c, dialect, table, used.map { columns[it] }) ?: run {
+        // a failed statement aborts a PostgreSQL transaction until rolled back
+        if (savepoint != null) runCatching { c.rollback(savepoint) }
+        IntArray(used.size) { Types.VARCHAR }
+      }
       if (!manual) c.autoCommit = false
       var count = 0L
       try {
@@ -229,7 +234,7 @@ object DbCsvImport {
   }
 
   /** JDBC types of the columns, so text becomes what the column takes (PostgreSQL does not cast text parameters). */
-  private fun types(c: Connection, dialect: Dbms, table: DbTableRef, columns: List<String>): IntArray {
+  private fun types(c: Connection, dialect: Dbms, table: DbTableRef, columns: List<String>): IntArray? {
     val qualifier = if (dialect.usesCatalogs) table.catalog else table.schema
     val name = qualifier?.let { DbNames.identifier(dialect, it) + "." }.orEmpty() + DbNames.identifier(dialect, table.name)
     return runCatching {
@@ -238,7 +243,7 @@ object DbCsvImport {
           IntArray(columns.size) { rs.metaData.getColumnType(it + 1) }
         }
       }
-    }.getOrElse { IntArray(columns.size) { Types.VARCHAR } }
+    }.getOrNull()
   }
 
   internal fun bind(ps: PreparedStatement, index: Int, text: String?, type: Int, line: Int) {
@@ -258,8 +263,9 @@ object DbCsvImport {
       Types.TINYINT, Types.SMALLINT, Types.INTEGER -> t.toInt()
       Types.BIGINT -> t.toLong()
       Types.DECIMAL, Types.NUMERIC -> BigDecimal(t)
-      Types.REAL, Types.FLOAT -> t.toFloat()
-      Types.DOUBLE -> t.toDouble()
+      Types.REAL -> t.toFloat()
+      // JDBC FLOAT is a double
+      Types.FLOAT, Types.DOUBLE -> t.toDouble()
       Types.BIT, Types.BOOLEAN -> when (t.lowercase()) {
         "true", "t", "1", "yes", "y" -> true
         "false", "f", "0", "no", "n" -> false
