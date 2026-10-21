@@ -5,6 +5,9 @@
     <module name="intellij.grid.impl"/>
   </dependencies>
   <resource-bundle>messages.PhantomDbBundle</resource-bundle>
+  <extensionPoints>
+    <extensionPoint qualifiedName="dev.phantom.db.mappings" interface="dev.phantom.db.core.SqlDbMappings" dynamic="true"/>
+  </extensionPoints>
   <extensions defaultExtensionNs="com.intellij">
     <fileType name="Phantom SQL" language="SQL" extensions="sql"
               implementationClass="dev.phantom.db.core.SqlFileType" fieldName="INSTANCE"/>
@@ -100,6 +103,11 @@
                      enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlMissingReturnInspection"/>
     <lang.formatter language="SQL" implementationClass="dev.phantom.db.core.SqlFormattingModelBuilder"/>
     <lang.findUsagesProvider language="SQL" implementationClass="dev.phantom.db.core.SqlFindUsagesProvider"/>
+    <referencesSearch implementation="dev.phantom.db.core.SqlDbReferenceSearcher"/>
+    <renamePsiElementProcessor implementation="dev.phantom.db.core.SqlDbRenameProcessor"/>
+    <lang.elementManipulator forClass="dev.phantom.db.core.SqlTableRef" implementationClass="dev.phantom.db.core.SqlNameManipulator"/>
+    <lang.elementManipulator forClass="dev.phantom.db.core.SqlColumnRef" implementationClass="dev.phantom.db.core.SqlNameManipulator"/>
+    <lang.elementManipulator forClass="dev.phantom.db.core.SqlQualifier" implementationClass="dev.phantom.db.core.SqlNameManipulator"/>
     <liveTemplateContext contextId="PHANTOM_SQL" implementation="dev.phantom.db.core.SqlTemplateContextType"/>
     <defaultLiveTemplates file="/liveTemplates/PhantomSql.xml"/>
     <liveTemplateMacro implementation="dev.phantom.db.core.SqlColumnsMacro"/>

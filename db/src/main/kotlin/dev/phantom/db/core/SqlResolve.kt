@@ -40,6 +40,12 @@ class SqlDbTarget(private val context: PsiElement, val dataSource: DbDataSource,
   override fun canNavigateToSource(): Boolean = false
   override fun navigate(requestFocus: Boolean) = DbTreeNavigation.select(context.project, dataSource, table, column?.name)
   override fun isEquivalentTo(another: PsiElement?): Boolean = another == this
+  override fun getLanguage(): com.intellij.lang.Language = SqlLanguage
+  /** Renaming changes SQL text only (see [SqlDbRenameProcessor]); the database is left alone. */
+  override fun setName(name: String): PsiElement = this
+  /** SQL is in project files and in the consoles under Scratches. */
+  override fun getUseScope(): com.intellij.psi.search.SearchScope =
+    com.intellij.psi.search.GlobalSearchScope.projectScope(project).union(com.intellij.ide.scratch.ScratchesSearchScope.getScratchesScope(project))
   override fun equals(other: Any?): Boolean =
     other is SqlDbTarget && other.dataSource.id == dataSource.id && other.table == table && other.column?.name == column?.name
   override fun hashCode(): Int = (dataSource.id.hashCode() * 31 + table.hashCode()) * 31 + column?.name.hashCode()
@@ -184,16 +190,21 @@ class SqlUnresolvedAnnotator : Annotator {
   }
 }
 
-/** Words for highlighting and finding alias usages in a file. */
+/** Words for highlighting and finding usages: aliases in a file, database tables and columns in the project. */
 class SqlFindUsagesProvider : FindUsagesProvider {
   override fun getWordsScanner(): WordsScanner = DefaultWordsScanner(SqlLexer(), SqlTokens.NAMES, SqlTokens.COMMENTS, SqlTokens.STRINGS, TokenSet.EMPTY)
-  override fun canFindUsagesFor(element: PsiElement): Boolean = element is SqlDeclaration
+  override fun canFindUsagesFor(element: PsiElement): Boolean = element is SqlDeclaration || element is SqlDbTarget
   override fun getHelpId(element: PsiElement): String? = null
   override fun getType(element: PsiElement): String = when (element) {
+    is SqlDbTarget -> if (element.column != null) "column" else if (element.table.isView) "view" else "table"
     is SqlCteName -> "common table expression"
     is SqlColumnAlias -> "column alias"
     else -> "alias"
   }
-  override fun getDescriptiveName(element: PsiElement): String = (element as? SqlDeclaration)?.name ?: element.text
+  override fun getDescriptiveName(element: PsiElement): String = when (element) {
+    is SqlDbTarget -> element.presentableText
+    is SqlDeclaration -> element.name
+    else -> element.text
+  }
   override fun getNodeText(element: PsiElement, useFullName: Boolean): String = getDescriptiveName(element)
 }

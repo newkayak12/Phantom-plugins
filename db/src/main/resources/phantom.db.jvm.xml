@@ -19,5 +19,10 @@
                      implementationClass="dev.phantom.db.jvm.JpaColumnNullabilityInspection"/>
     <completion.contributor language="JAVA" implementationClass="dev.phantom.db.jvm.JpaSchemaCompletionContributor"/>
     <completion.contributor language="kotlin" implementationClass="dev.phantom.db.jvm.JpaSchemaCompletionContributor"/>
+    <!-- find usages and rename of a database table or column include the JPA mappings that name it -->
+    <referencesSearch implementation="dev.phantom.db.jvm.JpaDbNameSearcher"/>
+  </extensions>
+  <extensions defaultExtensionNs="dev.phantom.db">
+    <mappings implementation="dev.phantom.db.jvm.JpaDbMappings"/>
   </extensions>
 </idea-plugin>

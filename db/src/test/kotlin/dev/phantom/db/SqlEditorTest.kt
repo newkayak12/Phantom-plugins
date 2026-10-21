@@ -153,4 +153,43 @@ class SqlEditorTest : BasePlatformTestCase() {
     command { TemplateManagerImpl.getTemplateState(myFixture.editor)?.gotoEnd(false) }
   }
 
+  private fun targetAt(file: SqlFile, text: String, occurrence: Int = 0): SqlDbTarget {
+    var offset = -1
+    repeat(occurrence + 1) { offset = file.text.indexOf(text, offset + 1) }
+    return file.findReferenceAt(offset)!!.resolve() as SqlDbTarget
+  }
+
+  fun testFindUsagesAndRenameOfATableAcrossSqlFiles() {
+    preload()
+    val other = myFixture.addFileToProject("other.sql", "UPDATE customer SET name = 'x';\nSELECT \"CUSTOMER\".id FROM \"CUSTOMER\"")
+    DbConsoles.attach(project, other.virtualFile, ds.id)
+    val file = sql("SELECT c.name FROM customer c JOIN orders o ON o.customer_id = c.id")
+    val target = targetAt(file, "customer c")
+    assertEquals(4, myFixture.findUsages(target).size)
+    myFixture.renameElement(target, "CLIENT")
+    assertEquals("SELECT c.name FROM client c JOIN orders o ON o.customer_id = c.id", file.text)
+    // quoted names keep their quotes and take the new name's case; others keep their own case
+    assertEquals("UPDATE client SET name = 'x';\nSELECT \"CLIENT\".id FROM \"CLIENT\"", other.text)
+  }
+
+  fun testRenameOfAColumnLeavesOtherTablesColumnsAlone() {
+    preload()
+    val other = myFixture.addFileToProject("other.sql", "SELECT name FROM product;\nUPDATE customer SET name = 'x'")
+    DbConsoles.attach(project, other.virtualFile, ds.id)
+    val file = sql("SELECT c.name, p.name FROM customer c, product p")
+    val target = targetAt(file, "name")
+    assertEquals("CUSTOMER", target.table.name)
+    assertEquals(2, myFixture.findUsages(target).size)
+    myFixture.renameElement(target, "full_name")
+    assertEquals("SELECT c.full_name, p.name FROM customer c, product p", file.text)
+    assertEquals("SELECT name FROM product;\nUPDATE customer SET full_name = 'x'", other.text)
+  }
+
+  fun testAlterStatementForRename() {
+    preload()
+    val file = sql("SELECT name FROM customer")
+    assertEquals("ALTER TABLE PUBLIC.CUSTOMER RENAME TO client", SqlRename.alterStatement(targetAt(file, "customer"), "client"))
+    assertEquals("ALTER TABLE PUBLIC.CUSTOMER ALTER COLUMN NAME RENAME TO full_name", SqlRename.alterStatement(targetAt(file, "name"), "full_name"))
+  }
+
 }
