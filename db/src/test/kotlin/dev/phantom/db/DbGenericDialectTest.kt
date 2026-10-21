@@ -8,6 +8,7 @@ import dev.phantom.db.core.drivers.DbDriverDefinition
 import dev.phantom.db.core.drivers.DbDriverRegistry
 import dev.phantom.db.core.exec.*
 import dev.phantom.db.core.ui.DbDataSourceDialog
+import kotlinx.coroutines.runBlocking
 import java.sql.Types
 
 class DbGenericDialectTest : BasePlatformTestCase() {
@@ -79,5 +80,83 @@ class DbGenericDialectTest : BasePlatformTestCase() {
     val ds = DbDataSource().apply { dbms = Dbms.GENERIC; url = "jdbc:nothing:x" }
     assertNull(DbDrivers.fromLocalCaches(DbDriverDefinition().apply { dialect = Dbms.GENERIC }))
     assertNull(DbDrivers.find(null, ds))
+  }
+
+  override fun tearDown() {
+    try {
+      val service = DbDataSourceService.getInstance(project)
+      service.dataSources.forEach {
+        DbConnectionService.getInstance(project).disconnect(it.id)
+        service.remove(it.id)
+      }
+      DbDriverRegistry.getInstance().remove("my-h2")
+    }
+    catch (e: Throwable) {
+      addSuppressedException(e)
+    }
+    finally {
+      super.tearDown()
+    }
+  }
+
+  fun testGenericUserDriverRunsConsoleAndTree() {
+    DbDriverRegistry.getInstance().save(DbDriverDefinition().apply {
+      id = "my-h2"; name = "My H2"; driverClass = "org.h2.Driver"
+      urlPrefixes = mutableListOf("jdbc:h2:"); artifacts = mutableListOf("com.h2database:h2"); dialect = Dbms.GENERIC
+    })
+    val ds = DbDataSource().apply {
+      name = "generic-h2"; driverId = "my-h2"; user = "sa"; url = "jdbc:h2:mem:generic_${System.nanoTime()};DB_CLOSE_DELAY=-1"
+    }
+    DbDataSourceService.getInstance(project).save(ds, CharArray(0))
+    val outcomes = runBlocking { DbExecutor.execute(project, ds, listOf("CREATE TABLE t(id INT)", "SELECT * FROM t")) }
+    assertTrue(outcomes[0] is DbOutcome.Updated)
+    assertTrue(outcomes[1] is DbOutcome.Rows)
+    val cache = DbMetadataCache.getInstance(project)
+    val schemas = runBlocking { cache.schemas(ds) }
+    assertNotEmpty(schemas)
+    assertTrue(schemas.any { s -> runBlocking { cache.tables(ds, s) }.any { it.name.equals("T", true) } })
+  }
+
+  fun testPropertiesMergeOrderAndIam() {
+    val def = DbDriverRegistry.getInstance().find("aws-wrapper-mysql")!!
+    val ds = DbDataSource().apply {
+      authKind = DbAuthKind.AWS_IAM; user = "app"; awsProfile = "dev"; awsRegion = ""
+      properties = mutableMapOf("sslMode" to "REQUIRED")
+    }
+    val p = DbConnectionService.connectionProperties(def, ds, password = "x")
+    assertEquals("iam", p["wrapperPlugins"])
+    assertEquals("dev", p["awsProfile"])
+    assertNull(p["iamRegion"])
+    assertEquals("REQUIRED", p["sslMode"])
+    assertEquals("app", p["user"])
+    assertNull(p["password"])
+  }
+
+  fun testPasswordAuthAndNoneAuth() {
+    val def = DbDriverRegistry.getInstance().find("postgresql")!!
+    val ds = DbDataSource().apply { user = "u"; properties = mutableMapOf("connectTimeout" to "3") }
+    val p = DbConnectionService.connectionProperties(def, ds, password = null)
+    assertEquals("u", p["user"])
+    assertNull(p["password"])
+    assertEquals("3", p["connectTimeout"])
+    ds.authKind = DbAuthKind.NONE
+    val none = DbConnectionService.connectionProperties(def, ds, password = "x")
+    assertNull(none["user"])
+    assertNull(none["password"])
+  }
+
+  fun testRedshiftIamRewritesUrl() {
+    val def = DbDriverRegistry.getInstance().find("redshift")!!
+    val ds = DbDataSource().apply { authKind = DbAuthKind.AWS_IAM; url = "jdbc:redshift://c:5439/dev" }
+    assertEquals("jdbc:redshift:iam://c:5439/dev", connectionUrl(def, ds))
+    ds.authKind = DbAuthKind.PASSWORD
+    assertEquals("jdbc:redshift://c:5439/dev", connectionUrl(def, ds))
+  }
+
+  fun testUnknownDriverErrorMentionsDriver() {
+    val ds = DbDataSource().apply { driverId = "nope"; url = "jdbc:nope://x"; dbms = Dbms.GENERIC }
+    val e = runCatching { DbConnectionService.getInstance(project).open(ds, "") }.exceptionOrNull()
+    assertTrue(e is DbException)
+    assertTrue(e!!.message, e.message!!.contains("nope"))
   }
 }

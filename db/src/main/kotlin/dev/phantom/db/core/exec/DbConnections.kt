@@ -9,6 +9,8 @@ import com.intellij.openapi.components.serviceIfCreated
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import dev.phantom.db.core.*
+import dev.phantom.db.core.drivers.DbDriverActions
+import dev.phantom.db.core.drivers.DbDriverDefinition
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -57,7 +59,7 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
   }
 
   private val loaders = ConcurrentHashMap<List<Path>, URLClassLoader>()
-  private val drivers = ConcurrentHashMap<Pair<List<Path>, Dbms>, Driver>()
+  private val drivers = ConcurrentHashMap<Pair<List<Path>, String>, Driver>()
   private val sessions = ConcurrentHashMap<Pair<String, Purpose>, Session>()
 
   /** Runs [block] with the data source's connection for [purpose], opening it when needed. Calls are serialized. */
@@ -158,35 +160,37 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
 
   /** Blocking. A `null` [password] means the saved one. */
   fun open(dataSource: DbDataSource, password: String?): Connection {
-    val located = DbDrivers.find(project, dataSource)
-                  ?: throw DbException(PhantomDbBundle.message("db.driver.missing", dataSource.dbms.displayName, dataSource.dbms.artifacts.firstOrNull() ?: "its driver jar"))
-    val driver = drivers.computeIfAbsent(located.jars to dataSource.dbms) { loadDriver(it.first, dataSource.dbms) }
-    val props = Properties()
-    if (dataSource.user.isNotEmpty()) props["user"] = dataSource.user
-    val secret = password ?: DbDataSourceService.getInstance(project).password(dataSource.id)
-    if (!secret.isNullOrEmpty()) props["password"] = secret
-    // fail in seconds, not minutes, when the host does not answer; a value in the URL still wins
-    when (dataSource.dbms) {
-      Dbms.MYSQL, Dbms.MARIADB -> props["connectTimeout"] = (LOGIN_TIMEOUT_SECONDS * 1000).toString()
-      Dbms.POSTGRESQL -> props["connectTimeout"] = LOGIN_TIMEOUT_SECONDS.toString()
-      Dbms.H2, Dbms.GENERIC -> {}
+    val definition = dataSource.driver()
+    if (definition == null) {
+      val name = dataSource.driverId?.takeIf { it.isNotEmpty() } ?: dataSource.url
+      DbDriverActions.notifyMissing(project, dataSource, null, PhantomDbBundle.message("db.driver.unknown", name))
+      throw DbException(PhantomDbBundle.message("db.driver.unknown", name))
     }
-    val connection = driver.connect(dataSource.url.trim(), props)
+    val located = DbDrivers.find(project, dataSource)
+    if (located == null) {
+      val message = PhantomDbBundle.message("db.driver.missing.download", definition.name)
+      DbDriverActions.notifyMissing(project, dataSource, definition, message)
+      throw DbException(message)
+    }
+    val driver = drivers.computeIfAbsent(located.jars to definition.driverClass) { loadDriver(it.first, it.second) }
+    val secret = (password ?: DbDataSourceService.getInstance(project).password(dataSource.id))?.takeIf { it.isNotEmpty() }
+    val props = connectionProperties(definition, dataSource, secret)
+    val connection = driver.connect(connectionUrl(definition, dataSource).trim(), props)
                      ?: throw DbException(PhantomDbBundle.message("db.driver.url.rejected", dataSource.url, located.description))
     if (dataSource.readOnly) runCatching { connection.isReadOnly = true }
     else if (dataSource.manualCommit) connection.autoCommit = false
     return connection
   }
 
-  private fun loadDriver(jars: List<Path>, dbms: Dbms): Driver {
+  private fun loadDriver(jars: List<Path>, driverClass: String): Driver {
     val loader = loaders.computeIfAbsent(jars) { URLClassLoader(jars.map { it.toUri().toURL() }.toTypedArray(), ClassLoader.getPlatformClassLoader()) }
     try {
-      return Class.forName(dbms.driverClass, true, loader).getDeclaredConstructor().newInstance() as Driver
+      return Class.forName(driverClass, true, loader).getDeclaredConstructor().newInstance() as Driver
     }
     catch (_: ClassNotFoundException) {
       // older or repackaged drivers: use whatever the jar declares in META-INF/services
       return ServiceLoader.load(Driver::class.java, loader).firstOrNull { it.javaClass.classLoader == loader }
-             ?: throw DbException(PhantomDbBundle.message("db.driver.no.class", dbms.driverClass, jars.joinToString()))
+             ?: throw DbException(PhantomDbBundle.message("db.driver.no.class", driverClass, jars.joinToString()))
     }
   }
 
@@ -218,10 +222,45 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
 
   companion object {
     val IDLE = 10.minutes
-    private const val LOGIN_TIMEOUT_SECONDS = 15
+    internal const val LOGIN_TIMEOUT_SECONDS = 15
 
     fun getInstance(project: Project): DbConnectionService = project.service()
   }
+}
+
+/** Driver defaults, then login timeouts, then the data source's own properties, then the authentication. */
+internal fun DbConnectionService.Companion.connectionProperties(definition: DbDriverDefinition, dataSource: DbDataSource, password: String?): Properties {
+  val props = Properties()
+  props.putAll(definition.defaultProperties)
+  // fail in seconds, not minutes, when the host does not answer; a value in the URL still wins
+  when (definition.dialect) {
+    Dbms.MYSQL, Dbms.MARIADB -> props["connectTimeout"] = (DbConnectionService.LOGIN_TIMEOUT_SECONDS * 1000).toString()
+    Dbms.POSTGRESQL -> props["connectTimeout"] = DbConnectionService.LOGIN_TIMEOUT_SECONDS.toString()
+    Dbms.H2, Dbms.GENERIC -> {}
+  }
+  props.putAll(dataSource.properties)
+  when (dataSource.authKind) {
+    DbAuthKind.PASSWORD -> {
+      if (dataSource.user.isNotEmpty()) props["user"] = dataSource.user
+      if (password != null) props["password"] = password
+    }
+    DbAuthKind.NONE -> {}
+    DbAuthKind.AWS_IAM -> {
+      if (dataSource.user.isNotEmpty()) props["user"] = dataSource.user
+      for ((key, template) in definition.iamProperties) {
+        val value = template.replace("{profile}", dataSource.awsProfile.trim()).replace("{region}", dataSource.awsRegion.trim())
+        if (value.isNotBlank()) props[key] = value
+      }
+    }
+  }
+  return props
+}
+
+internal fun connectionUrl(definition: DbDriverDefinition, dataSource: DbDataSource): String {
+  val url = dataSource.url
+  val from = definition.iamUrlFrom
+  val to = definition.iamUrlTo
+  return if (dataSource.authKind == DbAuthKind.AWS_IAM && !from.isNullOrEmpty() && to != null && url.startsWith(from)) to + url.removePrefix(from) else url
 }
 
 /** Runs SQL text on a data source's console connection. */
