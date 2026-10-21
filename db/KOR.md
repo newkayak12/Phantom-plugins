@@ -27,7 +27,11 @@ MySQL, MariaDB, PostgreSQL, H2, AWS, Oracle, SQL Server 등을 위한 JDBC 콘�
 - **라이브 템플릿**(**SQL (Phantom)** 그룹, `.sql` 파일·콘솔·SQL 문자열): `sel`, `selc`(count), `selw`(WHERE), `ins`(테이블 열을 불러왔으면 열 목록을 채움), `upd`, `del`, `crt`. 테이블 이름은 자동 완성됩니다.
 - 테이블, 뷰, 열의 **Find Usages와 Rename**: `.sql` 파일, 콘솔, Java·Kotlin의 SQL 문자열(`@Query`, JdbcTemplate, JdbcClient)에서 같은 테이블·열로 해석되는 곳과 JPA `@Table` / `@Column` / `@JoinColumn` 이름을 찾습니다. Rename은 SQL 텍스트만 바꾸고(따옴표 이름은 따옴표를, 따옴표 없는 이름은 대소문자 형태를 유지) 데이터베이스는 건드리지 않습니다. 대화상자에서 `ALTER … RENAME`을 실행하지 않고 데이터 소스 콘솔에 적거나 JPA 매핑 이름도 바꿀 수 있습니다. 둘 다 기본은 꺼짐입니다.
 - **Unknown table / Unknown column** 검사(스키마를 불러온 뒤)와 빠른 수정: 테이블에 빠진 별칭 추가, 그 열이 있는 테이블로 한정. **코드 안 SQL 문자열의 SELECT \***(기본 꺼짐)는 열 목록으로 바꿀 수 있습니다.
-- 비밀번호는 IDE 비밀번호 저장소에만 저장하고, 프로젝트 파일에는 남기지 않습니다.
+- 데이터 소스의 **SSH/SSL** 탭: **SSH 터널**(호스트, 포트, 사용자; 비밀번호, 패스프레이즈가 있는 개인 키 파일, 실행 중인 OpenSSH 에이전트)이 `127.0.0.1:<빈 포트>`를 URL의 호스트와 포트로, URL에서 읽을 수 없으면 직접 적은 원격 호스트와 포트로 전달합니다. 터널은 데이터 소스마다 하나로 연결들이 같이 쓰고 연결과 함께 닫힙니다. **Test Connection**은 따로 터널을 엽니다. 모르는 호스트 키는 SHA256 지문을 보여 주고, 받아들이면 `~/.ssh/known_hosts`에 추가합니다. 바뀐 키는 거부합니다. **SSL**: 사용 여부, 모드(require, CA 검증, CA와 호스트 이름 검증), CA·클라이언트 인증서·키 파일을 내장 드라이버마다 그 드라이버의 속성으로 씁니다(MySQL `sslMode`, PostgreSQL `sslmode`/`sslrootcert`, SQL Server `encrypt`/`trustServerCertificate` 등). 다른 드라이버는 Properties 표를 쓰며, Properties 표가 항상 우선합니다.
+- **Diagram**(트리 도구 막대나 메뉴, 스키마나 선택한 테이블에서): 테이블과 열(PK, FK 표시), 외래 키 선을 키 방향에 따라 층으로 배치해 편집기 탭에 그립니다. 끌어서 화면이나 테이블을 옮기고, 휠로 확대·축소하고, **Export as PNG**로 저장합니다. 테이블은 200개까지입니다.
+- 테이블의 **Import Data from CSV…**: 구분자, 따옴표, 헤더 여부를 추측하고 바꿀 수 있으며, 처음 50행을 미리 보고, 열마다 CSV 열(헤더 이름, 없으면 위치)을 고르거나 뺍니다. 백그라운드에서 한 트랜잭션 안에 묶음 INSERT로 넣고(취소 가능), 잘못된 행이 있으면 전체를 되돌리고 그 줄 번호를 알려 줍니다. 수동 커밋 데이터 소스에서는 열린 트랜잭션에 들어가 Database Changes에서 기다립니다.
+- **Explain Plan / Explain Analyze**: 계획을 비용, 행 수, 시간 열이 있는 트리로 보여 주고 가장 비싼 단계를 빨간색으로 표시합니다. 텍스트 형태는 두 번째 탭에 있습니다(PostgreSQL, MySQL/MariaDB는 JSON으로, MySQL의 EXPLAIN ANALYZE 트리와 H2 텍스트는 들여쓰기로 읽습니다).
+- 비밀번호(SSH 비밀번호와 키 패스프레이즈 포함)는 IDE 비밀번호 저장소에만 저장하고, 프로젝트 파일에는 남기지 않습니다.
 - IDE 시작 때는 아무것도 하지 않습니다. `.sql` 파일이나 툴 윈도우를 열 때 코드를 불러옵니다.
 
 프로젝트가 프리셋 드라이버 중 하나에 의존하면 Phantom이 이 플러그인 설치를 제안합니다.
