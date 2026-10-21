@@ -57,21 +57,33 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
     val mutex = Mutex()
     var connection: Connection? = null
     var idleClose: Job? = null
+    /** The schema a console chose for [connection]; null while it is in the one it opened in. */
+    var schema: String? = null
+    /** The schema [connection] opened in, read before the first switch so "default" can go back to it. */
+    var openedIn: String? = null
   }
 
   private val loaders = ConcurrentHashMap<List<Path>, URLClassLoader>()
   private val drivers = ConcurrentHashMap<Pair<List<Path>, String>, Driver>()
   private val sessions = ConcurrentHashMap<Pair<String, Purpose>, Session>()
 
-  /** Runs [block] with the data source's connection for [purpose], opening it when needed. Calls are serialized. */
-  suspend fun <T> withConnection(dataSource: DbDataSource, purpose: Purpose, block: suspend (Connection) -> T): T {
+  /**
+   * Runs [block] with the data source's connection for [purpose], opening it when needed. Calls are serialized.
+   * [schema]: the schema (catalog in MySQL) to run in first, "" for the one the connection opened in, null to leave it.
+   */
+  suspend fun <T> withConnection(dataSource: DbDataSource, purpose: Purpose, schema: String? = null, block: suspend (Connection) -> T): T {
     val session = sessions.computeIfAbsent(dataSource.id to purpose) { Session() }
     return session.mutex.withLock {
       session.idleClose?.cancel()
       try {
         withContext(Dispatchers.IO) {
-          val connection = session.connection?.takeUnless { it.isClosed } ?: open(dataSource, null).also { session.connection = it }
+          val connection = session.connection?.takeUnless { it.isClosed } ?: open(dataSource, null).also {
+            session.connection = it
+            session.schema = null
+            session.openedIn = null
+          }
           try {
+            if (schema != null) useSchema(dataSource, session, connection, schema)
             block(connection)
           }
           catch (e: SQLException) {
@@ -199,6 +211,22 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
     }
   }
 
+  /** Switches [connection] to [schema] ("" = where it opened) unless it is there already. */
+  private fun useSchema(dataSource: DbDataSource, session: Session, connection: Connection, schema: String) {
+    if (schema == session.schema.orEmpty()) return
+    val catalogs = switchesCatalog(dataSource.dialect(), connection.metaData)
+    val openedIn = session.openedIn ?: (if (catalogs) connection.catalog else connection.schema).orEmpty().also { session.openedIn = it }
+    val target = schema.ifEmpty { openedIn }
+    try {
+      if (target.isNotEmpty()) if (catalogs) connection.catalog = target else connection.schema = target
+    }
+    catch (_: AbstractMethodError) {
+      // a driver older than JDBC 4.1
+      throw DbException(PhantomDbBundle.message("db.schema.unsupported", target))
+    }
+    session.schema = schema.ifEmpty { null }
+  }
+
   private fun closeQuietly(session: Session) {
     session.idleClose = null
     val c = session.connection ?: return
@@ -231,6 +259,16 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
 
     fun getInstance(project: Project): DbConnectionService = project.service()
   }
+}
+
+/**
+ * Whether choosing a console schema sets the connection's catalog (MySQL, MariaDB; another JDBC driver that has
+ * catalogs but no schemas) rather than its schema.
+ */
+internal fun switchesCatalog(dialect: Dbms, md: DatabaseMetaData): Boolean = when {
+  dialect.usesCatalogs -> true
+  dialect != Dbms.GENERIC -> false
+  else -> runCatching { !md.supportsSchemasInDataManipulation() && md.supportsCatalogsInDataManipulation() }.getOrDefault(false)
 }
 
 /** Runs [block] with [loader] as this thread's context class loader, then puts the previous one back. */
@@ -295,10 +333,14 @@ object DbExecutor {
   private val LOG = logger<DbExecutor>()
   private const val LOB_LIMIT = 4096
 
-  /** Runs [statements] in order and stops at the first failure. Cancelling the coroutine cancels the running statement. */
-  suspend fun execute(project: Project, dataSource: DbDataSource, statements: List<String>, onOutcome: suspend (DbOutcome) -> Unit = {}): List<DbOutcome> {
+  /**
+   * Runs [statements] in order and stops at the first failure. Cancelling the coroutine cancels the running statement.
+   * [schema] as in [DbConnectionService.withConnection]; a schema that cannot be chosen throws its [SQLException].
+   */
+  suspend fun execute(project: Project, dataSource: DbDataSource, statements: List<String>, schema: String? = null,
+                      onOutcome: suspend (DbOutcome) -> Unit = {}): List<DbOutcome> {
     val outcomes = ArrayList<DbOutcome>()
-    DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.CONSOLE) { connection ->
+    DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.CONSOLE, schema) { connection ->
       for (sql in statements) {
         val outcome = runOne(connection, dataSource, sql)
         outcomes.addAll(outcome)

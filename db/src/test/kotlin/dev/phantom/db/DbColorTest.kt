@@ -128,9 +128,14 @@ class DbColorTest : BasePlatformTestCase() {
     val red = source("red", "red")
     val file = myFixture.configureByText("q.sql", "SELECT 1").virtualFile
     val panel = DbResultsToolWindow.tabFor(project, file, red)
-    assertEquals(DbColors.stripe("red"), (panel.border as MatteBorder).matteColor)
-    DbDataSourceService.getInstance(project).save(red.copy().apply { color = "" }, null)
-    com.intellij.testFramework.PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
-    assertFalse(panel.border is MatteBorder)
+    try {
+      assertEquals(DbColors.stripe("red"), (panel.border as MatteBorder).matteColor)
+      DbDataSourceService.getInstance(project).save(red.copy().apply { color = "" }, null)
+      com.intellij.testFramework.PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+      assertFalse(panel.border is MatteBorder)
+    }
+    finally {
+      com.intellij.openapi.wm.ToolWindowManager.getInstance(project).getToolWindow(DbResultsToolWindow.ID)?.contentManager?.removeAllContents(true)
+    }
   }
 }

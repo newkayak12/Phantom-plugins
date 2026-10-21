@@ -120,6 +120,9 @@
     <action id="PhantomDb.SelectDataSource" class="dev.phantom.db.core.exec.SqlSelectDataSourceAction">
       <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.RunStatement"/>
     </action>
+    <action id="PhantomDb.SelectSchema" class="dev.phantom.db.core.exec.SqlSelectSchemaAction" icon="AllIcons.Nodes.DataSchema">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.SelectDataSource"/>
+    </action>
     <action id="PhantomDb.ShowHistory" class="dev.phantom.db.core.exec.DbShowHistoryAction" icon="AllIcons.Vcs.History">
       <keyboard-shortcut keymap="$default" first-keystroke="control alt E"/>
       <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.SelectDataSource"/>
