@@ -137,10 +137,10 @@ class DbDataToolsTest : BasePlatformTestCase() {
   }
 
   fun testExplainPerDialect() {
-    assertEquals("EXPLAIN SELECT 1", DbExplain.sql(Dbms.MYSQL, "SELECT 1;", analyze = false))
+    assertEquals("EXPLAIN FORMAT=JSON SELECT 1", DbExplain.sql(Dbms.MYSQL, "SELECT 1;", analyze = false))
     assertEquals("EXPLAIN ANALYZE SELECT 1", DbExplain.sql(Dbms.MYSQL, "SELECT 1", analyze = true))
-    assertEquals("ANALYZE SELECT 1", DbExplain.sql(Dbms.MARIADB, "SELECT 1", analyze = true))
-    assertEquals("EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) SELECT 1", DbExplain.sql(Dbms.POSTGRESQL, "SELECT 1", analyze = true))
+    assertEquals("ANALYZE FORMAT=JSON SELECT 1", DbExplain.sql(Dbms.MARIADB, "SELECT 1", analyze = true))
+    assertEquals("EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT 1", DbExplain.sql(Dbms.POSTGRESQL, "SELECT 1", analyze = true))
     val ds = h2()
     exec(ds, "CREATE TABLE t (id INT PRIMARY KEY)")
     val plan = rows(ds, DbExplain.sql(Dbms.H2, "SELECT * FROM t WHERE id = 1", analyze = false)!!)

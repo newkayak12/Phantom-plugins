@@ -221,11 +221,11 @@ object DbRunner {
    * source is known (Explain needs its dialect), or return null to stop.
    */
   fun run(project: Project, file: VirtualFile, statements: List<String>, popupOwner: Component?,
-          prepare: ((DbDataSource) -> List<String>?)? = null) {
+          present: ((DbResultPanel, List<DbOutcome>) -> Unit)? = null, prepare: ((DbDataSource) -> List<String>?)? = null) {
     val sql = statements.map { it.trim() }.filter { it.isNotEmpty() }
     if (sql.isEmpty()) return
     fun go(dataSource: DbDataSource) {
-      start(project, file, dataSource, if (prepare == null) sql else prepare(dataSource) ?: return)
+      start(project, file, dataSource, if (prepare == null) sql else prepare(dataSource) ?: return, present)
     }
     val chosen = DbConsoles.dataSourceFor(project, file)
     val all = DbDataSourceService.getInstance(project).dataSources
@@ -313,7 +313,9 @@ object DbRunner {
   /** The schema statements from [file] run in: the default (where the connection opened) unless one was chosen. */
   fun executionSchema(project: Project, file: VirtualFile): DbSchemaChoice = DbConsoles.schemaFor(project, file) ?: DbSchemaChoice.DEFAULT
 
-  fun start(project: Project, file: VirtualFile, dataSource: DbDataSource, statements: List<String>) {
+  /** [present]: shows the outcomes instead of the usual result grid (Explain shows a plan tree). */
+  fun start(project: Project, file: VirtualFile, dataSource: DbDataSource, statements: List<String>,
+            present: ((DbResultPanel, List<DbOutcome>) -> Unit)? = null) {
     val names = DbParameters.names(statements)
     val sql = if (names.isEmpty()) statements else DbParameters.substitute(statements, DbParameters.ask(project, statements, names) ?: return)
     when (val verdict = SqlSafety.check(dataSource, sql)) {
@@ -335,7 +337,7 @@ object DbRunner {
     val job = DbConnectionService.getInstance(project).launch {
       try {
         val outcomes = DbExecutor.execute(project, dataSource, sql, schema = schema)
-        withContext(Dispatchers.EDT) { panel.showOutcomes(outcomes) }
+        withContext(Dispatchers.EDT) { if (present != null) present(panel, outcomes) else panel.showOutcomes(outcomes) }
       }
       catch (e: CancellationException) {
         withContext(Dispatchers.EDT + NonCancellable) { panel.showError(PhantomDbBundle.message("db.run.cancelled")) }

@@ -128,6 +128,23 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
     replace(top, center, status, disposable)
   }
 
+  @get:TestOnly
+  var shownPlan: DbPlan? = null
+    private set
+
+  /** An EXPLAIN result as a plan tree; anything that is not one plan (a failure, no rows) shows as usual. */
+  fun showPlan(outcomes: List<DbOutcome>) {
+    val rows = outcomes.singleOrNull() as? DbOutcome.Rows
+    val plan = rows?.let { DbPlan.parse(it) }
+    if (rows == null || plan == null) return showOutcomes(outcomes)
+    val top = row()
+    val status = PhantomDbBundle.message("db.plan.status", plan.root.all().count(), rows.elapsedMs)
+    top.add(JBLabel(status, AllIcons.General.InspectionsOK, JBLabel.LEFT))
+    top.add(JBLabel(SqlSafety.preview(rows.sql)).apply { foreground = UIUtil.getContextHelpForeground() })
+    replace(top, DbPlanView(plan), status)
+    shownPlan = plan
+  }
+
   private fun summary(outcome: DbOutcome): String = when (outcome) {
     is DbOutcome.Rows -> PhantomDbBundle.message("db.run.rows", outcome.rows.size, if (outcome.truncated) "+" else "", outcome.elapsedMs)
     is DbOutcome.Updated -> PhantomDbBundle.message("db.run.updated", outcome.count, outcome.elapsedMs) +
@@ -195,6 +212,7 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
     shown = disposable
     disposable?.let { Disposer.register(this, it) }
     if (disposable == null) shownRows = null
+    shownPlan = null
     shownStatus = status
     removeAll()
     add(north, BorderLayout.NORTH)
