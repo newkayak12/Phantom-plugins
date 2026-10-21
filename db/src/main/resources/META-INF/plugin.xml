@@ -31,6 +31,9 @@
   SSH/SSL tab. Diagram on a schema or selected tables draws them with their foreign keys (pan, zoom, drag, PNG export);
   Import Data from CSV on a table maps columns by header and inserts in batches in one transaction; Explain Plan shows
   the plan as a tree with cost, rows and time and the costliest step highlighted.
+  Results grid: WHERE / ORDER BY fields with column completion and history, header clicks sorting a table on the server,
+  a Value Viewer (JSON, XML, hex, images), Transpose, selection sum/avg/min/max, pinned result tabs, and Copy/Export as
+  TSV, CSV, JSON, SQL INSERT, Markdown or HTML (a whole table streamed to a file).
   ]]></description>
 
   <dependencies>
