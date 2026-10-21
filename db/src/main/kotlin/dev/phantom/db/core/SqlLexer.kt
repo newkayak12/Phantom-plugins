@@ -50,6 +50,8 @@ class SqlLexer : LexerBase() {
         token(SqlTokens.STRING, quotedEnd(tokenStart + 2, '\'', backslash = true))
       c == '`' -> token(SqlTokens.QUOTED_IDENTIFIER, quotedEnd(tokenStart + 1, '`', backslash = false))
       c == '"' -> token(SqlTokens.QUOTED_IDENTIFIER, quotedEnd(tokenStart + 1, '"', backslash = false))
+      // `\"name\"`: a quoted name in SQL injected into a Java or Kotlin string, whose text keeps the escapes
+      c == '\\' && next == '"' && escapedQuoteEnd(tokenStart + 2) > 0 -> token(SqlTokens.QUOTED_IDENTIFIER, escapedQuoteEnd(tokenStart + 2))
       c == '[' && isNameStart(next) && bracketIdentifierEnd(tokenStart) > 0 -> token(SqlTokens.QUOTED_IDENTIFIER, bracketIdentifierEnd(tokenStart))
       c == '$' -> dollar()
       c.isDigit() || c == '.' && next.isDigit() -> token(SqlTokens.NUMBER, numberEnd(tokenStart))
@@ -124,6 +126,17 @@ class SqlLexer : LexerBase() {
       i++
     }
     return end
+  }
+
+  /** The end of `\"…\"` whose text starts at [from], or -1 when it does not close on the line. */
+  private fun escapedQuoteEnd(from: Int): Int {
+    var i = from
+    while (i < end && buffer[i] != '\n') {
+      if (buffer[i] == '\\' && at(i + 1) == '"') return if (i > from) i + 2 else -1
+      if (buffer[i] == '"') return -1
+      i++
+    }
+    return -1
   }
 
   private fun bracketIdentifierEnd(from: Int): Int {

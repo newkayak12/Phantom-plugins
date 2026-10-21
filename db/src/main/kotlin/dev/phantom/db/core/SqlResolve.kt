@@ -13,7 +13,6 @@ import com.intellij.lang.findUsages.FindUsagesProvider
 import com.intellij.navigation.ItemPresentation
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
@@ -53,7 +52,7 @@ class SqlDbTarget(private val context: PsiElement, val dataSource: DbDataSource,
   override fun setName(name: String): PsiElement = this
   /** SQL is in project files and in the consoles under Scratches. */
   override fun getUseScope(): com.intellij.psi.search.SearchScope =
-    com.intellij.psi.search.GlobalSearchScope.projectScope(project).union(com.intellij.ide.scratch.ScratchesSearchScope.getScratchesScope(project))
+    withConsoles(project, com.intellij.psi.search.GlobalSearchScope.projectScope(project))
   override fun equals(other: Any?): Boolean =
     other is SqlDbTarget && other.dataSource.id == dataSource.id && other.table == table && other.column?.name == column?.name
   override fun hashCode(): Int = (dataSource.id.hashCode() * 31 + table.hashCode()) * 31 + column?.name.hashCode()
@@ -138,8 +137,20 @@ object SqlResolver {
   }
 }
 
+/**
+ * Whether a name in [element]'s file could be [target], checked without resolving: the same name, in a file of the
+ * target's data source. Searches ask this of every candidate word, so a file of another data source is never loaded
+ * (or connected to) for them.
+ */
+private fun couldBe(element: PsiElement, name: String, target: PsiElement): Boolean {
+  if (target !is SqlDbTarget) return true
+  if (!SqlNames.same(name, target.name)) return false
+  return SqlSchema.dataSourceFor(element.containingFile, strict = false)?.id == target.dataSource.id
+}
+
 class SqlTableReference(element: SqlTableRef) : PsiReferenceBase<SqlTableRef>(element, element.nameRange, true) {
   override fun resolve(): PsiElement? = (SqlResolver.table(element) as? SqlResolution.Found)?.target
+  override fun isReferenceTo(target: PsiElement): Boolean = couldBe(element, element.tableName, target) && super.isReferenceTo(target)
 }
 
 class SqlQualifierReference(element: SqlQualifier) : PsiReferenceBase<SqlQualifier>(element, element.nameRange, true) {
@@ -148,10 +159,12 @@ class SqlQualifierReference(element: SqlQualifier) : PsiReferenceBase<SqlQualifi
     is SqlResolution.Found -> (r.target as? SqlTableRef)?.let { (SqlResolver.table(it) as? SqlResolution.Found)?.target ?: it } ?: r.target
     else -> null
   }
+  override fun isReferenceTo(target: PsiElement): Boolean = couldBe(element, element.qualifierName, target) && super.isReferenceTo(target)
 }
 
 class SqlColumnReference(element: SqlColumnRef) : PsiReferenceBase<SqlColumnRef>(element, element.nameRange, true) {
   override fun resolve(): PsiElement? = (SqlResolver.column(element) as? SqlResolution.Found)?.target
+  override fun isReferenceTo(target: PsiElement): Boolean = couldBe(element, element.columnName, target) && super.isReferenceTo(target)
 }
 
 /**
@@ -212,7 +225,7 @@ class SqlUnresolvedTableInspection : SqlUnresolvedInspection() {
       schema.columns(dataSource, target.table, load = false)?.any { SqlNames.same(it.name, column) } == true
     }
     if (column == null && candidates.size != 1) return emptyList()
-    return candidates.take(3).map { SqlAddAliasFix(it, q.qualifierName) }
+    return candidates.take(3).map { SqlAddAliasFix(it, q.nameRange.substring(q.text)) }
   }
 }
 
@@ -234,8 +247,8 @@ class SqlUnresolvedColumnInspection : SqlUnresolvedInspection() {
       for (table in SqlScopes.direct(scope, SqlTableRef::class.java)) {
         val target = (SqlResolver.table(table, load = false) as? SqlResolution.Found)?.target as? SqlDbTarget ?: continue
         if (schema.columns(dataSource, target.table, load = false)?.any { SqlNames.same(it.name, ref.columnName) } != true) continue
-        val name = table.alias?.name ?: table.tableName
-        if (!SqlNames.same(name, q.qualifierName)) names += name
+        val name = table.alias?.text ?: table.nameRange.substring(table.text)
+        if (!SqlNames.same(SqlNames.unquote(name), q.qualifierName)) names += name
       }
     }
     return names.distinct().take(3).map { SqlQualifyFix(q, it) }
@@ -257,7 +270,10 @@ class SqlUnresolvedColumnInspection : SqlUnresolvedInspection() {
   }
 }
 
-/** Adds an alias after a table reference: `FROM guest` → `FROM guest g`. */
+/**
+ * Adds an alias after a table reference (`FROM guest` → `FROM guest g`) and writes it for the other qualifiers that
+ * named the table (`guest.id` → `g.id`), which the alias would hide.
+ */
 class SqlAddAliasFix(table: SqlTableRef, private val alias: String) : LocalQuickFixOnPsiElement(table) {
   private val tableName = table.tableName
 
@@ -265,21 +281,23 @@ class SqlAddAliasFix(table: SqlTableRef, private val alias: String) : LocalQuick
   override fun getText(): String = PhantomDbBundle.message("sql.fix.add.alias.to", alias, tableName)
 
   override fun invoke(project: Project, file: PsiFile, startElement: PsiElement, endElement: PsiElement) {
-    val document = PsiDocumentManager.getInstance(project).getDocument(file) ?: return
-    document.insertString(startElement.textRange.endOffset, " $alias")
-    PsiDocumentManager.getInstance(project).commitDocument(document)
+    val table = startElement as? SqlTableRef ?: return
+    val statement = PsiTreeUtil.getParentOfType(table, SqlStatement::class.java) ?: return
+    val qualifiers = PsiTreeUtil.findChildrenOfType(statement, SqlQualifier::class.java)
+      .filter { (SqlResolver.qualifier(it) as? SqlResolution.Found)?.target == table }
+    val edits = listOfNotNull(SqlTextEdits.edit(file, TextRange.from(table.textRange.endOffset, 0), " $alias")) +
+                qualifiers.mapNotNull { SqlTextEdits.edit(file, it.textRange, alias) }
+    SqlTextEdits.apply(project, edits)
   }
 }
 
-/** Replaces the qualifier of a column: `r.name` → `g.name`. */
+/** Replaces the qualifier of a column with the table or alias that has it, as that one is written: `r.name` → `g.name`. */
 class SqlQualifyFix(qualifier: SqlQualifier, private val name: String) : LocalQuickFixOnPsiElement(qualifier) {
-  override fun getFamilyName(): String = PhantomDbBundle.message("sql.fix.qualify", name)
-  override fun getText(): String = familyName
+  override fun getFamilyName(): String = PhantomDbBundle.message("sql.fix.qualify.family")
+  override fun getText(): String = PhantomDbBundle.message("sql.fix.qualify", name)
 
   override fun invoke(project: Project, file: PsiFile, startElement: PsiElement, endElement: PsiElement) {
-    val document = PsiDocumentManager.getInstance(project).getDocument(file) ?: return
-    document.replaceString(startElement.textRange.startOffset, startElement.textRange.endOffset, name)
-    PsiDocumentManager.getInstance(project).commitDocument(document)
+    SqlTextEdits.apply(project, listOfNotNull(SqlTextEdits.edit(file, startElement.textRange, name)))
   }
 }
 

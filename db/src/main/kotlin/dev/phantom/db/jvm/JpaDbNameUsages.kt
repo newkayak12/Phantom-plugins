@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.ElementManipulators
 import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiClassType
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiLanguageInjectionHost
 import com.intellij.psi.PsiReference
@@ -23,6 +24,7 @@ import org.jetbrains.uast.UAnnotation
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UClass
 import org.jetbrains.uast.UElement
+import org.jetbrains.uast.UField
 import org.jetbrains.uast.UExpression
 import org.jetbrains.uast.UMethod
 import org.jetbrains.uast.getParentOfType
@@ -48,6 +50,8 @@ class JpaDbNameSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Searc
     val scope = parameters.effectiveSearchScope as? GlobalSearchScope ?: return
     val project = parameters.project
     if (!JpaSchemaModel.isJpaProject(project)) return
+    // the entities map the data source the configuration names: names of another data source's tables are not theirs
+    if (JpaSchemaModel.dataSource(project)?.id != target.dataSource.id) return
     val seen = HashSet<PsiElement>()
     PsiSearchHelper.getInstance(project).processElementsWithWord({ element, _ ->
       val host = element as? PsiLanguageInjectionHost
@@ -61,12 +65,17 @@ class JpaDbNameSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Searc
     val expression = host.toUElement() as? UExpression ?: return null
     val value = expression.evaluate() as? String ?: return null
     val (annotation, attribute) = annotationOf(expression) ?: return null
-    if (attribute != "name") return null
     val name = annotation.qualifiedName ?: return null
     val column = target.column
+    // join columns of a join or collection table are that table's, not the entity's
+    if (name in JOIN_COLUMN && annotation.uastParent.let { generateSequence(it) { p -> p.uastParent } }
+        .any { it is UAnnotation && it.qualifiedName in JOIN_TABLES }) return null
     val matches = when {
-      column == null -> name in TABLE && SqlNames.same(value, target.table.name)
-      name in COLUMN -> SqlNames.same(value, column.name) && entityTable(annotation)?.let { SqlNames.same(it, target.table.name) } == true
+      column == null -> attribute == "name" && name in TABLE && SqlNames.same(value, target.table.name)
+      attribute == "name" && name in COLUMN -> SqlNames.same(value, column.name) && entityTable(annotation)?.let { SqlNames.same(it, target.table.name) } == true
+      // @JoinColumn(referencedColumnName): a column of the table the attribute's type maps to
+      attribute == "referencedColumnName" && name in JOIN_COLUMN ->
+        SqlNames.same(value, column.name) && referencedTable(annotation)?.let { SqlNames.same(it, target.table.name) } == true
       else -> false
     }
     if (!matches) return null
@@ -76,6 +85,20 @@ class JpaDbNameSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Searc
   /** The table the entity declaring [annotation] maps to, as the configured naming makes it. */
   private fun entityTable(annotation: UAnnotation): String? {
     val psiClass = annotation.getParentOfType<UClass>()?.javaPsi as? PsiClass ?: return null
+    if (!JpaSchemaModel.isEntity(psiClass)) return null
+    val naming = JpaSchemaModel.naming(psiClass.project) ?: return null
+    return JpaSchemaModel.table(psiClass, naming).name
+  }
+
+  /** The table of the entity a to-one attribute annotated with [annotation] refers to. */
+  private fun referencedTable(annotation: UAnnotation): String? {
+    val owner = annotation.uastParent
+    val type = when (owner) {
+      is UField -> owner.type
+      is UMethod -> owner.returnType
+      else -> null
+    } as? PsiClassType ?: return null
+    val psiClass = type.resolve() ?: return null
     if (!JpaSchemaModel.isEntity(psiClass)) return null
     val naming = JpaSchemaModel.naming(psiClass.project) ?: return null
     return JpaSchemaModel.table(psiClass, naming).name
@@ -98,6 +121,9 @@ class JpaDbNameSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.Searc
 
   private companion object {
     val TABLE = setOf("jakarta.persistence.Table", "javax.persistence.Table")
-    val COLUMN = setOf("jakarta.persistence.Column", "javax.persistence.Column", "jakarta.persistence.JoinColumn", "javax.persistence.JoinColumn")
+    val JOIN_COLUMN = setOf("jakarta.persistence.JoinColumn", "javax.persistence.JoinColumn")
+    val COLUMN = setOf("jakarta.persistence.Column", "javax.persistence.Column") + JOIN_COLUMN
+    val JOIN_TABLES = setOf("jakarta.persistence.JoinTable", "javax.persistence.JoinTable", "jakarta.persistence.CollectionTable",
+                            "javax.persistence.CollectionTable")
   }
 }

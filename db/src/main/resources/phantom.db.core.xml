@@ -109,6 +109,7 @@
     <lang.formatter language="SQL" implementationClass="dev.phantom.db.core.SqlFormattingModelBuilder"/>
     <lang.findUsagesProvider language="SQL" implementationClass="dev.phantom.db.core.SqlFindUsagesProvider"/>
     <referencesSearch implementation="dev.phantom.db.core.SqlDbReferenceSearcher"/>
+    <findUsagesHandlerFactory implementation="dev.phantom.db.core.SqlDbFindUsagesHandlerFactory"/>
     <renamePsiElementProcessor implementation="dev.phantom.db.core.SqlDbRenameProcessor"/>
     <lang.elementManipulator forClass="dev.phantom.db.core.SqlTableRef" implementationClass="dev.phantom.db.core.SqlNameManipulator"/>
     <lang.elementManipulator forClass="dev.phantom.db.core.SqlColumnRef" implementationClass="dev.phantom.db.core.SqlNameManipulator"/>

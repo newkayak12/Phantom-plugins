@@ -167,9 +167,9 @@ class SqlEditorTest : BasePlatformTestCase() {
     val file = sql("SELECT c.name FROM customer c JOIN orders o ON o.customer_id = c.id")
     val target = targetAt(file, "customer c")
     assertEquals(4, myFixture.findUsages(target).size)
-    myFixture.renameElement(target, "CLIENT")
+    myFixture.renameElement(target, "client")
     assertEquals("SELECT c.name FROM client c JOIN orders o ON o.customer_id = c.id", file.text)
-    // quoted names keep their quotes and take the new name's case; others keep their own case
+    // quoted names keep their quotes and take the case H2 stores the unquoted name in; others keep their own case
     assertEquals("UPDATE client SET name = 'x';\nSELECT \"CLIENT\".id FROM \"CLIENT\"", other.text)
   }
 
@@ -191,6 +191,50 @@ class SqlEditorTest : BasePlatformTestCase() {
     val file = sql("SELECT name FROM customer")
     assertEquals("ALTER TABLE PUBLIC.CUSTOMER RENAME TO client", SqlRename.alterStatement(targetAt(file, "customer"), "client"))
     assertEquals("ALTER TABLE PUBLIC.CUSTOMER ALTER COLUMN NAME RENAME TO full_name", SqlRename.alterStatement(targetAt(file, "name"), "full_name"))
+  }
+
+  fun testQuotedNamesTakeTheStoredCase() {
+    assertEquals("\"CLIENT\"", SqlRename.nameText("\"CUSTOMER\"", "client", Dbms.H2))
+    assertEquals("\"client\"", SqlRename.nameText("\"Customer\"", "Client", Dbms.POSTGRESQL))
+    assertEquals("`Client`", SqlRename.nameText("`customer`", "Client", Dbms.MYSQL))
+    assertEquals("\"my \"\"x\"\"\"", SqlRename.nameText("\"a\"", "my \"x\"", Dbms.H2))
+    assertEquals("CLIENT", SqlRename.nameText("CUSTOMER", "client", Dbms.H2))
+  }
+
+  /** The ALTER goes into the console the rename started from, or the data source's first console. */
+  fun testAlterIsWrittenToTheConsole() {
+    preload()
+    val first = DbConsoles.consoleFile(ds)!!
+    val second = DbConsoles.newConsoleFile(ds)!!
+    com.intellij.openapi.application.WriteAction.run<Throwable> { com.intellij.openapi.vfs.VfsUtil.saveText(second, "SELECT name FROM customer") }
+    val console = com.intellij.psi.PsiManager.getInstance(project).findFile(second) as SqlFile
+    val target = targetAt(console, "customer")
+    SqlDbRenameOptions.set(target, SqlDbRenameOptions(generateAlter = true))
+    myFixture.renameElement(target, "client")
+    val documents = com.intellij.openapi.fileEditor.FileDocumentManager.getInstance()
+    assertEquals("SELECT name FROM client\nALTER TABLE PUBLIC.CUSTOMER RENAME TO client;\n", documents.getDocument(second)!!.text)
+    assertEquals("", documents.getDocument(first)!!.text)
+
+    // from a .sql file: the first console
+    val file = sql("SELECT name FROM customer")
+    val column = targetAt(file, "name")
+    SqlDbRenameOptions.set(column, SqlDbRenameOptions(generateAlter = true))
+    myFixture.renameElement(column, "full_name")
+    assertEquals("ALTER TABLE PUBLIC.CUSTOMER ALTER COLUMN NAME RENAME TO full_name;\n", documents.getDocument(first)!!.text)
+  }
+
+  fun testAlterForGenericDataSourcesSaysToCheck() {
+    val generic = DbDataSource().apply { name = "g"; dbms = Dbms.GENERIC; url = "jdbc:x:y" }
+    val file = sql("SELECT 1")
+    val target = SqlDbTarget(file, generic, DbTableRef(generic.id, null, "S", "T", "TABLE"), null)
+    assertEquals("-- check for your database\nALTER TABLE S.T RENAME TO u", SqlRename.alterStatement(target, "u"))
+  }
+
+  fun testJoinOnConditionsAfterAndButNotForCrossJoins() {
+    preload()
+    assertContainsElements(complete("SELECT * FROM orders o JOIN customer c ON c.name = 'x' AND <caret>"), "o.CUSTOMER_ID = c.ID")
+    assertDoesntContain(complete("SELECT * FROM orders o NATURAL JOIN customer c ON <caret>"), "o.CUSTOMER_ID = c.ID")
+    assertDoesntContain(complete("SELECT * FROM orders o CROSS JOIN customer c ON <caret>"), "o.CUSTOMER_ID = c.ID")
   }
 
   private fun warnings() = myFixture.doHighlighting(HighlightSeverity.WARNING).filter { it.severity == HighlightSeverity.WARNING }.map { it.description }
@@ -215,10 +259,20 @@ class SqlEditorTest : BasePlatformTestCase() {
     myFixture.launchAction(myFixture.findSingleIntention("Add alias 'g' to customer"))
     assertEquals("SELECT g.name FROM customer g", myFixture.editor.document.text)
 
+    // the alias hides the table name: other qualifiers that used it change too
+    sql("SELECT <caret>g.name, customer.id FROM customer WHERE customer.id > 0")
+    myFixture.launchAction(myFixture.findSingleIntention("Add alias 'g' to customer"))
+    assertEquals("SELECT g.name, g.id FROM customer g WHERE g.id > 0", myFixture.editor.document.text)
+
     sql("SELECT o.<caret>name FROM orders o JOIN customer c ON c.id = o.customer_id")
     assertSameElements(warnings(), "Unknown column 'name'")
     myFixture.launchAction(myFixture.findSingleIntention("Qualify with 'c'"))
     assertEquals("SELECT c.name FROM orders o JOIN customer c ON c.id = o.customer_id", myFixture.editor.document.text)
+
+    // the alias as written, quotes and all
+    sql("SELECT o.<caret>name FROM orders o JOIN customer \"C\" ON \"C\".id = o.customer_id")
+    myFixture.launchAction(myFixture.findSingleIntention("Qualify with '\"C\"'"))
+    assertEquals("SELECT \"C\".name FROM orders o JOIN customer \"C\" ON \"C\".id = o.customer_id", myFixture.editor.document.text)
   }
 
   fun testUnresolvedNamesInAnUnlistedSchemaAreLeftAlone() {

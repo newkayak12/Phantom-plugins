@@ -43,6 +43,6 @@ class SqlColumnsMacro : MacroBase("phantomSqlColumns", "phantomSqlColumns(table)
     val parts = name.split('.').map(SqlNames::unquote)
     val table = snapshot.find(parts.last(), parts.dropLast(1).lastOrNull()).firstOrNull() ?: return null
     val columns = schema.columnsNoWait(dataSource, table) ?: return null
-    return TextResult(columns.joinToString(", ") { DbNames.quote(dataSource.dialect(), it.name) })
+    return TextResult(columns.joinToString(", ") { DbNames.identifier(dataSource.dialect(), it.name) })
   }
 }

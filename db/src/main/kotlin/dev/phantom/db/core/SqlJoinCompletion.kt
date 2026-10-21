@@ -29,16 +29,16 @@ internal class SqlJoinCompletion(private val dataSource: DbDataSource, private v
 
   class Condition(val text: String, val foreignKey: Boolean)
 
-  /** `ON <caret>` after `JOIN t [a]`: conditions joining t to the tables before it. */
+  /** `ON <caret>` (or `ON ... AND <caret>`) after `JOIN t [a]`: conditions joining t to the tables before it. */
   fun addOnConditions(column: SqlColumnRef, result: CompletionResultSet) {
     if (column.qualifier != null || column.isInsertColumn) return
-    val on = PsiTreeUtil.skipWhitespacesAndCommentsBackward(column) ?: return
-    if (on.node.elementType != SqlTokens.KEYWORD || !on.text.equals("ON", ignoreCase = true)) return
+    val on = onBefore(column) ?: return
     val joined = when (val before = PsiTreeUtil.skipWhitespacesAndCommentsBackward(on)) {
       is SqlAlias -> before.table
       is SqlTableRef -> before
       else -> null
     } ?: return
+    if (isCrossOrNatural(joined)) return
     val new = side(joined) ?: return
     val keyword = keywordCase(on.text)
     val seen = HashSet<String>()
@@ -65,16 +65,20 @@ internal class SqlJoinCompletion(private val dataSource: DbDataSource, private v
     val dbms = dataSource.dialect()
     val keyword = keywordCase(joinKeyword)
     val seen = HashSet<String>()
+    // one lookup per name instead of a scan of every table for each key
+    val byName = snapshot.tables.groupBy { it.name.lowercase() }
+    fun find(name: String, schema: String?) = byName[name.lowercase()].orEmpty().filter { schema == null || SqlNames.same(it.schema ?: it.catalog.orEmpty(), schema) }
+    val aliases = HashMap<DbTableRef, String>()
     for (e in existing) {
       val (imported, referencing) = keys(e.table) ?: continue
       val links = imported.map { it.refTable to it } + referencing.map { it.table to it }
       for ((other, fk) in links) {
-        val table = snapshot.find(other.name, other.schema ?: other.catalog).firstOrNull() ?: snapshot.find(other.name, null).firstOrNull() ?: continue
-        val alias = alias(table.name, taken)
+        val table = find(other.name, other.schema ?: other.catalog).firstOrNull() ?: find(other.name, null).firstOrNull() ?: continue
+        val alias = aliases.getOrPut(table) { alias(table.name, taken) }
         val condition = linkCondition(fk, e, Side(ref, table, alias), keyword) ?: continue
-        val unqualified = snapshot.find(table.name, null).firstOrNull()
+        val unqualified = find(table.name, null).firstOrNull()
         val tableText = if (unqualified == null || same(unqualified, table)) quote(table.name)
-                        else DbNames.qualified(dbms, table.schema ?: table.catalog, table.name)
+                        else listOfNotNull(table.schema ?: table.catalog, table.name).joinToString(".") { DbNames.identifier(dbms, it) }
         val text = "$tableText $alias ${keyword("ON")} $condition"
         if (!seen.add(text.lowercase())) continue
         result.addElement(PrioritizedLookupElement.withPriority(
@@ -137,9 +141,36 @@ internal class SqlJoinCompletion(private val dataSource: DbDataSource, private v
     return Side(ref, target.table, name)
   }
 
-  private fun quote(name: String): String = DbNames.quote(dataSource.dialect(), name)
+  /** The ON this condition belongs to: right before it, or before `... AND` within the same ON clause. */
+  private fun onBefore(column: SqlColumnRef): PsiElement? {
+    var e = PsiTreeUtil.skipWhitespacesAndCommentsBackward(column) ?: return null
+    if (isKeyword(e, "ON")) return e
+    if (!isKeyword(e, "AND")) return null
+    while (true) {
+      e = PsiTreeUtil.skipWhitespacesAndCommentsBackward(e) ?: return null
+      if (isKeyword(e, "ON")) return e
+      if (e.node.elementType == SqlTokens.KEYWORD && e.text.uppercase() in CLAUSES || e.node.elementType == SqlTokens.COMMA) return null
+    }
+  }
+
+  /** `CROSS JOIN t` and `NATURAL [LEFT] JOIN t` take no ON. */
+  private fun isCrossOrNatural(joined: SqlTableRef): Boolean {
+    var e = PsiTreeUtil.skipWhitespacesAndCommentsBackward(joined)
+    if (e == null || !isKeyword(e, "JOIN")) return false
+    while (true) {
+      e = PsiTreeUtil.skipWhitespacesAndCommentsBackward(e!!) ?: return false
+      if (isKeyword(e, "CROSS") || isKeyword(e, "NATURAL")) return true
+      if (!(isKeyword(e, "LEFT") || isKeyword(e, "RIGHT") || isKeyword(e, "FULL") || isKeyword(e, "INNER") || isKeyword(e, "OUTER"))) return false
+    }
+  }
+
+  private fun isKeyword(e: PsiElement, word: String) = e.node.elementType == SqlTokens.KEYWORD && e.text.equals(word, ignoreCase = true)
+
+  private fun quote(name: String): String = DbNames.identifier(dataSource.dialect(), name)
 
   companion object {
+    private val CLAUSES = setOf("SELECT", "FROM", "JOIN", "WHERE", "GROUP", "HAVING", "ORDER", "LIMIT", "USING", "SET", "UNION", "EXCEPT", "INTERSECT", "WINDOW")
+
     /** Tables are the same when name, schema and catalog agree; a side that does not say its schema or catalog matches any. */
     fun same(a: DbTableRef, b: DbTableRef): Boolean =
       SqlNames.same(a.name, b.name) && sameOrUnknown(a.schema, b.schema) && sameOrUnknown(a.catalog, b.catalog)

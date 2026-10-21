@@ -9,8 +9,8 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiComment
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
@@ -304,8 +304,6 @@ class SqlTextFix(
   override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
     val start = descriptor.startElement ?: return
     val end = descriptor.endElement ?: start
-    val documents = PsiDocumentManager.getInstance(project)
-    val document = documents.getDocument(start.containingFile) ?: return
     var from = start.textRange.startOffset
     var to = end.textRange.endOffset
     when (mode) {
@@ -314,8 +312,8 @@ class SqlTextFix(
       Mode.INSERT_BEFORE -> to = from
       Mode.INSERT_AFTER -> from = to
     }
-    document.replaceString(from, to, replacement)
-    documents.commitDocument(document)
+    // SQL in a Java or Kotlin string gets the text escaped for the string
+    SqlTextEdits.apply(project, listOfNotNull(SqlTextEdits.edit(start.containingFile, TextRange(from, to), replacement)))
   }
 }
 
@@ -647,7 +645,7 @@ class SqlSelectStarInjectedInspection : SqlInspection() {
       val target = (SqlResolver.table(ref, load = false) as? SqlResolution.Found)?.target as? SqlDbTarget ?: return null
       val columns = SqlSchema.getInstance(query.project).columns(dataSource, target.table, load = false) ?: return null
       val prefix = if (tables.size > 1) (ref.alias?.text ?: ref.text) + "." else ""
-      columns.map { prefix + dev.phantom.db.core.exec.DbNames.quote(dbms, it.name) }
+      columns.map { prefix + dev.phantom.db.core.exec.DbNames.identifier(dbms, it.name) }
     }
     return parts.flatten().joinToString(", ")
   }

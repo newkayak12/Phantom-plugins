@@ -18,6 +18,21 @@ object DbNames {
     return "$q${name.replace("$q", "$q$q")}$q"
   }
 
+  /**
+   * A name the database reports, written so it means exactly that name: [quote]d when it needs quotes or when it
+   * is not in the case an unquoted name folds to (upper in H2, lower in PostgreSQL).
+   */
+  fun identifier(dbms: Dbms, name: String): String {
+    val quoted = quote(dbms, name)
+    if (quoted != name) return quoted
+    val folds = when (dbms) {
+      Dbms.H2 -> name != name.uppercase()
+      Dbms.POSTGRESQL -> name != name.lowercase()
+      else -> false
+    }
+    return if (folds) "\"${name.replace("\"", "\"\"")}\"" else name
+  }
+
   /** `schema.table` (`catalog.table` in MySQL), or just the table when it has no qualifier. */
   fun table(dbms: Dbms, ref: DbTableRef): String = qualified(dbms, if (dbms.usesCatalogs) ref.catalog else ref.schema, ref.name)
 
