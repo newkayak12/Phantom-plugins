@@ -2,6 +2,15 @@
 package dev.phantom.db.core.ui
 
 import com.intellij.icons.AllIcons
+import com.intellij.ide.util.PropertiesComponent
+import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.ui.DocumentAdapter
+import com.intellij.ui.SearchTextField
+import com.intellij.ui.TreeSpeedSearch
+import java.awt.BorderLayout
+import javax.swing.JPanel
+import javax.swing.event.DocumentEvent
 import dev.phantom.db.core.dialect
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.*
@@ -57,12 +66,12 @@ class DbToolWindowFactory : ToolWindowFactory, DumbAware {
     const val ID: String = "Database"
 
     /** Opens the tool window, registering it first when the project did not qualify at opening. */
-    fun show(project: Project) {
+    fun show(project: Project, focus: Boolean = true) {
       val manager = ToolWindowManager.getInstance(project)
       val toolWindow = manager.getToolWindow(ID) ?: manager.registerToolWindow(
         RegisterToolWindowTask(ID, ToolWindowAnchor.RIGHT, contentFactory = DbToolWindowFactory(), icon = AllIcons.Nodes.DataTables,
                                stripeTitle = Supplier { PhantomDbBundle.message("toolwindow.stripe.Database") }))
-      toolWindow.activate(null)
+      if (focus) toolWindow.activate(null) else toolWindow.show()
     }
   }
 }
@@ -83,23 +92,59 @@ sealed interface DbNode {
   class Source(val dataSource: DbDataSource) : DbNode
   class Schema(val dataSource: DbDataSource, val ref: DbSchemaRef) : DbNode
   class Table(val dataSource: DbDataSource, val ref: DbTableRef) : DbNode
-  class Column(val info: DbColumnInfo) : DbNode
-  /** Keys, Foreign Keys and Indexes under a table; Routines and Triggers under a schema. Loaded when expanded. */
+  /** [foreignKey]: the column is part of a foreign key of its table. */
+  class Column(val info: DbColumnInfo, val foreignKey: Boolean = false) : DbNode
+  /**
+   * Object groups as in DataGrip, each loaded when expanded: Tables, Views, Materialized Views, Routines, Triggers and
+   * Sequences under a schema; Keys, Foreign Keys, Indexes and Triggers under a table; Consoles under a data source.
+   */
   class Folder(val dataSource: DbDataSource, val kind: Kind, val table: DbTableRef?, val schema: DbSchemaRef?) : DbNode {
-    enum class Kind(val key: String) { KEYS("db.tree.keys"), FOREIGN_KEYS("db.tree.foreign.keys"), INDEXES("db.tree.indexes"), ROUTINES("db.tree.routines"), TRIGGERS("db.tree.triggers") }
+    enum class Kind(val key: String) {
+      TABLES("db.tree.tables"), VIEWS("db.tree.views"), MATERIALIZED_VIEWS("db.tree.materialized.views"), ROUTINES("db.tree.routines"),
+      TRIGGERS("db.tree.triggers"), SEQUENCES("db.tree.sequences"),
+      KEYS("db.tree.keys"), FOREIGN_KEYS("db.tree.foreign.keys"), INDEXES("db.tree.indexes"), TABLE_TRIGGERS("db.tree.triggers"),
+      CONSOLES("db.tree.consoles")
+    }
   }
   class Key(val key: DbPrimaryKey) : DbNode
-  class ForeignKey(val fk: DbForeignKey) : DbNode
+  class ForeignKey(val dataSource: DbDataSource, val fk: DbForeignKey) : DbNode
   class Index(val index: DbIndex) : DbNode
   class Routine(val dataSource: DbDataSource, val routine: DbRoutine) : DbNode
   class Trigger(val dataSource: DbDataSource, val trigger: DbTrigger) : DbNode
+  class Sequence(val dataSource: DbDataSource, val sequence: DbSequence) : DbNode
+  class Console(val dataSource: DbDataSource, val file: VirtualFile) : DbNode
   data object Loading : DbNode
   class Message(val text: String, val error: Boolean) : DbNode
+
+  companion object {
+    /** The name the tree filter matches: database objects and consoles have one; data sources, schemas and folders do not. */
+    fun objectName(node: DbNode?): String? = when (node) {
+      is Table -> node.ref.name
+      is Routine -> node.routine.name
+      is Trigger -> node.trigger.name
+      is Sequence -> node.sequence.name
+      is Console -> node.file.nameWithoutExtension
+      else -> null
+    }
+
+    /** What speed search matches: the name each node shows first. */
+    fun text(node: DbNode?): String = objectName(node) ?: when (node) {
+      is Source -> node.dataSource.name
+      is Schema -> node.ref.name
+      is Column -> node.info.name
+      is Folder -> PhantomDbBundle.message(node.kind.key)
+      is Key -> node.key.name.orEmpty()
+      is ForeignKey -> node.fk.name.orEmpty()
+      is Index -> node.index.name
+      else -> ""
+    }
+  }
 }
 
 /**
- * Data sources → schemas → tables and views → columns. Children are loaded when a node is first expanded, on the
- * schema-tree connection, so a long console query does not block browsing.
+ * Data sources → schemas → object folders → objects → columns and table folders. Children are loaded when a node is
+ * first expanded, on the schema-tree connection, so a long console query does not block browsing. The filter field
+ * narrows what is loaded to objects whose name contains its text and hides folders left empty.
  */
 class DbExplorerPanel(private val project: Project, parent: Disposable) : SimpleToolWindowPanel(true, true) {
   private val root = DefaultMutableTreeNode()
@@ -112,6 +157,12 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
     }
   }
   private val loading = HashSet<DefaultMutableTreeNode>()
+  /** All children of each loaded node; the tree holds the ones the filter lets through. */
+  private val loaded = HashMap<DefaultMutableTreeNode, List<DefaultMutableTreeNode>>()
+  private val filterField = SearchTextField(false)
+  /** Lower-cased filter text; empty shows everything. */
+  private var filter = ""
+  private var expandedBeforeFilter: List<TreePath> = emptyList()
 
   init {
     tree.isRootVisible = false
@@ -123,17 +174,15 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       override fun treeWillExpand(event: TreeExpansionEvent) = load(event.path.lastPathComponent as DefaultMutableTreeNode)
       override fun treeWillCollapse(event: TreeExpansionEvent) {}
     })
+    TreeSpeedSearch.installOn(tree, false) { path -> DbNode.text((path.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? DbNode) }
     object : DoubleClickListener() {
-      override fun onDoubleClick(event: MouseEvent): Boolean {
-        val node = selectedNode() ?: return false
-        return when (node) {
-          is DbNode.Source -> { openConsole(node.dataSource, null); true }
-          is DbNode.Table -> { DbTableDataView.open(project, node.dataSource, node.ref); true }
-          is DbNode.Routine, is DbNode.Trigger -> { showDdl(); true }
-          else -> false
-        }
-      }
+      override fun onDoubleClick(event: MouseEvent): Boolean = open(selectedNode())
     }.installOn(tree)
+    object : DumbAwareAction() {
+      override fun actionPerformed(e: AnActionEvent) {
+        open(selectedNode())
+      }
+    }.registerCustomShortcutSet(ActionManager.getInstance().getAction(IdeActions.ACTION_EDIT_SOURCE).shortcutSet, tree, parent)
 
     val group = DefaultActionGroup(
       action("db.action.add.text", AllIcons.General.Add) { add() },
@@ -143,11 +192,12 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       action("db.action.refresh.text", AllIcons.Actions.Refresh) { refresh() },
       action("db.action.drivers.text", AllIcons.General.Settings) { DbDriversDialog(project, selectedSource()?.let { it.driverId ?: it.driver()?.id }).show() },
       action("db.action.console.text", AllIcons.Debugger.Console, { selectedSource() != null }) { selectedSource()?.let { openConsole(it, null) } },
+      ActionManager.getInstance().getAction("PhantomDb.NewConsole"),
       ActionManager.getInstance().getAction("PhantomDb.ShowHistory"),
       action("db.action.data.text", AllIcons.Nodes.DataTables, { selectedNode() is DbNode.Table }) {
         (selectedNode() as? DbNode.Table)?.let { DbTableDataView.open(project, it.dataSource, it.ref) }
       },
-      action("db.action.ddl.text", AllIcons.Actions.Preview, { ddlTarget() != null }) { showDdl() },
+      action("db.action.ddl.text", AllIcons.Actions.Preview, { ddlTarget() != null }) { ddlTarget()?.let { showDdl(project, it.first, it.second) } },
       action("db.action.modify.text", AllIcons.Actions.Edit, {
         (selectedNode() as? DbNode.Table)?.let { !it.ref.isView && !it.dataSource.readOnly && it.dataSource.dialect().hasDialect } == true
       }) { modifyTable() },
@@ -160,10 +210,26 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       action("db.action.compare.text", AllIcons.Actions.Diff, { (selectedNode() as? DbNode.Schema)?.dataSource?.dialect()?.hasDialect == true }) {
         (selectedNode() as? DbNode.Schema)?.let { DbSchemaCompare.chooseAndCompare(project, DbSchemaSide(it.dataSource, it.ref), tree) }
       },
+      Separator.getInstance(),
+      object : ToggleAction(PhantomDbBundle.message("db.action.system.schemas.text"), null, AllIcons.Actions.ToggleVisibility), DumbAware {
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+        override fun isSelected(e: AnActionEvent): Boolean = showSystemSchemas(project)
+        override fun setSelected(e: AnActionEvent, state: Boolean) {
+          PropertiesComponent.getInstance(project).setValue(SYSTEM_SCHEMAS_KEY, state)
+          reload()
+        }
+      },
     )
     val toolbar = ActionManager.getInstance().createActionToolbar("PhantomDbExplorer", group, true)
     toolbar.targetComponent = tree
-    setToolbar(toolbar.component)
+    filterField.textEditor.emptyText.text = PhantomDbBundle.message("db.tree.filter")
+    filterField.addDocumentListener(object : DocumentAdapter() {
+      override fun textChanged(e: DocumentEvent) = setFilter(filterField.text)
+    })
+    setToolbar(JPanel(BorderLayout()).apply {
+      add(toolbar.component, BorderLayout.NORTH)
+      add(filterField, BorderLayout.SOUTH)
+    })
     setContent(ScrollPaneFactory.createScrollPane(tree, true))
     PopupHandler.installPopupMenu(tree, group, "PhantomDbExplorerPopup")
 
@@ -177,6 +243,8 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
   fun reload() {
     val expanded = TreeUtil.collectExpandedUserObjects(tree).filterIsInstance<DbNode.Source>().map { it.dataSource.id }.toSet()
     root.removeAllChildren()
+    loaded.clear()
+    loading.clear()
     for (ds in DbDataSourceService.getInstance(project).dataSources) root.add(expandable(DbNode.Source(ds)))
     model.reload()
     for (i in 0 until root.childCount) {
@@ -187,30 +255,13 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
 
   private fun load(node: DefaultMutableTreeNode) {
     val placeholder = (node.firstOrNull())?.userObject
-    if (placeholder != DbNode.Loading || node.getClientLoading()) return
-    node.setClientLoading(true)
+    if (placeholder != DbNode.Loading || node in loading) return
     val payload = node.userObject as? DbNode ?: return
-    val cache = DbMetadataCache.getInstance(project)
+    loading.add(node)
+    val systemSchemas = showSystemSchemas(project)
     DbConnectionService.getInstance(project).launch {
       val children: List<DbNode> = try {
-        val objects = DbObjectCache.getInstance(project)
-        when (payload) {
-          is DbNode.Source -> cache.schemas(payload.dataSource).map { DbNode.Schema(payload.dataSource, it) }
-          is DbNode.Schema -> cache.tables(payload.dataSource, payload.ref).map { DbNode.Table(payload.dataSource, it) }.ifEmpty { listOf(nothing()) } +
-                              listOf(DbNode.Folder.Kind.ROUTINES, DbNode.Folder.Kind.TRIGGERS).map { DbNode.Folder(payload.dataSource, it, null, payload.ref) }
-          is DbNode.Table -> cache.columns(payload.dataSource, payload.ref).map { DbNode.Column(it) } +
-                             if (payload.ref.isView) emptyList()
-                             else listOf(DbNode.Folder.Kind.KEYS, DbNode.Folder.Kind.FOREIGN_KEYS, DbNode.Folder.Kind.INDEXES)
-                               .map { DbNode.Folder(payload.dataSource, it, payload.ref, null) }
-          is DbNode.Folder -> when (payload.kind) {
-            DbNode.Folder.Kind.KEYS -> objects.primaryKey(payload.dataSource, payload.table!!).takeIf { it.columns.isNotEmpty() }?.let { listOf(DbNode.Key(it)) }.orEmpty()
-            DbNode.Folder.Kind.FOREIGN_KEYS -> objects.foreignKeys(payload.dataSource, payload.table!!).map { DbNode.ForeignKey(it) }
-            DbNode.Folder.Kind.INDEXES -> objects.indexes(payload.dataSource, payload.table!!).map { DbNode.Index(it) }
-            DbNode.Folder.Kind.ROUTINES -> objects.routines(payload.dataSource, payload.schema!!).map { DbNode.Routine(payload.dataSource, it) }
-            DbNode.Folder.Kind.TRIGGERS -> objects.triggers(payload.dataSource, payload.schema!!).map { DbNode.Trigger(payload.dataSource, it) }
-          }
-          else -> emptyList()
-        }.ifEmpty { listOf(nothing()) }
+        children(payload, systemSchemas).ifEmpty { listOf(nothing()) }
       }
       catch (e: SQLException) {
         listOf(DbNode.Message(DbExecutor.message(e), true))
@@ -218,23 +269,107 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       catch (e: DbException) {
         listOf(DbNode.Message(e.message.orEmpty(), true))
       }
+      // the consoles need no connection: they show even when the data source cannot connect
+      val all = if (payload is DbNode.Source) children + DbNode.Folder(payload.dataSource, DbNode.Folder.Kind.CONSOLES, null, null) else children
       withContext(Dispatchers.EDT) {
-        node.removeAllChildren()
-        for (child in children) {
+        if (node !in loading) return@withContext  // reloaded meanwhile
+        loading.remove(node)
+        loaded[node] = all.map { child ->
           val leaf = child !is DbNode.Source && child !is DbNode.Schema && child !is DbNode.Table && child !is DbNode.Folder
-          node.add(if (leaf) DefaultMutableTreeNode(child, false) else expandable(child))
+          if (leaf) DefaultMutableTreeNode(child, false) else expandable(child)
         }
-        node.setClientLoading(false)
+        applyFilter(node, filter.isNotEmpty() && generateSequence(node) { it.parent as? DefaultMutableTreeNode }.none { DbNode.objectName(it.userObject as? DbNode) != null })
         model.nodeStructureChanged(node)
         // a data source with a single schema opens straight into it
-        if (payload is DbNode.Source && children.size == 1 && children[0] is DbNode.Schema) {
-          tree.expandPath(TreePath((node.firstChild as DefaultMutableTreeNode).path))
+        if (payload is DbNode.Source && all.count { it is DbNode.Schema } == 1 && node.childCount > 0) {
+          (node.firstChild as DefaultMutableTreeNode).takeIf { it.userObject is DbNode.Schema }?.let { tree.expandPath(TreePath(it.path)) }
         }
       }
     }
   }
 
+  /** Children of [payload]; may connect (on the schema-tree connection), except for consoles. */
+  private suspend fun children(payload: DbNode, systemSchemas: Boolean): List<DbNode> {
+    val cache = DbMetadataCache.getInstance(project)
+    val objects = DbObjectCache.getInstance(project)
+    return when (payload) {
+      is DbNode.Source -> cache.schemas(payload.dataSource, systemSchemas).map { DbNode.Schema(payload.dataSource, it) }
+      is DbNode.Schema -> {
+        val tables = cache.tables(payload.dataSource, payload.ref)
+        fun folder(kind: DbNode.Folder.Kind) = DbNode.Folder(payload.dataSource, kind, null, payload.ref)
+        listOfNotNull(folder(DbNode.Folder.Kind.TABLES),
+                      folder(DbNode.Folder.Kind.VIEWS).takeIf { tables.any { it.isView && !it.isMaterializedView } },
+                      folder(DbNode.Folder.Kind.MATERIALIZED_VIEWS).takeIf { tables.any { it.isMaterializedView } },
+                      folder(DbNode.Folder.Kind.ROUTINES), folder(DbNode.Folder.Kind.TRIGGERS), folder(DbNode.Folder.Kind.SEQUENCES))
+      }
+      is DbNode.Table -> {
+        val ds = payload.dataSource
+        val fkColumns = if (payload.ref.isView) emptySet() else objects.foreignKeys(ds, payload.ref).flatMap { it.columns }.toSet()
+        cache.columns(ds, payload.ref).map { DbNode.Column(it, it.name in fkColumns) } +
+        if (payload.ref.isView) emptyList()
+        else listOf(DbNode.Folder.Kind.KEYS, DbNode.Folder.Kind.FOREIGN_KEYS, DbNode.Folder.Kind.INDEXES, DbNode.Folder.Kind.TABLE_TRIGGERS)
+          .map { DbNode.Folder(ds, it, payload.ref, DbSchemaRef(ds.id, payload.ref.catalog, payload.ref.schema)) }
+      }
+      is DbNode.Folder -> {
+        val ds = payload.dataSource
+        when (payload.kind) {
+          DbNode.Folder.Kind.TABLES -> cache.tables(ds, payload.schema!!).filter { !it.isView }.map { DbNode.Table(ds, it) }
+          DbNode.Folder.Kind.VIEWS -> cache.tables(ds, payload.schema!!).filter { it.isView && !it.isMaterializedView }.map { DbNode.Table(ds, it) }
+          DbNode.Folder.Kind.MATERIALIZED_VIEWS -> cache.tables(ds, payload.schema!!).filter { it.isMaterializedView }.map { DbNode.Table(ds, it) }
+          DbNode.Folder.Kind.ROUTINES -> objects.routines(ds, payload.schema!!).map { DbNode.Routine(ds, it) }
+          DbNode.Folder.Kind.TRIGGERS -> objects.triggers(ds, payload.schema!!).map { DbNode.Trigger(ds, it) }
+          DbNode.Folder.Kind.SEQUENCES -> objects.sequences(ds, payload.schema!!).map { DbNode.Sequence(ds, it) }
+          DbNode.Folder.Kind.KEYS -> objects.primaryKey(ds, payload.table!!).takeIf { it.columns.isNotEmpty() }?.let { listOf(DbNode.Key(it)) }.orEmpty()
+          DbNode.Folder.Kind.FOREIGN_KEYS -> objects.foreignKeys(ds, payload.table!!).map { DbNode.ForeignKey(ds, it) }
+          DbNode.Folder.Kind.INDEXES -> objects.indexes(ds, payload.table!!).map { DbNode.Index(it) }
+          DbNode.Folder.Kind.TABLE_TRIGGERS -> objects.triggers(ds, payload.schema!!).filter { it.table.equals(payload.table!!.name, ignoreCase = true) }
+            .map { DbNode.Trigger(ds, it) }
+          DbNode.Folder.Kind.CONSOLES -> DbConsoles.consoles(ds.id).map { DbNode.Console(ds, it) }
+        }
+      }
+      else -> emptyList()
+    }
+  }
+
   private fun nothing() = DbNode.Message(PhantomDbBundle.message("db.tree.nothing"), false)
+
+  /** Shows only loaded objects whose name contains [text] (any case), and the folders and schemas that hold them. */
+  fun setFilter(text: String) {
+    val value = text.trim().lowercase()
+    if (value == filter) return
+    if (filter.isEmpty()) expandedBeforeFilter = TreeUtil.collectExpandedPaths(tree)
+    filter = value
+    if (filterField.text.trim().lowercase() != value) filterField.text = text
+    val selected = tree.selectionPaths
+    for (i in 0 until root.childCount) applyFilter(root.getChildAt(i) as DefaultMutableTreeNode, filter.isNotEmpty())
+    model.reload()
+    if (filter.isEmpty()) TreeUtil.restoreExpandedPaths(tree, expandedBeforeFilter)
+    else TreeUtil.treeNodeTraverser(root).filter { it is DefaultMutableTreeNode && it.childCount > 0 && it in loaded && DbNode.objectName(it.userObject as? DbNode) == null }
+      .forEach { tree.expandPath(TreePath((it as DefaultMutableTreeNode).path)) }
+    selected?.filter { p -> (p.lastPathComponent as DefaultMutableTreeNode).let { it.root == root } }?.let { tree.selectionPaths = it.toTypedArray() }
+  }
+
+  /**
+   * Puts the children of [node] the filter lets through under it, all the way down, and tells whether [node] shows.
+   * [active]: the filter applies here; below a matching object (a table's columns and keys) everything shows.
+   */
+  private fun applyFilter(node: DefaultMutableTreeNode, active: Boolean): Boolean {
+    val payload = node.userObject as? DbNode
+    val name = DbNode.objectName(payload)
+    val kids = loaded[node]
+    val visible = kids?.filter { applyFilter(it, active && name == null) }
+    if (kids != null) {
+      node.removeAllChildren()
+      visible!!.forEach(node::add)
+    }
+    if (!active) return true
+    return when {
+      payload is DbNode.Source -> true
+      name != null -> name.lowercase().contains(filter)
+      payload is DbNode.Schema || payload is DbNode.Folder -> !visible.isNullOrEmpty()
+      else -> false
+    }
+  }
 
   private fun ddlTarget(): Pair<DbDataSource, DbDdl.Target>? = when (val node = selectedNode()) {
     is DbNode.Table -> node.dataSource to DbDdl.Target.Table(node.ref)
@@ -243,29 +378,21 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
     else -> null
   }?.takeIf { it.first.dialect().hasDialect }
 
-  /** Opens the DDL of the selected table, view, routine or trigger in a read-only SQL tab. */
-  private fun showDdl() {
-    val (dataSource, target) = ddlTarget() ?: return
-    val name = when (target) {
-      is DbDdl.Target.Table -> target.ref.name
-      is DbDdl.Target.Routine -> target.routine.name
-      is DbDdl.Target.Trigger -> target.trigger.name
+  /**
+   * Double-click, Enter or F4: a table opens its data; a view, routine or trigger its DDL; a foreign key selects the
+   * table it references; a console opens; a data source opens its console.
+   */
+  private fun open(node: DbNode?): Boolean {
+    when (node) {
+      is DbNode.Source -> openConsole(node.dataSource, null)
+      is DbNode.Table -> openObject(project, node.dataSource, node.ref)
+      is DbNode.Routine -> if (node.dataSource.dialect().hasDialect) showDdl(project, node.dataSource, DbDdl.Target.Routine(node.routine)) else return false
+      is DbNode.Trigger -> if (node.dataSource.dialect().hasDialect) showDdl(project, node.dataSource, DbDdl.Target.Trigger(node.trigger)) else return false
+      is DbNode.ForeignKey -> DbTreeNavigation.select(project, node.dataSource, node.fk.refTable, null)
+      is DbNode.Console -> FileEditorManager.getInstance(project).openFile(node.file, true)
+      else -> return false
     }
-    DbConnectionService.getInstance(project).launch {
-      val text = try {
-        DbDdl.ddl(project, dataSource, target)
-      }
-      catch (e: SQLException) {
-        "-- " + DbExecutor.message(e)
-      }
-      catch (e: DbException) {
-        "-- " + e.message
-      }
-      withContext(Dispatchers.EDT) {
-        val file = com.intellij.testFramework.LightVirtualFile("$name.sql", SqlFileType.INSTANCE, text).apply { isWritable = false }
-        com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project).openFile(file, true)
-      }
-    }
+    return true
   }
 
   private fun modifyTable() {
@@ -280,12 +407,27 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
   /** Drops a loaded node's children and loads them again if it is expanded. */
   fun reloadChildren(node: DefaultMutableTreeNode) {
     val expanded = tree.isExpanded(TreePath(node.path))
+    forget(node)
     node.removeAllChildren()
     node.add(DefaultMutableTreeNode(DbNode.Loading, false))
     model.nodeStructureChanged(node)
     if (expanded) {
       tree.expandPath(TreePath(node.path))
       load(node)
+    }
+  }
+
+  private fun forget(node: DefaultMutableTreeNode) {
+    loading.remove(node)
+    loaded.remove(node)?.forEach(::forget)
+  }
+
+  /** Lists the data source's consoles again where its Consoles folder is loaded. */
+  fun consolesChanged(dataSourceId: String) {
+    for (i in 0 until root.childCount) {
+      val source = root.getChildAt(i) as DefaultMutableTreeNode
+      if ((source.userObject as? DbNode.Source)?.dataSource?.id != dataSourceId) continue
+      loaded[source]?.firstOrNull { (it.userObject as? DbNode.Folder)?.kind == DbNode.Folder.Kind.CONSOLES }?.takeIf { it in loaded }?.let(::reloadChildren)
     }
   }
 
@@ -330,10 +472,17 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
 
   private fun selectedNode(): DbNode? = (tree.selectionPath?.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? DbNode
 
-  private fun selectedSource(): DbDataSource? {
+  /** The data source of the selected node or one of its parents. */
+  fun selectedSource(): DbDataSource? = selectedAncestor<DbNode.Source>()?.dataSource
+
+  /** The schema of the selected node or one of its parents. */
+  fun selectedSchema(): DbSchemaRef? = selectedAncestor<DbNode.Schema>()?.ref
+    ?: (selectedNode() as? DbNode.Table)?.ref?.let { DbSchemaRef(it.dataSourceId, it.catalog, it.schema) }
+
+  private inline fun <reified T : DbNode> selectedAncestor(): T? {
     var node = tree.selectionPath?.lastPathComponent as? DefaultMutableTreeNode
     while (node != null) {
-      (node.userObject as? DbNode.Source)?.let { return it.dataSource }
+      (node.userObject as? T)?.let { return it }
       node = node.parent as? DefaultMutableTreeNode
     }
     return null
@@ -342,11 +491,6 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
   private fun expandable(payload: DbNode) = DefaultMutableTreeNode(payload, true).apply { add(DefaultMutableTreeNode(DbNode.Loading, false)) }
 
   private fun DefaultMutableTreeNode.firstOrNull(): DefaultMutableTreeNode? = if (childCount > 0) getChildAt(0) as DefaultMutableTreeNode else null
-
-  private fun DefaultMutableTreeNode.getClientLoading() = this in loading
-  private fun DefaultMutableTreeNode.setClientLoading(on: Boolean) {
-    if (on) loading.add(this) else loading.remove(this)
-  }
 
   private fun action(key: String, icon: javax.swing.Icon, enabled: () -> Boolean = { true }, perform: () -> Unit): AnAction =
     object : DumbAwareAction(PhantomDbBundle.message(key), null, icon) {
@@ -357,6 +501,46 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
 
       override fun actionPerformed(e: AnActionEvent) = perform()
     }
+
+  companion object {
+    private const val SYSTEM_SCHEMAS_KEY = "phantom.db.tree.systemSchemas"
+
+    fun showSystemSchemas(project: Project): Boolean = PropertiesComponent.getInstance(project).getBoolean(SYSTEM_SCHEMAS_KEY, false)
+
+    /** The panel in the Database tool window, if it was created. */
+    fun find(project: Project): DbExplorerPanel? =
+      ToolWindowManager.getInstance(project).getToolWindow(DbToolWindowFactory.ID)?.contentManager?.contents?.firstNotNullOfOrNull { it.component as? DbExplorerPanel }
+
+    /** A table opens its data; a view its DDL where the dialect reports it, else its data. */
+    fun openObject(project: Project, dataSource: DbDataSource, ref: DbTableRef) {
+      if (ref.isView && dataSource.dialect().hasDialect) showDdl(project, dataSource, DbDdl.Target.Table(ref))
+      else DbTableDataView.open(project, dataSource, ref)
+    }
+
+    /** Opens the DDL of a table, view, routine or trigger in a read-only SQL tab. */
+    fun showDdl(project: Project, dataSource: DbDataSource, target: DbDdl.Target) {
+      val name = when (target) {
+        is DbDdl.Target.Table -> target.ref.name
+        is DbDdl.Target.Routine -> target.routine.name
+        is DbDdl.Target.Trigger -> target.trigger.name
+      }
+      DbConnectionService.getInstance(project).launch {
+        val text = try {
+          DbDdl.ddl(project, dataSource, target)
+        }
+        catch (e: SQLException) {
+          "-- " + DbExecutor.message(e)
+        }
+        catch (e: DbException) {
+          "-- " + e.message
+        }
+        withContext(Dispatchers.EDT) {
+          val file = com.intellij.testFramework.LightVirtualFile("$name.sql", SqlFileType.INSTANCE, text).apply { isWritable = false }
+          FileEditorManager.getInstance(project).openFile(file, true)
+        }
+      }
+    }
+  }
 
   private class Renderer : ColoredTreeCellRenderer() {
     override fun customizeCellRenderer(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean) {
@@ -369,7 +553,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
         }
         is DbNode.Schema -> {
           icon = AllIcons.Nodes.DataSchema
-          append(node.ref.name)
+          append(node.ref.name, if (DbMetadataCache.isSystem(node.ref)) SimpleTextAttributes.GRAYED_ATTRIBUTES else SimpleTextAttributes.REGULAR_ATTRIBUTES)
         }
         is DbNode.Table -> {
           icon = AllIcons.Nodes.DataTables
@@ -379,7 +563,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
         is DbNode.Column -> {
           icon = AllIcons.Nodes.DataColumn
           append(node.info.name, if (node.info.primaryKey) SimpleTextAttributes.REGULAR_BOLD_ATTRIBUTES else SimpleTextAttributes.REGULAR_ATTRIBUTES)
-          val extra = listOfNotNull(node.info.typeName.ifEmpty { null }, if (node.info.primaryKey) "PK" else null,
+          val extra = listOfNotNull(node.info.typeName.ifEmpty { null }, if (node.info.primaryKey) "PK" else null, if (node.foreignKey) "FK" else null,
                                     if (!node.info.nullable && !node.info.primaryKey) "NOT NULL" else null)
           append("  " + extra.joinToString(" · "), SimpleTextAttributes.GRAYED_ATTRIBUTES)
         }
@@ -413,6 +597,14 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
           append(node.trigger.name)
           append("  " + listOf(node.trigger.timing, node.trigger.event).filter { it.isNotEmpty() }.joinToString(" ").lowercase() + " · " + node.trigger.table,
                  SimpleTextAttributes.GRAYED_ATTRIBUTES)
+        }
+        is DbNode.Sequence -> {
+          icon = AllIcons.Nodes.Constant
+          append(node.sequence.name)
+        }
+        is DbNode.Console -> {
+          icon = AllIcons.Debugger.Console
+          append(node.file.nameWithoutExtension)
         }
         DbNode.Loading -> append(PhantomDbBundle.message("db.tree.loading"), SimpleTextAttributes.GRAYED_ATTRIBUTES)
         is DbNode.Message -> append(node.text, if (node.error) SimpleTextAttributes.ERROR_ATTRIBUTES else SimpleTextAttributes.GRAYED_ATTRIBUTES)

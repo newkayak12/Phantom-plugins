@@ -203,8 +203,12 @@ class DbConsoleTest : BasePlatformTestCase() {
     val tree = panel.tree
     val sourceNode = (tree.model.root as DefaultMutableTreeNode).getChildAt(0) as DefaultMutableTreeNode
     tree.expandPath(TreePath(sourceNode.path))
-    // H2 has one user schema, PUBLIC, which opens by itself; then expand the table
-    PlatformTestUtil.waitWithEventsDispatching("tables not loaded", { tableNode(sourceNode, "RESERVATION") != null }, 20)
+    // H2 has one user schema, PUBLIC, which opens by itself; then open the tables and views folders, and the table
+    for (kind in listOf(DbNode.Folder.Kind.TABLES, DbNode.Folder.Kind.VIEWS)) {
+      PlatformTestUtil.waitWithEventsDispatching("folders not loaded", { folderNode(sourceNode, kind) != null }, 20)
+      tree.expandPath(TreePath(folderNode(sourceNode, kind)!!.path))
+    }
+    PlatformTestUtil.waitWithEventsDispatching("tables not loaded", { tableNode(sourceNode, "RESERVATION") != null && tableNode(sourceNode, "GUESTS") != null }, 20)
     val table = tableNode(sourceNode, "RESERVATION")!!
     assertEquals("VIEW", (tableNode(sourceNode, "GUESTS")!!.userObject as DbNode.Table).ref.kind)
     tree.expandPath(TreePath(table.path))
@@ -225,12 +229,18 @@ class DbConsoleTest : BasePlatformTestCase() {
     assertSameElements(myFixture.lookupElementStrings!!, "ID", "GUEST_NAME")
   }
 
-  private fun tableNode(source: DefaultMutableTreeNode, name: String): DefaultMutableTreeNode? {
+  private fun folderNode(source: DefaultMutableTreeNode, kind: DbNode.Folder.Kind): DefaultMutableTreeNode? {
     val schema = (0 until source.childCount).map { source.getChildAt(it) as DefaultMutableTreeNode }
                    .firstOrNull { (it.userObject as? DbNode.Schema)?.ref?.name == "PUBLIC" } ?: return null
     return (0 until schema.childCount).map { schema.getChildAt(it) as DefaultMutableTreeNode }
-      .firstOrNull { (it.userObject as? DbNode.Table)?.ref?.name == name }
+      .firstOrNull { (it.userObject as? DbNode.Folder)?.kind == kind }
   }
+
+  private fun tableNode(source: DefaultMutableTreeNode, name: String): DefaultMutableTreeNode? =
+    listOf(DbNode.Folder.Kind.TABLES, DbNode.Folder.Kind.VIEWS).firstNotNullOfOrNull { kind ->
+      val folder = folderNode(source, kind) ?: return@firstNotNullOfOrNull null
+      (0 until folder.childCount).map { folder.getChildAt(it) as DefaultMutableTreeNode }.firstOrNull { (it.userObject as? DbNode.Table)?.ref?.name == name }
+    }
 
   fun testRunGutterAndResultsWindow() {
     val ds = h2()

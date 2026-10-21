@@ -3,10 +3,10 @@ package dev.phantom.db.core.ui
 
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.util.ui.tree.TreeUtil
 import dev.phantom.db.core.DbDataSource
 import dev.phantom.db.core.exec.DbConnectionService
+import dev.phantom.db.core.exec.DbRoutine
 import dev.phantom.db.core.exec.DbTableRef
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -15,27 +15,45 @@ import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.TreePath
 
 /**
- * Selects a table or column in the Database tool window, for Ctrl+B on a name in SQL. Each level loads when it is
- * expanded, so this expands data source, schema and table in turn and waits for each to load.
+ * Selects a table, column or routine in the Database tool window, for Ctrl+B on a name in SQL and Go to Database
+ * Object. Each level loads when it is expanded, so this expands data source, schema, folder and table in turn and waits
+ * for each to load. The tree filter is cleared first, since it may hide the target.
  */
 object DbTreeNavigation {
   private const val LEVEL_TIMEOUT_MS = 10_000L
 
-  fun select(project: Project, dataSource: DbDataSource, table: DbTableRef, column: String?) {
-    DbToolWindowFactory.show(project)
+  /** [focus]: move the keyboard focus to the tree (not when an editor opens next). */
+  fun select(project: Project, dataSource: DbDataSource, table: DbTableRef, column: String?, focus: Boolean = true) {
+    val folder = when {
+      table.isMaterializedView -> DbNode.Folder.Kind.MATERIALIZED_VIEWS
+      table.isView -> DbNode.Folder.Kind.VIEWS
+      else -> DbNode.Folder.Kind.TABLES
+    }
+    select(project, dataSource, table.schema ?: table.catalog, folder, column, focus) { (it as? DbNode.Table)?.ref?.name == table.name }
+  }
+
+  fun select(project: Project, dataSource: DbDataSource, routine: DbRoutine, focus: Boolean = true) {
+    select(project, dataSource, routine.schema.name, DbNode.Folder.Kind.ROUTINES, null, focus) {
+      (it as? DbNode.Routine)?.routine?.let { r -> r.name == routine.name && r.function == routine.function } == true
+    }
+  }
+
+  private fun select(project: Project, dataSource: DbDataSource, schemaName: String?, folder: DbNode.Folder.Kind, column: String?,
+                     focus: Boolean, matches: (Any?) -> Boolean) {
+    DbToolWindowFactory.show(project, focus)
     DbConnectionService.getInstance(project).launch {
       withContext(Dispatchers.EDT) {
-        val panel = ToolWindowManager.getInstance(project).getToolWindow(DbToolWindowFactory.ID)
-                      ?.contentManager?.contents?.firstNotNullOfOrNull { it.component as? DbExplorerPanel } ?: return@withContext
+        val panel = DbExplorerPanel.find(project) ?: return@withContext
+        panel.setFilter("")
         val tree = panel.tree
         val root = tree.model.root as DefaultMutableTreeNode
         var node = child(root) { (it as? DbNode.Source)?.dataSource?.id == dataSource.id } ?: return@withContext
-        val schemaName = table.schema ?: table.catalog
         node = expandTo(tree, node) { (it as? DbNode.Schema)?.ref?.name == schemaName } ?: return@withContext
-        node = expandTo(tree, node) { (it as? DbNode.Table)?.ref?.name == table.name } ?: return@withContext
+        node = expandTo(tree, node) { (it as? DbNode.Folder)?.kind == folder } ?: return@withContext
+        node = expandTo(tree, node, matches) ?: return@withContext
         if (column != null) node = expandTo(tree, node) { (it as? DbNode.Column)?.info?.name == column } ?: node
         TreeUtil.selectPath(tree, TreePath(node.path))
-        tree.requestFocusInWindow()
+        if (focus) tree.requestFocusInWindow()
       }
     }
   }
