@@ -132,9 +132,16 @@ class DbDriverRegistryTest : BasePlatformTestCase() {
     service.save(ds, null)
     val xml = JDOMUtil.write(XmlSerializer.serialize(service.state))
     assertTrue(xml, xml.contains("name=\"dbms\" value=\"GENERIC\""))
-    assertTrue(xml, xml.contains("redshift"))
+    assertTrue(xml, xml.contains("name=\"driverId\" value=\"redshift\""))
     assertFalse(xml.contains("assword"))
     assertFalse(xml.contains("awsSecret"))
     service.remove("r")
+  }
+
+  fun testChangingDbmsRebindsDriver() {
+    val ui = dev.phantom.db.core.ui.DbDataSourceDialog
+    assertEquals("postgresql", ui.driverIdFor("mysql", Dbms.MYSQL, Dbms.POSTGRESQL))
+    assertNull(ui.driverIdFor("mysql", Dbms.MYSQL, Dbms.GENERIC))
+    assertEquals("aws-wrapper-mysql", ui.driverIdFor("aws-wrapper-mysql", Dbms.MYSQL, Dbms.MYSQL))
   }
 }

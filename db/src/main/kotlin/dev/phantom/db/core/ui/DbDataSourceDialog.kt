@@ -123,6 +123,7 @@ class DbDataSourceDialog private constructor(private val project: Project, exist
 
   private fun current(): DbDataSource = source.copy().apply {
     dbms = dbmsCombo.selectedItem as Dbms
+    driverId = driverIdFor(driverId, source.dialect(), dbms)
     url = urlField.text.trim()
     user = userField.text.trim()
     name = nameField.text.trim().ifEmpty { defaultName(dbms, url) }
@@ -194,6 +195,10 @@ class DbDataSourceDialog private constructor(private val project: Project, exist
 
   companion object {
     /** Picking [dbms] replaces an empty URL, another database's template, or a URL of another database; never a URL typed for "Other". */
+    /** Changing the DBMS rebinds to that DBMS's built-in driver (none for GENERIC); otherwise the binding stays. */
+    internal fun driverIdFor(driverId: String?, currentDialect: Dbms, chosen: Dbms): String? =
+      if (chosen == currentDialect) driverId else dev.phantom.db.core.drivers.DbDriverRegistry.getInstance().builtInFor(chosen)?.id
+
     internal fun replacesUrl(url: String, dbms: Dbms): Boolean =
       url.isEmpty() || Dbms.entries.any { it.urlTemplate == url } || (dbms.hasDialect && Dbms.forUrl(url) != dbms)
 
