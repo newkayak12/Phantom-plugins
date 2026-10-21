@@ -11,6 +11,7 @@
       <option value="com.mysql:mysql-connector-j" />
       <option value="mysql:mysql-connector-java" />
     </artifacts>
+    <option name="artifactsAreAlternatives" value="true" />
     <option name="dialect" value="MYSQL" />
   </driver>
   <driver>
@@ -24,6 +25,7 @@
     <artifacts>
       <option value="org.mariadb.jdbc:mariadb-java-client" />
     </artifacts>
+    <option name="artifactsAreAlternatives" value="true" />
     <option name="dialect" value="MARIADB" />
   </driver>
   <driver>
@@ -37,6 +39,7 @@
     <artifacts>
       <option value="org.postgresql:postgresql" />
     </artifacts>
+    <option name="artifactsAreAlternatives" value="true" />
     <option name="dialect" value="POSTGRESQL" />
   </driver>
   <driver>
@@ -50,6 +53,7 @@
     <artifacts>
       <option value="com.h2database:h2" />
     </artifacts>
+    <option name="artifactsAreAlternatives" value="true" />
     <option name="dialect" value="H2" />
   </driver>
   <driver>

@@ -196,9 +196,6 @@ data class DbDriver(val jars: List<Path>, val version: String?, val origin: Orig
  * Gradle and Maven caches in the user's home, then the jars a previous download pinned.
  */
 object DbDrivers {
-  /** Built-ins whose [DbDriverDefinition.artifacts] name alternatives (newest first); every other definition lists required roots. */
-  internal val LEGACY_IDS = setOf("mysql", "mariadb", "postgresql", "h2")
-
   /** Blocking file lookups; call off the EDT. Project libraries need a read action, which this takes itself. */
   fun find(project: Project?, dataSource: DbDataSource): DbDriver? {
     if (dataSource.driverJars.isNotEmpty()) {
@@ -219,15 +216,14 @@ object DbDrivers {
       OrderEnumerator.orderEntries(project).librariesOnly().recursively().classes().roots.toList()
     }
     val jars = roots.map { root -> VfsUtilCore.virtualToIoFile(JarFileSystem.getInstance().getVirtualFileForJar(root) ?: root).toPath() }
-    if (definition.id in LEGACY_IDS) {
+    if (definition.artifactsAreAlternatives) {
       return newest(jars.mapNotNull { jar -> versionOf(jar.name, definition.artifacts)?.let { jar to it } }, DbDriver.Origin.PROJECT_LIBRARY)
     }
-    val pinned = definition.artifacts.map { spec ->
-      val c = runCatching { MavenCoordinate.parse(spec) }.getOrNull() ?: return null
-      val candidates = jars.mapNotNull { jar -> versionOf(jar.name, listOf(spec))?.let { jar to it } }.filter { c.version == null || it.second == c.version }
+    val pinned = roots(definition)?.map { c ->
+      val candidates = jars.mapNotNull { jar -> versionOf(jar.name, listOf("${c.group}:${c.artifact}"))?.let { jar to it } }.filter { c.version == null || it.second == c.version }
       val best = candidates.maxWithOrNull { a, b -> VersionComparatorUtil.compare(a.second, b.second) } ?: return null
       c.copy(version = best.second)
-    }
+    } ?: return null
     val byName = jars.associateBy { it.name }
     return withDependencies(pinned, home(), DbDriver.Origin.PROJECT_LIBRARY) { byName[it] }
   }
@@ -235,16 +231,15 @@ object DbDrivers {
   /** `~/.gradle/caches/modules-2/files-2.1/<group>/<artifact>/<version>/<hash>/<artifact>-<version>.jar` and `~/.m2/repository`. */
   fun fromLocalCaches(definition: DbDriverDefinition, home: Path = home()): DbDriver? {
     if (definition.artifacts.isEmpty()) return null
-    if (definition.id in LEGACY_IDS) {
+    if (definition.artifactsAreAlternatives) {
       return newest(definition.artifacts.flatMap { cached(home, it.substringBefore(':'), it.substringAfter(':').substringBefore(':')) },
                     DbDriver.Origin.LOCAL_CACHE)
     }
-    val pinned = definition.artifacts.map { spec ->
-      val c = runCatching { MavenCoordinate.parse(spec) }.getOrNull() ?: return null
+    val pinned = roots(definition)?.map { c ->
       val version = if (c.version != null) c.version.takeIf { localJar(home, c.group, c.artifact, it) != null }
                     else cached(home, c.group, c.artifact).maxWithOrNull { a, b -> VersionComparatorUtil.compare(a.second, b.second) }?.second
       c.copy(version = version ?: return null)
-    }
+    } ?: return null
     return withDependencies(pinned, home, DbDriver.Origin.LOCAL_CACHE) { null }
   }
 
@@ -270,6 +265,13 @@ object DbDrivers {
       if (version.firstOrNull()?.isDigit() == true && !version.endsWith("-sources") && !version.endsWith("-javadoc")) return version
     }
     return null
+  }
+
+  /** Required roots; the first one pinned to the downloaded version unless it names its own. `null` if one is not a coordinate. */
+  private fun roots(definition: DbDriverDefinition): List<MavenCoordinate>? {
+    val roots = definition.artifacts.map { runCatching { MavenCoordinate.parse(it) }.getOrNull() ?: return null }
+    val pin = definition.resolvedVersion ?: return roots
+    return roots.mapIndexed { i, c -> if (i == 0 && c.version == null) c.copy(version = pin) else c }
   }
 
   private fun home(): Path = Path.of(System.getProperty("user.home"))

@@ -135,4 +135,51 @@ class DbDriverFilesTest : BasePlatformTestCase() {
       assertEquals(listOf(jar), found.jars)
     }
   }
+
+  private fun gradleCached(home: Path, group: String, artifact: String, version: String, pom: Boolean = false): Path {
+    val dir = Files.createDirectories(home.resolve(".gradle/caches/modules-2/files-2.1/$group/$artifact/$version/h$version"))
+    if (pom) Files.writeString(dir.resolve("$artifact-$version.pom"), """<project><groupId>$group</groupId><artifactId>$artifact</artifactId><version>$version</version></project>""")
+    return Files.writeString(dir.resolve("$artifact-$version.jar"), "")
+  }
+
+  fun testDownloadedVersionIsReusedOverOtherCachedVersions() = withTempDir { home ->
+    gradleCached(home, "t", "pin", "2.0", pom = true)
+    val downloaded = Files.writeString(home.resolve("pin-1.0.jar"), "")
+    val def = definition("pinned", "t:pin").apply {
+      resolvedVersion = "1.0"
+      resolvedJars = mutableListOf(downloaded.toString())
+    }
+    // only 2.0 is cached: the pinned 1.0 download is used, not the cache
+    assertNull(DbDrivers.fromLocalCaches(def, home))
+    assertEquals(DbDriver.Origin.DOWNLOADED, DbDrivers.fromDownloads(def)!!.origin)
+    // the pinned version in the cache is fine
+    val cached = gradleCached(home, "t", "pin", "1.0", pom = true)
+    val found = DbDrivers.fromLocalCaches(def, home)!!
+    assertEquals(DbDriver.Origin.LOCAL_CACHE, found.origin)
+    assertEquals(listOf(cached), found.jars)
+    assertEquals("1.0", found.version)
+  }
+
+  fun testCopiedBuiltInKeepsAlternativeLookup() = withTempDir { home ->
+    val mysql = DbDriverRegistry.builtIns.single { it.id == "mysql" }
+    assertTrue(mysql.artifactsAreAlternatives)
+    val copy = mysql.copy().apply { id = "my-mysql"; name = "My MySQL" }
+    assertTrue(copy.artifactsAreAlternatives)
+    // only one of the two alternative names is cached, and without POMs: one jar is still enough
+    gradleCached(home, "com.mysql", "mysql-connector-j", "8.0.33")
+    val newest = gradleCached(home, "com.mysql", "mysql-connector-j", "9.1.0")
+    val found = DbDrivers.fromLocalCaches(copy, home)!!
+    assertEquals(listOf(newest), found.jars)
+    assertEquals("9.1.0", found.version)
+    // the download takes the first alternative only
+    val alternatives = definition("alt", "t:a", "t:nosuch").apply { artifactsAreAlternatives = true }
+    val target = Files.createDirectories(home.resolve("target"))
+    assertEquals("1.0", DbDriverDownloader.download(alternatives, EmptyProgressIndicator(), resolver(), target).resolvedVersion)
+  }
+
+  fun testPomOnlyRootFailsClearly() = withTempDir { target ->
+    val error = runCatching { DbDriverDownloader.download(definition("pom", "t:pomonly:1.0"), EmptyProgressIndicator(), resolver(), target) }
+      .exceptionOrNull()
+    assertTrue(error.toString(), error is IllegalStateException && error.message.orEmpty().contains("t:pomonly"))
+  }
 }

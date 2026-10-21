@@ -21,6 +21,8 @@ class DbDriverDefinition {
   /** `group:artifact` or `group:artifact:version`. No version means the latest one. */
   @XCollection(style = XCollection.Style.v2)
   var artifacts: MutableList<String> = ArrayList()
+  /** True: [artifacts] are alternative names of one driver jar (newest first), not required roots; one jar is enough. */
+  var artifactsAreAlternatives: Boolean = false
   /** Jars or directories chosen by hand. */
   @XCollection(style = XCollection.Style.v2)
   var files: MutableList<String> = ArrayList()
@@ -41,7 +43,7 @@ class DbDriverDefinition {
 
   fun copy(): DbDriverDefinition = DbDriverDefinition().also {
     it.id = id; it.name = name; it.builtIn = builtIn; it.driverClass = driverClass; it.urlTemplate = urlTemplate
-    it.urlPrefixes = ArrayList(urlPrefixes); it.artifacts = ArrayList(artifacts); it.files = ArrayList(files)
+    it.urlPrefixes = ArrayList(urlPrefixes); it.artifacts = ArrayList(artifacts); it.artifactsAreAlternatives = artifactsAreAlternatives; it.files = ArrayList(files)
     it.defaultProperties = LinkedHashMap(defaultProperties); it.iamProperties = LinkedHashMap(iamProperties)
     it.iamUrlFrom = iamUrlFrom; it.iamUrlTo = iamUrlTo; it.dialect = dialect
     it.resolvedVersion = resolvedVersion; it.resolvedJars = ArrayList(resolvedJars)
