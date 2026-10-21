@@ -97,6 +97,106 @@ class DbDriverRegistryTest : BasePlatformTestCase() {
     assertNull(fresh.find("custom"))
   }
 
+  fun testPinIsKeptApartFromTheDefinition() {
+    val r = DbDriverRegistry.getInstance()
+    assertTrue(r.pin("mysql", "9.1.0", listOf("/x/mysql-connector-j-9.1.0.jar")))
+    assertTrue("a pin is no edit of the built-in", r.state.overrides.none { it.id == "mysql" })
+    assertEquals("9.1.0", r.find("mysql")!!.resolvedVersion)
+    assertEquals(listOf("/x/mysql-connector-j-9.1.0.jar"), r.find("mysql")!!.resolvedJars)
+
+    r.save(r.find("mysql")!!.copy().apply { defaultProperties["useSSL"] = "false" })
+    assertTrue(r.state.overrides.single { it.id == "mysql" }.resolvedJars.isEmpty())
+    r.resetToDefault("mysql")
+    assertEquals("reset keeps the downloaded jars", "9.1.0", r.find("mysql")!!.resolvedVersion)
+    r.remove("mysql")
+    assertEquals("9.1.0", r.find("mysql")!!.resolvedVersion)
+
+    val fresh = DbDriverRegistry()
+    fresh.loadState(roundTrip(r.state))
+    assertEquals(listOf("/x/mysql-connector-j-9.1.0.jar"), fresh.find("mysql")!!.resolvedJars)
+
+    r.save(DbDriverDefinition().apply { id = "mine"; name = "Mine"; driverClass = "x.Y"; resolvedVersion = "1"; resolvedJars = mutableListOf("/m.jar") })
+    assertEquals("1", r.find("mine")!!.resolvedVersion)
+    r.remove("mine")
+    assertTrue("removing a user driver drops its pin", r.state.pins.none { it.id == "mine" })
+    assertFalse("no pin for a driver that is gone", r.pin("mine", "1", listOf("/m.jar")))
+    assertNull(r.find("mine"))
+
+    assertTrue(r.pin("mysql", null, emptyList()))
+    assertNull(r.find("mysql")!!.resolvedVersion)
+    assertTrue(r.state.pins.none { it.id == "mysql" })
+  }
+
+  fun testPinsStoredInDefinitionsMoveOnLoad() {
+    // as the 0.11.0 development builds wrote it: the pin inside a full copy of the built-in
+    val old = DbDriverRegistry.State().apply {
+      overrides.add(DbDriverRegistry.builtIns.single { it.id == "postgresql" }.copy().apply { resolvedVersion = "42.7.4"; resolvedJars = mutableListOf("/pg.jar") })
+      drivers.add(DbDriverDefinition().apply { id = "u"; name = "U"; driverClass = "x.Y"; resolvedVersion = "2"; resolvedJars = mutableListOf("/u.jar") })
+    }
+    val r = DbDriverRegistry()
+    r.loadState(roundTrip(old))
+    assertEquals("42.7.4", r.find("postgresql")!!.resolvedVersion)
+    assertEquals(listOf("/u.jar"), r.find("u")!!.resolvedJars)
+    assertTrue(r.state.overrides.all { it.resolvedJars.isEmpty() && it.resolvedVersion == null })
+    assertTrue(r.state.drivers.all { it.resolvedJars.isEmpty() })
+    assertEquals(setOf("postgresql", "u"), r.state.pins.map { it.id }.toSet())
+    assertEquals("no override is created", 1, r.state.overrides.size)
+  }
+
+  fun testDownloadPinsOnlyJarsToTheDriverAsItIsNow() {
+    val r = DbDriverRegistry.getInstance()
+    r.save(DbDriverDefinition().apply { id = "dl"; name = "Before"; driverClass = "x.Y"; artifacts = mutableListOf("x:y") })
+    val started = r.find("dl")!!
+    val pinned = dev.phantom.db.core.drivers.DbDriverActions.downloadAndPin(started, com.intellij.openapi.progress.EmptyProgressIndicator()) { d, _ ->
+      r.save(r.find("dl")!!.copy().apply { name = "Edited meanwhile" })
+      d.copy().apply { name = "Stale"; resolvedVersion = "3"; resolvedJars = mutableListOf("/dl.jar") }
+    }
+    assertTrue(pinned)
+    assertEquals("Edited meanwhile", r.find("dl")!!.name)
+    assertEquals("3", r.find("dl")!!.resolvedVersion)
+
+    val gone = dev.phantom.db.core.drivers.DbDriverActions.downloadAndPin(r.find("dl")!!, com.intellij.openapi.progress.EmptyProgressIndicator()) { d, _ ->
+      r.remove("dl")
+      d.copy().apply { resolvedVersion = "4"; resolvedJars = mutableListOf("/dl4.jar") }
+    }
+    assertFalse(gone)
+    assertNull("a removed driver is not brought back", r.find("dl"))
+    assertTrue(r.state.pins.none { it.id == "dl" })
+  }
+
+  fun testSnapshotIsSharedAndSafeToReadWhileSaving() {
+    val r = DbDriverRegistry.getInstance()
+    assertSame("no rebuild per call", r.all, r.all)
+    assertSame(r.all.first(), r.find(r.all.first().id))
+    val before = r.all
+    r.save(DbDriverDefinition().apply { id = "t0"; name = "T0"; driverClass = "x.Y" })
+    assertNotSame(before, r.all)
+    assertNull("an old snapshot does not change", before.firstOrNull { it.id == "t0" })
+    assertTrue(runCatching { (r.all as MutableList<DbDriverDefinition>).add(DbDriverDefinition()) }.isFailure)
+
+    val failures = java.util.concurrent.ConcurrentLinkedQueue<Throwable>()
+    val stop = java.util.concurrent.atomic.AtomicBoolean()
+    val readers = (1..4).map {
+      Thread {
+        while (!stop.get()) {
+          try {
+            r.all.forEach { d -> d.urlPrefixes.size }
+            r.forUrl("jdbc:mysql://h/x")
+            com.intellij.util.xmlb.XmlSerializer.serialize(r.state)
+          }
+          catch (e: Throwable) {
+            failures += e
+          }
+        }
+      }.apply { start() }
+    }
+    repeat(300) { i -> r.save(DbDriverDefinition().apply { id = "t${i % 5}"; name = "T$i"; driverClass = "x.Y"; urlPrefixes = mutableListOf("jdbc:t$i:") }) }
+    stop.set(true)
+    readers.forEach { it.join() }
+    (0 until 5).forEach { r.remove("t$it") }
+    assertEmpty(failures.map { it.toString() })
+  }
+
   fun testListenerFiresOnChange() {
     val r = DbDriverRegistry.getInstance()
     var count = 0

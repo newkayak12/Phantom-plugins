@@ -157,6 +157,28 @@ class DbDriverUiTest : BasePlatformTestCase() {
     assertNull(registry.find("mysql")!!.resolvedVersion)
   }
 
+  fun testEditorDownloadOfBuiltInPinsWithoutOverride() {
+    withDrivers("mysql") { dialog ->
+      dialog.editor.downloader = { d, _ -> d.copy().apply { resolvedVersion = "9.9"; resolvedJars = mutableListOf(DbConsoleTest.h2Jar.toString()) } }
+      dialog.editor.download()
+      PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+      dialog.apply()
+    }
+    assertTrue("drivers.xml changes keep reaching the built-in", registry.state.overrides.none { it.id == "mysql" })
+    assertEquals("9.9", registry.find("mysql")!!.resolvedVersion)
+  }
+
+  fun testResetKeepsDownloadedJars() {
+    registry.pin("mysql", "9.9", listOf(DbConsoleTest.h2Jar.toString()))
+    registry.save(registry.find("mysql")!!.copy().apply { defaultProperties["useSSL"] = "false" })
+    withDrivers("mysql") { dialog ->
+      dialog.reset()
+      dialog.apply()
+    }
+    assertTrue(registry.state.overrides.none { it.id == "mysql" })
+    assertEquals("9.9", registry.find("mysql")!!.resolvedVersion)
+  }
+
   fun testDriverRequiredToSave() {
     withDialog(DbDataSource().apply { dbms = Dbms.GENERIC; url = "jdbc:nothing:x" }) { dialog ->
       assertNull(dialog.current().driverId)

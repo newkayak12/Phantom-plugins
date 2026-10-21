@@ -394,7 +394,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
 
     /**
      * Test Connection, an explicit user action, downloads a missing driver before trying: only the downloaded jars and
-     * version are saved to the registry, nothing else of the definition.
+     * version are pinned in the registry, nothing else of the definition.
      */
     internal fun downloadIfMissing(
       project: Project,
@@ -407,11 +407,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
       val definition = registry.find(probe.driverId) ?: return
       if (definition.artifacts.isEmpty() || DbDrivers.find(project, probe) != null) return
       indicator.text = PhantomDbBundle.message("db.driver.download.title", definition.name)
-      val downloaded = download(definition, indicator)
-      val pinned = registry.find(definition.id)?.copy() ?: return
-      pinned.resolvedVersion = downloaded.resolvedVersion
-      pinned.resolvedJars = ArrayList(downloaded.resolvedJars)
-      registry.save(pinned)
+      DbDriverActions.downloadAndPin(definition, indicator, download)
       indicator.text = PhantomDbBundle.message("db.dialog.testing")
     }
 

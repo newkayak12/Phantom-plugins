@@ -40,8 +40,8 @@ object DbDriverActions {
   fun download(project: Project?, definition: DbDriverDefinition) {
     ProgressManager.getInstance().run(object : Task.Backgroundable(project, PhantomDbBundle.message("db.driver.download.title", definition.name), true) {
       override fun run(indicator: ProgressIndicator) {
-        val downloaded = try {
-          DbDriverDownloader.download(definition, indicator)
+        val pinned = try {
+          downloadAndPin(definition, indicator)
         }
         catch (e: com.intellij.openapi.progress.ProcessCanceledException) {
           throw e
@@ -50,11 +50,24 @@ object DbDriverActions {
           notify(project, PhantomDbBundle.message("db.driver.download.failed", definition.name, e.message ?: e.javaClass.simpleName), NotificationType.ERROR)
           return
         }
-        DbDriverRegistry.getInstance().save(downloaded)
+        if (!pinned) return  // the driver was removed meanwhile
         live.entries.removeIf { (key, n) -> (key.second == definition.id).also { if (it) n.expire() } }
         notify(project, PhantomDbBundle.message("db.driver.download.done", definition.name), NotificationType.INFORMATION)
       }
     })
+  }
+
+  /**
+   * Downloads [definition]'s jars and pins them to the driver with its id as it is when the download ends: nothing else
+   * of [definition] is saved, so edits made meanwhile stay and a driver removed meanwhile is not brought back (false).
+   */
+  internal fun downloadAndPin(
+    definition: DbDriverDefinition,
+    indicator: ProgressIndicator,
+    download: (DbDriverDefinition, ProgressIndicator) -> DbDriverDefinition = { d, i -> DbDriverDownloader.download(d, i) },
+  ): Boolean {
+    val downloaded = download(definition, indicator)
+    return DbDriverRegistry.getInstance().pin(definition.id, downloaded.resolvedVersion, downloaded.resolvedJars)
   }
 
   private fun notify(project: Project?, message: String, type: NotificationType) {

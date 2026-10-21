@@ -135,7 +135,8 @@ class DbDriversDialog(private val project: Project?, select: String? = null) : D
     val pristine = DbDriverRegistry.builtIns.firstOrNull { it.id == definition.id } ?: return
     val index = drivers.getElementIndex(definition)
     editor.load(null)  // drops pending edits of the old copy
-    drivers.setElementAt(pristine.copy(), index)
+    // the downloaded jars are not an edit: they stay
+    drivers.setElementAt(pristine.copy().also { it.resolvedVersion = definition.resolvedVersion; it.resolvedJars = ArrayList(definition.resolvedJars) }, index)
     list.selectedIndex = index
     editor.load(selected())
   }
@@ -156,7 +157,14 @@ class DbDriversDialog(private val project: Project?, select: String? = null) : D
     removed.filter { id -> drivers.items.none { it.id == id } }.forEach(registry::remove)
     for (definition in drivers.items) {
       val pristine = if (definition.builtIn) DbDriverRegistry.builtIns.firstOrNull { it.id == definition.id } else null
-      if (pristine != null && sameAs(definition, pristine)) registry.resetToDefault(definition.id) else registry.save(definition)
+      if (pristine != null && sameAs(definition, pristine)) {
+        registry.resetToDefault(definition.id)
+        val saved = registry.find(definition.id)
+        if (saved?.resolvedVersion != definition.resolvedVersion || saved?.resolvedJars != definition.resolvedJars) {
+          registry.pin(definition.id, definition.resolvedVersion, definition.resolvedJars)
+        }
+      }
+      else registry.save(definition)
     }
     DbDriverSettings.getInstance().repositories = repositories.items.drop(1).toMutableList()
   }
@@ -173,8 +181,11 @@ class DbDriversDialog(private val project: Project?, select: String? = null) : D
     super.doOKAction()
   }
 
-  private fun sameAs(a: DbDriverDefinition, b: DbDriverDefinition): Boolean =
-    JDOMUtil.areElementsEqual(XmlSerializer.serialize(a), XmlSerializer.serialize(b))
+  /** Equal apart from the download pin, which is not an edit of the definition. */
+  private fun sameAs(a: DbDriverDefinition, b: DbDriverDefinition): Boolean {
+    fun unpinned(d: DbDriverDefinition) = XmlSerializer.serialize(d.copy().also { it.resolvedVersion = null; it.resolvedJars = ArrayList() })
+    return JDOMUtil.areElementsEqual(unpinned(a), unpinned(b))
+  }
 
   private fun action(key: String, icon: javax.swing.Icon, enabled: () -> Boolean, perform: () -> Unit) =
     object : DumbAwareAction(PhantomDbBundle.message(key), null, icon) {

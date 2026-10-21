@@ -6,7 +6,6 @@
   </dependencies>
   <resource-bundle>messages.PhantomDbBundle</resource-bundle>
   <extensions defaultExtensionNs="com.intellij">
-    <applicationService serviceImplementation="dev.phantom.db.core.drivers.DbDriverRegistry"/>
     <fileType name="Phantom SQL" language="SQL" extensions="sql"
               implementationClass="dev.phantom.db.core.SqlFileType" fieldName="INSTANCE"/>
     <lang.parserDefinition language="SQL" implementationClass="dev.phantom.db.core.SqlParserDefinition"/>
