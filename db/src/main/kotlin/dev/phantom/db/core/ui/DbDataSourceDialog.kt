@@ -72,7 +72,7 @@ class DbDataSourceDialog private constructor(private val project: Project, exist
     dbmsCombo.addActionListener {
       val dbms = dbmsCombo.selectedItem as Dbms
       val url = urlField.text.trim()
-      if (url.isEmpty() || Dbms.entries.any { it.urlTemplate == url } || Dbms.forUrl(url) != dbms) urlField.text = dbms.urlTemplate
+      if (replacesUrl(url, dbms)) urlField.text = dbms.urlTemplate
       refreshDriver()
     }
     urlField.document.addDocumentListener(object : DocumentAdapter() {
@@ -139,7 +139,7 @@ class DbDataSourceDialog private constructor(private val project: Project, exist
     ApplicationManager.getApplication().executeOnPooledThread {
       val found = DbDrivers.find(project, probe)
       ApplicationManager.getApplication().invokeLater({
-        driverLabel.text = found?.description ?: PhantomDbBundle.message("db.dialog.driver.none", probe.dbms.artifacts.first())
+        driverLabel.text = found?.description ?: PhantomDbBundle.message("db.dialog.driver.none", probe.dbms.artifacts.firstOrNull() ?: "its driver jar")
         driverLabel.foreground = if (found == null) JBColor.RED else UIUtil.getLabelForeground()
       }, ModalityState.any())
     }
@@ -193,6 +193,10 @@ class DbDataSourceDialog private constructor(private val project: Project, exist
   private var result: DbDataSource? = null
 
   companion object {
+    /** Picking [dbms] replaces an empty URL, another database's template, or a URL of another database; never a URL typed for "Other". */
+    internal fun replacesUrl(url: String, dbms: Dbms): Boolean =
+      url.isEmpty() || Dbms.entries.any { it.urlTemplate == url } || (dbms.hasDialect && Dbms.forUrl(url) != dbms)
+
     /** Shows the dialog for a new data source; returns it once saved. */
     fun create(project: Project): DbDataSource? = DbDataSourceDialog(project, null).let { if (it.showAndGet()) it.result else null }
 

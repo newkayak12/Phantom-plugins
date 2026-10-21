@@ -124,10 +124,10 @@ class DbStatement(val sql: String, val params: List<DbParam>, private val dbms: 
 object DbEditTargets {
   /**
    * The edit target of a result, or null when its rows cannot be traced back to table rows: not a single-table select,
-   * a read-only data source, a view or table without a primary key, or a key column missing from the result.
+   * a read-only or dialect-less data source, a view or table without a primary key, or a key column missing from the result.
    */
   suspend fun resolve(project: Project, dataSource: DbDataSource, rows: DbOutcome.Rows): DbEditTarget? {
-    if (dataSource.readOnly) return null
+    if (dataSource.readOnly || !dataSource.dbms.hasDialect) return null
     val name = SingleTableSelect.parse(rows.sql) ?: return null
     return try {
       DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.METADATA) { connection ->
@@ -163,7 +163,7 @@ object DbEditTargets {
   /** Pure part of [resolve], for tests. */
   internal fun build(dbms: Dbms, quote: String, name: DbTableName, schema: String?, table: String, keys: List<String>,
                      tableColumns: List<String>, resultColumns: List<DbColumn>): DbEditTarget? {
-    if (keys.isEmpty()) return null
+    if (!dbms.hasDialect || keys.isEmpty()) return null
     fun q(identifier: String) = if (quote.isEmpty()) identifier else quote + identifier.replace(quote, quote + quote) + quote
     val byLowerName = tableColumns.groupBy { it.lowercase() }
     // a result column is a table column when its label names exactly one table column, ignoring case
