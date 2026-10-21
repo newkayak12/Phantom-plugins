@@ -254,11 +254,15 @@ object DbDrivers {
     return if (jars.all { Files.isRegularFile(it) }) DbDriver(jars, definition.resolvedVersion, DbDriver.Origin.DOWNLOADED) else null
   }
 
-  /** True when a project library looks like a JDBC driver for one of [Dbms]. Names only, no file access. */
+  /** True when a project library looks like a JDBC driver of a built-in preset. Names only, no file access. */
   fun projectHasDriverLibrary(project: Project): Boolean {
     val names = LibraryTablesRegistrar.getInstance().getLibraryTable(project).libraries.mapNotNull { it.name }
-    return names.any { name -> Dbms.entries.any { dbms -> dbms.artifacts.any { name.contains(it) } } }
+    return names.any { isDriverLibraryName(it) }
   }
+
+  /** True when [name] (like `Gradle: group:artifact:1.0`) contains `group:artifact` of a built-in driver's artifacts. */
+  internal fun isDriverLibraryName(name: String): Boolean =
+    DbDriverRegistry.builtIns.any { d -> d.artifacts.any { name.contains(it.split(':').take(2).joinToString(":")) } }
 
   internal fun versionOf(jarName: String, artifacts: List<String>): String? {
     for (coordinates in artifacts) {

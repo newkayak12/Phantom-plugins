@@ -2,19 +2,25 @@
 
 `dev.phantom.db` · [한국어](./KOR.md)
 
-A JDBC console for MySQL, PostgreSQL and H2.
+A JDBC console for MySQL, MariaDB, PostgreSQL, H2, AWS, Oracle, SQL Server and more, with drivers you can add.
 
 - `.sql` files get highlighting, brace matching, comments and keyword completion.
 - **Ctrl+Enter** runs the statement at the caret; the gutter has a run icon per statement.
 - Results open in a sortable grid; long queries can be cancelled.
 - The **Database** tool window shows data sources and a schema tree that loads one level at a time.
-- Drivers come from the project's own dependencies or the local Gradle/Maven cache, so nothing is downloaded.
+- **Drivers are data.** 13 presets (MySQL, MariaDB, PostgreSQL, H2, AWS JDBC Wrapper for MySQL and PostgreSQL, Amazon Redshift, Amazon Athena, Oracle, SQL Server, SQLite, ClickHouse, Snowflake) plus your own. The **Drivers…** dialog (tool window, or **Configure Drivers…** from an error) adds, duplicates, removes and resets drivers: jar files or Maven coordinates, version (`LATEST` is pinned at download; **Check for updates**), URL template, URL prefixes, default properties, dialect and extra Maven repositories (Maven Central is always first). The driver class is detected from the jars.
+- **Where the jars come from**, in order: jars you chose, the driver's own files, project libraries, local Gradle/Maven caches, then downloaded jars (kept in the IDE system directory). Existing MySQL, MariaDB, PostgreSQL and H2 setups keep working with no download.
+- **Downloads happen only on request**: **Download**, **Test Connection**, or the notification's **Download driver**. Transitive dependencies are resolved and SHA-1 is checked.
+- The data source dialog has a driver combo (pasting a URL selects the driver), host/port/database fields or a raw URL, and authentication: user/password, none, or **AWS IAM** (AWS profile and region, handled by the driver's own IAM support). A driver properties table is included.
+- **Databases without SQL intelligence** (dialect "Other": Redshift, Athena, Oracle, SQL Server, SQLite, ClickHouse and Snowflake by default): the console, result grid, schema tree and export work; dialect checks, EXPLAIN, DDL, table modify, schema compare and grid editing are off.
+- Vendor icons mark drivers and data sources.
+- **Team sharing**: data sources still store `dbms` for 0.10.0 readers. A driver id unknown on a teammate's IDE falls back by URL prefix, else shows a "not defined" error with **Configure Drivers…**.
 - **Manual commit** (a data source setting): statements run in an open transaction. The **Database Changes** tool window lists what is in it, with **Commit** and **Roll Back**; `COMMIT`/`ROLLBACK` typed in the console work too, and closing the project asks first.
 - **Edit in the grid**: a result from one table that includes its primary key can be edited in place. A changed cell runs an `UPDATE` by key, deleted rows a `DELETE`; Add Row and Clone Row open an `INSERT` in the console to finish. On a manual-commit data source the edits wait in Database Changes.
 - **Compare With…** on a schema: the diff viewer shows tables, columns, keys and indexes of two schemas (any data sources), and opens the SQL that makes the other one match in its console. Drops are written commented out.
 - Passwords go to the IDE password safe, never to the project files.
 - Nothing runs at startup; the plugin loads its code when a `.sql` file or the tool window opens.
 
-Phantom suggests this plugin when a project depends on a MySQL, MariaDB, PostgreSQL or H2 driver.
+Phantom suggests this plugin when a project depends on the JDBC driver of any preset.
 
 Not yet: editing results of joins or views, comparing views, routines and foreign keys.

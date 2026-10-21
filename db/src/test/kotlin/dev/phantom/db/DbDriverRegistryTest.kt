@@ -137,4 +137,10 @@ class DbDriverRegistryTest : BasePlatformTestCase() {
     assertFalse(xml.contains("awsSecret"))
     service.remove("r")
   }
+
+  fun testSuggestionSeesAwsWrapper() {
+    assertTrue(dev.phantom.db.core.DbDrivers.isDriverLibraryName("Gradle: software.amazon.jdbc:aws-advanced-jdbc-wrapper:2.5.0"))
+    assertTrue(dev.phantom.db.core.DbDrivers.isDriverLibraryName("Gradle: com.mysql:mysql-connector-j:8.4.0"))
+    assertFalse(dev.phantom.db.core.DbDrivers.isDriverLibraryName("Gradle: org.slf4j:slf4j-api:2.0.0"))
+  }
 }

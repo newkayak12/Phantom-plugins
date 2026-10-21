@@ -4,9 +4,11 @@
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Database</category>
   <description><![CDATA[
-  Connect to MySQL, PostgreSQL or H2 over JDBC and run SQL from the editor: highlighting for .sql files, Ctrl+Enter to
-  run the statement at the caret, results in a sortable grid, and a lazily loaded schema tree. Drivers come from the
-  project's own dependencies or the local Gradle/Maven cache, so no download is needed. Nothing runs at startup.
+  Connect to MySQL, MariaDB, PostgreSQL, H2, AWS JDBC Wrapper, Redshift, Athena, Oracle, SQL Server, SQLite,
+  ClickHouse, Snowflake or any JDBC driver you add, and run SQL from the editor: highlighting for .sql files, Ctrl+Enter to
+  run the statement at the caret, results in a sortable grid, and a lazily loaded schema tree. Drivers are data you
+  can edit: each is found in the project's own dependencies, the local Gradle/Maven cache or jars you choose, and is
+  downloaded from Maven only when you ask (Download, Test Connection). Nothing runs at startup.
   A data source in manual-commit mode keeps changes in an open transaction: review them in the Database Changes tool
   window and commit or roll them back; closing the project asks first. A result from one table with its primary key
   can be edited in the grid, and Compare With on a schema diffs two schemas and writes the SQL to make them match.
