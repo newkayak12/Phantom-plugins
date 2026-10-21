@@ -19,6 +19,8 @@ object SqlNames {
 
   /** `` `a b` `` → `a b`; `"x""y"` → `x"y`. */
   fun unquote(text: String): String = when {
+    // SQL injected into a Java or Kotlin string keeps the string's escapes
+    text.length >= 4 && text.startsWith("\\\"") && text.endsWith("\\\"") -> text.substring(2, text.length - 2)
     text.length >= 2 && text[0] == '`' && text.last() == '`' -> text.substring(1, text.length - 1).replace("``", "`")
     text.length >= 2 && text[0] == '"' && text.last() == '"' -> text.substring(1, text.length - 1).replace("\"\"", "\"")
     text.length >= 2 && text[0] == '[' && text.last() == ']' -> text.substring(1, text.length - 1)

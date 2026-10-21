@@ -109,4 +109,20 @@ class SqlInjectionTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals(listOf("DELETE FROM reservation ${'$'}BY_ID"), injectedStrings())
     assertEmpty(myFixture.doHighlighting().filter { it.inspectionToolId?.startsWith("PhantomSql") == true })
   }
+
+  fun testSelectStarInInjectedSql() {
+    myFixture.enableInspections(dev.phantom.db.core.SqlSelectStarInjectedInspection::class.java)
+    myFixture.configureByText("Repo.java", """
+      import org.springframework.data.jpa.repository.*;
+      interface Repo {
+        @Query(value = "SELECT * FROM reservation", nativeQuery = true) Object all();
+        @Query(value = "SELECT count(*), r.* FROM reservation r", nativeQuery = true) Object count();
+      }
+    """.trimIndent())
+    val found = myFixture.doHighlighting().filter { it.inspectionToolId == "PhantomSqlSelectStarInjected" }.map { it.text }
+    assertEquals(listOf("*"), found)
+    // not in a .sql file
+    myFixture.configureByText("q.sql", "SELECT * FROM reservation")
+    assertEmpty(myFixture.doHighlighting().filter { it.inspectionToolId == "PhantomSqlSelectStarInjected" })
+  }
 }

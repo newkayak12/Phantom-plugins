@@ -5,6 +5,9 @@
     <module name="intellij.grid.impl"/>
   </dependencies>
   <resource-bundle>messages.PhantomDbBundle</resource-bundle>
+  <extensionPoints>
+    <extensionPoint qualifiedName="dev.phantom.db.mappings" interface="dev.phantom.db.core.SqlDbMappings" dynamic="true"/>
+  </extensionPoints>
   <extensions defaultExtensionNs="com.intellij">
     <fileType name="Phantom SQL" language="SQL" extensions="sql"
               implementationClass="dev.phantom.db.core.SqlFileType" fieldName="INSTANCE"/>
@@ -13,7 +16,12 @@
     <lang.commenter language="SQL" implementationClass="dev.phantom.db.core.SqlCommenter"/>
     <lang.braceMatcher language="SQL" implementationClass="dev.phantom.db.core.SqlBraceMatcher"/>
     <completion.contributor language="SQL" implementationClass="dev.phantom.db.core.SqlCompletionContributor"/>
-    <annotator language="SQL" implementationClass="dev.phantom.db.core.SqlUnresolvedAnnotator"/>
+    <localInspection language="SQL" shortName="PhantomSqlUnresolvedTable" key="inspection.PhantomSqlUnresolvedTable" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnresolvedTableInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlUnresolvedColumn" key="inspection.PhantomSqlUnresolvedColumn" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnresolvedColumnInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlSelectStarInjected" key="inspection.PhantomSqlSelectStarInjected" groupKey="inspection.group.sql"
+                     enabledByDefault="false" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlSelectStarInjectedInspection"/>
     <localInspection language="SQL" shortName="PhantomSqlWithoutWhere" key="inspection.PhantomSqlWithoutWhere" groupKey="inspection.group.sql"
                      enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlWithoutWhereInspection"/>
     <localInspection language="SQL" shortName="PhantomSqlJoinWithoutOn" key="inspection.PhantomSqlJoinWithoutOn" groupKey="inspection.group.sql"
@@ -100,6 +108,15 @@
                      enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlMissingReturnInspection"/>
     <lang.formatter language="SQL" implementationClass="dev.phantom.db.core.SqlFormattingModelBuilder"/>
     <lang.findUsagesProvider language="SQL" implementationClass="dev.phantom.db.core.SqlFindUsagesProvider"/>
+    <referencesSearch implementation="dev.phantom.db.core.SqlDbReferenceSearcher"/>
+    <findUsagesHandlerFactory implementation="dev.phantom.db.core.SqlDbFindUsagesHandlerFactory"/>
+    <renamePsiElementProcessor implementation="dev.phantom.db.core.SqlDbRenameProcessor"/>
+    <lang.elementManipulator forClass="dev.phantom.db.core.SqlTableRef" implementationClass="dev.phantom.db.core.SqlNameManipulator"/>
+    <lang.elementManipulator forClass="dev.phantom.db.core.SqlColumnRef" implementationClass="dev.phantom.db.core.SqlNameManipulator"/>
+    <lang.elementManipulator forClass="dev.phantom.db.core.SqlQualifier" implementationClass="dev.phantom.db.core.SqlNameManipulator"/>
+    <liveTemplateContext contextId="PHANTOM_SQL" implementation="dev.phantom.db.core.SqlTemplateContextType"/>
+    <defaultLiveTemplates file="/liveTemplates/PhantomSql.xml"/>
+    <liveTemplateMacro implementation="dev.phantom.db.core.SqlColumnsMacro"/>
     <runLineMarkerContributor language="SQL" implementationClass="dev.phantom.db.core.exec.SqlRunLineMarkerContributor"/>
     <editorNotificationProvider implementation="dev.phantom.db.core.exec.SqlDataSourceNotificationProvider"/>
     <editorTabColorProvider implementation="dev.phantom.db.core.DbEditorTabColorProvider"/>

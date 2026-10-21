@@ -23,6 +23,10 @@ MySQL, MariaDB, PostgreSQL, H2, AWS, Oracle, SQL Server 등을 위한 JDBC 콘�
 - **탐색기**(DataGrip처럼): 스키마 아래 객체를 폴더로 묶습니다. tables, views, materialized views(드라이버가 알려 줄 때), routines, triggers, sequences. 테이블 아래에는 열(타입, PK, FK, NOT NULL), keys, foreign keys, indexes, triggers가 있습니다. 폴더는 펼칠 때 불러오고 **Refresh** 전까지 캐시에 둡니다. 더블클릭이나 **F4**로 테이블은 데이터를, 뷰·루틴·트리거는 DDL을 열고, 외래 키는 참조하는 테이블로 이동합니다. 트리에서 바로 타이핑하면 찾아가고(speed search), 위의 필터 칸은 불러온 객체를 이름으로 좁히고 빈 폴더를 숨깁니다. 도구 막대의 **Show System Schemas**로 `information_schema`, `pg_catalog` 같은 시스템 스키마도 봅니다.
 - **Navigate → Database Object…**(Search Everywhere의 **Database** 탭도 같음): 트리가 불러온 테이블, 뷰, 루틴, 열을 모든 데이터 소스에서 찾고, 데이터 소스와 스키마를 옆에 보여 줍니다. 접속하지 않습니다. 고르면 트리에서 선택하고 데이터나 DDL을 엽니다.
 - **New Console**(트리, 도구 막대, Tools 메뉴, **Ctrl+Alt+Shift+Q**, macOS **Ctrl+Cmd+N**): 선택한 데이터 소스의 콘솔을 선택한 스키마로 하나 더 엽니다. `<이름>.sql`, `<이름> [1].sql`, … 순서로 Scratches and Consoles → Database Consoles에 만듭니다. 데이터 소스의 **consoles** 폴더와 **Navigate → Jump to Console…**에 나옵니다. 한 데이터 소스의 콘솔들은 콘솔 연결 하나를 같이 쓰므로, 수동 커밋 트랜잭션(과 Database Changes)도 콘솔마다가 아니라 데이터 소스마다 하나입니다.
+- **JOIN 자동 완성**(DataGrip처럼): `JOIN` 뒤에서는 FROM에 이미 있는 테이블과 외래 키로(어느 방향이든) 이어진 테이블을 별칭과 `ON` 절까지 붙여 먼저 보여 줍니다(`customer c ON o.customer_id = c.id`). `JOIN t [별칭] ON` 뒤에서는 `t`와 앞의 모든 테이블을 잇는 조건 전체를, 외래 키에서 먼저, 그다음 열 이름으로 추측해(`x_id` = `x.id`, 양쪽의 같은 `*_id` 열) 보여 줍니다. 캐시된 메타데이터만 읽고, 없는 키는 백그라운드에서 불러와 다음 입력 때 나옵니다.
+- **라이브 템플릿**(**SQL (Phantom)** 그룹, `.sql` 파일·콘솔·SQL 문자열): `sel`, `selc`(count), `selw`(WHERE), `ins`(테이블 열을 불러왔으면 열 목록을 채움), `upd`, `del`, `crt`. 테이블 이름은 자동 완성됩니다.
+- 테이블, 뷰, 열의 **Find Usages와 Rename**: `.sql` 파일, 콘솔, Java·Kotlin의 SQL 문자열(`@Query`, JdbcTemplate, JdbcClient)에서 같은 테이블·열로 해석되는 곳과 JPA `@Table` / `@Column` / `@JoinColumn` 이름을 찾습니다. Rename은 SQL 텍스트만 바꾸고(따옴표 이름은 따옴표를, 따옴표 없는 이름은 대소문자 형태를 유지) 데이터베이스는 건드리지 않습니다. 대화상자에서 `ALTER … RENAME`을 실행하지 않고 데이터 소스 콘솔에 적거나 JPA 매핑 이름도 바꿀 수 있습니다. 둘 다 기본은 꺼짐입니다.
+- **Unknown table / Unknown column** 검사(스키마를 불러온 뒤)와 빠른 수정: 테이블에 빠진 별칭 추가, 그 열이 있는 테이블로 한정. **코드 안 SQL 문자열의 SELECT \***(기본 꺼짐)는 열 목록으로 바꿀 수 있습니다.
 - 비밀번호는 IDE 비밀번호 저장소에만 저장하고, 프로젝트 파일에는 남기지 않습니다.
 - IDE 시작 때는 아무것도 하지 않습니다. `.sql` 파일이나 툴 윈도우를 열 때 코드를 불러옵니다.
 

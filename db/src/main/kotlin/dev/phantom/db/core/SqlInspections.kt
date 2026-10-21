@@ -9,8 +9,8 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiComment
-import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
@@ -304,8 +304,6 @@ class SqlTextFix(
   override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
     val start = descriptor.startElement ?: return
     val end = descriptor.endElement ?: start
-    val documents = PsiDocumentManager.getInstance(project)
-    val document = documents.getDocument(start.containingFile) ?: return
     var from = start.textRange.startOffset
     var to = end.textRange.endOffset
     when (mode) {
@@ -314,8 +312,8 @@ class SqlTextFix(
       Mode.INSERT_BEFORE -> to = from
       Mode.INSERT_AFTER -> from = to
     }
-    document.replaceString(from, to, replacement)
-    documents.commitDocument(document)
+    // SQL in a Java or Kotlin string gets the text escaped for the string
+    SqlTextEdits.apply(project, listOfNotNull(SqlTextEdits.edit(start.containingFile, TextRange(from, to), replacement)))
   }
 }
 
@@ -620,5 +618,35 @@ class SqlMissingColumnAliasesInspection : SqlInspection() {
       if (entry.any { it.depth == 0 && it.isOperator("*") }) continue
       register(holder, entry.first().element, entry.last().element, PhantomDbBundle.message("sql.inspection.missing.column.alias"))
     }
+  }
+}
+
+/**
+ * `SELECT *` in SQL in a Java or Kotlin string: the code reads columns by name or position, and a column added to the
+ * table changes what it gets. The fix lists the columns when the tables' columns are known.
+ */
+class SqlSelectStarInjectedInspection : SqlInspection() {
+  override fun checkQuery(query: SqlScope, items: List<SqlItem>, holder: ProblemsHolder) {
+    if (!InjectedLanguageManager.getInstance(query.project).isInjectedFragment(holder.file)) return
+    for (arm in SqlQueries.arms(items)) {
+      val star = SqlQueries.selectList(arm)?.firstOrNull { entry -> entry.size == 1 && entry[0].isOperator("*") }?.single() ?: continue
+      val fixes = listOfNotNull(columns(query)?.let { SqlTextFix(PhantomDbBundle.message("sql.fix.expand.star"), it) })
+      holder.registerProblem(star.element, PhantomDbBundle.message("sql.inspection.select.star"), *fixes.toTypedArray())
+    }
+  }
+
+  /** The columns `*` stands for, qualified when the query reads several tables; null unless every table's columns are cached. */
+  private fun columns(query: SqlScope): String? {
+    val dataSource = SqlSchema.dataSourceFor(query.containingFile, strict = true) ?: return null
+    val tables = SqlScopes.direct(query, SqlTableRef::class.java)
+    if (tables.isEmpty() || SqlScopes.direct(query, SqlAlias::class.java).any { it.table == null }) return null
+    val dbms = dataSource.dialect()
+    val parts = tables.map { ref ->
+      val target = (SqlResolver.table(ref, load = false) as? SqlResolution.Found)?.target as? SqlDbTarget ?: return null
+      val columns = SqlSchema.getInstance(query.project).columns(dataSource, target.table, load = false) ?: return null
+      val prefix = if (tables.size > 1) (ref.alias?.text ?: ref.text) + "." else ""
+      columns.map { prefix + dev.phantom.db.core.exec.DbNames.identifier(dbms, it.name) }
+    }
+    return parts.flatten().joinToString(", ")
   }
 }

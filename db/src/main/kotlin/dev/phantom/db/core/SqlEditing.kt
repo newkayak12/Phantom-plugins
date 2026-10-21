@@ -111,44 +111,61 @@ class SqlCompletionContributor : CompletionContributor() {
         val dataSource = SqlSchema.dataSourceFor(parameters.originalFile, strict = false)
         val schema = dataSource?.let { SqlSchema.getInstance(project).snapshotFor(parameters.originalFile, it) }
         val columns = { table: DbTableRef -> dataSource?.let { SqlSchema.getInstance(project).columns(it, table) }.orEmpty() }
-        when (val parent = position.parent) {
-          is SqlColumnRef -> {
-            val q = parent.qualifier
-            if (q != null) {
-              qualifiedTable(q)?.let { t -> schema?.let { tableOf(t, it) } }?.let { columns(it).forEach { c -> result.addElement(column(c, null)) } }
-              return
-            }
-            if (parent.isInsertColumn) {
-              SqlScopes.chain(parent).firstOrNull()?.let { SqlScopes.direct(it, SqlTableRef::class.java).firstOrNull() }
-                ?.let { t -> schema?.let { tableOf(t, it) } }?.let { columns(it).forEach { c -> result.addElement(column(c, null)) } }
-              return
-            }
-            for (scope in SqlScopes.chain(parent)) {
-              for (ref in SqlScopes.direct(scope, SqlTableRef::class.java)) {
-                val table = schema?.let { tableOf(ref, it) } ?: continue
-                columns(table).forEach { result.addElement(column(it, ref.alias?.name ?: table.name)) }
-                ref.alias?.let { result.addElement(PrioritizedLookupElement.withPriority(LookupElementBuilder.create(it.name).withIcon(AllIcons.Nodes.Alias).withTypeText(table.name), 5.0)) }
-              }
-            }
-            keywords(result)
-          }
-          is SqlTableRef -> {
-            val schemaName = parent.schemaName
-            val tables = if (schemaName == null || dataSource == null) schema
-            else schema?.schema(schemaName)?.let { SqlSchema.getInstance(project).withSchema(dataSource, it, current = SqlSchema.schemaFor(parameters.originalFile)) }
-            tables?.tables?.filter { schemaName == null || SqlNames.same(it.schema ?: it.catalog.orEmpty(), schemaName) }?.forEach { result.addElement(table(it)) }
-            if (schemaName != null) return
-            schema?.schemas?.forEach { result.addElement(PrioritizedLookupElement.withPriority(LookupElementBuilder.create(it.name).withIcon(AllIcons.Nodes.DataSchema), 2.0)) }
-            SqlScopes.ctes(parent).forEach { result.addElement(PrioritizedLookupElement.withPriority(LookupElementBuilder.create(it.name).withIcon(AllIcons.Nodes.DataTables).withTypeText("CTE"), 8.0)) }
-            keywords(result)
-          }
-          else -> {
-            if (previousKeyword(position) in TABLE_CONTEXT) schema?.tables?.forEach { result.addElement(table(it)) }
-            keywords(result)
-          }
+        val joins = dataSource?.let { SqlJoinCompletion(it, SqlSchema.getInstance(project)) }
+        try {
+          addCompletions(position, parameters, result, dataSource, schema, columns, joins)
+        }
+        finally {
+          // foreign keys or columns are loading: ask again on the next keystroke
+          if (joins?.pending == true) result.restartCompletionOnAnyPrefixChange()
         }
       }
     })
+  }
+
+  private fun addCompletions(position: PsiElement, parameters: CompletionParameters, result: CompletionResultSet, dataSource: DbDataSource?,
+                             schema: SqlSchemaSnapshot?, columns: (DbTableRef) -> List<DbColumnInfo>, joins: SqlJoinCompletion?) {
+    val project = position.project
+    when (val parent = position.parent) {
+      is SqlColumnRef -> {
+        joins?.addOnConditions(parent, result)
+        val q = parent.qualifier
+        if (q != null) {
+          qualifiedTable(q)?.let { t -> schema?.let { tableOf(t, it) } }?.let { columns(it).forEach { c -> result.addElement(column(c, null)) } }
+          return
+        }
+        if (parent.isInsertColumn) {
+          SqlScopes.chain(parent).firstOrNull()?.let { SqlScopes.direct(it, SqlTableRef::class.java).firstOrNull() }
+            ?.let { t -> schema?.let { tableOf(t, it) } }?.let { columns(it).forEach { c -> result.addElement(column(c, null)) } }
+          return
+        }
+        for (scope in SqlScopes.chain(parent)) {
+          for (ref in SqlScopes.direct(scope, SqlTableRef::class.java)) {
+            val table = schema?.let { tableOf(ref, it) } ?: continue
+            columns(table).forEach { result.addElement(column(it, ref.alias?.name ?: table.name)) }
+            ref.alias?.let { result.addElement(PrioritizedLookupElement.withPriority(LookupElementBuilder.create(it.name).withIcon(AllIcons.Nodes.Alias).withTypeText(table.name), 5.0)) }
+          }
+        }
+        keywords(result)
+      }
+      is SqlTableRef -> {
+        if (joins != null && schema != null && SqlJoinCompletion.isAfterJoin(position)) {
+          PsiTreeUtil.skipWhitespacesAndCommentsBackward(parent)?.let { joins.addJoinTables(parent, it.text, schema, result) }
+        }
+        val schemaName = parent.schemaName
+        val tables = if (schemaName == null || dataSource == null) schema
+        else schema?.schema(schemaName)?.let { SqlSchema.getInstance(project).withSchema(dataSource, it, current = SqlSchema.schemaFor(parameters.originalFile)) }
+        tables?.tables?.filter { schemaName == null || SqlNames.same(it.schema ?: it.catalog.orEmpty(), schemaName) }?.forEach { result.addElement(table(it)) }
+        if (schemaName != null) return
+        schema?.schemas?.forEach { result.addElement(PrioritizedLookupElement.withPriority(LookupElementBuilder.create(it.name).withIcon(AllIcons.Nodes.DataSchema), 2.0)) }
+        SqlScopes.ctes(parent).forEach { result.addElement(PrioritizedLookupElement.withPriority(LookupElementBuilder.create(it.name).withIcon(AllIcons.Nodes.DataTables).withTypeText("CTE"), 8.0)) }
+        keywords(result)
+      }
+      else -> {
+        if (previousKeyword(position) in TABLE_CONTEXT) schema?.tables?.forEach { result.addElement(table(it)) }
+        keywords(result)
+      }
+    }
   }
 
   /** The table `t` stands for in `t.x`: through an alias, or a table in FROM, or the name itself. */

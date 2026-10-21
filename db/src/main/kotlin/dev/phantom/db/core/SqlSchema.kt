@@ -13,6 +13,7 @@ import dev.phantom.db.core.exec.DbColumnDetail
 import dev.phantom.db.core.exec.DbColumnInfo
 import dev.phantom.db.core.exec.DbConnectionService
 import dev.phantom.db.core.exec.DbConsoles
+import dev.phantom.db.core.exec.DbForeignKey
 import dev.phantom.db.core.exec.DbIndex
 import dev.phantom.db.core.exec.DbMetadataCache
 import dev.phantom.db.core.exec.DbObjectCache
@@ -91,6 +92,13 @@ class SqlSchema(private val project: Project) {
     return DbMetadataCache.cachedColumns(project, table)
   }
 
+  /** The columns of [table] if cached; a miss schedules the load and never waits. */
+  fun columnsNoWait(dataSource: DbDataSource, table: DbTableRef): List<DbColumnInfo>? {
+    DbMetadataCache.cachedColumns(project, table)?.let { return it }
+    start("columns:" + table) { DbMetadataCache.getInstance(project).columns(dataSource, table) }
+    return null
+  }
+
   /** Nullability, defaults and auto-increment of [table]'s columns, or null when they are not loaded. */
   fun columnDetails(dataSource: DbDataSource, table: DbTableRef, load: Boolean = true): List<DbColumnDetail>? {
     DbObjectCache.getInstanceIfCreated(project)?.cachedColumnDetails(table)?.let { return it }
@@ -112,6 +120,24 @@ class SqlSchema(private val project: Project) {
     val job = start("indexes:" + table) { DbObjectCache.getInstance(project).indexes(dataSource, table) } ?: return null
     await(job)
     return cached()
+  }
+
+  /**
+   * The foreign keys of [table] (to other tables) and of other tables to it, or null while they are not cached. A miss
+   * schedules the load and never waits: completion asks again on the next keystroke.
+   */
+  fun foreignKeys(dataSource: DbDataSource, table: DbTableRef): Pair<List<DbForeignKey>, List<DbForeignKey>>? {
+    fun cached(): Pair<List<DbForeignKey>, List<DbForeignKey>>? {
+      val cache = DbObjectCache.getInstanceIfCreated(project) ?: return null
+      return (cache.cachedForeignKeys(table) ?: return null) to (cache.cachedReferencingKeys(table) ?: return null)
+    }
+    cached()?.let { return it }
+    start("keys:" + table) {
+      val cache = DbObjectCache.getInstance(project)
+      cache.foreignKeys(dataSource, table)
+      cache.referencingKeys(dataSource, table)
+    }
+    return null
   }
 
   /** Loads the schema list and the [current] (else default) schema's tables now; for tests and callers already in a coroutine. */

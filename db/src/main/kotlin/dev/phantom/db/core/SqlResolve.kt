@@ -2,13 +2,20 @@
 package dev.phantom.db.core
 
 import com.intellij.icons.AllIcons
-import com.intellij.lang.annotation.AnnotationHolder
-import com.intellij.lang.annotation.Annotator
-import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.codeInspection.LocalInspectionTool
+import com.intellij.codeInspection.LocalQuickFix
+import com.intellij.codeInspection.LocalQuickFixOnPsiElement
+import com.intellij.codeInspection.ProblemHighlightType
+import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.lang.cacheBuilder.DefaultWordsScanner
 import com.intellij.lang.cacheBuilder.WordsScanner
 import com.intellij.lang.findUsages.FindUsagesProvider
 import com.intellij.navigation.ItemPresentation
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
+import com.intellij.psi.PsiElementVisitor
+import com.intellij.psi.PsiFile
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.impl.FakePsiElement
@@ -40,6 +47,12 @@ class SqlDbTarget(private val context: PsiElement, val dataSource: DbDataSource,
   override fun canNavigateToSource(): Boolean = false
   override fun navigate(requestFocus: Boolean) = DbTreeNavigation.select(context.project, dataSource, table, column?.name)
   override fun isEquivalentTo(another: PsiElement?): Boolean = another == this
+  override fun getLanguage(): com.intellij.lang.Language = SqlLanguage
+  /** Renaming changes SQL text only (see [SqlDbRenameProcessor]); the database is left alone. */
+  override fun setName(name: String): PsiElement = this
+  /** SQL is in project files and in the consoles under Scratches. */
+  override fun getUseScope(): com.intellij.psi.search.SearchScope =
+    withConsoles(project, com.intellij.psi.search.GlobalSearchScope.projectScope(project))
   override fun equals(other: Any?): Boolean =
     other is SqlDbTarget && other.dataSource.id == dataSource.id && other.table == table && other.column?.name == column?.name
   override fun hashCode(): Int = (dataSource.id.hashCode() * 31 + table.hashCode()) * 31 + column?.name.hashCode()
@@ -124,8 +137,20 @@ object SqlResolver {
   }
 }
 
+/**
+ * Whether a name in [element]'s file could be [target], checked without resolving: the same name, in a file of the
+ * target's data source. Searches ask this of every candidate word, so a file of another data source is never loaded
+ * (or connected to) for them.
+ */
+private fun couldBe(element: PsiElement, name: String, target: PsiElement): Boolean {
+  if (target !is SqlDbTarget) return true
+  if (!SqlNames.same(name, target.name)) return false
+  return SqlSchema.dataSourceFor(element.containingFile, strict = false)?.id == target.dataSource.id
+}
+
 class SqlTableReference(element: SqlTableRef) : PsiReferenceBase<SqlTableRef>(element, element.nameRange, true) {
   override fun resolve(): PsiElement? = (SqlResolver.table(element) as? SqlResolution.Found)?.target
+  override fun isReferenceTo(target: PsiElement): Boolean = couldBe(element, element.tableName, target) && super.isReferenceTo(target)
 }
 
 class SqlQualifierReference(element: SqlQualifier) : PsiReferenceBase<SqlQualifier>(element, element.nameRange, true) {
@@ -134,10 +159,12 @@ class SqlQualifierReference(element: SqlQualifier) : PsiReferenceBase<SqlQualifi
     is SqlResolution.Found -> (r.target as? SqlTableRef)?.let { (SqlResolver.table(it) as? SqlResolution.Found)?.target ?: it } ?: r.target
     else -> null
   }
+  override fun isReferenceTo(target: PsiElement): Boolean = couldBe(element, element.qualifierName, target) && super.isReferenceTo(target)
 }
 
 class SqlColumnReference(element: SqlColumnRef) : PsiReferenceBase<SqlColumnRef>(element, element.nameRange, true) {
   override fun resolve(): PsiElement? = (SqlResolver.column(element) as? SqlResolution.Found)?.target
+  override fun isReferenceTo(target: PsiElement): Boolean = couldBe(element, element.columnName, target) && super.isReferenceTo(target)
 }
 
 /**
@@ -145,30 +172,89 @@ class SqlColumnReference(element: SqlColumnRef) : PsiReferenceBase<SqlColumnRef>
  * source is known for sure and its schema loaded; names it cannot judge (derived tables, CTE columns, other schemas)
  * are left alone.
  */
-class SqlUnresolvedAnnotator : Annotator {
-  override fun annotate(element: PsiElement, holder: AnnotationHolder) {
-    if (element !is SqlTableRef && element !is SqlColumnRef && element !is SqlQualifier) return
-    val statement = com.intellij.psi.util.PsiTreeUtil.getParentOfType(element, SqlStatement::class.java) ?: return
-    if (statement.firstKeyword !in CHECKED) return
-    val file = element.containingFile
-    val ds = SqlSchema.dataSourceFor(file, strict = true) ?: return
-    if (SqlSchema.getInstance(element.project).snapshotFor(file, ds) == null) return
-    val (resolution, message, range) = when (element) {
-      is SqlTableRef -> Triple(SqlResolver.table(element), PhantomDbBundle.message("sql.unresolved.table", element.tableName), element.nameRange)
-      is SqlQualifier -> Triple(SqlResolver.qualifier(element), PhantomDbBundle.message("sql.unresolved.qualifier", element.qualifierName), element.nameRange)
-      is SqlColumnRef -> {
-        if (element.qualifier == null && element.columnName.uppercase().let { it in BARE_WORDS || it in dialectWords(ds.dialect()) }) return
-        Triple(SqlResolver.column(element), PhantomDbBundle.message("sql.unresolved.column", element.columnName), element.nameRange)
+abstract class SqlUnresolvedInspection : LocalInspectionTool() {
+  override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
+    val file = holder.file as? SqlFile ?: return PsiElementVisitor.EMPTY_VISITOR
+    val ds = SqlSchema.dataSourceFor(file, strict = true) ?: return PsiElementVisitor.EMPTY_VISITOR
+    if (SqlSchema.getInstance(file.project).snapshotFor(file, ds) == null) return PsiElementVisitor.EMPTY_VISITOR
+    return object : PsiElementVisitor() {
+      override fun visitElement(element: PsiElement) {
+        if (element !is SqlTableRef && element !is SqlColumnRef && element !is SqlQualifier) return
+        val statement = PsiTreeUtil.getParentOfType(element, SqlStatement::class.java) ?: return
+        if (statement.firstKeyword !in CHECKED) return
+        check(element, ds, holder)
       }
-      else -> return
     }
-    if (resolution != SqlResolution.Missing) return
-    holder.newAnnotation(HighlightSeverity.WARNING, message).range(range.shiftRight(element.textRange.startOffset)).create()
+  }
+
+  protected abstract fun check(element: PsiElement, dataSource: DbDataSource, holder: ProblemsHolder)
+
+  protected fun register(holder: ProblemsHolder, element: PsiElement, range: TextRange, message: String, fixes: List<LocalQuickFix>) {
+    holder.registerProblem(element, message, ProblemHighlightType.GENERIC_ERROR_OR_WARNING, range, *fixes.toTypedArray())
   }
 
   private companion object {
     val CHECKED = setOf("SELECT", "WITH", "INSERT", "UPDATE", "DELETE", "REPLACE")
+  }
+}
 
+/** A table, or the table or alias before a column (`x` in `x.id`), that the query and the schema do not have. */
+class SqlUnresolvedTableInspection : SqlUnresolvedInspection() {
+  override fun check(element: PsiElement, dataSource: DbDataSource, holder: ProblemsHolder) {
+    when (element) {
+      is SqlTableRef -> if (SqlResolver.table(element) == SqlResolution.Missing) {
+        register(holder, element, element.nameRange, PhantomDbBundle.message("sql.unresolved.table", element.tableName), emptyList())
+      }
+      is SqlQualifier -> if (SqlResolver.qualifier(element) == SqlResolution.Missing) {
+        register(holder, element, element.nameRange, PhantomDbBundle.message("sql.unresolved.qualifier", element.qualifierName),
+                 aliasFixes(element, dataSource))
+      }
+    }
+  }
+
+  /** `SELECT g.name FROM guest`: give `guest` the alias `g`. Offered for tables without an alias that have the column. */
+  private fun aliasFixes(q: SqlQualifier, dataSource: DbDataSource): List<LocalQuickFix> {
+    if (q.schemaName != null) return emptyList()
+    val column = (q.parent as? SqlColumnRef)?.columnName
+    val schema = SqlSchema.getInstance(q.project)
+    val scope = SqlScopes.chain(q).firstOrNull() ?: return emptyList()
+    val tables = SqlScopes.direct(scope, SqlTableRef::class.java).filter { it.alias == null && SqlScopes.ctes(it).none { c -> SqlNames.same(c.name, it.tableName) } }
+    val candidates = tables.filter { ref ->
+      if (column == null) return@filter true
+      val target = (SqlResolver.table(ref, load = false) as? SqlResolution.Found)?.target as? SqlDbTarget ?: return@filter false
+      schema.columns(dataSource, target.table, load = false)?.any { SqlNames.same(it.name, column) } == true
+    }
+    if (column == null && candidates.size != 1) return emptyList()
+    return candidates.take(3).map { SqlAddAliasFix(it, q.nameRange.substring(q.text)) }
+  }
+}
+
+/** A column that none of the query's tables has. */
+class SqlUnresolvedColumnInspection : SqlUnresolvedInspection() {
+  override fun check(element: PsiElement, dataSource: DbDataSource, holder: ProblemsHolder) {
+    if (element !is SqlColumnRef) return
+    if (element.qualifier == null && element.columnName.uppercase().let { it in BARE_WORDS || it in dialectWords(dataSource.dialect()) }) return
+    if (SqlResolver.column(element) != SqlResolution.Missing) return
+    register(holder, element, element.nameRange, PhantomDbBundle.message("sql.unresolved.column", element.columnName), qualifyFixes(element, dataSource))
+  }
+
+  /** `r.name` where `r` has no `name` but another table of the query does: qualify with that one instead. */
+  private fun qualifyFixes(ref: SqlColumnRef, dataSource: DbDataSource): List<LocalQuickFix> {
+    val q = ref.qualifier ?: return emptyList()
+    val schema = SqlSchema.getInstance(ref.project)
+    val names = ArrayList<String>()
+    for (scope in SqlScopes.chain(ref)) {
+      for (table in SqlScopes.direct(scope, SqlTableRef::class.java)) {
+        val target = (SqlResolver.table(table, load = false) as? SqlResolution.Found)?.target as? SqlDbTarget ?: continue
+        if (schema.columns(dataSource, target.table, load = false)?.any { SqlNames.same(it.name, ref.columnName) } != true) continue
+        val name = table.alias?.text ?: table.nameRange.substring(table.text)
+        if (!SqlNames.same(SqlNames.unquote(name), q.qualifierName)) names += name
+      }
+    }
+    return names.distinct().take(3).map { SqlQualifyFix(q, it) }
+  }
+
+  private companion object {
     /** Bare words of standard SQL that are not columns: date parts and niladic functions. */
     val BARE_WORDS = setOf("YEAR", "MONTH", "WEEK", "HOUR", "MINUTE", "SECOND", "QUARTER", "MICROSECOND", "MILLISECOND",
                            "LOCALTIME", "LOCALTIMESTAMP", "SESSION_USER", "SYSTEM_USER", "USER")
@@ -184,16 +270,52 @@ class SqlUnresolvedAnnotator : Annotator {
   }
 }
 
-/** Words for highlighting and finding alias usages in a file. */
+/**
+ * Adds an alias after a table reference (`FROM guest` → `FROM guest g`) and writes it for the other qualifiers that
+ * named the table (`guest.id` → `g.id`), which the alias would hide.
+ */
+class SqlAddAliasFix(table: SqlTableRef, private val alias: String) : LocalQuickFixOnPsiElement(table) {
+  private val tableName = table.tableName
+
+  override fun getFamilyName(): String = PhantomDbBundle.message("sql.fix.add.alias")
+  override fun getText(): String = PhantomDbBundle.message("sql.fix.add.alias.to", alias, tableName)
+
+  override fun invoke(project: Project, file: PsiFile, startElement: PsiElement, endElement: PsiElement) {
+    val table = startElement as? SqlTableRef ?: return
+    val statement = PsiTreeUtil.getParentOfType(table, SqlStatement::class.java) ?: return
+    val qualifiers = PsiTreeUtil.findChildrenOfType(statement, SqlQualifier::class.java)
+      .filter { (SqlResolver.qualifier(it) as? SqlResolution.Found)?.target == table }
+    val edits = listOfNotNull(SqlTextEdits.edit(file, TextRange.from(table.textRange.endOffset, 0), " $alias")) +
+                qualifiers.mapNotNull { SqlTextEdits.edit(file, it.textRange, alias) }
+    SqlTextEdits.apply(project, edits)
+  }
+}
+
+/** Replaces the qualifier of a column with the table or alias that has it, as that one is written: `r.name` → `g.name`. */
+class SqlQualifyFix(qualifier: SqlQualifier, private val name: String) : LocalQuickFixOnPsiElement(qualifier) {
+  override fun getFamilyName(): String = PhantomDbBundle.message("sql.fix.qualify.family")
+  override fun getText(): String = PhantomDbBundle.message("sql.fix.qualify", name)
+
+  override fun invoke(project: Project, file: PsiFile, startElement: PsiElement, endElement: PsiElement) {
+    SqlTextEdits.apply(project, listOfNotNull(SqlTextEdits.edit(file, startElement.textRange, name)))
+  }
+}
+
+/** Words for highlighting and finding usages: aliases in a file, database tables and columns in the project. */
 class SqlFindUsagesProvider : FindUsagesProvider {
   override fun getWordsScanner(): WordsScanner = DefaultWordsScanner(SqlLexer(), SqlTokens.NAMES, SqlTokens.COMMENTS, SqlTokens.STRINGS, TokenSet.EMPTY)
-  override fun canFindUsagesFor(element: PsiElement): Boolean = element is SqlDeclaration
+  override fun canFindUsagesFor(element: PsiElement): Boolean = element is SqlDeclaration || element is SqlDbTarget
   override fun getHelpId(element: PsiElement): String? = null
   override fun getType(element: PsiElement): String = when (element) {
+    is SqlDbTarget -> if (element.column != null) "column" else if (element.table.isView) "view" else "table"
     is SqlCteName -> "common table expression"
     is SqlColumnAlias -> "column alias"
     else -> "alias"
   }
-  override fun getDescriptiveName(element: PsiElement): String = (element as? SqlDeclaration)?.name ?: element.text
+  override fun getDescriptiveName(element: PsiElement): String = when (element) {
+    is SqlDbTarget -> element.presentableText
+    is SqlDeclaration -> element.name
+    else -> element.text
+  }
   override fun getNodeText(element: PsiElement, useFullName: Boolean): String = getDescriptiveName(element)
 }

@@ -171,6 +171,7 @@ class DbConsoleSchemaTest : BasePlatformTestCase() {
   }
 
   fun testCompletionAndResolveUseTheSelectedSchema() {
+    myFixture.enableInspections(SqlUnresolvedTableInspection::class.java)
     val file = sql("SELECT * FROM T")
     val unknown = { myFixture.doHighlighting(HighlightSeverity.WEAK_WARNING).any { it.description == "Unknown table 'T'" } }
     // the default schema (PUBLIC) has no T
