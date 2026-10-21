@@ -35,6 +35,8 @@ data class DbRoutine(val schema: DbSchemaRef, val name: String, val function: Bo
 
 data class DbTrigger(val schema: DbSchemaRef, val name: String, val table: String, val timing: String, val event: String)
 
+data class DbSequence(val schema: DbSchemaRef, val name: String)
+
 /**
  * Keys, indexes, routines and triggers, loaded on the schema-tree connection when a tree folder is first expanded and
  * kept in memory until Refresh, like [DbMetadataCache]. Each kind is a separate call, so expanding Indexes never pays
@@ -49,6 +51,7 @@ class DbObjectCache(private val project: Project) {
   private val indexes = ConcurrentHashMap<DbTableRef, List<DbIndex>>()
   private val routines = ConcurrentHashMap<DbSchemaRef, List<DbRoutine>>()
   private val triggers = ConcurrentHashMap<DbSchemaRef, List<DbTrigger>>()
+  private val sequences = ConcurrentHashMap<DbSchemaRef, List<DbSequence>>()
 
   suspend fun columnDetails(dataSource: DbDataSource, table: DbTableRef): List<DbColumnDetail> = details[table] ?: metadata(dataSource) { md, _ ->
     md.getColumns(table.catalog, table.schema?.let { escape(md, it) }, escape(md, table.name), "%").use { rs ->
@@ -129,7 +132,42 @@ class DbObjectCache(private val project: Project) {
         ps.executeQuery().use { rs -> rows(rs) { DbTrigger(schema, it.getString(1), it.getString(2), it.getString(3).orEmpty(), it.getString(4).orEmpty()) } }
       }
     }.getOrDefault(emptyList())
+      // H2 lists a trigger once per event
+      .groupBy { it.name to it.table }.values.map { same -> same[0].copy(event = same.map { it.event }.distinct().joinToString(" OR ")) }
   }.also { triggers[schema] = it }
+
+  /**
+   * Sequences: tables of type `SEQUENCE` where the driver reports that type (PostgreSQL, MariaDB, many others), else the
+   * dialect's own catalog (H2); none for a GENERIC driver without the type, or MySQL.
+   */
+  suspend fun sequences(dataSource: DbDataSource, schema: DbSchemaRef): List<DbSequence> = sequences[schema] ?: metadata(dataSource) { md, c ->
+    val type = runCatching { md.tableTypes.use { rs -> rows(rs) { it.getString(1)?.trim() } } }.getOrDefault(emptyList())
+      .firstOrNull { it.equals("SEQUENCE", ignoreCase = true) }
+    val names = if (type != null) {
+      runCatching {
+        md.getTables(schema.catalog, schema.schema?.let { escape(md, it) }, "%", arrayOf(type)).use { rs -> rows(rs) { it.getString("TABLE_NAME") } }
+      }.getOrDefault(emptyList())
+    }
+    else {
+      val sql = when (dataSource.dialect()) {
+        Dbms.H2 -> "SELECT SEQUENCE_NAME FROM INFORMATION_SCHEMA.SEQUENCES WHERE SEQUENCE_SCHEMA = ?"
+        Dbms.POSTGRESQL -> "SELECT sequence_name FROM information_schema.sequences WHERE sequence_schema = ?"
+        Dbms.MARIADB -> "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_TYPE = 'SEQUENCE'"
+        Dbms.MYSQL, Dbms.GENERIC -> null
+      }
+      if (sql == null) emptyList()
+      else runCatching {
+        c.prepareStatement(sql).use { ps ->
+          ps.setString(1, schema.name)
+          ps.executeQuery().use { rs -> rows(rs) { it.getString(1) } }
+        }
+      }.getOrDefault(emptyList())
+    }
+    names.distinct().sortedBy { it.lowercase() }.map { DbSequence(schema, it) }
+  }.also { sequences[schema] = it }
+
+  /** Routines the tree has loaded, of every data source; never connects. */
+  fun cachedRoutines(): List<DbRoutine> = routines.values.flatten()
 
   fun cachedForeignKeys(table: DbTableRef): List<DbForeignKey>? = foreignKeys[table]
 
@@ -141,7 +179,7 @@ class DbObjectCache(private val project: Project) {
 
   fun invalidate(dataSourceId: String) {
     for (map in listOf(details, primaryKeys, foreignKeys, referencing, indexes)) map.keys.removeIf { it.dataSourceId == dataSourceId }
-    for (map in listOf(routines, triggers)) map.keys.removeIf { it.dataSourceId == dataSourceId }
+    for (map in listOf(routines, triggers, sequences)) map.keys.removeIf { it.dataSourceId == dataSourceId }
   }
 
   private fun keys(rs: ResultSet, dataSourceId: String): List<DbForeignKey> {

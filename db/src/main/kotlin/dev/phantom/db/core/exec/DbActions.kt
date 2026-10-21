@@ -69,7 +69,7 @@ class SqlSelectDataSourceAction : DumbAwareAction() {
   override fun update(e: AnActionEvent) {
     val file = (e.getData(CommonDataKeys.PSI_FILE) as? SqlFile)?.virtualFile
     val project = e.project
-    e.presentation.isEnabledAndVisible = file != null && project != null && !DbConsoles.isConsole(file) &&
+    e.presentation.isEnabledAndVisible = file != null && project != null && (!DbConsoles.isConsole(file) || DbConsoles.isOrphan(project, file)) &&
                                          DbDataSourceService.getInstance(project).dataSources.isNotEmpty()
   }
 
@@ -118,9 +118,9 @@ class SqlDataSourceNotificationProvider : EditorNotificationProvider {
     if (file.fileType != SqlFileType.INSTANCE) return null
     val service = DbDataSourceService.getInstance(project)
     if (service.dataSources.isEmpty()) return null
-    val console = DbConsoles.isConsole(file)
+    // a console whose data source was removed can be attached to another one, like any .sql file
+    val console = DbConsoles.isConsole(file) && !DbConsoles.isOrphan(project, file)
     val selected = DbConsoles.dataSourceFor(project, file)
-    if (console && selected == null) return null
     return Function { editor ->
       EditorNotificationPanel(editor, EditorNotificationPanel.Status.Info).apply {
         val source = PhantomDbBundle.message("db.datasource.current", selected?.name ?: PhantomDbBundle.message("db.datasource.none"))

@@ -3,6 +3,7 @@ package dev.phantom.db.core.exec
 
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.icons.AllIcons
+import com.intellij.ide.scratch.ScratchFileService
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
@@ -34,29 +35,41 @@ import java.nio.file.Path
 import javax.swing.Icon
 
 /**
- * Consoles are plain `.sql` files under the IDE config directory, one folder per data source, so they survive restarts
- * and the folder name tells which data source a console belongs to. Any other `.sql` file can be attached to a data
- * source too; that choice is kept per file in the workspace.
+ * Consoles are plain `.sql` files in the IDE scratches ("Database Consoles" in Scratches and Consoles), one folder per
+ * data source, so they survive restarts and the folder name (the data source id) tells which data source a console
+ * belongs to. Consoles made before 0.13 stay in the IDE config directory and still count. A data source can have any
+ * number of consoles; they share its console connection, so a manual-commit transaction is one per data source. Any
+ * other `.sql` file can be attached to a data source too; that choice is kept per file in the workspace.
  */
 object DbConsoles {
   private const val KEY_PREFIX = "phantom.db.dataSource:"
   private const val SCHEMA_PREFIX = "phantom.db.schema:"
   private const val CATALOG_PREFIX = "phantom.db.schemaCatalog:"
 
-  fun root(): Path = PathManager.getConfigDir().resolve("phantom-db/consoles")
+  /** Where consoles made before 0.13 live. */
+  fun legacyRoot(): Path = PathManager.getConfigDir().resolve("phantom-db/consoles")
+
+  /** Where new consoles go: the "Database Consoles" scratch root. */
+  fun root(): Path = Path.of(ScratchFileService.getInstance().getRootPath(DbConsoleRootType.getInstance()))
 
   fun consoleDataSourceId(file: VirtualFile): String? {
+    if (file.isDirectory) return null
     val path = runCatching { file.toNioPath() }.getOrNull() ?: return null
     val parent = path.parent ?: return null
-    return if (parent.parent == root()) parent.fileName.toString() else null
+    return if (parent.parent == root() || parent.parent == legacyRoot()) parent.fileName.toString() else null
   }
 
   fun isConsole(file: VirtualFile): Boolean = consoleDataSourceId(file) != null
 
+  /** A console whose own data source is gone: it can be attached to another one. */
+  fun isOrphan(project: Project, file: VirtualFile): Boolean =
+    consoleDataSourceId(file)?.let { DbDataSourceService.getInstance(project).find(it) == null } == true
+
   fun dataSourceFor(project: Project, file: VirtualFile?): DbDataSource? {
     if (file == null) return null
     val service = DbDataSourceService.getInstance(project)
-    consoleDataSourceId(file)?.let { return service.find(it) }
+    consoleDataSourceId(file)?.let { id -> service.find(id)?.let { return it } }
+    // any other file, or a console whose data source was removed and which was attached to another one
     return service.find(PropertiesComponent.getInstance(project).getValue(KEY_PREFIX + file.url))
   }
 
@@ -87,13 +100,43 @@ object DbConsoles {
     DaemonCodeAnalyzer.getInstance(project).restart("Phantom SQL schema chosen")
   }
 
-  /** The data source's console file, created on first use. */
-  fun consoleFile(dataSource: DbDataSource): VirtualFile? {
-    val dir = root().resolve(dataSource.id)
-    val name = FileUtil.sanitizeFileName(dataSource.name.ifBlank { dataSource.dialect().displayName }, false) + ".sql"
-    val existing = Files.list(dir.also { Files.createDirectories(it) }).use { s -> s.filter { it.toString().endsWith(".sql") }.findFirst().orElse(null) }
-    val path = existing ?: dir.resolve(name).also { Files.writeString(it, "") }
-    return LocalFileSystem.getInstance().refreshAndFindFileByNioFile(path)
+  /** The data source's first console, created on first use. */
+  fun consoleFile(dataSource: DbDataSource): VirtualFile? =
+    consoles(dataSource.id).firstOrNull() ?: newConsoleFile(dataSource)
+
+  /** The data source's consoles, older ones (config directory) first, then by name. Blocking file access. */
+  fun consoles(dataSourceId: String): List<VirtualFile> =
+    listOf(legacyRoot(), root()).flatMap { r -> sqlFiles(r.resolve(dataSourceId)) }
+      .mapNotNull { LocalFileSystem.getInstance().refreshAndFindFileByNioFile(it) }
+
+  /**
+   * A new empty console of [dataSource]: `<name>.sql`, then `<name> [1].sql`, `<name> [2].sql`, … whichever is free.
+   */
+  fun newConsoleFile(dataSource: DbDataSource): VirtualFile? {
+    val dir = root().resolve(dataSource.id).also { Files.createDirectories(it) }
+    val taken = consoles(dataSource.id).map { it.name.lowercase() }.toSet()
+    val base = FileUtil.sanitizeFileName(dataSource.name.ifBlank { dataSource.dialect().displayName }, false)
+    val name = generateSequence(0) { it + 1 }.map { if (it == 0) "$base.sql" else "$base [$it].sql" }.first { it.lowercase() !in taken }
+    return LocalFileSystem.getInstance().refreshAndFindFileByNioFile(dir.resolve(name).also { Files.writeString(it, "") })
+  }
+
+  /**
+   * Makes a new console file (on the calling thread, blocking file access), then on the EDT sets its schema ([schema]
+   * null: where the connection opens; a console that once had this name may have left a choice behind) and opens it.
+   */
+  suspend fun newConsole(project: Project, dataSource: DbDataSource, schema: DbSchemaChoice?): VirtualFile? {
+    val file = withContext(Dispatchers.IO) { newConsoleFile(dataSource) } ?: return null
+    withContext(Dispatchers.EDT) {
+      setSchema(project, file, schema)
+      FileEditorManager.getInstance(project).openTextEditor(OpenFileDescriptor(project, file), true)
+    }
+    return file
+  }
+
+  private fun sqlFiles(dir: Path): List<Path> {
+    if (!Files.isDirectory(dir)) return emptyList()
+    return Files.list(dir).use { s -> s.filter { Files.isRegularFile(it) && it.toString().endsWith(".sql") }.toList() }
+      .sortedWith(compareBy<Path> { it.fileName.toString().length }.thenBy { it.fileName.toString().lowercase() })
   }
 
   fun openConsole(project: Project, dataSource: DbDataSource, appendStatement: String? = null): VirtualFile? {

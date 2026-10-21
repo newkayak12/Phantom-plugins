@@ -20,6 +20,9 @@ MySQL, MariaDB, PostgreSQL, H2, AWS, Oracle, SQL Server 등을 위한 JDBC 콘�
 - 스키마에서 **Compare With…**: 두 스키마(다른 데이터 소스여도 됨)의 테이블, 열, 키, 인덱스를 diff 창에서 비교하고, 상대 쪽을 맞추는 SQL을 그쪽 콘솔에 엽니다. 삭제 문장은 주석으로 적습니다.
 - **데이터 소스 색상**(DataGrip처럼): 데이터 소스 대화상자에서 색을 고릅니다. 그 데이터 소스의 콘솔과 `.sql` 파일은 편집기 배경과 탭에, Database 트리의 행은 옅은 바탕으로, 결과 탭은 위쪽 띠로 그 색을 보여 줍니다. 데이터 소스를 저장하면 바로 다시 칠합니다. 색은 데이터 소스와 함께 저장되어 팀이 같이 씁니다.
 - **콘솔마다 스키마**: 콘솔이나 `.sql` 파일 위의 **Schema: …**(또는 편집기 메뉴의 **Choose Schema…**)로 실행할 스키마를 고릅니다. MySQL과 MariaDB에서는 카탈로그입니다. 문장은 그 스키마에서 실행되고, 자동 완성·이동·검사에서 스키마를 붙이지 않은 테이블 이름도 그 스키마에서 먼저 찾습니다. 파일마다 따로 기억합니다.
+- **탐색기**(DataGrip처럼): 스키마 아래 객체를 폴더로 묶습니다. tables, views, materialized views(드라이버가 알려 줄 때), routines, triggers, sequences. 테이블 아래에는 열(타입, PK, FK, NOT NULL), keys, foreign keys, indexes, triggers가 있습니다. 폴더는 펼칠 때 불러오고 **Refresh** 전까지 캐시에 둡니다. 더블클릭이나 **F4**로 테이블은 데이터를, 뷰·루틴·트리거는 DDL을 열고, 외래 키는 참조하는 테이블로 이동합니다. 트리에서 바로 타이핑하면 찾아가고(speed search), 위의 필터 칸은 불러온 객체를 이름으로 좁히고 빈 폴더를 숨깁니다. 도구 막대의 **Show System Schemas**로 `information_schema`, `pg_catalog` 같은 시스템 스키마도 봅니다.
+- **Navigate → Database Object…**(Search Everywhere의 **Database** 탭도 같음): 트리가 불러온 테이블, 뷰, 루틴, 열을 모든 데이터 소스에서 찾고, 데이터 소스와 스키마를 옆에 보여 줍니다. 접속하지 않습니다. 고르면 트리에서 선택하고 데이터나 DDL을 엽니다.
+- **New Console**(트리, 도구 막대, Tools 메뉴, **Ctrl+Alt+Shift+Q**, macOS **Ctrl+Cmd+N**): 선택한 데이터 소스의 콘솔을 선택한 스키마로 하나 더 엽니다. `<이름>.sql`, `<이름> [1].sql`, … 순서로 Scratches and Consoles → Database Consoles에 만듭니다. 데이터 소스의 **consoles** 폴더와 **Navigate → Jump to Console…**에 나옵니다. 한 데이터 소스의 콘솔들은 콘솔 연결 하나를 같이 쓰므로, 수동 커밋 트랜잭션(과 Database Changes)도 콘솔마다가 아니라 데이터 소스마다 하나입니다.
 - 비밀번호는 IDE 비밀번호 저장소에만 저장하고, 프로젝트 파일에는 남기지 않습니다.
 - IDE 시작 때는 아무것도 하지 않습니다. `.sql` 파일이나 툴 윈도우를 열 때 코드를 불러옵니다.
 

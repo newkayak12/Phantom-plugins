@@ -65,7 +65,7 @@ object DbDdl {
     }
     Dbms.POSTGRESQL -> when (target) {
       is Target.Table -> if (!target.ref.isView) null else single(c, "SELECT pg_get_viewdef(?::regclass, true)", DbNames.table(dbms, target.ref))
-        ?.let { "CREATE OR REPLACE VIEW ${DbNames.table(dbms, target.ref)} AS\n${it.trimEnd()}" }
+        ?.let { postgresViewDdl(target.ref, it) }
       is Target.Routine -> all(c, "SELECT pg_get_functiondef(p.oid) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace " +
                                   "WHERE n.nspname = ? AND p.proname = ?", target.routine.schema.name, target.routine.name)
       is Target.Trigger -> all(c, "SELECT pg_get_triggerdef(t.oid, true) FROM pg_trigger t JOIN pg_class r ON r.oid = t.tgrelid " +
@@ -80,6 +80,10 @@ object DbDdl {
       else -> null
     }
   }
+
+  /** PostgreSQL has no CREATE OR REPLACE for a materialized view. */
+  internal fun postgresViewDdl(ref: DbTableRef, body: String): String =
+    (if (ref.isMaterializedView) "CREATE MATERIALIZED VIEW " else "CREATE OR REPLACE VIEW ") + DbNames.table(Dbms.POSTGRESQL, ref) + " AS\n" + body.trimEnd()
 
   private fun single(c: Connection, sql: String, vararg args: String): String? = all(c, sql, *args)
 

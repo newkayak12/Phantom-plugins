@@ -110,6 +110,8 @@
     <toolWindow id="Database Changes" anchor="bottom" secondary="false" icon="AllIcons.Vcs.Changelist"
                 factoryClass="dev.phantom.db.core.ui.DbChangesToolWindowFactory"/>
     <projectCloseHandler implementation="dev.phantom.db.core.exec.DbPendingChangesCloseHandler"/>
+    <scratch.rootType implementation="dev.phantom.db.core.exec.DbConsoleRootType"/>
+    <searchEverywhereContributor implementation="dev.phantom.db.core.ui.DbSearchEverywhereContributor$Factory"/>
     <notificationGroup id="Phantom Database" displayType="BALLOON" bundle="messages.PhantomDbBundle" key="db.notification.group"/>
   </extensions>
   <actions resource-bundle="messages.PhantomDbBundle">
@@ -145,6 +147,18 @@
     </action>
     <action id="PhantomDb.Rollback" class="dev.phantom.db.core.exec.DbRollbackAction" icon="AllIcons.Actions.Rollback">
       <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.Commit"/>
+    </action>
+    <action id="PhantomDb.NewConsole" class="dev.phantom.db.core.ui.DbNewConsoleAction">
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt shift Q"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta control N"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta control N"/>
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
+    <action id="PhantomDb.JumpToConsole" class="dev.phantom.db.core.ui.DbJumpToConsoleAction" icon="AllIcons.Debugger.Console">
+      <add-to-group group-id="GoToTargetEx" anchor="last"/>
+    </action>
+    <action id="PhantomDb.GotoObject" class="dev.phantom.db.core.ui.DbGotoObjectAction" icon="AllIcons.Nodes.DataTables">
+      <add-to-group group-id="GoToTargetEx" anchor="last"/>
     </action>
     <action id="PhantomDb.ShowDatabase" class="dev.phantom.db.core.ui.DbShowToolWindowAction" icon="AllIcons.Nodes.DataTables">
       <add-to-group group-id="ToolsMenu" anchor="last"/>

@@ -581,6 +581,7 @@ data class DbSchemaRef(val dataSourceId: String, val catalog: String?, val schem
 
 data class DbTableRef(val dataSourceId: String, val catalog: String?, val schema: String?, val name: String, val kind: String) {
   val isView: Boolean get() = kind.contains("VIEW", ignoreCase = true)
+  val isMaterializedView: Boolean get() = kind.contains("MATERIALIZED", ignoreCase = true)
 }
 
 data class DbColumnInfo(val name: String, val typeName: String, val nullable: Boolean, val primaryKey: Boolean)
@@ -595,20 +596,23 @@ class DbMetadataCache(private val project: Project) {
   private val tables = ConcurrentHashMap<DbSchemaRef, List<DbTableRef>>()
   private val columns = ConcurrentHashMap<DbTableRef, List<DbColumnInfo>>()
 
-  suspend fun schemas(dataSource: DbDataSource): List<DbSchemaRef> = schemas[dataSource.id] ?: metadata(dataSource) { md, c ->
-    val catalogs = switchesCatalog(dataSource.dialect()) { md }
-    val current = if (catalogs) c.catalog else runCatching { c.schema }.getOrNull()
-    val all = if (catalogs) {
-      md.catalogs.use { rs -> generateSequence { if (rs.next()) DbSchemaRef(dataSource.id, rs.getString(1), null) else null }.toList() }
-    }
-    else {
-      md.schemas.use { rs ->
-        generateSequence { if (rs.next()) DbSchemaRef(dataSource.id, runCatching { rs.getString("TABLE_CATALOG") }.getOrNull(), rs.getString("TABLE_SCHEM")) else null }.toList()
+  /** User schemas; [includeSystem] adds the system ones (`information_schema`, `pg_catalog`, …), which are cached too. */
+  suspend fun schemas(dataSource: DbDataSource, includeSystem: Boolean = false): List<DbSchemaRef> {
+    val all = schemas[dataSource.id] ?: metadata(dataSource) { md, c ->
+      val catalogs = switchesCatalog(dataSource.dialect()) { md }
+      val current = if (catalogs) c.catalog else runCatching { c.schema }.getOrNull()
+      val all = if (catalogs) {
+        md.catalogs.use { rs -> generateSequence { if (rs.next()) DbSchemaRef(dataSource.id, rs.getString(1), null) else null }.toList() }
       }
-    }
-    all.filter { it.name.lowercase() !in SYSTEM_SCHEMAS }
-      .sortedWith(compareBy<DbSchemaRef> { !it.name.equals(current, ignoreCase = true) }.thenBy { it.name.lowercase() })
-  }.also { schemas[dataSource.id] = it }
+      else {
+        md.schemas.use { rs ->
+          generateSequence { if (rs.next()) DbSchemaRef(dataSource.id, runCatching { rs.getString("TABLE_CATALOG") }.getOrNull(), rs.getString("TABLE_SCHEM")) else null }.toList()
+        }
+      }
+      all.sortedWith(compareBy<DbSchemaRef> { !it.name.equals(current, ignoreCase = true) }.thenBy { isSystem(it) }.thenBy { it.name.lowercase() })
+    }.also { schemas[dataSource.id] = it }
+    return if (includeSystem) all else all.filterNot(::isSystem)
+  }
 
   suspend fun tables(dataSource: DbDataSource, schema: DbSchemaRef): List<DbTableRef> = tables[schema] ?: metadata(dataSource) { md, _ ->
     md.getTables(schema.catalog, schema.schema?.let { escape(md, it) }, "%", null).use { rs ->
@@ -644,7 +648,12 @@ class DbMetadataCache(private val project: Project) {
 
   fun cachedColumns(table: DbTableRef): List<DbColumnInfo>? = columns[table]
 
-  fun cachedSchemas(dataSourceId: String): List<DbSchemaRef>? = schemas[dataSourceId]
+  fun cachedSchemas(dataSourceId: String): List<DbSchemaRef>? = schemas[dataSourceId]?.filterNot(::isSystem)
+
+  /** Every table, view and column the tree has loaded, of every data source; never connects. */
+  fun cachedTables(): List<DbTableRef> = tables.values.flatten()
+
+  fun cachedColumns(): Map<DbTableRef, List<DbColumnInfo>> = HashMap(columns)
 
   fun hasCachedTables(schema: DbSchemaRef): Boolean = tables.containsKey(schema)
 
@@ -669,6 +678,8 @@ class DbMetadataCache(private val project: Project) {
   companion object {
     private val SYSTEM_SCHEMAS = setOf("information_schema", "performance_schema", "mysql", "sys", "pg_catalog", "pg_toast")
     private val SIZED_TYPES = setOf("VARCHAR", "CHAR", "CHARACTER", "CHARACTER VARYING", "VARBINARY", "BINARY", "NVARCHAR", "NCHAR")
+
+    fun isSystem(schema: DbSchemaRef): Boolean = schema.name.lowercase() in SYSTEM_SCHEMAS
 
     fun getInstance(project: Project): DbMetadataCache = project.service()
     fun getInstanceIfCreated(project: Project): DbMetadataCache? = project.serviceIfCreated()

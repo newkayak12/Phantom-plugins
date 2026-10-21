@@ -30,6 +30,15 @@ class DbShortcutTest : BasePlatformTestCase() {
     }
   }
 
+  fun testNewConsoleShortcutIsFree() {
+    for ((keymap, key) in listOf("\$default" to "control alt shift Q", "Mac OS X 10.5+" to "meta control N", "Mac OS X" to "meta control N")) {
+      val stroke = KeyStroke.getKeyStroke(key)
+      assertTrue(keymap, stroke in shortcuts(keymap, "PhantomDb.NewConsole"))
+      assertEquals(keymap, listOf("PhantomDb.NewConsole"),
+                   KeymapManager.getInstance().getKeymap(keymap)!!.getActionIds(KeyboardShortcut(stroke, null)).toList())
+    }
+  }
+
   fun testRunAndHistoryWinInSqlEditorsOnly() {
     val manager = ActionManager.getInstance()
     val run = manager.getAction("PhantomDb.RunStatement")
