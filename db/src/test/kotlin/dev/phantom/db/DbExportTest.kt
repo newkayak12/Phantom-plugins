@@ -32,7 +32,7 @@ class DbExportTest : BasePlatformTestCase() {
   }
 
   fun testInsertsQuoteForTheDatabase() {
-    val table = SingleTableSelect.parse(rows.sql)
+    val table = DbExportFormat.tableSql(Dbms.MYSQL, SingleTableSelect.parse(rows.sql))
     val mysql = DbExportFormat.INSERT.render(rows, table, Dbms.MYSQL).lines()
     assertEquals("INSERT INTO shop.reservation (id, `guest name`, paid) VALUES (1, 'Kim, \"Sang\"', TRUE);", mysql[0])
     assertEquals("INSERT INTO shop.reservation (id, `guest name`, paid) VALUES (2, NULL, FALSE);", mysql[1])

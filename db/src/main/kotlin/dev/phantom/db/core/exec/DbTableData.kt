@@ -28,6 +28,17 @@ object DbTableQuery {
     return t.ifEmpty { null }
   }
 
+  /** The ORDER BY after a click on [column]'s header: the column, then the column descending, then none. */
+  fun nextOrder(dbms: Dbms, column: String, current: String): String {
+    val name = DbNames.identifier(dbms, column)
+    val now = (clause(current, "ORDER BY") ?: "").replace(Regex("\\s+"), " ")
+    return when {
+      now.equals(name, ignoreCase = true) || now.equals("$name ASC", ignoreCase = true) -> "$name DESC"
+      now.equals("$name DESC", ignoreCase = true) -> ""
+      else -> name
+    }
+  }
+
   /** The offset of the last page for [count] rows. */
   fun lastPageOffset(count: Long, pageSize: Int): Int = if (count <= 0) 0 else (((count - 1) / pageSize) * pageSize).toInt()
 }

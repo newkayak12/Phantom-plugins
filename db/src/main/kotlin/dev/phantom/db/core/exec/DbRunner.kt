@@ -320,7 +320,7 @@ object DbRunner {
     val sql = if (names.isEmpty()) statements else DbParameters.substitute(statements, DbParameters.ask(project, statements, names) ?: return)
     when (val verdict = SqlSafety.check(dataSource, sql)) {
       is SqlSafety.Verdict.Blocked -> {
-        DbResultsToolWindow.tabFor(project, file, dataSource).showError(verdict.message)
+        DbResultsToolWindow.tabFor(project, file, dataSource, sql.first()).showError(verdict.message)
         return
       }
       is SqlSafety.Verdict.Confirm -> {
@@ -330,7 +330,7 @@ object DbRunner {
       }
       SqlSafety.Verdict.Ok -> {}
     }
-    val panel = DbResultsToolWindow.tabFor(project, file, dataSource)
+    val panel = DbResultsToolWindow.tabFor(project, file, dataSource, sql.first())
     val schema = executionSchema(project, file)
     panel.schema = schema
     panel.showRunning(SqlSafety.preview(sql.first()) + if (sql.size > 1) " (+${sql.size - 1})" else "")

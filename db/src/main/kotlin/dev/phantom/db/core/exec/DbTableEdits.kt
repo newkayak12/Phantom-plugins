@@ -38,6 +38,51 @@ object SingleTableSelect {
     }
   }
 
+  /**
+   * [sql] (a single-table select) with [where] added to its own WHERE (both kept, ANDed) and [orderBy], when not
+   * blank, in place of its ORDER BY; LIMIT and the rest stay. Null when [sql] is not a single-table select.
+   */
+  fun refilter(sql: String, where: String, orderBy: String): String? {
+    if (parse(sql) == null) return null
+    val text = stripComments(sql).trim().removeSuffix(";").trim()
+    val tail = FROM.matchEntire(text)!!.groups[4]
+    val head = text.substring(0, tail?.range?.first ?: text.length).trim()
+    val rest = tail?.value.orEmpty()
+    val orderAt = topLevel(rest, Regex("""(?i)\border\s+by\b"""))
+    val restAt = topLevel(rest, Regex("""(?i)\b(limit|offset|fetch|for\s+update)\b""")) ?: rest.length
+    val ownWhere = DbTableQuery.clause(rest.substring(0, minOf(orderAt ?: rest.length, restAt)), "WHERE")
+    val ownOrder = orderAt?.let { DbTableQuery.clause(rest.substring(it, maxOf(it, restAt)), "ORDER BY") }
+    val newWhere = DbTableQuery.clause(where, "WHERE")
+    val condition = if (ownWhere != null && newWhere != null) "($ownWhere) AND ($newWhere)" else ownWhere ?: newWhere
+    val order = DbTableQuery.clause(orderBy, "ORDER BY") ?: ownOrder
+    return buildString {
+      append(head)
+      condition?.let { append(" WHERE ").append(it) }
+      order?.let { append(" ORDER BY ").append(it) }
+      rest.substring(restAt).trim().takeIf { it.isNotEmpty() }?.let { append(' ').append(it) }
+    }
+  }
+
+  /** Where [keyword] first occurs in [text] outside quotes and parentheses. */
+  private fun topLevel(text: String, keyword: Regex): Int? {
+    var depth = 0
+    var quote: Char? = null
+    var i = 0
+    while (i < text.length) {
+      val c = text[i]
+      when {
+        quote != null -> if (c == quote) quote = null
+        c == '\'' || c == '"' || c == '`' -> quote = c
+        c == '(' -> depth++
+        c == ')' -> depth--
+        depth == 0 && (i == 0 || !text[i - 1].isLetterOrDigit() && text[i - 1] != '_') ->
+          keyword.matchAt(text, i)?.let { return i }
+      }
+      i++
+    }
+    return null
+  }
+
   private fun splitQualified(name: String): List<String> {
     val parts = ArrayList<String>()
     val current = StringBuilder()
