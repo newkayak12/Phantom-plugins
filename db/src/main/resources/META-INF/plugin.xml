@@ -21,6 +21,11 @@
   The Database tree groups each schema's tables, views, routines, triggers and sequences in folders, can be filtered by
   name, and Navigate → Database Object (a Database tab in Search Everywhere) finds loaded tables, views, routines and
   columns without connecting. A data source can have several consoles (New Console), kept in Scratches and Consoles.
+  In the editor: after JOIN, completion offers the tables a foreign key links to the ones in FROM with their ON clause,
+  and after ON whole join conditions from foreign keys (then by column name); SQL (Phantom) live templates sel, selc,
+  selw, ins, upd, del, crt; Find Usages and Rename of tables, views and columns across .sql files, consoles and SQL
+  strings (and JPA mappings), changing SQL text only, never the database; unknown tables and columns are reported with
+  quick fixes.
   ]]></description>
 
   <dependencies>
