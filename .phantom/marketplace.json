@@ -9,9 +9,9 @@
     {
       "id": "dev.phantom.db",
       "name": "Phantom Database Console",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "source": "db",
-      "description": "Connect to MySQL, MariaDB, PostgreSQL, H2, AWS JDBC Wrapper, Redshift, Athena, Oracle, SQL Server, SQLite, ClickHouse, Snowflake or any JDBC driver you add, and run SQL from the editor: highlighting for .sql files, Ctrl+Enter to run the statement at the caret, results in a sortable grid, and a lazily loaded schema tree. Drivers are data you can edit: each is found in the project's own dependencies, the local Gradle/Maven cache or jars you choose, and is downloaded from Maven only when you ask (Download, Test Connection). Nothing runs at startup. A data source in manual-commit mode keeps changes in an open transaction: review them in the Database Changes tool window and commit or roll them back; closing the project asks first. A result from one table with its primary key can be edited in the grid, and Compare With on a schema diffs two schemas and writes the SQL to make them match. SQL in Spring Data `@Query(nativeQuery = true)`, `@NativeQuery` and JdbcTemplate / JdbcClient strings is highlighted and completed like a console. JPA entities are checked against the data source's schema (tables and columns that do not exist, nullable columns mapped to non-null attributes), and @Table / @Column names complete from it. A data source can have a color (as in DataGrip): its consoles and .sql files get it as editor background and tab color, its tree rows and result tabs too. A console or .sql file can run in a chosen schema (catalog in MySQL), which unqualified table names in completion and checks also resolve against. The Database tree groups each schema's tables, views, routines, triggers and sequences in folders, can be filtered by name, and Navigate → Database Object (a Database tab in Search Everywhere) finds loaded tables, views, routines and columns without connecting. A data source can have several consoles (New Console), kept in Scratches and Consoles. In the editor: after JOIN, completion offers the tables a foreign key links to the ones in FROM with their ON clause, and after ON whole join conditions from foreign keys (then by column name); SQL (Phantom) live templates sel, selc, selw, ins, upd, del, crt; Find Usages and Rename of tables, views and columns across .sql files, consoles and SQL strings (and JPA mappings), changing SQL text only, never the database; unknown tables and columns are reported with quick fixes. Connections can go through an SSH tunnel (password, key file or OpenSSH agent; unknown host keys confirmed and added to ~/.ssh/known_hosts) and use SSL (mode, CA, client certificate and key mapped to each driver's properties), set in the SSH/SSL tab. Diagram on a schema or selected tables draws them with their foreign keys (pan, zoom, drag, PNG export); Import Data from CSV on a table maps columns by header and inserts in batches in one transaction; Explain Plan shows the plan as a tree with cost, rows and time and the costliest step highlighted. Results grid: WHERE / ORDER BY fields with column completion and history, header clicks sorting a table on the server, a Value Viewer (JSON, XML, hex, images), Transpose, selection sum/avg/min/max, pinned result tabs, and Copy/Export as TSV, CSV, JSON, SQL INSERT, Markdown or HTML (a whole table streamed to a file).",
+      "description": "Connect to MySQL, MariaDB, PostgreSQL, H2, AWS JDBC Wrapper, Redshift, Athena, Oracle, SQL Server, SQLite, ClickHouse, Snowflake or any JDBC driver you add, and run SQL from the editor: highlighting for .sql files, Ctrl+Enter to run the statement at the caret, results in a sortable grid, and a lazily loaded schema tree. Drivers are data you can edit: each is found in the project's own dependencies, the local Gradle/Maven cache or jars you choose, and is downloaded from Maven only when you ask (Download, Test Connection). Nothing runs at startup. A data source in manual-commit mode keeps changes in an open transaction: review them in the Database Changes tool window and commit or roll them back; closing the project asks first. A result from one table with its primary key can be edited in the grid, and Compare With on a schema diffs two schemas and writes the SQL to make them match. SQL in Spring Data `@Query(nativeQuery = true)`, `@NativeQuery` and JdbcTemplate / JdbcClient strings is highlighted and completed like a console. JPA entities are checked against the data source's schema (tables and columns that do not exist, nullable columns mapped to non-null attributes), and @Table / @Column names complete from it. A data source can have a color (as in DataGrip): its consoles and .sql files get it as editor background and tab color, its tree rows and result tabs too. A console or .sql file can run in a chosen schema (catalog in MySQL), which unqualified table names in completion and checks also resolve against. The Database tree groups each schema's tables, views, routines, triggers and sequences in folders, can be filtered by name, and Navigate → Database Object (a Database tab in Search Everywhere) finds loaded tables, views, routines and columns without connecting. A data source can have several consoles (New Console), kept in Scratches and Consoles. In the editor: after JOIN, completion offers the tables a foreign key links to the ones in FROM with their ON clause, and after ON whole join conditions from foreign keys (then by column name); SQL (Phantom) live templates sel, selc, selw, ins, upd, del, crt; Find Usages and Rename of tables, views and columns across .sql files, consoles and SQL strings (and JPA mappings), changing SQL text only, never the database; unknown tables and columns are reported with quick fixes. Connections can go through an SSH tunnel (password, key file or OpenSSH agent; unknown host keys confirmed and added to ~/.ssh/known_hosts) and use SSL (mode, CA, client certificate and key mapped to each driver's properties), set in the SSH/SSL tab. Diagram on a schema or selected tables draws them with their foreign keys (pan, zoom, drag, PNG export); Import Data from CSV on a table maps columns by header and inserts in batches in one transaction; Explain Plan shows the plan as a tree with cost, rows and time and the costliest step highlighted. Results grid: WHERE / ORDER BY fields with column completion and history, header clicks sorting a table on the server, a Value Viewer (JSON, XML, hex, images), Transpose, selection sum/avg/min/max, pinned result tabs, and Copy/Export as TSV, CSV, JSON, SQL INSERT, Markdown or HTML (a whole table streamed to a file). 0.17.0: unreachable routine code, cursor state, routine side effects vs. NO SQL/READS SQL DATA, invalid date/time literals, LOAD DATA paths, too many joins, SQL files without a data source; CREATE TABLE to entity marker.",
       "vendor": "Phantom",
       "category": "Database",
       "since": "262",
@@ -20,7 +20,7 @@
         "com.intellij.modules.lang",
         "intellij.grid.core.plugin"
       ],
-      "download": "db-0.16.0/db-0.16.0.zip",
+      "download": "db-0.17.0/db-0.17.0.zip",
       "detect": [
         "com.mysql:mysql-connector-j",
         "mysql:mysql-connector-java",
@@ -41,9 +41,9 @@
     {
       "id": "dev.phantom.spring",
       "name": "Phantom Spring",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "source": "spring",
-      "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, Spring MVC handlers for the Endpoints tool window, Spring Security path and expression support, and Kafka/RabbitMQ/JMS sender-receiver navigation. 0.4.0: proxy pitfalls (self-invocation of @Transactional/@Cacheable/@Async, private/final/static proxied methods, Kotlin classes not opened by kotlin-spring), @Scheduled/@Async/@EventListener contracts, field and static injection, duplicate bean names, @Scope values, @Sql paths, @DirtiesContext, publishEvent ↔ listener gutters, @Qualifier/@DependsOn bean name completion and Ctrl+B. Wave 6: @Value placeholders (follows spring.config.import), SpEL syntax, cache names, caching on interfaces, @Qualifier/@DependsOn near-miss names, MVC path variables, endpoint and AOP advice gutters, method security not enabled, pointcut syntax. Wave 7: @Cacheable+@CachePut, abstract beans, @Value literal types, @Bean method shape, scan packages, AspectJ autoproxy, @Autowired outside beans, resource locations, @TestBean factories, @Around/pointcut/argNames/@DeclareParents, Security debug/self-invocation/bean refs. Wave 8: @Bean init/destroy methods, @Lookup, Resource @Value, @Profile expressions and unknown profiles, bean name convention, argNames bindings; cache, @Scheduled and @Import gutters. Waves 9-10: @Transactional/@Async, component scan and advised-method gutters; Spring 7 API versioning checks; HTTP header and media type typos; broken @Value placeholders; JDK proxy injection.",
+      "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, Spring MVC handlers for the Endpoints tool window, Spring Security path and expression support, and Kafka/RabbitMQ/JMS sender-receiver navigation. 0.4.0: proxy pitfalls (self-invocation of @Transactional/@Cacheable/@Async, private/final/static proxied methods, Kotlin classes not opened by kotlin-spring), @Scheduled/@Async/@EventListener contracts, field and static injection, duplicate bean names, @Scope values, @Sql paths, @DirtiesContext, publishEvent ↔ listener gutters, @Qualifier/@DependsOn bean name completion and Ctrl+B. Wave 6: @Value placeholders (follows spring.config.import), SpEL syntax, cache names, caching on interfaces, @Qualifier/@DependsOn near-miss names, MVC path variables, endpoint and AOP advice gutters, method security not enabled, pointcut syntax. Wave 7: @Cacheable+@CachePut, abstract beans, @Value literal types, @Bean method shape, scan packages, AspectJ autoproxy, @Autowired outside beans, resource locations, @TestBean factories, @Around/pointcut/argNames/@DeclareParents, Security debug/self-invocation/bean refs. Wave 8: @Bean init/destroy methods, @Lookup, Resource @Value, @Profile expressions and unknown profiles, bean name convention, argNames bindings; cache, @Scheduled and @Import gutters. Waves 9-10: @Transactional/@Async, component scan and advised-method gutters; Spring 7 API versioning checks; HTTP header and media type typos; broken @Value placeholders; JDK proxy injection. Wave 11: test transaction pitfalls, @Value with @Qualifier/@Resource, removed @Required, @Qualifier bean type, ROLE_ prefix misuse.",
       "vendor": "Phantom",
       "category": "Frameworks",
       "since": "262",
@@ -52,7 +52,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-0.8.0/spring-0.8.0.zip",
+      "download": "spring-0.9.0/spring-0.9.0.zip",
       "detect": [
         "org.springframework:spring-context",
         "org.springframework:spring-web",
@@ -62,9 +62,9 @@
     {
       "id": "dev.phantom.spring.boot",
       "name": "Phantom Spring Boot",
-      "version": "0.7.0",
+      "version": "0.8.0",
       "source": "spring-boot",
-      "description": "Spring Boot support: File → New → Project → Spring Boot generates projects with Spring Initializr, and application*.yml / application*.properties get completion and quick documentation for keys and values, from library metadata and the project's own @ConfigurationProperties, in Java and Kotlin. An Actuator tab beside the console of a running app (health, beans, mappings, environment, polled only while shown; only for modules with spring-boot-starter-actuator), and completion and Ctrl+B for ${...} placeholders in @Value from the project's application.yml/properties and Spring Boot metadata. Wave 7: datasource driver missing, config key <-> @Value/@ConfigurationProperties gutters, spring.config.import files count as config. Wave 8: profile override gutters between application-<profile> and base config, @SpringBootApplication -> config files. Wave 9: @ConditionalOnProperty, @EnableConfigurationProperties, test property, @ConfigurationProperties field and profile value gutters.",
+      "description": "Spring Boot support: File → New → Project → Spring Boot generates projects with Spring Initializr, and application*.yml / application*.properties get completion and quick documentation for keys and values, from library metadata and the project's own @ConfigurationProperties, in Java and Kotlin. An Actuator tab beside the console of a running app (health, beans, mappings, environment, polled only while shown; only for modules with spring-boot-starter-actuator), and completion and Ctrl+B for ${...} placeholders in @Value from the project's application.yml/properties and Spring Boot metadata. Wave 7: datasource driver missing, config key <-> @Value/@ConfigurationProperties gutters, spring.config.import files count as config. Wave 8: profile override gutters between application-<profile> and base config, @SpringBootApplication -> config files. Wave 9: @ConditionalOnProperty, @EnableConfigurationProperties, test property, @ConfigurationProperties field and profile value gutters. Wave 11: unread bootstrap.yml, Spring Cloud Stream bindings without a function bean.",
       "vendor": "Phantom",
       "category": "Frameworks",
       "since": "262",
@@ -73,7 +73,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-boot-0.7.0/spring-boot-0.7.0.zip",
+      "download": "spring-boot-0.8.0/spring-boot-0.8.0.zip",
       "detect": [
         "org.springframework.boot:spring-boot",
         "org.springframework.boot:spring-boot-autoconfigure"
@@ -82,9 +82,9 @@
     {
       "id": "dev.phantom.jpa",
       "name": "Phantom JPA",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "source": "jpa",
-      "description": "JPA, Hibernate and Spring Data JPA for Java and Kotlin: JPQL in @Query with completion and errors, derived query method checks, a @Modifying check, entity mapping checks, and repository/entity gutter navigation. An Entity Diagram tool window: entities, columns and relations drawn from the code, copyable as a Mermaid erDiagram. 0.3.0: entity checks (several @Id, no-arg constructor, mappedBy, raw collections, converters), attribute checks (@Column on associations, LAZY on the inverse @OneToOne, @ManyToMany cascade REMOVE, unmapped entity fields, @Enumerated), Kotlin entity checks (kotlin-jpa/all-open, data class, val attributes, read-only collections), Lombok on entities, repository return and parameter types and Pageable. Wave 6: JPQL undeclared aliases and function arity, entity graph attributes, entity listener callback signatures. Wave 7: entity listener usage, named queries, JPQL in createQuery, Kotlin non-null vs nullable columns, Lombok @AllArgsConstructor without no-arg. Wave 9: derived query JPQL gutter, attribute <-> repository methods, @EntityGraph navigation.",
+      "description": "JPA, Hibernate and Spring Data JPA for Java and Kotlin: JPQL in @Query with completion and errors, derived query method checks, a @Modifying check, entity mapping checks, and repository/entity gutter navigation. An Entity Diagram tool window: entities, columns and relations drawn from the code, copyable as a Mermaid erDiagram. 0.3.0: entity checks (several @Id, no-arg constructor, mappedBy, raw collections, converters), attribute checks (@Column on associations, LAZY on the inverse @OneToOne, @ManyToMany cascade REMOVE, unmapped entity fields, @Enumerated), Kotlin entity checks (kotlin-jpa/all-open, data class, val attributes, read-only collections), Lombok on entities, repository return and parameter types and Pageable. Wave 6: JPQL undeclared aliases and function arity, entity graph attributes, entity listener callback signatures. Wave 7: entity listener usage, named queries, JPQL in createQuery, Kotlin non-null vs nullable columns, Lombok @AllArgsConstructor without no-arg. Wave 9: derived query JPQL gutter, attribute <-> repository methods, @EntityGraph navigation. Wave 11: SQL injection through string-built JDBC/JPA queries, Criteria attribute names (check, completion, Ctrl+B), Jakarta Data repositories, Hibernate @Find, Spring Data JDBC aggregates and mappings.",
       "vendor": "Phantom",
       "category": "Frameworks",
       "since": "262",
@@ -93,7 +93,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "jpa-0.6.0/jpa-0.6.0.zip",
+      "download": "jpa-0.7.0/jpa-0.7.0.zip",
       "detect": [
         "org.springframework.data:spring-data-jpa",
         "org.hibernate.orm:hibernate-core",
@@ -148,9 +148,9 @@
     {
       "id": "dev.phantom.kubernetes",
       "name": "Phantom Kubernetes",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "source": "kubernetes",
-      "description": "Helm chart templates: .Values completion and navigation from values.yaml, .Release/.Chart fields, include/define navigation, and a warning for values that values.yaml does not define. 0.2.0: manifest checks for built-in kinds (removed API versions, unknown and missing keys with key completion, duplicate env vars, selector/template label mismatch); YAML in Markdown fences is skipped. Wave 7: unknown kinds, enum values, deprecated keys/resources, server-set fields, Chart.yaml. Wave 8: gutters Service <-> workloads, ConfigMap/Secret/ServiceAccount references, Ingress backends. Wave 10: kinds that are not stored (reviews, Binding, Eviction).",
+      "description": "Helm chart templates: .Values completion and navigation from values.yaml, .Release/.Chart fields, include/define navigation, and a warning for values that values.yaml does not define. 0.2.0: manifest checks for built-in kinds (removed API versions, unknown and missing keys with key completion, duplicate env vars, selector/template label mismatch); YAML in Markdown fences is skipped. Wave 7: unknown kinds, enum values, deprecated keys/resources, server-set fields, Chart.yaml. Wave 8: gutters Service <-> workloads, ConfigMap/Secret/ServiceAccount references, Ingress backends. Wave 10: kinds that are not stored (reviews, Binding, Eviction). Wave 11: deprecated labels/annotations, required list-item keys, unknown Helm templates, risky whitespace trimming, define to include markers.",
       "vendor": "Phantom",
       "category": "Cloud",
       "since": "262",
@@ -159,7 +159,7 @@
         "com.intellij.modules.lang",
         "org.jetbrains.plugins.yaml"
       ],
-      "download": "kubernetes-0.5.0/kubernetes-0.5.0.zip",
+      "download": "kubernetes-0.6.0/kubernetes-0.6.0.zip",
       "detectFiles": [
         "Chart.yaml"
       ]
@@ -183,9 +183,9 @@
     {
       "id": "dev.phantom.docker",
       "name": "Phantom Docker",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "source": "docker",
-      "description": "Docker Compose through the docker CLI: run icons on compose services, a Docker Compose run configuration shown in Services, and a Docker tool window listing containers by compose project with start, stop, restart, remove, logs and compose down. Polls only while open. 0.2.0: Compose checks (unknown keys and values, undefined services/networks/volumes with Ctrl+B and completion, missing image, unquoted base-60 ports, duplicate container names) and Dockerfile checks (continuations, argument counts, exec form, heredocs, stages, COPY/ADD paths). Wave 7: Compose pull_policy and network_mode values. Wave 8: Compose build -> Dockerfile and depends_on gutters, Dockerfile stage Ctrl+B. Wave 10: COPY/ADD here-documents BuildKit rejects.",
+      "description": "Docker Compose through the docker CLI: run icons on compose services, a Docker Compose run configuration shown in Services, and a Docker tool window listing containers by compose project with start, stop, restart, remove, logs and compose down. Polls only while open. 0.2.0: Compose checks (unknown keys and values, undefined services/networks/volumes with Ctrl+B and completion, missing image, unquoted base-60 ports, duplicate container names) and Dockerfile checks (continuations, argument counts, exec form, heredocs, stages, COPY/ADD paths). Wave 7: Compose pull_policy and network_mode values. Wave 8: Compose build -> Dockerfile and depends_on gutters, Dockerfile stage Ctrl+B. Wave 10: COPY/ADD here-documents BuildKit rejects. Wave 11: FROM ... AS stage to its usages marker.",
       "vendor": "Phantom",
       "since": "262",
       "until": "262.*",
@@ -194,7 +194,7 @@
         "com.intellij.modules.lang",
         "org.jetbrains.plugins.yaml"
       ],
-      "download": "docker-0.5.0/docker-0.5.0.zip",
+      "download": "docker-0.6.0/docker-0.6.0.zip",
       "detectFiles": [
         "compose.yaml",
         "compose.yml",
@@ -269,9 +269,9 @@
     {
       "id": "dev.phantom.migrations",
       "name": "Phantom Migrations",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "source": "migrations",
-      "description": "Flyway and Liquibase checks: migration names Flyway skips (single underscore, lower-case prefix, no description) and duplicate versions in db/migration and spring.flyway.locations; duplicate changeset id and author and missing include/includeAll paths in XML, YAML and formatted SQL changelogs. Wave 8: Flyway previous/next migration gutters, Liquibase include navigation.",
+      "description": "Flyway and Liquibase checks: migration names Flyway skips (single underscore, lower-case prefix, no description) and duplicate versions in db/migration and spring.flyway.locations; duplicate changeset id and author and missing include/includeAll paths in XML, YAML and formatted SQL changelogs. Wave 8: Flyway previous/next migration gutters, Liquibase include navigation. 0.3.0: unresolved Liquibase changelog properties.",
       "vendor": "Phantom",
       "since": "262",
       "until": "262.*",
@@ -280,7 +280,7 @@
         "com.intellij.modules.lang",
         "org.jetbrains.plugins.yaml"
       ],
-      "download": "migrations-0.2.0/migrations-0.2.0.zip",
+      "download": "migrations-0.3.0/migrations-0.3.0.zip",
       "detect": [
         "org.flywaydb:flyway-core",
         "org.liquibase:liquibase-core"
@@ -313,9 +313,9 @@
     {
       "id": "dev.phantom.http",
       "name": "Phantom HTTP Client",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "source": "http-client",
-      "description": "HTTP requests in .http / .rest files, run from the editor: file and http-client.env.json environment variables, import and run lines to reuse requests from other files, a run gutter per request plus Run All, checks for common mistakes (broken JSON bodies, headers the client can't send, unknown methods, missing ###, broken {{}}, plain http to remote hosts), and a response view with status, headers and a formatted body. Moved out of the Phantom core so it updates like any other plugin.",
+      "description": "HTTP requests in .http / .rest files, run from the editor: file and http-client.env.json environment variables, import and run lines to reuse requests from other files, a run gutter per request plus Run All, checks for common mistakes (broken JSON bodies, headers the client can't send, unknown methods, missing ###, broken {{}}, plain http to remote hosts), and a response view with status, headers and a formatted body. Moved out of the Phantom core so it updates like any other plugin. 0.2.0: auth ids from Security.Auths (resolution, completion, Ctrl+B, unknown id and configuration checks), URL scheme and encoding checks.",
       "vendor": "Phantom",
       "category": "Tools Integration",
       "since": "262",
@@ -323,7 +323,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "http-client-0.1.0/http-client-0.1.0.zip",
+      "download": "http-client-0.2.0/http-client-0.2.0.zip",
       "detect": [],
       "detectFiles": [
         "http-client.env.json",
