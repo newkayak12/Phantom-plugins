@@ -27,7 +27,6 @@ import com.intellij.util.ui.UIUtil
 import dev.phantom.db.core.DbDrivers
 import dev.phantom.db.core.Dbms
 import dev.phantom.db.core.PhantomDbBundle
-import dev.phantom.db.core.drivers.DbDriverActions
 import dev.phantom.db.core.drivers.DbDriverDefinition
 import dev.phantom.db.core.drivers.DbDriverDownloader
 import dev.phantom.db.core.drivers.MavenCoordinate
@@ -226,8 +225,10 @@ internal class DbDriverEditor(private val project: Project?) {
     })
   }
 
-  /** Downloads with the edits so far; [DbDriverActions.download] saves the result, which [DbDriversDialog] picks up. */
-  private fun download() {
+  /** Downloads the jars of this driver as edited so far; keeps them in the copy, so only OK saves them. Network through [downloader] only. */
+  internal var downloader: (DbDriverDefinition, ProgressIndicator) -> DbDriverDefinition = { d, indicator -> DbDriverDownloader.download(d, indicator) }
+
+  internal fun download() {
     commit()
     val d = definition ?: return
     if (d.artifacts.isEmpty()) {
@@ -235,7 +236,32 @@ internal class DbDriverEditor(private val project: Project?) {
       return
     }
     downloadStatus.text = PhantomDbBundle.message("db.drivers.status.downloading")
-    DbDriverActions.download(project, d.copy())
+    val request = d.copy()
+    ProgressManager.getInstance().run(object : Task.Backgroundable(project, PhantomDbBundle.message("db.driver.download.title", d.name), true) {
+      private var downloaded: DbDriverDefinition? = null
+
+      override fun run(indicator: ProgressIndicator) {
+        downloaded = downloader(request, indicator)
+      }
+
+      override fun onSuccess() {
+        val result = downloaded ?: return
+        d.resolvedVersion = result.resolvedVersion
+        d.resolvedJars = ArrayList(result.resolvedJars)
+        if (definition !== d) return
+        refreshStatus()
+        showVersions()
+        scanClasses()
+      }
+
+      override fun onCancel() {
+        if (definition === d) refreshStatus()
+      }
+
+      override fun onThrowable(error: Throwable) {
+        if (definition === d) downloadStatus.text = PhantomDbBundle.message("db.driver.download.failed", d.name, error.message ?: error.javaClass.simpleName)
+      }
+    })
   }
 
   /** Fills the class combo from the driver's jars, off the EDT. */

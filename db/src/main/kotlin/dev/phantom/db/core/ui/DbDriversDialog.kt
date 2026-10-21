@@ -10,6 +10,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.openapi.util.JDOMUtil
 import com.intellij.ui.CollectionListModel
 import com.intellij.ui.OnePixelSplitter
@@ -32,13 +33,13 @@ import javax.swing.ListSelectionModel
 
 /**
  * Drivers: the built-in presets and the user's own drivers on the left, the selected one's editor on the right, and the
- * Maven repositories downloads search. Edits stay in copies until OK; only Download saves at once (it pins jars).
+ * Maven repositories downloads search. Edits, downloaded jars included, stay in copies until OK.
  */
 class DbDriversDialog(private val project: Project?, select: String? = null) : DialogWrapper(project, true) {
   private val registry = DbDriverRegistry.getInstance()
   private val drivers = CollectionListModel(registry.all.map { it.copy() })
   private val list = JBList(drivers)
-  private val editor = DbDriverEditor(project)
+  internal val editor = DbDriverEditor(project)
   private val removed = HashSet<String>()
   private val repositories = CollectionListModel(listOf(DbDriverDownloader.MAVEN_CENTRAL) + DbDriverSettings.getInstance().repositories)
   private val repositoryList = JBList(repositories)
@@ -96,7 +97,7 @@ class DbDriversDialog(private val project: Project?, select: String? = null) : D
     list.setSelectedValue(definition, true)
   }
 
-  private fun add() {
+  internal fun add() {
     editor.commit()
     val definition = DbDriverDefinition().apply {
       id = uniqueId("custom", drivers.items.map { it.id }.toSet())
@@ -139,10 +140,11 @@ class DbDriversDialog(private val project: Project?, select: String? = null) : D
     editor.load(selected())
   }
 
-  /** A download finished while the dialog is open: take its pinned jars, keep the other edits. */
+  /** A download elsewhere (a balloon, Test Connection) finished while the dialog is open: take its jars where this copy has none. */
   private fun pinnedJarsChanged() {
     for (definition in drivers.items) {
       val saved = registry.find(definition.id) ?: continue
+      if (definition.resolvedJars.isNotEmpty() || saved.resolvedJars.isEmpty()) continue
       definition.resolvedVersion = saved.resolvedVersion
       definition.resolvedJars = ArrayList(saved.resolvedJars)
     }
@@ -157,6 +159,13 @@ class DbDriversDialog(private val project: Project?, select: String? = null) : D
       if (pristine != null && sameAs(definition, pristine)) registry.resetToDefault(definition.id) else registry.save(definition)
     }
     DbDriverSettings.getInstance().repositories = repositories.items.drop(1).toMutableList()
+  }
+
+  public override fun doValidate(): ValidationInfo? {
+    editor.commit()
+    val invalid = drivers.items.firstOrNull { it.name.isBlank() || it.driverClass.isBlank() || it.urlTemplate.isBlank() } ?: return null
+    if (selected() !== invalid) select(invalid)
+    return ValidationInfo(PhantomDbBundle.message("db.drivers.invalid", invalid.name.ifBlank { invalid.id }))
   }
 
   override fun doOKAction() {
@@ -180,7 +189,7 @@ class DbDriversDialog(private val project: Project?, select: String? = null) : D
 
 /** Replaces each `{name}` in [template] with its value; placeholders without one become empty, never left as `{name}`. */
 internal fun fillTemplate(template: String, values: Map<String, String>): String =
-  Regex("\\{(\\w+)}").replace(template) { values[it.groupValues[1]].orEmpty() }
+  Regex("\\{([^}]+)}").replace(template) { values[it.groupValues[1]].orEmpty() }
 
 /** The URL a data source starts with for this driver: its template on localhost. */
 internal fun DbDriverDefinition.defaultUrl(): String = fillTemplate(urlTemplate, mapOf("host" to "localhost"))
