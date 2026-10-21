@@ -108,7 +108,11 @@ class DbConsoleTest : BasePlatformTestCase() {
     assertTrue(xml, xml.contains(ds.url))
     assertFalse(xml, xml.contains("s3cret"))
     assertEquals("s3cret", DbDataSourceService.getInstance(project).password(ds.id))
-    assertEquals("mysql@db.local", DbDataSourceDialog.defaultName(Dbms.MYSQL, "jdbc:mysql://db.local:3306/app"))
+    val drivers = dev.phantom.db.core.drivers.DbDriverRegistry.getInstance()
+    assertEquals("mysql@db.local", DbDataSourceDialog.defaultName(drivers.find("mysql"), "jdbc:mysql://db.local:3306/app"))
+    assertEquals("amazon redshift@cluster", DbDataSourceDialog.defaultName(drivers.find("redshift"), "jdbc:redshift://cluster:5439/dev"))
+    assertEquals("oracle@ora", DbDataSourceDialog.defaultName(drivers.find("oracle"), "jdbc:oracle:thin:@//ora:1521/svc"))
+    assertEquals("h2:mem:test", DbDataSourceDialog.defaultName(drivers.find("h2"), "jdbc:h2:mem:test"))
     assertEquals(Dbms.MYSQL, Dbms.forUrl("jdbc:p6spy:mysql://localhost/x"))
   }
 

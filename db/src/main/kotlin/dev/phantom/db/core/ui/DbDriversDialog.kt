@@ -202,8 +202,16 @@ class DbDriversDialog(private val project: Project?, select: String? = null) : D
 internal fun fillTemplate(template: String, values: Map<String, String>): String =
   Regex("\\{([^}]+)}").replace(template) { values[it.groupValues[1]].orEmpty() }
 
-/** The URL a data source starts with for this driver: its template on localhost. */
-internal fun DbDriverDefinition.defaultUrl(): String = fillTemplate(urlTemplate, mapOf("host" to "localhost"))
+/** The URL a data source starts with for this driver: its template on localhost and its default port. */
+internal fun DbDriverDefinition.defaultUrl(): String =
+  fillTemplate(urlTemplate, mapOf("host" to "localhost", "port" to defaultPort?.toString().orEmpty()))
+
+/** Placeholders the data source dialog has fields for. */
+internal val URL_FIELDS: List<String> = listOf("host", "port", "database")
+
+/** True when the data source dialog's fields can fill every placeholder of the URL template (none counts). */
+internal fun DbDriverDefinition.urlFromFields(): Boolean =
+  Regex("\\{([^}]+)}").findAll(urlTemplate).all { it.groupValues[1] in URL_FIELDS }
 
 /** [base], else `base-2`, `base-3`… */
 internal fun uniqueId(base: String, taken: Set<String>): String =

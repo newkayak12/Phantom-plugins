@@ -4,7 +4,8 @@
     <option name="icon" value="mysql" />
     <option name="name" value="MySQL" />
     <option name="driverClass" value="com.mysql.cj.jdbc.Driver" />
-    <option name="urlTemplate" value="jdbc:mysql://{host}:3306/{database}" />
+    <option name="urlTemplate" value="jdbc:mysql://{host}:{port}/{database}" />
+    <option name="defaultPort" value="3306" />
     <urlPrefixes>
       <option value="jdbc:mysql:" />
     </urlPrefixes>
@@ -20,7 +21,8 @@
     <option name="icon" value="mariadb" />
     <option name="name" value="MariaDB" />
     <option name="driverClass" value="org.mariadb.jdbc.Driver" />
-    <option name="urlTemplate" value="jdbc:mariadb://{host}:3306/{database}" />
+    <option name="urlTemplate" value="jdbc:mariadb://{host}:{port}/{database}" />
+    <option name="defaultPort" value="3306" />
     <urlPrefixes>
       <option value="jdbc:mariadb:" />
     </urlPrefixes>
@@ -35,7 +37,8 @@
     <option name="icon" value="postgresql" />
     <option name="name" value="PostgreSQL" />
     <option name="driverClass" value="org.postgresql.Driver" />
-    <option name="urlTemplate" value="jdbc:postgresql://{host}:5432/{database}" />
+    <option name="urlTemplate" value="jdbc:postgresql://{host}:{port}/{database}" />
+    <option name="defaultPort" value="5432" />
     <urlPrefixes>
       <option value="jdbc:postgresql:" />
     </urlPrefixes>
@@ -65,7 +68,8 @@
     <option name="icon" value="mysql" />
     <option name="name" value="AWS JDBC Wrapper (MySQL)" />
     <option name="driverClass" value="software.amazon.jdbc.Driver" />
-    <option name="urlTemplate" value="jdbc:aws-wrapper:mysql://{host}:3306/{database}" />
+    <option name="urlTemplate" value="jdbc:aws-wrapper:mysql://{host}:{port}/{database}" />
+    <option name="defaultPort" value="3306" />
     <urlPrefixes>
       <option value="jdbc:aws-wrapper:mysql:" />
     </urlPrefixes>
@@ -88,7 +92,8 @@
     <option name="icon" value="postgresql" />
     <option name="name" value="AWS JDBC Wrapper (PostgreSQL)" />
     <option name="driverClass" value="software.amazon.jdbc.Driver" />
-    <option name="urlTemplate" value="jdbc:aws-wrapper:postgresql://{host}:5432/{database}" />
+    <option name="urlTemplate" value="jdbc:aws-wrapper:postgresql://{host}:{port}/{database}" />
+    <option name="defaultPort" value="5432" />
     <urlPrefixes>
       <option value="jdbc:aws-wrapper:postgresql:" />
     </urlPrefixes>
@@ -111,7 +116,8 @@
     <option name="icon" value="redshift" />
     <option name="name" value="Amazon Redshift" />
     <option name="driverClass" value="com.amazon.redshift.jdbc.Driver" />
-    <option name="urlTemplate" value="jdbc:redshift://{host}:5439/{database}" />
+    <option name="urlTemplate" value="jdbc:redshift://{host}:{port}/{database}" />
+    <option name="defaultPort" value="5439" />
     <urlPrefixes>
       <option value="jdbc:redshift:" />
     </urlPrefixes>
@@ -152,7 +158,8 @@
     <option name="icon" value="oracle" />
     <option name="name" value="Oracle" />
     <option name="driverClass" value="oracle.jdbc.OracleDriver" />
-    <option name="urlTemplate" value="jdbc:oracle:thin:@//{host}:1521/{database}" />
+    <option name="urlTemplate" value="jdbc:oracle:thin:@//{host}:{port}/{database}" />
+    <option name="defaultPort" value="1521" />
     <urlPrefixes>
       <option value="jdbc:oracle:" />
     </urlPrefixes>
@@ -165,7 +172,8 @@
     <option name="icon" value="sqlserver" />
     <option name="name" value="SQL Server" />
     <option name="driverClass" value="com.microsoft.sqlserver.jdbc.SQLServerDriver" />
-    <option name="urlTemplate" value="jdbc:sqlserver://{host}:1433;databaseName={database};encrypt=true;trustServerCertificate=true" />
+    <option name="urlTemplate" value="jdbc:sqlserver://{host}:{port};databaseName={database};encrypt=true;trustServerCertificate=true" />
+    <option name="defaultPort" value="1433" />
     <urlPrefixes>
       <option value="jdbc:sqlserver:" />
     </urlPrefixes>
@@ -191,7 +199,8 @@
     <option name="icon" value="clickhouse" />
     <option name="name" value="ClickHouse" />
     <option name="driverClass" value="com.clickhouse.jdbc.ClickHouseDriver" />
-    <option name="urlTemplate" value="jdbc:clickhouse://{host}:8123/{database}" />
+    <option name="urlTemplate" value="jdbc:clickhouse://{host}:{port}/{database}" />
+    <option name="defaultPort" value="8123" />
     <urlPrefixes>
       <option value="jdbc:clickhouse:" />
       <option value="jdbc:ch:" />

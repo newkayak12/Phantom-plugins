@@ -49,9 +49,9 @@ internal class DbDriverEditor(private val project: Project?) {
   private val nameField = JBTextField()
   private val classCombo = ComboBox<String>().apply { isEditable = true }
   private val files = CollectionListModel<String>()
-  private val artifacts = CollectionListModel<String>()
+  internal val artifacts = CollectionListModel<String>()
   private val artifactList = JBList(artifacts)
-  private val versionCombo = ComboBox(CollectionComboBoxModel(mutableListOf(LATEST))).apply { isEditable = true }
+  internal val versionCombo = ComboBox(CollectionComboBoxModel(mutableListOf(LATEST))).apply { isEditable = true }
   private val versionStatus = JBLabel(" ")
   private val downloadStatus = JBLabel(" ")
   private val urlTemplateField = JBTextField()
@@ -124,7 +124,8 @@ internal class DbDriverEditor(private val project: Project?) {
     try {
       val d = definition ?: DbDriverDefinition()
       nameField.text = d.name
-      classCombo.removeAllItems()
+      // the class scan sets a model removeAllItems() cannot change
+      classCombo.model = CollectionComboBoxModel(mutableListOf<String>())
       classCombo.selectedItem = d.driverClass
       files.replaceAll(d.files)
       artifacts.replaceAll(d.artifacts)
@@ -150,6 +151,11 @@ internal class DbDriverEditor(private val project: Project?) {
     d.name = nameField.text.trim()
     d.driverClass = (classCombo.editor.item as? String ?: classCombo.selectedItem as? String).orEmpty().trim()
     d.files = files.items.toMutableList()
+    if (artifacts.items != d.artifacts) {
+      // other coordinates or versions: the downloaded jars are not this driver's any more
+      d.resolvedVersion = null
+      d.resolvedJars = ArrayList()
+    }
     d.artifacts = artifacts.items.toMutableList()
     d.urlTemplate = urlTemplateField.text.trim()
     d.urlPrefixes = prefixesField.text.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toMutableList()
@@ -188,7 +194,8 @@ internal class DbDriverEditor(private val project: Project?) {
   /** The version combo shows the selected artifact's version: `LATEST`, its pinned one, and the downloaded one. */
   private fun showVersions() {
     val coordinate = selectedCoordinate()
-    val known = listOfNotNull(LATEST, coordinate?.version, definition?.resolvedVersion?.takeIf { artifactList.selectedIndex == 0 }).distinct()
+    val latest = coordinate?.let { latestKnown["${it.group}:${it.artifact}"] }
+    val known = listOfNotNull(LATEST, coordinate?.version, definition?.resolvedVersion?.takeIf { artifactList.selectedIndex == 0 }, latest).distinct()
     loading = true
     try {
       versionCombo.model = CollectionComboBoxModel(known.toMutableList())
@@ -213,25 +220,36 @@ internal class DbDriverEditor(private val project: Project?) {
   private fun selectedCoordinate(): MavenCoordinate? =
     artifactList.selectedValue?.let { runCatching { MavenCoordinate.parse(it) }.getOrNull() }
 
-  private fun checkForUpdates() {
+  /** Latest versions found by Check for Updates, by `group:artifact`: offered whenever that artifact is shown again. */
+  internal val latestKnown = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+  /** Network through this only. */
+  internal var latestVersion: (group: String, artifact: String) -> String? = { g, a -> DbDriverDownloader.default().latestVersion(g, a) }
+
+  internal fun checkForUpdates() {
     val coordinate = selectedCoordinate() ?: return
+    val key = "${coordinate.group}:${coordinate.artifact}"
+    val checked = definition
     versionStatus.text = PhantomDbBundle.message("db.drivers.checking")
     ProgressManager.getInstance().run(object : Task.Backgroundable(project, PhantomDbBundle.message("db.drivers.checking"), true) {
       private var latest: String? = null
 
       override fun run(indicator: ProgressIndicator) {
-        latest = DbDriverDownloader.default().latestVersion(coordinate.group, coordinate.artifact)
+        latest = latestVersion(coordinate.group, coordinate.artifact)
       }
 
       override fun onSuccess() {
         val version = latest ?: return
+        latestKnown[key] = version
+        // the user may have moved to another driver or artifact meanwhile: its combo is not this one's
+        if (definition !== checked || selectedCoordinate()?.let { "${it.group}:${it.artifact}" } != key) return
         val model = versionCombo.model as CollectionComboBoxModel<String>
         if (version !in model.items) model.add(version)
         versionStatus.text = PhantomDbBundle.message("db.drivers.latest", version)
       }
 
       override fun onThrowable(error: Throwable) {
-        versionStatus.text = error.message ?: error.javaClass.simpleName
+        if (definition === checked) versionStatus.text = error.message ?: error.javaClass.simpleName
       }
     })
   }
@@ -257,6 +275,7 @@ internal class DbDriverEditor(private val project: Project?) {
 
       override fun onSuccess() {
         val result = downloaded ?: return
+        if (d.artifacts != request.artifacts) return  // the coordinates changed meanwhile: these jars are not theirs
         d.resolvedVersion = result.resolvedVersion
         d.resolvedJars = ArrayList(result.resolvedJars)
         if (definition !== d) return

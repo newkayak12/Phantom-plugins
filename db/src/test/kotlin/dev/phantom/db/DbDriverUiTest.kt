@@ -234,4 +234,75 @@ class DbDriverUiTest : BasePlatformTestCase() {
     dialog.add()
     assertNotNull("a new driver has no class yet", dialog.doValidate())
   }
+
+  fun testEveryHostTemplateHasPortAndDefault() {
+    for (d in DbDriverRegistry.builtIns.filter { "{host}" in it.urlTemplate }) {
+      assertTrue(d.id, "{port}" in d.urlTemplate)
+      assertNotNull(d.id, d.defaultPort)
+    }
+    assertEquals(5439, registry.find("redshift")!!.defaultPort)
+    val copy = XmlSerializer.deserialize(XmlSerializer.serialize(registry.find("oracle")!!), DbDriverDefinition::class.java)
+    assertEquals(1521, copy.defaultPort)
+  }
+
+  fun testPortFollowsDriverDefaultUnlessTyped() = withDialog(null) { dialog ->
+    dialog.hostField.text = "db"
+    dialog.driverCombo.selectedItem = registry.find("redshift")
+    assertEquals("jdbc:redshift://db:5439/", dialog.urlField.text)
+    dialog.driverCombo.selectedItem = registry.find("sqlserver")
+    assertEquals("jdbc:sqlserver://db:1433;databaseName=;encrypt=true;trustServerCertificate=true", dialog.urlField.text)
+    dialog.portField.text = "11433"
+    dialog.driverCombo.selectedItem = registry.find("clickhouse")
+    assertEquals("a typed port stays", "jdbc:clickhouse://db:11433/", dialog.urlField.text)
+  }
+
+  fun testTemplateWithoutFieldsOpensUrlOnly() = withDialog(null) { dialog ->
+    assertFalse(dialog.urlOnlyBox.isSelected)
+    dialog.driverCombo.selectedItem = registry.find("snowflake")
+    assertTrue(dialog.urlOnlyBox.isSelected)
+    assertEquals("jdbc:snowflake://.snowflakecomputing.com/?db=", dialog.urlField.text)
+    dialog.driverCombo.selectedItem = registry.find("athena")
+    assertEquals("jdbc:athena://Region=;WorkGroup=primary", dialog.urlField.text)
+    dialog.driverCombo.selectedItem = registry.find("sqlite")
+    assertEquals("jdbc:sqlite:", dialog.urlField.text)
+    assertEquals("sqlite", dialog.current().driverId)
+    dialog.driverCombo.selectedItem = registry.find("mysql")
+    assertFalse("back on fields once the template allows it", dialog.urlOnlyBox.isSelected)
+    assertEquals("jdbc:mysql://localhost:3306/", dialog.urlField.text)
+    dialog.driverCombo.selectedItem = registry.find("snowflake")
+    dialog.urlField.text = "jdbc:snowflake://acme.snowflakecomputing.com/?db=x"
+    dialog.driverCombo.selectedItem = registry.find("mysql")
+    assertTrue("a typed URL keeps URL only", dialog.urlOnlyBox.isSelected)
+    assertEquals("jdbc:snowflake://acme.snowflakecomputing.com/?db=x", dialog.urlField.text)
+  }
+
+  fun testChangingArtifactsDropsDownloadedJars() = withDrivers("mysql") { dialog ->
+    val d = dialog.selected()!!
+    d.resolvedVersion = "9.9"
+    d.resolvedJars = mutableListOf(DbConsoleTest.h2Jar.toString())
+    dialog.editor.load(d)
+    dialog.editor.commit()
+    assertEquals("nothing changed: the jars stay", "9.9", d.resolvedVersion)
+    dialog.editor.versionCombo.selectedItem = "8.0.33"
+    dialog.editor.commit()
+    assertEquals("com.mysql:mysql-connector-j:8.0.33", d.artifacts.first())
+    assertNull(d.resolvedVersion)
+    assertEmpty(d.resolvedJars)
+  }
+
+  fun testCheckForUpdatesAppliesToTheDriverItStartedFor() = withDrivers("mysql") { dialog ->
+    val editor = dialog.editor
+    val mysql = dialog.selected()!!
+    val postgres = registry.find("postgresql")!!.copy()
+    // the user moves on to another driver while the check runs
+    editor.latestVersion = { _, _ -> com.intellij.openapi.application.ApplicationManager.getApplication().invokeAndWait { editor.load(postgres) }; "99.0" }
+    editor.checkForUpdates()
+    PlatformTestUtil.waitWithEventsDispatching("no check result", { editor.latestKnown.isNotEmpty() }, 10)
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    fun choices() = (0 until editor.versionCombo.itemCount).map { editor.versionCombo.getItemAt(it) }
+    assertFalse(choices().toString(), "99.0" in choices())
+    editor.load(mysql)
+    assertTrue(choices().toString(), "99.0" in choices())
+    assertEquals("com.mysql:mysql-connector-j", mysql.artifacts.first())
+  }
 }

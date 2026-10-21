@@ -2,7 +2,6 @@
 package dev.phantom.db.core
 
 import com.intellij.icons.AllIcons
-import com.intellij.openapi.util.IconLoader
 import dev.phantom.db.core.drivers.DbDriverDefinition
 import javax.swing.Icon
 
@@ -26,9 +25,6 @@ object PhantomDbIcons {
     "aws" to { AllIcons.Providers.AmazonWebServices },
   )
 
-  /** Keys that ship their own SVG under `/icons/phantom/db/<key>.svg` (with `_dark`); the platform has none for them. */
-  private val shipped: Set<String> = emptySet()
-
   /** Names for the icon combo of the Drivers dialog. */
   private val names = mapOf("mysql" to "MySQL", "mariadb" to "MariaDB", "postgresql" to "PostgreSQL", "h2" to "H2", "oracle" to "Oracle",
                             "sqlserver" to "SQL Server", "sqlite" to "SQLite", "clickhouse" to "ClickHouse", "snowflake" to "Snowflake",
@@ -37,13 +33,9 @@ object PhantomDbIcons {
   fun displayName(key: String): String = names[key] ?: "Generic"
 
   /** Keys offered in the Drivers dialog; "" (generic) is not among them. */
-  val keys: List<String> get() = platform.keys.toList() + shipped
+  val keys: List<String> get() = platform.keys.toList()
 
-  fun forKey(key: String): Icon {
-    platform[key]?.let { return it() }
-    if (key in shipped) return IconLoader.getIcon("/icons/phantom/db/$key.svg", PhantomDbIcons::class.java)
-    return GENERIC
-  }
+  fun forKey(key: String): Icon = platform[key]?.invoke() ?: GENERIC
 
   fun forDriver(definition: DbDriverDefinition?): Icon {
     if (definition == null) return GENERIC

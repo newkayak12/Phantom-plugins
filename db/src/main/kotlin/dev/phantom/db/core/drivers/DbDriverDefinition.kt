@@ -17,6 +17,8 @@ class DbDriverDefinition {
   var driverClass: String = ""
   /** Placeholders: `{host}` `{port}` `{database}` `{region}` `{file}`. */
   var urlTemplate: String = ""
+  /** What `{port}` starts as in the data source dialog. */
+  var defaultPort: Int? = null
   /** URL prefixes this driver handles, e.g. `jdbc:aws-wrapper:mysql:`. */
   @XCollection(style = XCollection.Style.v2)
   var urlPrefixes: MutableList<String> = ArrayList()
@@ -44,7 +46,7 @@ class DbDriverDefinition {
   var resolvedJars: MutableList<String> = ArrayList()
 
   fun copy(): DbDriverDefinition = DbDriverDefinition().also {
-    it.id = id; it.name = name; it.builtIn = builtIn; it.icon = icon; it.driverClass = driverClass; it.urlTemplate = urlTemplate
+    it.id = id; it.name = name; it.builtIn = builtIn; it.icon = icon; it.driverClass = driverClass; it.urlTemplate = urlTemplate; it.defaultPort = defaultPort
     it.urlPrefixes = ArrayList(urlPrefixes); it.artifacts = ArrayList(artifacts); it.artifactsAreAlternatives = artifactsAreAlternatives; it.files = ArrayList(files)
     it.defaultProperties = LinkedHashMap(defaultProperties); it.iamProperties = LinkedHashMap(iamProperties)
     it.iamUrlFrom = iamUrlFrom; it.iamUrlTo = iamUrlTo; it.dialect = dialect

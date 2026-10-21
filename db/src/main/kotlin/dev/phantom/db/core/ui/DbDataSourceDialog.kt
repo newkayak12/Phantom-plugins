@@ -65,7 +65,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     renderer = textListCellRenderer { it?.let { kind -> PhantomDbBundle.message("db.dialog.auth.${kind.name.lowercase()}") } }
   }
   internal val hostField = JBTextField("localhost")
-  private val portField = JBTextField()
+  internal val portField = JBTextField()
   internal val databaseField = JBTextField()
   /** Off: the URL is built from the host, port and database fields. A data source opened for editing starts on: fields are not parsed back from a URL. */
   internal val urlOnlyBox = JBCheckBox(PhantomDbBundle.message("db.dialog.url.only"), !isNew)
@@ -93,6 +93,8 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
   private var selectingFromUrl = false
   /** Set while the URL is built from the fields; any other change to it is a typed URL. */
   private var generatingUrl = false
+  /** URL only was turned on because the driver's template has placeholders the fields cannot fill, not by the user. */
+  private var urlOnlyForTemplate = false
 
   init {
     title = PhantomDbBundle.message(if (isNew) "db.dialog.title.new" else "db.dialog.title.edit")
@@ -106,10 +108,12 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     val initial = registry.find(source.driverId) ?: if (source.driverId.isNullOrEmpty()) source.driver() else null
     fillDrivers(initial?.id)
     shownDriver = selectedDriver()
+    portField.text = shownDriver?.defaultPort?.toString().orEmpty()
     driverCombo.addActionListener { driverChosen() }
     urlField.document.addDocumentListener(object : DocumentAdapter() {
       override fun textChanged(e: DocumentEvent) {
         if (generatingUrl) return
+        urlOnlyForTemplate = false
         if (!urlOnlyBox.isSelected) {
           urlOnlyBox.isSelected = true
           updateUrlMode()
@@ -128,11 +132,12 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     for (field in listOf(hostField, portField, databaseField)) {
       field.document.addDocumentListener(object : DocumentAdapter() {
         override fun textChanged(e: DocumentEvent) {
-          if (!urlOnlyBox.isSelected) generateUrl()
+          if (!generatingUrl && !urlOnlyBox.isSelected) generateUrl()
         }
       })
     }
     urlOnlyBox.addActionListener {
+      urlOnlyForTemplate = false
       if (!urlOnlyBox.isSelected) generateUrl()
       updateUrlMode()
     }
@@ -209,7 +214,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     dbms = driver?.dialect ?: source.dbms
     url = urlField.text.trim()
     user = userField.text.trim()
-    name = nameField.text.trim().ifEmpty { defaultName(dbms, url) }
+    name = nameField.text.trim().ifEmpty { defaultName(driver, url) }
     authKind = authCombo.selectedItem as DbAuthKind
     awsProfile = awsProfileField.text.trim()
     awsRegion = awsRegionField.text.trim()
@@ -235,9 +240,30 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
 
   private fun driverChosen() {
     val chosen = selectedDriver()
-    if (chosen?.id != shownDriver?.id && chosen != null && !selectingFromUrl) {
-      if (!urlOnlyBox.isSelected) generateUrl()
-      else if (replacesUrl(urlField.text.trim(), shownDriver)) urlField.text = chosen.defaultUrl()
+    val previous = shownDriver
+    if (chosen?.id != previous?.id && chosen != null && !selectingFromUrl) {
+      val untouched = replacesUrl(urlField.text.trim(), previous)
+      // a port still at the previous driver's default follows the new driver; a typed one stays
+      val port = portField.text.trim()
+      if (port.isEmpty() || port == previous?.defaultPort?.toString()) setGenerated { portField.text = chosen.defaultPort?.toString().orEmpty() }
+      when {
+        !chosen.urlFromFields() -> {
+          // e.g. Snowflake's {account}: no field for it, so the URL is edited directly, starting from the template
+          val wasFields = !urlOnlyBox.isSelected
+          if (wasFields) {
+            urlOnlyForTemplate = true
+            urlOnlyBox.isSelected = true
+          }
+          if (wasFields || untouched) setGenerated { urlField.text = chosen.defaultUrl() }
+        }
+        urlOnlyForTemplate && untouched -> {
+          urlOnlyForTemplate = false
+          urlOnlyBox.isSelected = false
+          generateUrl()
+        }
+        !urlOnlyBox.isSelected -> generateUrl()
+        untouched -> urlField.text = chosen.defaultUrl()
+      }
     }
     shownDriver = chosen
     updateAuthKinds()
@@ -247,12 +273,20 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
 
   private fun generateUrl() {
     val driver = selectedDriver() ?: return
-    generatingUrl = true
-    try {
+    setGenerated {
       urlField.text = fillTemplate(driver.urlTemplate, mapOf("host" to hostField.text.trim(), "port" to portField.text.trim(), "database" to databaseField.text.trim()))
     }
+  }
+
+  /** Changes made by the dialog itself, not typed: they neither switch to URL only nor rebuild the URL. */
+  private fun setGenerated(change: () -> Unit) {
+    val was = generatingUrl
+    generatingUrl = true
+    try {
+      change()
+    }
     finally {
-      generatingUrl = false
+      generatingUrl = was
     }
   }
 
@@ -390,7 +424,6 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
 
   companion object {
     private const val DEFAULT_DRIVER = "mysql"
-    private val URL_FIELDS = listOf("host", "port", "database")
 
     /**
      * Test Connection, an explicit user action, downloads a missing driver before trying: only the downloaded jars and
@@ -425,12 +458,14 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     fun edit(project: Project, dataSource: DbDataSource): DbDataSource? =
       DbDataSourceDialog(project, dataSource).let { if (it.showAndGet()) it.result else null }
 
-    /** `mysql@localhost`, `h2:mem:test`. */
-    fun defaultName(dbms: Dbms, url: String): String {
-      val rest = url.substringAfter(dbms.urlPrefix, url)
-      val host = rest.removePrefix("//").substringBefore('/').substringBefore('?').substringBefore(';')
-      return if (rest.startsWith("//") && host.isNotEmpty()) "${dbms.displayName.lowercase()}@${host.substringBefore(':')}"
-      else "${dbms.displayName.lowercase()}:${rest.substringBefore(';')}"
+    /** `mysql@localhost`, `amazon redshift@cluster`, `h2:mem:test`: the driver's name, then the URL's host or what follows its prefix. */
+    fun defaultName(driver: DbDriverDefinition?, url: String): String {
+      val label = driver?.name?.lowercase() ?: "jdbc"
+      val prefix = driver?.urlPrefixes?.filter { url.startsWith(it, ignoreCase = true) }?.maxByOrNull { it.length } ?: "jdbc:"
+      val rest = if (url.startsWith(prefix, ignoreCase = true)) url.substring(prefix.length) else url
+      val slashes = rest.indexOf("//")
+      val host = if (slashes < 0) "" else rest.substring(slashes + 2).substringBefore('/').substringBefore('?').substringBefore(';').substringBefore(':')
+      return if (host.isNotEmpty()) "$label@$host" else "$label:${rest.substringBefore(';')}"
     }
   }
 }
