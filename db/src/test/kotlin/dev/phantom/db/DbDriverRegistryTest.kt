@@ -117,8 +117,11 @@ class DbDriverRegistryTest : BasePlatformTestCase() {
     val service = dev.phantom.db.core.DbDataSourceService.getInstance(project)
     service.loadState(state)
     val ds = service.find("a")!!
-    assertEquals("postgresql", ds.driverId)
+    assertEquals("postgresql", ds.driver()?.id)
     assertEquals(Dbms.POSTGRESQL, ds.dialect())
+    assertNull("loading writes nothing back", ds.driverId)
+    assertEquals(xml, JDOMUtil.write(XmlSerializer.serialize(service.state)))
+    service.loadState(dev.phantom.db.core.DbDataSourceService.State())
   }
 
   fun testUnknownDriverIdFallsBackByUrl() {
@@ -128,13 +131,28 @@ class DbDriverRegistryTest : BasePlatformTestCase() {
 
   fun testSavedDataSourceStillWritesDbms() {
     val service = dev.phantom.db.core.DbDataSourceService.getInstance(project)
-    val ds = dev.phantom.db.core.DbDataSource().apply { id = "r"; name = "rs"; driverId = "redshift"; url = "jdbc:redshift://h/x" }
-    service.save(ds, null)
+    service.save(dev.phantom.db.core.DbDataSource().apply { id = "p"; name = "pg"; driverId = "postgresql"; url = "jdbc:postgresql://h/x" }, null)
     val xml = JDOMUtil.write(XmlSerializer.serialize(service.state))
-    assertTrue(xml, xml.contains("name=\"dbms\" value=\"GENERIC\""))
-    assertTrue(xml, xml.contains("name=\"driverId\" value=\"redshift\""))
+    assertTrue(xml, xml.contains("name=\"dbms\" value=\"POSTGRESQL\""))
     assertFalse(xml.contains("assword"))
     assertFalse(xml.contains("awsSecret"))
+    service.remove("p")
+  }
+
+  /** 0.10.0 fails on an enum value it does not know, losing every data source: GENERIC must never reach the file. */
+  fun testGenericDataSourceIsReadableBy010() {
+    val service = dev.phantom.db.core.DbDataSourceService.getInstance(project)
+    val ds = dev.phantom.db.core.DbDataSource().apply { id = "r"; name = "rs"; dbms = Dbms.GENERIC; driverId = "redshift"; url = "jdbc:redshift://h/x" }
+    service.save(ds, null)
+    assertEquals(Dbms.GENERIC, service.find("r")!!.dialect())
+    val xml = JDOMUtil.write(XmlSerializer.serialize(service.state))
+    assertFalse(xml, xml.contains("GENERIC"))
+    assertTrue(xml, xml.contains("name=\"driverId\" value=\"redshift\""))
+
+    val old = XmlSerializer.deserialize(JDOMUtil.load(xml), OldState::class.java)
+    assertEquals(OldDbms.MYSQL, old.dataSources.single { it.id == "r" }.dbms)
+    val reloaded = XmlSerializer.deserialize(JDOMUtil.load(xml), dev.phantom.db.core.DbDataSourceService.State::class.java)
+    assertEquals(Dbms.GENERIC, reloaded.dataSources.single { it.id == "r" }.dialect())
     service.remove("r")
   }
 
@@ -143,4 +161,28 @@ class DbDriverRegistryTest : BasePlatformTestCase() {
     assertTrue(dev.phantom.db.core.DbDrivers.isDriverLibraryName("Gradle: com.mysql:mysql-connector-j:8.4.0"))
     assertFalse(dev.phantom.db.core.DbDrivers.isDriverLibraryName("Gradle: org.slf4j:slf4j-api:2.0.0"))
   }
+}
+
+/** `Dbms` as 0.10.0 has it. */
+enum class OldDbms { MYSQL, MARIADB, POSTGRESQL, H2 }
+
+/** `DbDataSource` as 0.10.0 has it: non-null `dbms`. */
+@com.intellij.util.xmlb.annotations.Tag("data-source")
+class OldDataSource {
+  var id: String = ""
+  var name: String = ""
+  var dbms: OldDbms = OldDbms.MYSQL
+  var url: String = ""
+  var user: String = ""
+  var readOnly: Boolean = false
+  var manualCommit: Boolean = false
+  @com.intellij.util.xmlb.annotations.XCollection(style = com.intellij.util.xmlb.annotations.XCollection.Style.v2)
+  var driverJars: MutableList<String> = ArrayList()
+  var maxRows: Int = 500
+  var queryTimeoutSeconds: Int = 60
+}
+
+class OldState {
+  @com.intellij.util.xmlb.annotations.XCollection(style = com.intellij.util.xmlb.annotations.XCollection.Style.v2)
+  var dataSources: MutableList<OldDataSource> = ArrayList()
 }

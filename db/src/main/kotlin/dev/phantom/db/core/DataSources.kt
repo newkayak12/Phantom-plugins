@@ -122,7 +122,7 @@ fun DbDataSource.driver(): DbDriverDefinition? {
   return registry.forUrl(url) ?: if (driverId.isNullOrEmpty()) registry.builtInFor(dbms) else null
 }
 
-/** SQL dialect of this data source: that of its driver; [DbDataSource.dbms] is only the persisted copy. */
+/** SQL dialect of this data source: that of its driver; [DbDataSource.dbms] is only the persisted copy (never `GENERIC` on disk). */
 fun DbDataSource.dialect(): Dbms = driver()?.dialect ?: dbms
 
 /** Project data sources. Loaded on first use (tool window, console, `.sql` editor banner), never at startup. */
@@ -138,10 +138,8 @@ class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State> 
   private val listeners = CopyOnWriteArrayList<() -> Unit>()
 
   override fun getState(): State = state
+  /** Taken as written: a data source without a driver id finds its built-in through [driver], so opening changes nothing on disk. */
   override fun loadState(state: State) {
-    state.dataSources.filter { it.driverId == null }.forEach { ds ->
-      DbDriverRegistry.getInstance().builtInFor(ds.dbms)?.let { ds.driverId = it.id }
-    }
     this.state = state
   }
 
@@ -151,7 +149,7 @@ class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State> 
 
   /** Adds [dataSource] or replaces the saved one with the same id. A `null` [password] leaves the saved one as is. */
   fun save(dataSource: DbDataSource, password: CharArray?) {
-    dataSource.dbms = dataSource.dialect()
+    dataSource.dbms = persistedDbms(dataSource.dialect())
     val i = state.dataSources.indexOfFirst { it.id == dataSource.id }
     if (i >= 0) state.dataSources[i] = dataSource else state.dataSources.add(dataSource)
     if (password != null) PasswordSafe.instance.set(credentials(dataSource.id), Credentials(dataSource.user, password))
@@ -178,6 +176,12 @@ class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State> 
     fun getInstance(project: Project): DbDataSourceService = project.service()
 
     fun credentials(id: String): CredentialAttributes = CredentialAttributes(generateServiceName("Phantom DB", id))
+
+    /**
+     * What `dbms` holds on disk. 0.10.0 cannot read [Dbms.GENERIC] (its loader fails on the unknown value), so such a data
+     * source keeps the serializer default, which is not written; its driver id is what makes it GENERIC.
+     */
+    internal fun persistedDbms(dialect: Dbms): Dbms = if (dialect.hasDialect) dialect else DbDataSource().dbms
   }
 }
 
