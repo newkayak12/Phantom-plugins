@@ -173,4 +173,39 @@ class DbGenericDialectTest : BasePlatformTestCase() {
     assertEmpty(registry.find("my-h2")!!.resolvedJars)
     assertFalse(java.nio.file.Files.exists(dev.phantom.db.core.drivers.DbDriverDownloader.defaultDir().resolve("com.nonexistent.phantomtest")))
   }
+
+  fun testTestConnectionErrorIsInlineOnly() {
+    val shown = mutableListOf<com.intellij.notification.Notification>()
+    project.messageBus.connect(testRootDisposable).subscribe(com.intellij.notification.Notifications.TOPIC, object : com.intellij.notification.Notifications {
+      override fun notify(notification: com.intellij.notification.Notification) {
+        shown += notification
+      }
+    })
+    val connections = DbConnectionService.getInstance(project)
+    val ds = DbDataSource().apply { id = "inline-${System.nanoTime()}"; driverId = "nope-inline"; url = "jdbc:nope://x" }
+    assertTrue(runCatching { connections.testConnection(ds, "") }.exceptionOrNull() is DbException)
+    com.intellij.testFramework.PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    assertEmpty(shown)
+    // the console path still offers the balloon
+    assertTrue(runCatching { connections.open(ds, "") }.exceptionOrNull() is DbException)
+    com.intellij.testFramework.PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    assertSize(1, shown)
+    shown.forEach { it.expire() }
+  }
+
+  fun testContextClassLoaderIsSetAndRestored() {
+    val before = Thread.currentThread().contextClassLoader
+    val loader = java.net.URLClassLoader(arrayOf(), null)
+    assertSame(loader, withContextClassLoader(loader) { Thread.currentThread().contextClassLoader })
+    assertSame(before, Thread.currentThread().contextClassLoader)
+    assertTrue(runCatching { withContextClassLoader(loader) { error("driver failed") } }.isFailure)
+    assertSame(before, Thread.currentThread().contextClassLoader)
+  }
+
+  fun testH2ConnectRestoresContextClassLoader() {
+    val before = Thread.currentThread().contextClassLoader
+    val ds = DbDataSource().apply { driverId = "h2"; user = "sa"; url = "jdbc:h2:mem:tccl_${System.nanoTime()}" }
+    DbConnectionService.getInstance(project).open(ds, "").use { assertTrue(it.isValid(5)) }
+    assertSame(before, Thread.currentThread().contextClassLoader)
+  }
 }

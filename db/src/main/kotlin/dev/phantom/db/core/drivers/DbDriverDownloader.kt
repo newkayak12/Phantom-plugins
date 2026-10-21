@@ -41,8 +41,9 @@ object DbDriverDownloader {
 
   /**
    * Resolves [definition]'s artifacts and downloads each jar to `<target>/<group>/<artifact>/<version>/<artifact>-<version>.jar`
-   * (through a `.part` file, moved into place after its SHA-1 matches). Returns a copy with [DbDriverDefinition.resolvedVersion]
-   * and [DbDriverDefinition.resolvedJars] set; the caller saves it through [DbDriverRegistry]. Blocking.
+   * (through a temporary `.part` file of its own, moved into place after its SHA-1 matches). Returns a copy with
+   * [DbDriverDefinition.resolvedVersion] and [DbDriverDefinition.resolvedJars] set; the caller pins them through
+   * [DbDriverRegistry]. Blocking.
    */
   fun download(
     definition: DbDriverDefinition,
@@ -90,7 +91,8 @@ object DbDriverDownloader {
     val file = dir.resolve("${artifact.artifact}-${artifact.version}.jar")
     if (Files.isRegularFile(file)) return file  // only ever moved into place after a checksum match
     Files.createDirectories(dir)
-    val part = dir.resolve("${file.fileName}.part")
+    // a file per download: two downloads of the same jar never write into each other's file
+    val part = Files.createTempFile(dir, "${artifact.artifact}-", ".part")
     try {
       val bytes = fetcher.fetch(artifact.jarUrl) ?: error("${artifact.jarUrl} not found")
       Files.write(part, bytes)

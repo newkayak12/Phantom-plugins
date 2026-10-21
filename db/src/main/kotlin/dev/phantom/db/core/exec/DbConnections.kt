@@ -151,31 +151,33 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
 
   /** Opens a throwaway connection with [password] and reports the server and driver versions. Blocking. */
   fun testConnection(dataSource: DbDataSource, password: String?): String {
-    open(dataSource, password ?: "").use { c ->
+    // the dialog shows the error inline: no balloon on top of it
+    open(dataSource, password ?: "", notify = false).use { c ->
       val md = c.metaData
       return PhantomDbBundle.message("db.test.ok", "${md.databaseProductName} ${md.databaseProductVersion}",
                                      "${md.driverName} ${md.driverVersion}")
     }
   }
 
-  /** Blocking. A `null` [password] means the saved one. */
-  fun open(dataSource: DbDataSource, password: String?): Connection {
+  /** Blocking. A `null` [password] means the saved one. [notify]: a driver that cannot be found also shows a balloon. */
+  fun open(dataSource: DbDataSource, password: String?, notify: Boolean = true): Connection {
     val definition = dataSource.driver()
     if (definition == null) {
       val name = dataSource.driverId?.takeIf { it.isNotEmpty() } ?: dataSource.url
-      DbDriverActions.notifyMissing(project, dataSource, null, PhantomDbBundle.message("db.driver.unknown", name))
+      if (notify) DbDriverActions.notifyMissing(project, dataSource, null, PhantomDbBundle.message("db.driver.unknown", name))
       throw DbException(PhantomDbBundle.message("db.driver.unknown", name))
     }
     val located = DbDrivers.find(project, dataSource)
     if (located == null) {
       val message = PhantomDbBundle.message("db.driver.missing.download", definition.name)
-      DbDriverActions.notifyMissing(project, dataSource, definition, message)
+      if (notify) DbDriverActions.notifyMissing(project, dataSource, definition, message)
       throw DbException(message)
     }
     val driver = drivers.computeIfAbsent(located.jars to definition.driverClass) { loadDriver(it.first, it.second) }
     val secret = (password ?: DbDataSourceService.getInstance(project).password(dataSource.id))?.takeIf { it.isNotEmpty() }
     val props = connectionProperties(definition, dataSource, secret)
-    val connection = driver.connect(connectionUrl(definition, dataSource).trim(), props)
+    // drivers that find others or load SDK parts through the context loader (AWS JDBC Wrapper, AWS SDK) must see their own jars
+    val connection = withContextClassLoader(driver.javaClass.classLoader) { driver.connect(connectionUrl(definition, dataSource).trim(), props) }
                      ?: throw DbException(PhantomDbBundle.message("db.driver.url.rejected", dataSource.url, located.description))
     if (dataSource.readOnly) runCatching { connection.isReadOnly = true }
     else if (dataSource.manualCommit) connection.autoCommit = false
@@ -184,13 +186,15 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
 
   private fun loadDriver(jars: List<Path>, driverClass: String): Driver {
     val loader = loaders.computeIfAbsent(jars) { URLClassLoader(jars.map { it.toUri().toURL() }.toTypedArray(), ClassLoader.getPlatformClassLoader()) }
-    try {
-      return Class.forName(driverClass, true, loader).getDeclaredConstructor().newInstance() as Driver
-    }
-    catch (_: ClassNotFoundException) {
-      // older or repackaged drivers: use whatever the jar declares in META-INF/services
-      return ServiceLoader.load(Driver::class.java, loader).firstOrNull { it.javaClass.classLoader == loader }
-             ?: throw DbException(PhantomDbBundle.message("db.driver.no.class", driverClass, jars.joinToString()))
+    return withContextClassLoader(loader) {
+      try {
+        Class.forName(driverClass, true, loader).getDeclaredConstructor().newInstance() as Driver
+      }
+      catch (_: ClassNotFoundException) {
+        // older or repackaged drivers: use whatever the jar declares in META-INF/services
+        ServiceLoader.load(Driver::class.java, loader).firstOrNull { it.javaClass.classLoader == loader }
+        ?: throw DbException(PhantomDbBundle.message("db.driver.no.class", driverClass, jars.joinToString()))
+      }
     }
   }
 
@@ -225,6 +229,19 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
     internal const val LOGIN_TIMEOUT_SECONDS = 15
 
     fun getInstance(project: Project): DbConnectionService = project.service()
+  }
+}
+
+/** Runs [block] with [loader] as this thread's context class loader, then puts the previous one back. */
+internal inline fun <T> withContextClassLoader(loader: ClassLoader?, block: () -> T): T {
+  val thread = Thread.currentThread()
+  val previous = thread.contextClassLoader
+  thread.contextClassLoader = loader
+  try {
+    return block()
+  }
+  finally {
+    thread.contextClassLoader = previous
   }
 }
 

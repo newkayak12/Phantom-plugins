@@ -71,7 +71,8 @@ class MavenResolver(private val repositories: List<String>, val fetcher: Artifac
     while (queue.isNotEmpty()) {
       val node = queue.removeFirst()
       val pom = effectivePom(node.group, node.artifact, node.version)
-      if (pom.packaging == "jar" || pom.packaging == "bundle") {
+      // jar, bundle, maven-plugin, eclipse-plugin, ...: everything but a POM ships a jar
+      if (pom.packaging != "pom") {
         val jarUrl = artifactUrl(pom.repository, node.group, node.artifact, node.version, "jar")
         result += ResolvedArtifact(node.group, node.artifact, node.version, jarUrl, "$jarUrl.sha1")
       }

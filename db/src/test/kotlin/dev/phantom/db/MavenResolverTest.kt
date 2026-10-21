@@ -64,6 +64,10 @@ class MavenResolverTest : TestCase() {
     assertEquals(setOf("t:usespom:1.0", "t:viapom:1.0"), gavs(resolve("t:usespom:1.0")))
   }
 
+  fun testEveryPackagingButPomHasJar() {
+    assertEquals(setOf("t:mplugin:1.0"), gavs(resolve("t:mplugin:1.0")))
+  }
+
   fun testSecondRepositoryIsUsedWhenFirstMisses() {
     val resolved = resolve("t:onlysecond:1.0", repos = arrayOf(base1, base2))
     assertEquals(setOf("t:onlysecond:1.0", "t:lib:1.5"), gavs(resolved))

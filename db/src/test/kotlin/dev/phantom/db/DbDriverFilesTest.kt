@@ -93,6 +93,23 @@ class DbDriverFilesTest : BasePlatformTestCase() {
     assertTrue(filesUnder(target).none { it.name.endsWith(".part") })
   }
 
+  fun testConcurrentDownloadsOfOneJarDoNotCollide() = withTempDir { target ->
+    val results = java.util.concurrent.ConcurrentLinkedQueue<Result<DbDriverDefinition>>()
+    val start = java.util.concurrent.CountDownLatch(1)
+    val threads = (1..4).map {
+      Thread {
+        start.await()
+        results += runCatching { DbDriverDownloader.download(definition("fake-a", "t:a"), EmptyProgressIndicator(), resolver(), target) }
+      }.apply { start() }
+    }
+    start.countDown()
+    threads.forEach { it.join() }
+    assertEquals(4, results.size)
+    assertTrue(results.mapNotNull { it.exceptionOrNull()?.toString() }.joinToString(), results.all { it.isSuccess })
+    assertTrue(target.resolve("t/a/1.0/a-1.0.jar").isRegularFile())
+    assertTrue(filesUnder(target).none { it.name.endsWith(".part") })
+  }
+
   fun testChecksumMismatchLeavesNothing() = withTempDir { target ->
     val error = runCatching { DbDriverDownloader.download(definition("bad", "t:badsum:1.0"), EmptyProgressIndicator(), resolver(), target) }
       .exceptionOrNull()
