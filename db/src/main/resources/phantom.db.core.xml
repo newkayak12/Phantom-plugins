@@ -100,6 +100,9 @@
                      enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlMissingReturnInspection"/>
     <lang.formatter language="SQL" implementationClass="dev.phantom.db.core.SqlFormattingModelBuilder"/>
     <lang.findUsagesProvider language="SQL" implementationClass="dev.phantom.db.core.SqlFindUsagesProvider"/>
+    <liveTemplateContext contextId="PHANTOM_SQL" implementation="dev.phantom.db.core.SqlTemplateContextType"/>
+    <defaultLiveTemplates file="/liveTemplates/PhantomSql.xml"/>
+    <liveTemplateMacro implementation="dev.phantom.db.core.SqlColumnsMacro"/>
     <runLineMarkerContributor language="SQL" implementationClass="dev.phantom.db.core.exec.SqlRunLineMarkerContributor"/>
     <editorNotificationProvider implementation="dev.phantom.db.core.exec.SqlDataSourceNotificationProvider"/>
     <editorTabColorProvider implementation="dev.phantom.db.core.DbEditorTabColorProvider"/>

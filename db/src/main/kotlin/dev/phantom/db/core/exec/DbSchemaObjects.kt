@@ -171,6 +171,8 @@ class DbObjectCache(private val project: Project) {
 
   fun cachedForeignKeys(table: DbTableRef): List<DbForeignKey>? = foreignKeys[table]
 
+  fun cachedReferencingKeys(table: DbTableRef): List<DbForeignKey>? = referencing[table]
+
   fun cachedColumnDetails(table: DbTableRef): List<DbColumnDetail>? = details[table]
 
   fun cachedPrimaryKey(table: DbTableRef): DbPrimaryKey? = primaryKeys[table]
