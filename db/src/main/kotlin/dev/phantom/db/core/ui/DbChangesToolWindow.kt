@@ -23,6 +23,7 @@ import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.ui.tree.TreeUtil
 import dev.phantom.db.core.*
+import dev.phantom.db.core.PhantomDbIcons
 import dev.phantom.db.core.exec.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -126,7 +127,7 @@ class DbChangesPanel(private val project: Project, parent: Disposable) : SimpleT
     override fun customizeCellRenderer(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean) {
       when (val item = (value as? DefaultMutableTreeNode)?.userObject) {
         is DbDataSource -> {
-          icon = item.dialect().icon
+          icon = PhantomDbIcons.forDataSource(item)
           append(item.name)
           append("  " + PhantomDbBundle.message("db.changes.count", (value as DefaultMutableTreeNode).childCount), SimpleTextAttributes.GRAYED_ATTRIBUTES)
         }

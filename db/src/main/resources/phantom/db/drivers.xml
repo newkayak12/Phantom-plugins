@@ -1,6 +1,7 @@
 <drivers>
   <driver>
     <option name="id" value="mysql" />
+    <option name="icon" value="mysql" />
     <option name="name" value="MySQL" />
     <option name="driverClass" value="com.mysql.cj.jdbc.Driver" />
     <option name="urlTemplate" value="jdbc:mysql://{host}:3306/{database}" />
@@ -16,6 +17,7 @@
   </driver>
   <driver>
     <option name="id" value="mariadb" />
+    <option name="icon" value="mariadb" />
     <option name="name" value="MariaDB" />
     <option name="driverClass" value="org.mariadb.jdbc.Driver" />
     <option name="urlTemplate" value="jdbc:mariadb://{host}:3306/{database}" />
@@ -30,6 +32,7 @@
   </driver>
   <driver>
     <option name="id" value="postgresql" />
+    <option name="icon" value="postgresql" />
     <option name="name" value="PostgreSQL" />
     <option name="driverClass" value="org.postgresql.Driver" />
     <option name="urlTemplate" value="jdbc:postgresql://{host}:5432/{database}" />
@@ -44,6 +47,7 @@
   </driver>
   <driver>
     <option name="id" value="h2" />
+    <option name="icon" value="h2" />
     <option name="name" value="H2" />
     <option name="driverClass" value="org.h2.Driver" />
     <option name="urlTemplate" value="jdbc:h2:mem:test" />
@@ -58,6 +62,7 @@
   </driver>
   <driver>
     <option name="id" value="aws-wrapper-mysql" />
+    <option name="icon" value="mysql" />
     <option name="name" value="AWS JDBC Wrapper (MySQL)" />
     <option name="driverClass" value="software.amazon.jdbc.Driver" />
     <option name="urlTemplate" value="jdbc:aws-wrapper:mysql://{host}:3306/{database}" />
@@ -80,6 +85,7 @@
   </driver>
   <driver>
     <option name="id" value="aws-wrapper-postgresql" />
+    <option name="icon" value="postgresql" />
     <option name="name" value="AWS JDBC Wrapper (PostgreSQL)" />
     <option name="driverClass" value="software.amazon.jdbc.Driver" />
     <option name="urlTemplate" value="jdbc:aws-wrapper:postgresql://{host}:5432/{database}" />
@@ -102,6 +108,7 @@
   </driver>
   <driver>
     <option name="id" value="redshift" />
+    <option name="icon" value="redshift" />
     <option name="name" value="Amazon Redshift" />
     <option name="driverClass" value="com.amazon.redshift.jdbc.Driver" />
     <option name="urlTemplate" value="jdbc:redshift://{host}:5439/{database}" />
@@ -122,6 +129,7 @@
   </driver>
   <driver>
     <option name="id" value="athena" />
+    <option name="icon" value="athena" />
     <option name="name" value="Amazon Athena" />
     <option name="driverClass" value="com.amazon.athena.jdbc.AthenaDriver" />
     <option name="urlTemplate" value="jdbc:athena://Region={region};WorkGroup=primary" />
@@ -141,6 +149,7 @@
   </driver>
   <driver>
     <option name="id" value="oracle" />
+    <option name="icon" value="oracle" />
     <option name="name" value="Oracle" />
     <option name="driverClass" value="oracle.jdbc.OracleDriver" />
     <option name="urlTemplate" value="jdbc:oracle:thin:@//{host}:1521/{database}" />
@@ -153,6 +162,7 @@
   </driver>
   <driver>
     <option name="id" value="sqlserver" />
+    <option name="icon" value="sqlserver" />
     <option name="name" value="SQL Server" />
     <option name="driverClass" value="com.microsoft.sqlserver.jdbc.SQLServerDriver" />
     <option name="urlTemplate" value="jdbc:sqlserver://{host}:1433;databaseName={database};encrypt=true;trustServerCertificate=true" />
@@ -165,6 +175,7 @@
   </driver>
   <driver>
     <option name="id" value="sqlite" />
+    <option name="icon" value="sqlite" />
     <option name="name" value="SQLite" />
     <option name="driverClass" value="org.sqlite.JDBC" />
     <option name="urlTemplate" value="jdbc:sqlite:{file}" />
@@ -177,6 +188,7 @@
   </driver>
   <driver>
     <option name="id" value="clickhouse" />
+    <option name="icon" value="clickhouse" />
     <option name="name" value="ClickHouse" />
     <option name="driverClass" value="com.clickhouse.jdbc.ClickHouseDriver" />
     <option name="urlTemplate" value="jdbc:clickhouse://{host}:8123/{database}" />
@@ -190,6 +202,7 @@
   </driver>
   <driver>
     <option name="id" value="snowflake" />
+    <option name="icon" value="snowflake" />
     <option name="name" value="Snowflake" />
     <option name="driverClass" value="net.snowflake.client.jdbc.SnowflakeDriver" />
     <option name="urlTemplate" value="jdbc:snowflake://{account}.snowflakecomputing.com/?db={database}" />

@@ -26,6 +26,7 @@ import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.ui.tree.TreeUtil
 import dev.phantom.db.core.*
+import dev.phantom.db.core.PhantomDbIcons
 import dev.phantom.db.core.exec.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -355,7 +356,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
     override fun customizeCellRenderer(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean) {
       when (val node = (value as? DefaultMutableTreeNode)?.userObject as? DbNode) {
         is DbNode.Source -> {
-          icon = node.dataSource.dialect().icon
+          icon = PhantomDbIcons.forDataSource(node.dataSource)
           append(node.dataSource.name)
           append("  " + node.dataSource.url.removePrefix("jdbc:"), SimpleTextAttributes.GRAYED_ATTRIBUTES)
           if (node.dataSource.readOnly) append("  " + PhantomDbBundle.message("db.tree.read.only"), SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES)

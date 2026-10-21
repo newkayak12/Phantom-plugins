@@ -19,6 +19,7 @@ import com.intellij.openapi.ui.Messages
 import dev.phantom.db.core.DbDataSource
 import dev.phantom.db.core.DbDataSourceService
 import dev.phantom.db.core.PhantomDbBundle
+import dev.phantom.db.core.PhantomDbIcons
 import dev.phantom.db.core.exec.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -49,7 +50,7 @@ object DbSchemaCompare {
         }
         JBPopupFactory.getInstance().createListPopup(object : BaseListPopupStep<DbSchemaSide>(PhantomDbBundle.message("db.compare.choose", source.title), sides) {
           override fun getTextFor(value: DbSchemaSide): String = value.title
-          override fun getIconFor(value: DbSchemaSide): Icon = value.dataSource.dialect().icon
+          override fun getIconFor(value: DbSchemaSide): Icon = PhantomDbIcons.forDataSource(value.dataSource)
           override fun isSpeedSearchEnabled(): Boolean = true
           override fun onChosen(selectedValue: DbSchemaSide, finalChoice: Boolean): PopupStep<*>? {
             doFinalStep { compare(project, source, selectedValue) }

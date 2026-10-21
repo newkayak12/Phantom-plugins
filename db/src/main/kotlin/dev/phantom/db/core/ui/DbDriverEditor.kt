@@ -26,6 +26,7 @@ import com.intellij.ui.table.JBTable
 import com.intellij.util.ui.UIUtil
 import dev.phantom.db.core.DbDrivers
 import dev.phantom.db.core.Dbms
+import dev.phantom.db.core.PhantomDbIcons
 import dev.phantom.db.core.PhantomDbBundle
 import dev.phantom.db.core.drivers.DbDriverDefinition
 import dev.phantom.db.core.drivers.DbDriverDownloader
@@ -60,6 +61,13 @@ internal class DbDriverEditor(private val project: Project?) {
     renderer = listCellRenderer {
       text(value.displayName)
       icon(value.icon)
+    }
+  }
+
+  private val iconCombo = ComboBox(CollectionComboBoxModel(listOf("") + PhantomDbIcons.keys)).apply {
+    renderer = listCellRenderer {
+      text(PhantomDbIcons.displayName(value))
+      icon(PhantomDbIcons.forKey(value))
     }
   }
 
@@ -104,6 +112,7 @@ internal class DbDriverEditor(private val project: Project?) {
       row(PhantomDbBundle.message("db.drivers.prefixes")) { cell(prefixesField).align(AlignX.FILL).comment(PhantomDbBundle.message("db.drivers.prefixes.hint")) }
       row(PhantomDbBundle.message("db.drivers.properties")) { cell(properties.component).align(AlignX.FILL) }
       row(PhantomDbBundle.message("db.drivers.dialect")) { cell(dialectCombo) }
+      row(PhantomDbBundle.message("db.drivers.icon")) { cell(iconCombo) }
     }
     component = JBScrollPane(form).apply { border = null }
     load(null)
@@ -123,6 +132,7 @@ internal class DbDriverEditor(private val project: Project?) {
       prefixesField.text = d.urlPrefixes.joinToString(", ")
       properties.values = d.defaultProperties
       dialectCombo.selectedItem = d.dialect
+      iconCombo.selectedItem = d.icon
       versionStatus.text = " "
     }
     finally {
@@ -145,6 +155,7 @@ internal class DbDriverEditor(private val project: Project?) {
     d.urlPrefixes = prefixesField.text.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toMutableList()
     d.defaultProperties = LinkedHashMap(properties.values)
     d.dialect = dialectCombo.selectedItem as Dbms
+    d.icon = iconCombo.selectedItem as? String ?: ""
   }
 
   fun refreshStatus() {

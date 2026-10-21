@@ -30,6 +30,7 @@ import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.UIUtil
 import dev.phantom.db.core.*
+import dev.phantom.db.core.PhantomDbIcons
 import dev.phantom.db.core.drivers.DbDriverActions
 import dev.phantom.db.core.drivers.DbDriverDefinition
 import dev.phantom.db.core.drivers.DbDriverDownloader
@@ -438,10 +439,10 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
   }
 }
 
-/** Driver names with their dialect icon; a separator above [firstUser], the first of the user's drivers. */
+/** Driver names with their vendor icon; a separator above [firstUser], the first of the user's drivers. */
 internal fun driverRenderer(firstUser: () -> DbDriverDefinition?): javax.swing.ListCellRenderer<DbDriverDefinition?> = listCellRenderer {
   val driver = value ?: return@listCellRenderer
   text(driver.name)
-  icon(driver.dialect.icon)
+  icon(PhantomDbIcons.forDriver(driver))
   if (index >= 0 && driver === firstUser()) separator { text = PhantomDbBundle.message("db.drivers.user") }
 }

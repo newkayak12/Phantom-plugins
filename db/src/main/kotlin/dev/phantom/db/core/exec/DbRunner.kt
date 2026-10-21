@@ -18,6 +18,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.TokenType
 import com.intellij.ui.EditorNotifications
 import dev.phantom.db.core.*
+import dev.phantom.db.core.PhantomDbIcons
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -176,7 +177,7 @@ object DbRunner {
     val all = DbDataSourceService.getInstance(project).dataSources
     val step = object : BaseListPopupStep<DbDataSource>(PhantomDbBundle.message("db.datasource.choose"), all) {
       override fun getTextFor(value: DbDataSource): String = value.name
-      override fun getIconFor(value: DbDataSource): Icon = value.dialect().icon
+      override fun getIconFor(value: DbDataSource): Icon = PhantomDbIcons.forDataSource(value)
       override fun onChosen(selectedValue: DbDataSource, finalChoice: Boolean): PopupStep<*>? {
         DbConsoles.attach(project, file, selectedValue.id)
         onChosen(selectedValue)

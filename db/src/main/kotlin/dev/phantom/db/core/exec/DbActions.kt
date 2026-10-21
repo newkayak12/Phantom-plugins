@@ -15,6 +15,7 @@ import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.ui.EditorNotificationPanel
 import com.intellij.ui.EditorNotificationProvider
 import dev.phantom.db.core.*
+import dev.phantom.db.core.PhantomDbIcons
 import java.util.function.Function
 import javax.swing.JComponent
 
@@ -111,7 +112,7 @@ class SqlDataSourceNotificationProvider : EditorNotificationProvider {
           else -> PhantomDbBundle.message("db.tx.auto")
         }
         text = listOfNotNull(if (console) null else source, mode).joinToString("  ·  ")
-        selected?.let { icon(it.dialect().icon) }
+        selected?.let { icon(PhantomDbIcons.forDataSource(it)) }
         if (!console) {
           createActionLabel(PhantomDbBundle.message("db.datasource.change")) {
             DbRunner.chooseDataSource(project, file, this) {}

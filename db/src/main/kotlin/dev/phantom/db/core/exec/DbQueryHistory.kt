@@ -17,6 +17,7 @@ import com.intellij.util.xmlb.annotations.XCollection
 import dev.phantom.db.core.DbDataSource
 import dev.phantom.db.core.DbDataSourceService
 import dev.phantom.db.core.PhantomDbBundle
+import dev.phantom.db.core.PhantomDbIcons
 import java.text.SimpleDateFormat
 import java.util.Date
 import javax.swing.JList
@@ -101,7 +102,7 @@ class DbShowHistoryAction : DumbAwareAction() {
       .setTitle(PhantomDbBundle.message("db.history.title", history.size))
       .setRenderer(object : ColoredListCellRenderer<DbHistoryEntry>() {
         override fun customizeCellRenderer(list: JList<out DbHistoryEntry>, value: DbHistoryEntry, index: Int, selected: Boolean, hasFocus: Boolean) {
-          icon = if (value.failed) AllIcons.General.Error else sources[value.dataSourceId]?.dialect()?.icon ?: AllIcons.Nodes.DataTables
+          icon = if (value.failed) AllIcons.General.Error else sources[value.dataSourceId]?.let { PhantomDbIcons.forDataSource(it) } ?: AllIcons.Nodes.DataTables
           append(SqlSafety.preview(value.sql).take(140))
           append("   " + listOfNotNull(sources[value.dataSourceId]?.name, value.summary, "${value.elapsedMs} ms", format.format(Date(value.time)))
             .joinToString(" · "), SimpleTextAttributes.GRAYED_ATTRIBUTES)

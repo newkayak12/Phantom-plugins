@@ -12,6 +12,8 @@ class DbDriverDefinition {
   var id: String = ""
   var name: String = ""
   var builtIn: Boolean = false
+  /** Key of the vendor icon, resolved by `PhantomDbIcons.forKey`; empty: the generic database icon. */
+  var icon: String = ""
   var driverClass: String = ""
   /** Placeholders: `{host}` `{port}` `{database}` `{region}` `{file}`. */
   var urlTemplate: String = ""
@@ -42,7 +44,7 @@ class DbDriverDefinition {
   var resolvedJars: MutableList<String> = ArrayList()
 
   fun copy(): DbDriverDefinition = DbDriverDefinition().also {
-    it.id = id; it.name = name; it.builtIn = builtIn; it.driverClass = driverClass; it.urlTemplate = urlTemplate
+    it.id = id; it.name = name; it.builtIn = builtIn; it.icon = icon; it.driverClass = driverClass; it.urlTemplate = urlTemplate
     it.urlPrefixes = ArrayList(urlPrefixes); it.artifacts = ArrayList(artifacts); it.artifactsAreAlternatives = artifactsAreAlternatives; it.files = ArrayList(files)
     it.defaultProperties = LinkedHashMap(defaultProperties); it.iamProperties = LinkedHashMap(iamProperties)
     it.iamUrlFrom = iamUrlFrom; it.iamUrlTo = iamUrlTo; it.dialect = dialect
