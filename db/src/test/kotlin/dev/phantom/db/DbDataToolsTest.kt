@@ -143,9 +143,9 @@ class DbDataToolsTest : BasePlatformTestCase() {
     assertEquals("EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) SELECT 1", DbExplain.sql(Dbms.POSTGRESQL, "SELECT 1", analyze = true))
     val ds = h2()
     exec(ds, "CREATE TABLE t (id INT PRIMARY KEY)")
-    val plan = rows(ds, DbExplain.sql(Dbms.H2, "SELECT * FROM t WHERE id = 1", analyze = false))
+    val plan = rows(ds, DbExplain.sql(Dbms.H2, "SELECT * FROM t WHERE id = 1", analyze = false)!!)
     assertTrue(plan.toString(), plan.single().single().toString().contains("PRIMARY_KEY", ignoreCase = true))
-    assertNotEmpty(rows(ds, DbExplain.sql(Dbms.H2, "SELECT * FROM t", analyze = true)))
+    assertNotEmpty(rows(ds, DbExplain.sql(Dbms.H2, "SELECT * FROM t", analyze = true)!!))
   }
 
   fun testKeysIndexesDdlOnH2() {

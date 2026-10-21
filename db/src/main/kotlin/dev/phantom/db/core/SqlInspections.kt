@@ -569,7 +569,7 @@ class SqlShouldBeInGroupByInspection : SqlInspection() {
 class SqlDerivedTableAliasInspection : SqlInspection() {
   override fun checkQuery(query: SqlScope, items: List<SqlItem>, holder: ProblemsHolder) {
     if (items.none { it.element is SqlSubquery }) return
-    val dbms = SqlSchema.dataSourceFor(holder.file, strict = false)?.dbms ?: return
+    val dbms = SqlSchema.dataSourceFor(holder.file, strict = false)?.dialect() ?: return
     if (dbms != Dbms.MYSQL && dbms != Dbms.MARIADB) return
     for ((index, item) in items.withIndex()) {
       val subquery = item.element as? SqlSubquery ?: continue

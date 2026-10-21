@@ -9,9 +9,9 @@
     {
       "id": "dev.phantom.db",
       "name": "Phantom Database Console",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "source": "db",
-      "description": "Connect to MySQL, PostgreSQL or H2 over JDBC and run SQL from the editor: highlighting, Ctrl+Enter to run the statement at the caret, a sortable result grid and a lazily loaded schema tree. Drivers come from the project's dependencies or the local Gradle/Maven cache. Manual-commit data sources keep changes in an open transaction you review, commit or roll back in the Database Changes tool window. Edit single-table results in the grid, and compare two schemas with the SQL to make them match. SQL in @Query(nativeQuery = true), @NativeQuery and JdbcTemplate/JdbcClient strings is highlighted and completed. Query history (Ctrl+Alt+E), result export to CSV, TSV, JSON, SQL INSERT or Markdown, and JPA entity generation from a table. 0.5.0: SQL that understands names (alias-aware completion with schema loaded on demand, Ctrl+B to the table or column, unknown table/column warnings, Reformat), a table data view with WHERE/ORDER BY filters, paging and foreign-key navigation, keys/foreign keys/indexes/routines/triggers in the tree, Show DDL and Modify Table, manual-commit transactions, Explain Plan/Analyze and query parameters. 0.6.0: 18 SQL inspections, each toggleable (UPDATE/DELETE without WHERE, JOIN without ON, unused CTE, alias problems, VALUES count, UNION column count, GROUP BY, CASE vs COALESCE, and with the schema loaded: ambiguous columns, NOT NULL columns, string length, type mismatch). Wave 6: 12 more SQL checks (= NULL, constant conditions, aggregates in WHERE, redundant COALESCE/LIMIT, unused subquery columns, duplicate columns, ADD NOT NULL without default, deprecated MySQL types, USING columns, ORDER BY position). Wave 7: duplicate AUTO_INCREMENT, MySQL function-name space, insert into generated columns, misleading subquery references. Wave 8: JPA entities checked against the real schema (unknown tables/columns, optional nullability) and @Table/@Column name completion from the database. Wave 10: function argument counts, reserved identifiers, dropping indexed columns, MySQL trigger NEW/OLD and transactions, unused routine variables, missing RETURN.",
+      "description": "Connect to MySQL, MariaDB, PostgreSQL, H2, AWS JDBC Wrapper, Redshift, Athena, Oracle, SQL Server, SQLite, ClickHouse, Snowflake or any JDBC driver you add, and run SQL from the editor: highlighting for .sql files, Ctrl+Enter to run the statement at the caret, results in a sortable grid, and a lazily loaded schema tree. Drivers are data you can edit: each is found in the project's own dependencies, the local Gradle/Maven cache or jars you choose, and is downloaded from Maven only when you ask (Download, Test Connection). Nothing runs at startup. A data source in manual-commit mode keeps changes in an open transaction: review them in the Database Changes tool window and commit or roll them back; closing the project asks first. A result from one table with its primary key can be edited in the grid, and Compare With on a schema diffs two schemas and writes the SQL to make them match. SQL in Spring Data `@Query(nativeQuery = true)`, `@NativeQuery` and JdbcTemplate / JdbcClient strings is highlighted and completed like a console. JPA entities are checked against the data source's schema (tables and columns that do not exist, nullable columns mapped to non-null attributes), and @Table / @Column names complete from it.",
       "vendor": "Phantom",
       "category": "Database",
       "since": "262",
@@ -20,13 +20,21 @@
         "com.intellij.modules.lang",
         "intellij.grid.core.plugin"
       ],
-      "download": "db-0.10.0/db-0.10.0.zip",
+      "download": "db-0.11.0/db-0.11.0.zip",
       "detect": [
         "com.mysql:mysql-connector-j",
         "mysql:mysql-connector-java",
         "org.mariadb.jdbc:mariadb-java-client",
         "org.postgresql:postgresql",
-        "com.h2database:h2"
+        "com.h2database:h2",
+        "software.amazon.jdbc:aws-advanced-jdbc-wrapper",
+        "com.amazon.redshift:redshift-jdbc42",
+        "com.amazon.athena:athena-jdbc",
+        "com.oracle.database.jdbc:ojdbc11",
+        "com.microsoft.sqlserver:mssql-jdbc",
+        "org.xerial:sqlite-jdbc",
+        "com.clickhouse:clickhouse-jdbc",
+        "net.snowflake:snowflake-jdbc"
       ]
     },
     {

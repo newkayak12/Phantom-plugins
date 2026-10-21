@@ -2,6 +2,7 @@
 package dev.phantom.db.core.exec
 
 import com.intellij.openapi.project.Project
+import dev.phantom.db.core.dialect
 import dev.phantom.db.core.DbDataSource
 import dev.phantom.db.core.Dbms
 import kotlinx.coroutines.Dispatchers
@@ -124,10 +125,10 @@ class DbStatement(val sql: String, val params: List<DbParam>, private val dbms: 
 object DbEditTargets {
   /**
    * The edit target of a result, or null when its rows cannot be traced back to table rows: not a single-table select,
-   * a read-only data source, a view or table without a primary key, or a key column missing from the result.
+   * a read-only or dialect-less data source, a view or table without a primary key, or a key column missing from the result.
    */
   suspend fun resolve(project: Project, dataSource: DbDataSource, rows: DbOutcome.Rows): DbEditTarget? {
-    if (dataSource.readOnly) return null
+    if (dataSource.readOnly || !dataSource.dialect().hasDialect) return null
     val name = SingleTableSelect.parse(rows.sql) ?: return null
     return try {
       DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.METADATA) { connection ->
@@ -136,7 +137,7 @@ object DbEditTargets {
           val schema = name.schema?.let { normalize(md, it, name.schemaQuoted) }
           val table = normalize(md, name.table, name.tableQuoted)
           val (catalog, schemaPattern) = when {
-            dataSource.dbms.usesCatalogs -> (schema ?: connection.catalog) to null
+            dataSource.dialect().usesCatalogs -> (schema ?: connection.catalog) to null
             else -> null to (schema ?: runCatching { connection.schema }.getOrNull())
           }
           val tableType = md.getTables(catalog, schemaPattern, table, null).use { rs ->
@@ -151,7 +152,7 @@ object DbEditTargets {
             generateSequence { if (rs.next()) rs.getString("TABLE_NAME") to rs.getString("COLUMN_NAME") else null }
               .filter { it.first == table }.map { it.second }.toList()
           }
-          build(dataSource.dbms, md.identifierQuoteString?.trim().orEmpty(), name, schema, table, keys, tableColumns, rows.columns)
+          build(dataSource.dialect(), md.identifierQuoteString?.trim().orEmpty(), name, schema, table, keys, tableColumns, rows.columns)
         }
       }
     }
@@ -163,7 +164,7 @@ object DbEditTargets {
   /** Pure part of [resolve], for tests. */
   internal fun build(dbms: Dbms, quote: String, name: DbTableName, schema: String?, table: String, keys: List<String>,
                      tableColumns: List<String>, resultColumns: List<DbColumn>): DbEditTarget? {
-    if (keys.isEmpty()) return null
+    if (!dbms.hasDialect || keys.isEmpty()) return null
     fun q(identifier: String) = if (quote.isEmpty()) identifier else quote + identifier.replace(quote, quote + quote) + quote
     val byLowerName = tableColumns.groupBy { it.lowercase() }
     // a result column is a table column when its label names exactly one table column, ignoring case

@@ -2,6 +2,7 @@
 package dev.phantom.db.core.ui
 
 import com.intellij.icons.AllIcons
+import dev.phantom.db.core.dialect
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.EDT
@@ -25,6 +26,7 @@ import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.treeStructure.Tree
 import com.intellij.util.ui.tree.TreeUtil
 import dev.phantom.db.core.*
+import dev.phantom.db.core.PhantomDbIcons
 import dev.phantom.db.core.exec.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -133,6 +135,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       action("db.action.remove.text", AllIcons.General.Remove, { selectedSource() != null }) { remove() },
       Separator.getInstance(),
       action("db.action.refresh.text", AllIcons.Actions.Refresh) { refresh() },
+      action("db.action.drivers.text", AllIcons.General.Settings) { DbDriversDialog(project, selectedSource()?.let { it.driverId ?: it.driver()?.id }).show() },
       action("db.action.console.text", AllIcons.Debugger.Console, { selectedSource() != null }) { selectedSource()?.let { openConsole(it, null) } },
       ActionManager.getInstance().getAction("PhantomDb.ShowHistory"),
       action("db.action.data.text", AllIcons.Nodes.DataTables, { selectedNode() is DbNode.Table }) {
@@ -140,7 +143,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       },
       action("db.action.ddl.text", AllIcons.Actions.Preview, { ddlTarget() != null }) { showDdl() },
       action("db.action.modify.text", AllIcons.Actions.Edit, {
-        (selectedNode() as? DbNode.Table)?.let { !it.ref.isView && !it.dataSource.readOnly } == true
+        (selectedNode() as? DbNode.Table)?.let { !it.ref.isView && !it.dataSource.readOnly && it.dataSource.dialect().hasDialect } == true
       }) { modifyTable() },
       action("db.action.select.text", AllIcons.Debugger.Console, { selectedNode() is DbNode.Table }) {
         (selectedNode() as? DbNode.Table)?.let { openConsole(it.dataSource, selectAll(it)) }
@@ -148,7 +151,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       action("db.action.entity.text", AllIcons.Nodes.Class, { selectedNode() is DbNode.Table }) {
         (selectedNode() as? DbNode.Table)?.let { DbEntityGenerator.start(project, it.dataSource, it.ref) }
       },
-      action("db.action.compare.text", AllIcons.Actions.Diff, { selectedNode() is DbNode.Schema }) {
+      action("db.action.compare.text", AllIcons.Actions.Diff, { (selectedNode() as? DbNode.Schema)?.dataSource?.dialect()?.hasDialect == true }) {
         (selectedNode() as? DbNode.Schema)?.let { DbSchemaCompare.chooseAndCompare(project, DbSchemaSide(it.dataSource, it.ref), tree) }
       },
     )
@@ -232,7 +235,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
     is DbNode.Routine -> node.dataSource to DbDdl.Target.Routine(node.routine)
     is DbNode.Trigger -> node.dataSource to DbDdl.Target.Trigger(node.trigger)
     else -> null
-  }
+  }?.takeIf { it.first.dialect().hasDialect }
 
   /** Opens the DDL of the selected table, view, routine or trigger in a read-only SQL tab. */
   private fun showDdl() {
@@ -313,9 +316,9 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
 
   fun selectAll(node: DbNode.Table): String {
     val ref = node.ref
-    val quote = if (node.dataSource.dbms.usesCatalogs) '`' else '"'
+    val quote = if (node.dataSource.dialect().usesCatalogs) '`' else '"'
     fun name(s: String) = if (s.matches(Regex("[A-Za-z_][A-Za-z0-9_]*")) && !SqlTokens.isKeyword(s)) s else "$quote$s$quote"
-    val qualifier = (if (node.dataSource.dbms.usesCatalogs) ref.catalog else ref.schema)?.let { name(it) + "." }.orEmpty()
+    val qualifier = (if (node.dataSource.dialect().usesCatalogs) ref.catalog else ref.schema)?.let { name(it) + "." }.orEmpty()
     return "SELECT * FROM $qualifier${name(ref.name)};"
   }
 
@@ -353,7 +356,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
     override fun customizeCellRenderer(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean) {
       when (val node = (value as? DefaultMutableTreeNode)?.userObject as? DbNode) {
         is DbNode.Source -> {
-          icon = node.dataSource.dbms.icon
+          icon = PhantomDbIcons.forDataSource(node.dataSource)
           append(node.dataSource.name)
           append("  " + node.dataSource.url.removePrefix("jdbc:"), SimpleTextAttributes.GRAYED_ATTRIBUTES)
           if (node.dataSource.readOnly) append("  " + PhantomDbBundle.message("db.tree.read.only"), SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES)

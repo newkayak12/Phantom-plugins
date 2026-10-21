@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>t</groupId><artifactId>usespom</artifactId><version>1.0</version>
+  <dependencies><dependency><groupId>t</groupId><artifactId>pomonly</artifactId><version>1.0</version><type>pom</type></dependency></dependencies>
+</project>

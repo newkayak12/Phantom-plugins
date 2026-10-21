@@ -5,6 +5,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
@@ -15,16 +16,25 @@ import com.intellij.openapi.ui.ValidationInfo
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.JBColor
 import com.intellij.ui.JBIntSpinner
-import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
+import com.intellij.ui.components.ActionLink
+import com.intellij.ui.CollectionComboBoxModel
+import com.intellij.ui.dsl.builder.Row
+import com.intellij.ui.dsl.listCellRenderer.listCellRenderer
+import com.intellij.ui.dsl.listCellRenderer.textListCellRenderer
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.UIUtil
 import dev.phantom.db.core.*
+import dev.phantom.db.core.PhantomDbIcons
+import dev.phantom.db.core.drivers.DbDriverActions
+import dev.phantom.db.core.drivers.DbDriverDefinition
+import dev.phantom.db.core.drivers.DbDriverDownloader
+import dev.phantom.db.core.drivers.DbDriverRegistry
 import dev.phantom.db.core.exec.DbConnectionService
 import dev.phantom.db.core.exec.DbTransactions
 import dev.phantom.db.core.exec.DbExecutor
@@ -34,32 +44,57 @@ import javax.swing.JComponent
 import javax.swing.event.DocumentEvent
 
 /**
- * Data source editor. Name, URL, user and password are all most people touch; the driver, row limit and timeout sit
- * in a collapsed group and work without changes.
+ * Data source editor. Name, driver, URL, user and password are all most people touch; driver files, limits and
+ * connection properties sit in collapsed groups and work without changes.
  */
-class DbDataSourceDialog private constructor(private val project: Project, existing: DbDataSource?) : DialogWrapper(project) {
+class DbDataSourceDialog internal constructor(private val project: Project, existing: DbDataSource?) : DialogWrapper(project) {
+  private val registry = DbDriverRegistry.getInstance()
   private val isNew = existing == null
-  private val source = existing?.copy() ?: DbDataSource().apply { url = Dbms.MYSQL.urlTemplate }
+  private val source = existing?.copy() ?: DbDataSource().apply {
+    driverId = DEFAULT_DRIVER
+    url = registry.find(DEFAULT_DRIVER)?.defaultUrl().orEmpty()
+  }
 
   private val nameField = JBTextField(source.name)
-  private val dbmsCombo = ComboBox(Dbms.entries.toTypedArray()).apply {
-    selectedItem = source.dbms
-    renderer = SimpleListCellRenderer.create { label, value, _ ->
-      label.text = value?.displayName.orEmpty()
-      label.icon = value?.icon
-    }
-  }
-  private val urlField = JBTextField(source.url)
+  internal val driverCombo = ComboBox<DbDriverDefinition>().apply { renderer = driverRenderer { driverItems().firstOrNull { !it.builtIn } } }
+  internal val urlField = JBTextField(source.url)
   private val userField = JBTextField(source.user)
   private val passwordField = JBPasswordField()
+  internal val authCombo = ComboBox(DbAuthKind.entries.toTypedArray()).apply {
+    selectedItem = source.authKind
+    renderer = textListCellRenderer { it?.let { kind -> PhantomDbBundle.message("db.dialog.auth.${kind.name.lowercase()}") } }
+  }
+  internal val hostField = JBTextField("localhost")
+  internal val portField = JBTextField()
+  internal val databaseField = JBTextField()
+  /** Off: the URL is built from the host, port and database fields. A data source opened for editing starts on: fields are not parsed back from a URL. */
+  internal val urlOnlyBox = JBCheckBox(PhantomDbBundle.message("db.dialog.url.only"), !isNew)
+  private val awsProfileField = JBTextField(source.awsProfile)
+  private val awsRegionField = JBTextField(source.awsRegion)
+  private val properties = DbPropertiesTable().apply { values = source.properties }
   private val readOnlyBox = JBCheckBox(PhantomDbBundle.message("db.dialog.read.only"), source.readOnly)
   private val manualCommitBox = JBCheckBox(PhantomDbBundle.message("db.dialog.manual.commit"), source.manualCommit)
   private val driverLabel = JBLabel(" ")
+  private val downloadLink = ActionLink(PhantomDbBundle.message("db.dialog.driver.download")) { downloadDriver() }.apply { isVisible = false }
   private val maxRowsField = JBIntSpinner(source.maxRows, 1, 10_000)
   private val timeoutField = JBIntSpinner(source.queryTimeoutSeconds, 0, 3_600)
   private val testResult = JBLabel(" ")
+  private lateinit var passwordRow: Row
+  private lateinit var awsProfileRow: Row
+  private lateinit var awsRegionRow: Row
+  private lateinit var hostRow: Row
+  private lateinit var portRow: Row
+  private lateinit var databaseRow: Row
   private var driverJars: List<String> = source.driverJars.toList()
   private var passwordEdited = false
+  /** The driver whose template the URL may still hold: switching away from it replaces only that (or an empty URL). */
+  private var shownDriver: DbDriverDefinition? = null
+  /** Set while the URL picks the driver, so the switch does not touch the URL in turn. */
+  private var selectingFromUrl = false
+  /** Set while the URL is built from the fields; any other change to it is a typed URL. */
+  private var generatingUrl = false
+  /** URL only was turned on because the driver's template has placeholders the fields cannot fill, not by the user. */
+  private var urlOnlyForTemplate = false
 
   init {
     title = PhantomDbBundle.message(if (isNew) "db.dialog.title.new" else "db.dialog.title.edit")
@@ -69,21 +104,51 @@ class DbDataSourceDialog private constructor(private val project: Project, exist
         passwordEdited = true
       }
     })
-    dbmsCombo.addActionListener {
-      val dbms = dbmsCombo.selectedItem as Dbms
-      val url = urlField.text.trim()
-      if (url.isEmpty() || Dbms.entries.any { it.urlTemplate == url } || Dbms.forUrl(url) != dbms) urlField.text = dbms.urlTemplate
-      refreshDriver()
-    }
+    // an id this IDE does not know stays unselected (and saved as is) until the user picks a driver
+    val initial = registry.find(source.driverId) ?: if (source.driverId.isNullOrEmpty()) source.driver() else null
+    fillDrivers(initial?.id)
+    shownDriver = selectedDriver()
+    portField.text = shownDriver?.defaultPort?.toString().orEmpty()
+    driverCombo.addActionListener { driverChosen() }
     urlField.document.addDocumentListener(object : DocumentAdapter() {
       override fun textChanged(e: DocumentEvent) {
-        val detected = Dbms.forUrl(urlField.text) ?: return
-        if (detected != dbmsCombo.selectedItem) {
-          dbmsCombo.selectedItem = detected
+        if (generatingUrl) return
+        urlOnlyForTemplate = false
+        if (!urlOnlyBox.isSelected) {
+          urlOnlyBox.isSelected = true
+          updateUrlMode()
+        }
+        val detected = registry.forUrl(urlField.text) ?: return
+        if (detected.id == selectedDriver()?.id) return
+        selectingFromUrl = true
+        try {
+          driverCombo.selectedItem = driverItem(detected.id)
+        }
+        finally {
+          selectingFromUrl = false
         }
       }
     })
+    for (field in listOf(hostField, portField, databaseField)) {
+      field.document.addDocumentListener(object : DocumentAdapter() {
+        override fun textChanged(e: DocumentEvent) {
+          if (!generatingUrl && !urlOnlyBox.isSelected) generateUrl()
+        }
+      })
+    }
+    urlOnlyBox.addActionListener {
+      urlOnlyForTemplate = false
+      if (!urlOnlyBox.isSelected) generateUrl()
+      updateUrlMode()
+    }
+    updateAuthKinds()
+    authCombo.addActionListener { updateAuthRows() }
+    registry.addListener(disposable) {
+      ApplicationManager.getApplication().invokeLater({ if (!isDisposed) driversChanged() }, ModalityState.any())
+    }
     init()
+    updateAuthRows()
+    updateUrlMode()
     refreshDriver()
   }
 
@@ -91,15 +156,30 @@ class DbDataSourceDialog private constructor(private val project: Project, exist
 
   override fun createCenterPanel(): JComponent = panel {
     row(PhantomDbBundle.message("db.dialog.name")) { cell(nameField).align(AlignX.FILL).comment(PhantomDbBundle.message("db.dialog.name.hint")) }
-    row(PhantomDbBundle.message("db.dialog.dbms")) { cell(dbmsCombo) }
-    row(PhantomDbBundle.message("db.dialog.url")) { cell(urlField).align(AlignX.FILL).columns(40) }
+    row(PhantomDbBundle.message("db.dialog.driver")) {
+      cell(driverCombo)
+      link(PhantomDbBundle.message("db.dialog.drivers")) { openDrivers() }
+    }
+    row("") {
+      cell(driverLabel)
+      cell(downloadLink)
+    }
+    hostRow = row(PhantomDbBundle.message("db.dialog.host")) { cell(hostField).align(AlignX.FILL) }
+    portRow = row(PhantomDbBundle.message("db.dialog.port")) { cell(portField).columns(6) }
+    databaseRow = row(PhantomDbBundle.message("db.dialog.database")) { cell(databaseField).align(AlignX.FILL) }
+    row(PhantomDbBundle.message("db.dialog.url")) {
+      cell(urlField).align(AlignX.FILL).columns(40)
+      cell(urlOnlyBox)
+    }
+    row(PhantomDbBundle.message("db.dialog.auth")) { cell(authCombo) }
     row(PhantomDbBundle.message("db.dialog.user")) { cell(userField).align(AlignX.FILL) }
-    row(PhantomDbBundle.message("db.dialog.password")) { cell(passwordField).align(AlignX.FILL) }
+    passwordRow = row(PhantomDbBundle.message("db.dialog.password")) { cell(passwordField).align(AlignX.FILL) }
+    awsProfileRow = row(PhantomDbBundle.message("db.dialog.aws.profile")) { cell(awsProfileField).align(AlignX.FILL).comment(PhantomDbBundle.message("db.dialog.aws.profile.hint")) }
+    awsRegionRow = row(PhantomDbBundle.message("db.dialog.aws.region")) { cell(awsRegionField).align(AlignX.FILL) }
     row { cell(readOnlyBox) }
     row { cell(manualCommitBox).comment(PhantomDbBundle.message("db.dialog.manual.commit.hint")) }
     collapsibleGroup(PhantomDbBundle.message("db.dialog.options")) {
-      row(PhantomDbBundle.message("db.dialog.driver")) {
-        cell(driverLabel)
+      row(PhantomDbBundle.message("db.dialog.driver.files")) {
         link(PhantomDbBundle.message("db.dialog.driver.choose")) { chooseJars() }
         link(PhantomDbBundle.message("db.dialog.driver.auto")) {
           driverJars = emptyList()
@@ -109,23 +189,36 @@ class DbDataSourceDialog private constructor(private val project: Project, exist
       row(PhantomDbBundle.message("db.dialog.max.rows")) { cell(maxRowsField) }
       row(PhantomDbBundle.message("db.dialog.timeout")) { cell(timeoutField) }
     }
+    collapsibleGroup(PhantomDbBundle.message("db.dialog.properties")) {
+      row { cell(properties.component).align(AlignX.FILL).comment(PhantomDbBundle.message("db.dialog.properties.hint")) }
+    }
     row {
       button(PhantomDbBundle.message("db.dialog.test")) { testConnection() }
       cell(testResult).align(AlignX.FILL)
     }
   }
 
-  override fun doValidate(): ValidationInfo? {
+  public override fun doValidate(): ValidationInfo? {
+    // only an unchanged id this IDE does not know (shared by a teammate) may be saved without a selection
+    if (selectedDriver() == null && (source.driverId.isNullOrEmpty() || registry.find(source.driverId) != null)) {
+      return ValidationInfo(PhantomDbBundle.message("db.dialog.driver.required"), driverCombo)
+    }
     val url = urlField.text.trim()
     if (!url.startsWith("jdbc:", ignoreCase = true)) return ValidationInfo(PhantomDbBundle.message("db.dialog.url.invalid"), urlField)
     return null
   }
 
-  private fun current(): DbDataSource = source.copy().apply {
-    dbms = dbmsCombo.selectedItem as Dbms
+  internal fun current(): DbDataSource = source.copy().apply {
+    val driver = selectedDriver()
+    driverId = driver?.id ?: source.driverId
+    dbms = driver?.dialect ?: source.dbms
     url = urlField.text.trim()
     user = userField.text.trim()
-    name = nameField.text.trim().ifEmpty { defaultName(dbms, url) }
+    name = nameField.text.trim().ifEmpty { defaultName(driver, url) }
+    authKind = authCombo.selectedItem as DbAuthKind
+    awsProfile = awsProfileField.text.trim()
+    awsRegion = awsRegionField.text.trim()
+    properties = LinkedHashMap(this@DbDataSourceDialog.properties.values)
     readOnly = readOnlyBox.isSelected
     manualCommit = manualCommitBox.isSelected
     driverJars = this@DbDataSourceDialog.driverJars.toMutableList()
@@ -133,16 +226,148 @@ class DbDataSourceDialog private constructor(private val project: Project, exist
     queryTimeoutSeconds = timeoutField.number
   }
 
+  private fun selectedDriver(): DbDriverDefinition? = driverCombo.selectedItem as? DbDriverDefinition
+
+  private fun driverItems(): List<DbDriverDefinition> = (0 until driverCombo.itemCount).map { driverCombo.getItemAt(it) }
+
+  private fun driverItem(id: String?): DbDriverDefinition? = driverItems().firstOrNull { it.id == id }
+
+  /** Built-ins, then the user's drivers, fresh from the registry. */
+  private fun fillDrivers(select: String?) {
+    driverCombo.model = CollectionComboBoxModel(registry.all.toMutableList())
+    driverCombo.selectedItem = driverItem(select)
+  }
+
+  private fun driverChosen() {
+    val chosen = selectedDriver()
+    val previous = shownDriver
+    if (chosen?.id != previous?.id && chosen != null && !selectingFromUrl) {
+      val untouched = replacesUrl(urlField.text.trim(), previous)
+      // a port still at the previous driver's default follows the new driver; a typed one stays
+      val port = portField.text.trim()
+      if (port.isEmpty() || port == previous?.defaultPort?.toString()) setGenerated { portField.text = chosen.defaultPort?.toString().orEmpty() }
+      when {
+        !chosen.urlFromFields() -> {
+          // e.g. Snowflake's {account}: no field for it, so the URL is edited directly, starting from the template
+          val wasFields = !urlOnlyBox.isSelected
+          if (wasFields) {
+            urlOnlyForTemplate = true
+            urlOnlyBox.isSelected = true
+          }
+          if (wasFields || untouched) setGenerated { urlField.text = chosen.defaultUrl() }
+        }
+        urlOnlyForTemplate && untouched -> {
+          urlOnlyForTemplate = false
+          urlOnlyBox.isSelected = false
+          generateUrl()
+        }
+        !urlOnlyBox.isSelected -> generateUrl()
+        untouched -> urlField.text = chosen.defaultUrl()
+      }
+    }
+    shownDriver = chosen
+    updateAuthKinds()
+    updateUrlMode()
+    refreshDriver()
+  }
+
+  private fun generateUrl() {
+    val driver = selectedDriver() ?: return
+    setGenerated {
+      urlField.text = fillTemplate(driver.urlTemplate, mapOf("host" to hostField.text.trim(), "port" to portField.text.trim(), "database" to databaseField.text.trim()))
+    }
+  }
+
+  /** Changes made by the dialog itself, not typed: they neither switch to URL only nor rebuild the URL. */
+  private fun setGenerated(change: () -> Unit) {
+    val was = generatingUrl
+    generatingUrl = true
+    try {
+      change()
+    }
+    finally {
+      generatingUrl = was
+    }
+  }
+
+  /** Shows the fields the driver's URL template has, unless the URL is edited directly. */
+  private fun updateUrlMode() {
+    if (!::hostRow.isInitialized) return
+    val template = selectedDriver()?.urlTemplate.orEmpty()
+    val fields = !urlOnlyBox.isSelected
+    hostRow.visible(fields && "{host}" in template)
+    portRow.visible(fields && "{port}" in template)
+    databaseRow.visible(fields && "{database}" in template)
+    urlField.isEditable = !fields || URL_FIELDS.none { "{$it}" in template }
+  }
+
+  /** AWS IAM is offered only by drivers that know how to sign in with it (or an unknown driver, whose choice is kept). */
+  private fun updateAuthKinds() {
+    val driver = selectedDriver()
+    val iam = driver == null || driver.iamProperties.isNotEmpty()
+    val kinds = DbAuthKind.entries.filter { it != DbAuthKind.AWS_IAM || iam }
+    val current = authCombo.selectedItem as? DbAuthKind ?: source.authKind
+    if (kinds.size == authCombo.itemCount && authCombo.selectedItem == current) return
+    authCombo.model = CollectionComboBoxModel(kinds.toMutableList())
+    authCombo.selectedItem = if (current in kinds) current else DbAuthKind.PASSWORD
+  }
+
+  /** The registry changed (a download finished, the Drivers dialog saved): reload the drivers, keep the choice. */
+  private fun driversChanged() {
+    // an unknown id may just have been added under Drivers
+    val id = selectedDriver()?.id ?: source.driverId
+    selectingFromUrl = true
+    try {
+      fillDrivers(id)
+    }
+    finally {
+      selectingFromUrl = false
+    }
+    shownDriver = selectedDriver()
+    refreshDriver()
+  }
+
+  private fun updateAuthRows() {
+    if (!::passwordRow.isInitialized) return
+    val kind = authCombo.selectedItem as DbAuthKind
+    passwordRow.visible(kind == DbAuthKind.PASSWORD)
+    val aws = showsAwsFields(kind, selectedDriver())
+    awsProfileRow.visible(aws)
+    awsRegionRow.visible(aws)
+  }
+
   private fun refreshDriver() {
     val probe = current()
+    val definition = selectedDriver()
+    downloadLink.isVisible = false
+    if (definition == null && driverJars.isEmpty()) {
+      driverLabel.text = if (probe.driverId.isNullOrEmpty()) PhantomDbBundle.message("db.dialog.driver.pick")
+                         else PhantomDbBundle.message("db.driver.unknown", probe.driverId.orEmpty())
+      driverLabel.foreground = JBColor.RED
+      return
+    }
     driverLabel.text = PhantomDbBundle.message("db.dialog.driver.searching")
+    driverLabel.foreground = UIUtil.getLabelForeground()
     ApplicationManager.getApplication().executeOnPooledThread {
       val found = DbDrivers.find(project, probe)
       ApplicationManager.getApplication().invokeLater({
-        driverLabel.text = found?.description ?: PhantomDbBundle.message("db.dialog.driver.none", probe.dbms.artifacts.first())
+        if (isDisposed || selectedDriver() !== definition) return@invokeLater
+        driverLabel.text = found?.description ?: PhantomDbBundle.message("db.dialog.driver.none", definition?.name.orEmpty())
         driverLabel.foreground = if (found == null) JBColor.RED else UIUtil.getLabelForeground()
+        downloadLink.isVisible = found == null && definition != null && definition.artifacts.isNotEmpty()
       }, ModalityState.any())
     }
+  }
+
+  private fun downloadDriver() {
+    val definition = selectedDriver() ?: return
+    downloadLink.isVisible = false
+    driverLabel.text = PhantomDbBundle.message("db.drivers.status.downloading")
+    DbDriverActions.download(project, definition)
+  }
+
+  private fun openDrivers() {
+    DbDriversDialog(project, selectedDriver()?.id).show()
   }
 
   private fun chooseJars() {
@@ -162,8 +387,12 @@ class DbDataSourceDialog private constructor(private val project: Project, exist
     ProgressManager.getInstance().run(object : Task.Modal(project, PhantomDbBundle.message("db.dialog.testing"), true) {
       override fun run(indicator: ProgressIndicator) {
         try {
+          downloadIfMissing(project, probe, indicator)
           val password = typed ?: DbDataSourceService.getInstance(project).password(probe.id)
           result = DbConnectionService.getInstance(project).testConnection(probe, password)
+        }
+        catch (e: ProcessCanceledException) {
+          throw e
         }
         catch (e: SQLException) {
           error = DbExecutor.message(e)
@@ -173,6 +402,7 @@ class DbDataSourceDialog private constructor(private val project: Project, exist
         }
       }
     })
+    refreshDriver()
     testResult.text = result ?: error.orEmpty()
     testResult.foreground = if (result != null) JBColor(0x2E7D32, 0x6AAB73) else JBColor.RED
   }
@@ -193,18 +423,57 @@ class DbDataSourceDialog private constructor(private val project: Project, exist
   private var result: DbDataSource? = null
 
   companion object {
+    private const val DEFAULT_DRIVER = "mysql"
+
+    /**
+     * Test Connection, an explicit user action, downloads a missing driver before trying: only the downloaded jars and
+     * version are pinned in the registry, nothing else of the definition.
+     */
+    internal fun downloadIfMissing(
+      project: Project,
+      probe: DbDataSource,
+      indicator: ProgressIndicator,
+      download: (DbDriverDefinition, ProgressIndicator) -> DbDriverDefinition = { d, i -> DbDriverDownloader.download(d, i) },
+    ) {
+      if (probe.driverJars.isNotEmpty()) return
+      val registry = DbDriverRegistry.getInstance()
+      val definition = registry.find(probe.driverId) ?: return
+      if (definition.artifacts.isEmpty() || DbDrivers.find(project, probe) != null) return
+      indicator.text = PhantomDbBundle.message("db.driver.download.title", definition.name)
+      DbDriverActions.downloadAndPin(definition, indicator, download)
+      indicator.text = PhantomDbBundle.message("db.dialog.testing")
+    }
+
+    /** Switching drivers replaces an empty URL or the previous driver's untouched template; never a typed URL. */
+    internal fun replacesUrl(url: String, previous: DbDriverDefinition?): Boolean =
+      url.isEmpty() || (previous != null && url == previous.defaultUrl())
+
+    /** AWS profile and region matter only for IAM sign-in through a driver that knows how to use them. */
+    internal fun showsAwsFields(kind: DbAuthKind, driver: DbDriverDefinition?): Boolean =
+      kind == DbAuthKind.AWS_IAM && driver?.iamProperties?.isNotEmpty() == true
+
     /** Shows the dialog for a new data source; returns it once saved. */
     fun create(project: Project): DbDataSource? = DbDataSourceDialog(project, null).let { if (it.showAndGet()) it.result else null }
 
     fun edit(project: Project, dataSource: DbDataSource): DbDataSource? =
       DbDataSourceDialog(project, dataSource).let { if (it.showAndGet()) it.result else null }
 
-    /** `mysql@localhost`, `h2:mem:test`. */
-    fun defaultName(dbms: Dbms, url: String): String {
-      val rest = url.substringAfter(dbms.urlPrefix, url)
-      val host = rest.removePrefix("//").substringBefore('/').substringBefore('?').substringBefore(';')
-      return if (rest.startsWith("//") && host.isNotEmpty()) "${dbms.displayName.lowercase()}@${host.substringBefore(':')}"
-      else "${dbms.displayName.lowercase()}:${rest.substringBefore(';')}"
+    /** `mysql@localhost`, `amazon redshift@cluster`, `h2:mem:test`: the driver's name, then the URL's host or what follows its prefix. */
+    fun defaultName(driver: DbDriverDefinition?, url: String): String {
+      val label = driver?.name?.lowercase() ?: "jdbc"
+      val prefix = driver?.urlPrefixes?.filter { url.startsWith(it, ignoreCase = true) }?.maxByOrNull { it.length } ?: "jdbc:"
+      val rest = if (url.startsWith(prefix, ignoreCase = true)) url.substring(prefix.length) else url
+      val slashes = rest.indexOf("//")
+      val host = if (slashes < 0) "" else rest.substring(slashes + 2).substringBefore('/').substringBefore('?').substringBefore(';').substringBefore(':')
+      return if (host.isNotEmpty()) "$label@$host" else "$label:${rest.substringBefore(';')}"
     }
   }
+}
+
+/** Driver names with their vendor icon; a separator above [firstUser], the first of the user's drivers. */
+internal fun driverRenderer(firstUser: () -> DbDriverDefinition?): javax.swing.ListCellRenderer<DbDriverDefinition?> = listCellRenderer {
+  val driver = value ?: return@listCellRenderer
+  text(driver.name)
+  icon(PhantomDbIcons.forDriver(driver))
+  if (index >= 0 && driver === firstUser()) separator { text = PhantomDbBundle.message("db.drivers.user") }
 }

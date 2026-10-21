@@ -15,8 +15,15 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.JarFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.util.text.VersionComparatorUtil
+import com.intellij.util.xmlb.annotations.MapAnnotation
 import com.intellij.util.xmlb.annotations.Tag
 import com.intellij.util.xmlb.annotations.XCollection
+import com.intellij.openapi.progress.ProcessCanceledException
+import dev.phantom.db.core.drivers.ArtifactFetcher
+import dev.phantom.db.core.drivers.DbDriverDefinition
+import dev.phantom.db.core.drivers.DbDriverRegistry
+import dev.phantom.db.core.drivers.MavenCoordinate
+import dev.phantom.db.core.drivers.MavenResolver
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.UUID
@@ -41,7 +48,9 @@ enum class Dbms(
           listOf("org.mariadb.jdbc:mariadb-java-client")),
   POSTGRESQL("PostgreSQL", "jdbc:postgresql:", "jdbc:postgresql://localhost:5432/postgres", "org.postgresql.Driver",
              listOf("org.postgresql:postgresql")),
-  H2("H2", "jdbc:h2:", "jdbc:h2:mem:test", "org.h2.Driver", listOf("com.h2database:h2"));
+  H2("H2", "jdbc:h2:", "jdbc:h2:mem:test", "org.h2.Driver", listOf("com.h2database:h2")),
+  /** Any other JDBC database: connects and browses, but has no SQL dialect knowledge. Never detected from a URL. */
+  GENERIC("Other", "", "jdbc:", "", emptyList());
 
   val icon: Icon
     get() = when (this) {
@@ -49,7 +58,11 @@ enum class Dbms(
       MARIADB -> AllIcons.Providers.Mariadb
       POSTGRESQL -> AllIcons.Providers.Postgresql
       H2 -> AllIcons.Providers.H2
+      GENERIC -> AllIcons.Nodes.DataTables
     }
+
+  /** False for [GENERIC]: no EXPLAIN, DDL, schema changes or dialect checks. */
+  val hasDialect: Boolean get() = this != GENERIC
 
   /** MySQL keeps databases in catalogs; the others in schemas. */
   val usesCatalogs: Boolean get() = this == MYSQL || this == MARIADB
@@ -57,7 +70,7 @@ enum class Dbms(
   companion object {
     fun forUrl(url: String): Dbms? {
       val u = url.trim().removePrefix("jdbc:p6spy:").let { if (it.startsWith("jdbc:")) it else "jdbc:$it" }
-      return entries.firstOrNull { u.startsWith(it.urlPrefix, ignoreCase = true) }
+      return entries.firstOrNull { it.hasDialect && u.startsWith(it.urlPrefix, ignoreCase = true) }
     }
   }
 }
@@ -78,14 +91,39 @@ class DbDataSource {
   var driverJars: MutableList<String> = ArrayList()
   var maxRows: Int = 500
   var queryTimeoutSeconds: Int = 60
+  /** The [DbDriverDefinition] this data source connects with. `null` in state written before drivers existed. */
+  var driverId: String? = null
+  /** JDBC connection properties; override the driver's defaults. */
+  @MapAnnotation
+  var properties: MutableMap<String, String> = LinkedHashMap()
+  var authKind: DbAuthKind = DbAuthKind.PASSWORD
+  var awsProfile: String = ""
+  var awsRegion: String = ""
 
   fun copy(): DbDataSource = DbDataSource().also {
     it.id = id; it.name = name; it.dbms = dbms; it.url = url; it.user = user; it.readOnly = readOnly; it.manualCommit = manualCommit
     it.driverJars = ArrayList(driverJars); it.maxRows = maxRows; it.queryTimeoutSeconds = queryTimeoutSeconds
+    it.driverId = driverId; it.properties = LinkedHashMap(properties); it.authKind = authKind
+    it.awsProfile = awsProfile; it.awsRegion = awsRegion
   }
 
   override fun toString(): String = name
 }
+
+enum class DbAuthKind { PASSWORD, NONE, AWS_IAM }
+
+/**
+ * The bound driver, else the one matching the URL. Only a data source bound to no driver at all falls back to the
+ * built-in for the saved [DbDataSource.dbms]; a driver id this IDE does not know is an error, not a guess.
+ */
+fun DbDataSource.driver(): DbDriverDefinition? {
+  val registry = DbDriverRegistry.getInstance()
+  registry.find(driverId)?.let { return it }
+  return registry.forUrl(url) ?: if (driverId.isNullOrEmpty()) registry.builtInFor(dbms) else null
+}
+
+/** SQL dialect of this data source: that of its driver; [DbDataSource.dbms] is only the persisted copy (never `GENERIC` on disk). */
+fun DbDataSource.dialect(): Dbms = driver()?.dialect ?: dbms
 
 /** Project data sources. Loaded on first use (tool window, console, `.sql` editor banner), never at startup. */
 @Service(Service.Level.PROJECT)
@@ -100,6 +138,7 @@ class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State> 
   private val listeners = CopyOnWriteArrayList<() -> Unit>()
 
   override fun getState(): State = state
+  /** Taken as written: a data source without a driver id finds its built-in through [driver], so opening changes nothing on disk. */
   override fun loadState(state: State) {
     this.state = state
   }
@@ -110,6 +149,7 @@ class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State> 
 
   /** Adds [dataSource] or replaces the saved one with the same id. A `null` [password] leaves the saved one as is. */
   fun save(dataSource: DbDataSource, password: CharArray?) {
+    dataSource.dbms = persistedDbms(dataSource.dialect())
     val i = state.dataSources.indexOfFirst { it.id == dataSource.id }
     if (i >= 0) state.dataSources[i] = dataSource else state.dataSources.add(dataSource)
     if (password != null) PasswordSafe.instance.set(credentials(dataSource.id), Credentials(dataSource.user, password))
@@ -136,24 +176,32 @@ class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State> 
     fun getInstance(project: Project): DbDataSourceService = project.service()
 
     fun credentials(id: String): CredentialAttributes = CredentialAttributes(generateServiceName("Phantom DB", id))
+
+    /**
+     * What `dbms` holds on disk. 0.10.0 cannot read [Dbms.GENERIC] (its loader fails on the unknown value), so such a data
+     * source keeps the serializer default, which is not written; its driver id is what makes it GENERIC.
+     */
+    internal fun persistedDbms(dialect: Dbms): Dbms = if (dialect.hasDialect) dialect else DbDataSource().dbms
   }
 }
 
 /** Where a driver was found. */
 data class DbDriver(val jars: List<Path>, val version: String?, val origin: Origin) {
-  enum class Origin { CHOSEN, PROJECT_LIBRARY, LOCAL_CACHE }
+  enum class Origin { CHOSEN, PROJECT_LIBRARY, LOCAL_CACHE, DOWNLOADED }
 
   val description: String
     get() = when (origin) {
       Origin.CHOSEN -> jars.joinToString { it.name }
       Origin.PROJECT_LIBRARY -> PhantomDbBundle.message("db.driver.project", jars.first().name)
       Origin.LOCAL_CACHE -> PhantomDbBundle.message("db.driver.cache", jars.first().name)
+      Origin.DOWNLOADED -> PhantomDbBundle.message("db.driver.downloaded", jars.first().name)
     }
 }
 
 /**
- * Finds a JDBC driver without downloading: jars chosen by hand, then the project's own libraries (a Spring Boot project
- * that talks to MySQL already depends on the connector), then the Gradle and Maven caches in the user's home.
+ * Finds a JDBC driver without downloading: jars chosen for the data source, then those chosen for its driver definition,
+ * then the project's own libraries (a Spring Boot project that talks to MySQL already depends on the connector), then the
+ * Gradle and Maven caches in the user's home, then the jars a previous download pinned.
  */
 object DbDrivers {
   /** Blocking file lookups; call off the EDT. Project libraries need a read action, which this takes itself. */
@@ -161,51 +209,75 @@ object DbDrivers {
     if (dataSource.driverJars.isNotEmpty()) {
       return DbDriver(dataSource.driverJars.map { Path.of(it) }, null, DbDriver.Origin.CHOSEN)
     }
-    return project?.let { fromProjectLibraries(it, dataSource.dbms) } ?: fromLocalCaches(dataSource.dbms)
+    val definition = dataSource.driver() ?: return null
+    if (definition.files.isNotEmpty()) {
+      return DbDriver(definition.files.flatMap { jarsIn(Path.of(it)) }, null, DbDriver.Origin.CHOSEN)
+    }
+    return project?.let { fromProjectLibraries(it, definition) }
+           ?: fromLocalCaches(definition)
+           ?: fromDownloads(definition)
   }
 
-  fun fromProjectLibraries(project: Project, dbms: Dbms): DbDriver? {
+  fun fromProjectLibraries(project: Project, definition: DbDriverDefinition): DbDriver? {
+    if (definition.artifacts.isEmpty()) return null
     val roots = com.intellij.openapi.application.runReadAction {
       OrderEnumerator.orderEntries(project).librariesOnly().recursively().classes().roots.toList()
     }
-    val candidates = roots.mapNotNull { root ->
-      val jar = JarFileSystem.getInstance().getVirtualFileForJar(root) ?: root
-      val version = versionOf(jar.name, dbms) ?: return@mapNotNull null
-      VfsUtilCore.virtualToIoFile(jar).toPath() to version
+    val jars = roots.map { root -> VfsUtilCore.virtualToIoFile(JarFileSystem.getInstance().getVirtualFileForJar(root) ?: root).toPath() }
+    if (definition.artifactsAreAlternatives) {
+      return newest(jars.mapNotNull { jar -> versionOf(jar.name, definition.artifacts)?.let { jar to it } }, DbDriver.Origin.PROJECT_LIBRARY)
     }
-    return newest(candidates, DbDriver.Origin.PROJECT_LIBRARY)
+    val pinned = roots(definition)?.map { c ->
+      val candidates = jars.mapNotNull { jar -> versionOf(jar.name, listOf("${c.group}:${c.artifact}"))?.let { jar to it } }.filter { c.version == null || it.second == c.version }
+      val best = candidates.maxWithOrNull { a, b -> VersionComparatorUtil.compare(a.second, b.second) } ?: return null
+      c.copy(version = best.second)
+    } ?: return null
+    val byName = jars.associateBy { it.name }
+    return withDependencies(pinned, home(), DbDriver.Origin.PROJECT_LIBRARY) { byName[it] }
   }
 
   /** `~/.gradle/caches/modules-2/files-2.1/<group>/<artifact>/<version>/<hash>/<artifact>-<version>.jar` and `~/.m2/repository`. */
-  fun fromLocalCaches(dbms: Dbms, home: Path = Path.of(System.getProperty("user.home"))): DbDriver? {
-    val candidates = ArrayList<Pair<Path, String>>()
-    for (coordinates in dbms.artifacts) {
-      val (group, artifact) = coordinates.split(':')
-      val gradle = home.resolve(".gradle/caches/modules-2/files-2.1/$group/$artifact")
-      for (versionDir in children(gradle)) {
-        for (hashDir in children(versionDir)) {
-          val jar = hashDir.resolve("$artifact-${versionDir.name}.jar")
-          if (Files.isRegularFile(jar)) candidates.add(jar to versionDir.name)
-        }
-      }
-      val maven = home.resolve(".m2/repository/${group.replace('.', '/')}/$artifact")
-      for (versionDir in children(maven)) {
-        val jar = versionDir.resolve("$artifact-${versionDir.name}.jar")
-        if (Files.isRegularFile(jar)) candidates.add(jar to versionDir.name)
-      }
+  fun fromLocalCaches(definition: DbDriverDefinition, home: Path = home()): DbDriver? {
+    if (definition.artifacts.isEmpty()) return null
+    if (definition.artifactsAreAlternatives) {
+      return newest(definition.artifacts.flatMap { cached(home, it.substringBefore(':'), it.substringAfter(':').substringBefore(':')) },
+                    DbDriver.Origin.LOCAL_CACHE)
     }
-    return newest(candidates, DbDriver.Origin.LOCAL_CACHE)
+    val pinned = roots(definition)?.map { c ->
+      val version = if (c.version != null) c.version.takeIf { localJar(home, c.group, c.artifact, it) != null }
+                    else cached(home, c.group, c.artifact).maxWithOrNull { a, b -> VersionComparatorUtil.compare(a.second, b.second) }?.second
+      c.copy(version = version ?: return null)
+    } ?: return null
+    return withDependencies(pinned, home, DbDriver.Origin.LOCAL_CACHE) { null }
   }
 
-  /** True when a project library looks like a JDBC driver for one of [Dbms]. Names only, no file access. */
+  /** The jars a download pinned, if they are all still there. */
+  fun fromDownloads(definition: DbDriverDefinition): DbDriver? {
+    if (definition.resolvedJars.isEmpty()) return null
+    val jars = definition.resolvedJars.map { Path.of(it) }
+    return if (jars.all { Files.isRegularFile(it) }) DbDriver(jars, definition.resolvedVersion, DbDriver.Origin.DOWNLOADED) else null
+  }
+
+  /** True when a project library looks like a JDBC driver of a built-in preset. Names only, no file access. */
   fun projectHasDriverLibrary(project: Project): Boolean {
     val names = LibraryTablesRegistrar.getInstance().getLibraryTable(project).libraries.mapNotNull { it.name }
-    return names.any { name -> Dbms.entries.any { dbms -> dbms.artifacts.any { name.contains(it) } } }
+    return names.any { isDriverLibraryName(it) }
   }
 
-  internal fun versionOf(jarName: String, dbms: Dbms): String? {
-    for (coordinates in dbms.artifacts) {
-      val artifact = coordinates.substringAfter(':')
+  /**
+   * True when [name] (like `Gradle: group:artifact:1.0`) contains `group:artifact` of a built-in driver's own jar: every
+   * alternative name, else the first artifact. Helpers such as the AWS SDK's `rds` alone do not make a database project.
+   */
+  internal fun isDriverLibraryName(name: String): Boolean = driverRoots.any { name.contains(it) }
+
+  private val driverRoots: List<String> by lazy {
+    DbDriverRegistry.builtIns.flatMap { d -> if (d.artifactsAreAlternatives) d.artifacts else d.artifacts.take(1) }
+      .map { it.split(':').take(2).joinToString(":") }.distinct()
+  }
+
+  internal fun versionOf(jarName: String, artifacts: List<String>): String? {
+    for (coordinates in artifacts) {
+      val artifact = coordinates.substringAfter(':').substringBefore(':')
       val prefix = "$artifact-"
       if (!jarName.startsWith(prefix) || !jarName.endsWith(".jar")) continue
       val version = jarName.removePrefix(prefix).removeSuffix(".jar")
@@ -214,6 +286,79 @@ object DbDrivers {
     return null
   }
 
+  /** Required roots; the first one pinned to the downloaded version unless it names its own. `null` if one is not a coordinate. */
+  private fun roots(definition: DbDriverDefinition): List<MavenCoordinate>? {
+    val roots = definition.artifacts.map { runCatching { MavenCoordinate.parse(it) }.getOrNull() ?: return null }
+    val pin = definition.resolvedVersion ?: return roots
+    return roots.mapIndexed { i, c -> if (i == 0 && c.version == null) c.copy(version = pin) else c }
+  }
+
+  private fun home(): Path = Path.of(System.getProperty("user.home"))
+
+  /**
+   * Resolves the transitive dependencies of [roots] from the POMs in the local caches; each jar comes from [preferred]
+   * (by file name), else from the caches. `null` when a POM or a jar is missing: the caller skips this step.
+   */
+  private fun withDependencies(roots: List<MavenCoordinate>, home: Path, origin: DbDriver.Origin, preferred: (String) -> Path?): DbDriver? {
+    val m2 = home.resolve(".m2/repository").toUri().toString()
+    val resolver = MavenResolver(listOf(m2, GRADLE_CACHE_BASE), ArtifactFetcher { url -> fetchLocal(home, m2, url) })
+    val resolved = try {
+      resolver.resolve(roots)
+    }
+    catch (e: ProcessCanceledException) {
+      throw e
+    }
+    catch (_: Exception) {
+      return null
+    }
+    val jars = resolved.map { a -> preferred("${a.artifact}-${a.version}.jar") ?: localJar(home, a.group, a.artifact, a.version) ?: return null }
+    return DbDriver(jars, roots.first().version, origin)
+  }
+
+  private fun fetchLocal(home: Path, m2: String, url: String): ByteArray? {
+    val file = when {
+      url.startsWith(m2) -> runCatching { Path.of(java.net.URI(url)) }.getOrNull()
+      url.startsWith(GRADLE_CACHE_BASE) -> {
+        // <group path>/<artifact>/<version>/<file>; maven-metadata.xml has no place in the Gradle cache
+        val parts = url.removePrefix(GRADLE_CACHE_BASE).split('/')
+        if (parts.size < 4) null
+        else {
+          val (artifact, version, name) = parts.takeLast(3)
+          val dir = home.resolve("$GRADLE_FILES/${parts.dropLast(3).joinToString(".")}/$artifact/$version")
+          children(dir).map { it.resolve(name) }.firstOrNull { Files.isRegularFile(it) }
+        }
+      }
+      else -> null
+    }
+    return file?.takeIf { Files.isRegularFile(it) }?.let { runCatching { Files.readAllBytes(it) }.getOrNull() }
+  }
+
+  /** Every cached `<artifact>-<version>.jar` of [group]:[artifact], with its version. */
+  private fun cached(home: Path, group: String, artifact: String): List<Pair<Path, String>> {
+    val candidates = ArrayList<Pair<Path, String>>()
+    for (versionDir in children(home.resolve("$GRADLE_FILES/$group/$artifact"))) {
+      for (hashDir in children(versionDir)) {
+        val jar = hashDir.resolve("$artifact-${versionDir.name}.jar")
+        if (Files.isRegularFile(jar)) candidates.add(jar to versionDir.name)
+      }
+    }
+    for (versionDir in children(home.resolve(".m2/repository/${group.replace('.', '/')}/$artifact"))) {
+      val jar = versionDir.resolve("$artifact-${versionDir.name}.jar")
+      if (Files.isRegularFile(jar)) candidates.add(jar to versionDir.name)
+    }
+    return candidates
+  }
+
+  private fun localJar(home: Path, group: String, artifact: String, version: String): Path? {
+    val name = "$artifact-$version.jar"
+    home.resolve(".m2/repository/${group.replace('.', '/')}/$artifact/$version/$name").let { if (Files.isRegularFile(it)) return it }
+    return children(home.resolve("$GRADLE_FILES/$group/$artifact/$version")).map { it.resolve(name) }.firstOrNull { Files.isRegularFile(it) }
+  }
+
+  /** A chosen directory stands for the jars in it. */
+  private fun jarsIn(path: Path): List<Path> =
+    if (path.isDirectory()) runCatching { path.listDirectoryEntries("*.jar").sorted() }.getOrDefault(emptyList()) else listOf(path)
+
   private fun newest(candidates: List<Pair<Path, String>>, origin: DbDriver.Origin): DbDriver? {
     val best = candidates.maxWithOrNull { a, b -> VersionComparatorUtil.compare(a.second, b.second) } ?: return null
     return DbDriver(listOf(best.first), best.second, origin)
@@ -221,4 +366,8 @@ object DbDrivers {
 
   private fun children(dir: Path): List<Path> =
     if (dir.isDirectory()) runCatching { dir.listDirectoryEntries().filter { it.isDirectory() } }.getOrDefault(emptyList()) else emptyList()
+
+  private const val GRADLE_FILES = ".gradle/caches/modules-2/files-2.1"
+  /** Not a real URL: [fetchLocal] maps it onto the Gradle cache layout. */
+  private const val GRADLE_CACHE_BASE = "gradle-cache:/"
 }

@@ -24,7 +24,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 
 | 플러그인 | 폴더 | 설명 |
 |----------|------|------|
-| Phantom Database Console | [db](./db/KOR.md) · [English](./db/README.md) | MySQL, PostgreSQL, H2용 JDBC 콘솔. 에디터에서 SQL 실행, 결과 그리드, 스키마 트리 |
+| Phantom Database Console | [db](./db/KOR.md) · [English](./db/README.md) | 드라이버를 추가할 수 있는 JDBC 콘솔(MySQL, PostgreSQL, H2, AWS, Oracle 등). 에디터에서 SQL 실행, 결과 그리드, 스키마 트리 |
 | Phantom Spring | [spring](./spring/KOR.md) · [English](./spring/README.md) | 빈 주입 이동, 자동 주입 검사, Spring MVC 엔드포인트, Security 경로·표현식, Kafka·RabbitMQ·JMS 이동 (Java, Kotlin) |
 | Phantom Spring Boot | [spring-boot](./spring-boot/KOR.md) · [English](./spring-boot/README.md) | Spring Initializr로 새 Spring Boot 프로젝트 만들기, `application.yml` / `.properties` 키·값 자동완성과 문서 |
 | Phantom JPA | [jpa](./jpa/KOR.md) · [English](./jpa/README.md) | `@Query` 안의 JPQL, 파생 쿼리·`@Modifying` 검사, 엔티티 매핑 검사, 리포지토리·엔티티 이동 |

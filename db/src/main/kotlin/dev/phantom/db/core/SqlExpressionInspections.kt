@@ -380,7 +380,7 @@ class SqlOrderByPositionInspection : SqlInspection() {
  */
 class SqlFunctionSpaceInspection : SqlInspection() {
   override fun checkQuery(query: SqlScope, items: List<SqlItem>, holder: ProblemsHolder) {
-    val dbms = SqlSchema.dataSourceFor(holder.file, strict = false)?.dbms ?: return
+    val dbms = SqlSchema.dataSourceFor(holder.file, strict = false)?.dialect() ?: return
     if (dbms != Dbms.MYSQL && dbms != Dbms.MARIADB) return
     for (i in 0 until items.size - 1) {
       val name = items[i]

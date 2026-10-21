@@ -126,7 +126,7 @@ class SqlRoutine(
 
     /** MySQL and MariaDB write bodies this way; another known dialect does not, so nothing is checked there. */
     fun dialectFits(holder: ProblemsHolder): Boolean {
-      val dbms = SqlSchema.dataSourceFor(holder.file, strict = false)?.dbms ?: return true
+      val dbms = SqlSchema.dataSourceFor(holder.file, strict = false)?.dialect() ?: return true
       return dbms == Dbms.MYSQL || dbms == Dbms.MARIADB
     }
 

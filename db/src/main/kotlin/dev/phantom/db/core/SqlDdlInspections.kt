@@ -11,7 +11,7 @@ import com.intellij.codeInspection.ProblemsHolder
  */
 class SqlAddNotNullColumnInspection : SqlInspection() {
   override fun checkDdl(statement: SqlStatement, holder: ProblemsHolder) {
-    val dbms = SqlSchema.dataSourceFor(holder.file, strict = false)?.dbms ?: return
+    val dbms = SqlSchema.dataSourceFor(holder.file, strict = false)?.dialect() ?: return
     if (dbms == Dbms.MYSQL || dbms == Dbms.MARIADB) return
     val items = SqlQueries.items(statement)
     if (items.firstOrNull()?.isKeyword("ALTER") != true || items.getOrNull(1)?.isKeyword("TABLE") != true) return
@@ -59,7 +59,7 @@ class SqlAddNotNullColumnInspection : SqlInspection() {
  */
 class SqlDeprecatedTypeInspection : SqlInspection() {
   override fun checkDdl(statement: SqlStatement, holder: ProblemsHolder) {
-    if (SqlSchema.dataSourceFor(holder.file, strict = false)?.dbms != Dbms.MYSQL) return
+    if (SqlSchema.dataSourceFor(holder.file, strict = false)?.dialect() != Dbms.MYSQL) return
     val items = SqlQueries.items(statement)
     for ((i, item) in items.withIndex()) {
       val word = item.text.uppercase()

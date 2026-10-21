@@ -22,7 +22,7 @@ abstract class SqlSchemaInspection : SqlInspection() {
     return super.buildVisitor(holder, isOnTheFly)
   }
 
-  protected fun dbmsOf(element: PsiElement): Dbms? = SqlSchema.dataSourceFor(element.containingFile, strict = true)?.dbms
+  protected fun dbmsOf(element: PsiElement): Dbms? = SqlSchema.dataSourceFor(element.containingFile, strict = true)?.dialect()
 
   /** The database column [ref] names, when it resolves to one. */
   protected fun columnOf(ref: SqlColumnRef): DbColumnInfo? =
@@ -68,7 +68,7 @@ class SqlInsertNullIntoNotNullInspection : SqlSchemaInspection() {
     val target = tableOf(tableRef) ?: return
     val details = SqlSchema.getInstance(statement.project).columnDetails(target.dataSource, target.table) ?: return
     val listed = insert.columns.map { it.name.lowercase() }.toSet()
-    val mysql = target.dataSource.dbms == Dbms.MYSQL || target.dataSource.dbms == Dbms.MARIADB
+    val mysql = target.dataSource.dialect() == Dbms.MYSQL || target.dataSource.dialect() == Dbms.MARIADB
     for (column in details) {
       if (column.name.lowercase() in listed || !required(column, mysql)) continue
       holder.registerProblem(tableRef, PhantomDbBundle.message("sql.inspection.insert.missing.not.null", column.name), ProblemHighlightType.GENERIC_ERROR_OR_WARNING)
