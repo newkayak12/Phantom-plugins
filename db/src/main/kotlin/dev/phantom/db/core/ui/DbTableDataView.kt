@@ -146,9 +146,11 @@ class DbTableDataView(private val project: Project, dataSource: DbDataSource, va
     job?.cancel()
     val ds = dataSource
     val size = pageSize
-    val sql = DbTableQuery.select(ds.dialect(), table, filter.where, filter.orderBy, size + 1, newOffset)
-    shownSql = sql
     result.dataSource = ds
+    DbTableQuery.problem(filter.where, filter.orderBy)?.let { return result.showError(it) }
+    val sql = DbTableQuery.select(ds.dialect(), table, filter.where, filter.orderBy, size + 1, newOffset, DbPaging.of(ds))
+    (SqlSafety.check(ds, listOf(sql)) as? SqlSafety.Verdict.Blocked)?.let { return result.showError(it.message) }
+    shownSql = sql
     result.showRunning(SqlSafety.preview(sql))
     shownCount = null
     total.text = ""
@@ -182,6 +184,7 @@ class DbTableDataView(private val project: Project, dataSource: DbDataSource, va
 
   private fun count(onCounted: (Long) -> Unit = {}) {
     val ds = dataSource
+    if (DbTableQuery.problem(filter.where) != null) return
     val sql = DbTableQuery.count(ds.dialect(), table, filter.where)
     total.text = PhantomDbBundle.message("db.data.counting")
     DbConnectionService.getInstance(project).launch {

@@ -5,7 +5,6 @@ import com.intellij.database.datagrid.*
 import com.intellij.database.run.ui.DataAccessType
 import com.intellij.database.run.ui.DataGridRequestPlace
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.fileChooser.FileChooserFactory
 import com.intellij.openapi.fileChooser.FileSaverDescriptor
@@ -74,7 +73,7 @@ class DbValueViewer(private val project: Project, private val grid: DataGrid, pr
       add(applyLink)
     }, BorderLayout.NORTH)
     add(center, BorderLayout.CENTER)
-    grid.resultView.addSelectionChangedListener { if (!Disposer.isDisposed(this)) update() }
+    // selection changes come from the result panel, which owns the one listener on the grid
     grid.addDataGridListener(object : DataGridListener {
       override fun onContentChanged(dataGrid: DataGrid?, place: GridRequestSource.RequestPlace?) = update()
     }, this)
@@ -92,6 +91,8 @@ class DbValueViewer(private val project: Project, private val grid: DataGrid, pr
       kind.text = PhantomDbBundle.message("db.value.none")
       return
     }
+    // an edit not applied yet stays while the same cell is selected
+    if (cell == (row to column) && text.text != shownText) return
     cell = row to column
     val value = model.getValueAt(row, column)
     show(DbCellView.of(value), value as? ByteArray)
@@ -130,11 +131,15 @@ class DbValueViewer(private val project: Project, private val grid: DataGrid, pr
     }
   }
 
-  /** A text cell (or NULL) of a table column, in a grid whose table is known. */
+  /**
+   * A cell of a character column (the text is written as it is, so numbers, dates and others are edited in the grid,
+   * which converts them), in a grid whose table is known.
+   */
   private fun editable(view: DbCellView): Boolean {
     val column = cell?.second ?: return false
     if (view.kind == DbCellView.Kind.BINARY || view.kind == DbCellView.Kind.IMAGE) return false
-    return hookUp.editing?.target?.isEditable(column.value) == true
+    val target = hookUp.editing?.target ?: return false
+    return target.isEditable(column.value) && target.sqlTypes.getOrNull(column.value) in CHARACTER_TYPES
   }
 
   /** Writes the changed text to the cell through the grid's edit (an UPDATE by primary key). */
@@ -150,6 +155,8 @@ class DbValueViewer(private val project: Project, private val grid: DataGrid, pr
     val newText = text.text
     if (newText == shownText) return
     val model = hookUp.dataModel
+    // the edit is the shown text from now on: a refresh of the same cell may replace it
+    shownText = newText
     edits.mutate(GridRequestSource(DataGridRequestPlace(grid)), ModelIndexSet.forRows(model, row.value), ModelIndexSet.forColumns(model, column.value),
                  newText, true)
   }
@@ -172,6 +179,8 @@ class DbValueViewer(private val project: Project, private val grid: DataGrid, pr
   override fun dispose() {}
 
   private companion object {
+    val CHARACTER_TYPES = setOf(java.sql.Types.CHAR, java.sql.Types.VARCHAR, java.sql.Types.LONGVARCHAR, java.sql.Types.NCHAR,
+                                java.sql.Types.NVARCHAR, java.sql.Types.LONGNVARCHAR, java.sql.Types.CLOB, java.sql.Types.NCLOB)
     const val TEXT = "text"
     const val IMAGE = "image"
   }

@@ -45,7 +45,11 @@ enum class DbExportFormat(val title: String, val extension: String) {
   fun writer(out: Appendable, columns: List<DbColumn>, table: String?, dbms: Dbms): DbExportWriter = DbExportWriter(this, out, columns, table, dbms)
 
   companion object {
-    fun tableSql(dbms: Dbms, table: DbTableName?): String? = table?.let { DbNames.qualified(dbms, it.schema, it.table) }
+    /** [table] as it was written in a select: quoted parts quoted again, the others as typed (quoted only if they must be). */
+    fun tableSql(dbms: Dbms, table: DbTableName?): String? = table?.let {
+      fun part(name: String, quoted: Boolean) = if (quoted) DbNames.quoted(dbms, name) else DbNames.quote(dbms, name)
+      listOfNotNull(it.schema?.let { s -> part(s, it.schemaQuoted) }, part(it.table, it.tableQuoted)).joinToString(".")
+    }
   }
 }
 
@@ -55,7 +59,8 @@ class DbExportWriter internal constructor(private val format: DbExportFormat, pr
     private set
 
   private val target = table ?: "table_name"
-  private val names by lazy { columns.joinToString(", ") { DbNames.quote(dbms, it.name) } }
+  /** The result's column names as the database reported them, quoted where they would read differently unquoted. */
+  private val names by lazy { columns.joinToString(", ") { DbNames.identifier(dbms, it.name) } }
 
   init {
     when (format) {
@@ -123,7 +128,7 @@ class DbExportWriter internal constructor(private val format: DbExportFormat, pr
     else -> value.toString()
   }
 
-  private fun md(s: String) = s.replace("|", "\\|").replace("\r\n", " ").replace("\n", " ")
+  private fun md(s: String) = s.replace("\\", "\\\\").replace("|", "\\|").replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
 
   private fun html(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 
@@ -153,20 +158,37 @@ class DbExportWriter internal constructor(private val format: DbExportFormat, pr
 object DbTableExport {
   const val PAGE_SIZE: Int = 1000
 
+  /** Column types that cannot be compared in ORDER BY in some databases; they are not used to make the order total. */
+  private val UNORDERABLE = Regex("(?i)lob|text|bytea|json|xml|binary|image|geometry|array")
+
+  /**
+   * The rows of [table] (filtered by [where], in [orderBy]) written to [out] in [format], a page of [pageSize] rows per
+   * query. The order is made total with the primary key (or the comparable columns), so pages neither repeat nor skip rows.
+   */
   suspend fun export(project: Project, dataSource: DbDataSource, table: DbTableRef, where: String, orderBy: String, format: DbExportFormat,
                      out: Appendable, pageSize: Int = PAGE_SIZE, progress: (Long) -> Unit = {}): Long {
+    DbTableQuery.problem(where, orderBy)?.let { throw DbException(it) }
     val dbms = dataSource.dialect()
+    val paging = DbPaging.of(dataSource)
+    val order = totalOrder(project, dataSource, table, orderBy)
     val paged = dataSource.copy().also { it.maxRows = pageSize }
     var writer: DbExportWriter? = null
     var offset = 0
+    var previousFirst: Array<Any?>? = null
     while (true) {
       currentCoroutineContext().ensureActive()
-      val sql = DbTableQuery.select(dbms, table, where, orderBy, pageSize, offset)
+      val sql = DbTableQuery.select(dbms, table, where, order, pageSize, offset, paging)
       val page = when (val outcome = DbExecutor.execute(project, paged, listOf(sql), history = false).single()) {
         is DbOutcome.Rows -> outcome
         is DbOutcome.Failed -> throw DbException(outcome.message)
-        is DbOutcome.Updated -> throw DbException(sql)
+        is DbOutcome.Updated -> throw DbException(PhantomDbBundle.message("db.export.table.not.rows", table.name))
       }
+      // a database that ignored the offset would return the first page forever
+      val first = page.rows.firstOrNull()
+      if (first != null && previousFirst != null && first.contentDeepEquals(previousFirst)) {
+        throw DbException(PhantomDbBundle.message("db.export.table.no.paging", table.name))
+      }
+      previousFirst = first
       val w = writer ?: format.writer(out, page.columns, DbNames.table(dbms, table), dbms).also { writer = it }
       page.rows.forEach(w::row)
       progress(w.count)
@@ -177,8 +199,25 @@ object DbTableExport {
     return writer!!.count
   }
 
+  /** [orderBy] followed by the primary key columns, or all comparable columns when there is no primary key. */
+  internal suspend fun totalOrder(project: Project, dataSource: DbDataSource, table: DbTableRef, orderBy: String): String {
+    val columns = runCatching { DbMetadataCache.getInstance(project).columns(dataSource, table) }.getOrDefault(emptyList())
+    val keys = columns.filter { it.primaryKey }.ifEmpty { columns.filterNot { UNORDERABLE.containsMatchIn(it.typeName) } }
+    val tieBreak = keys.joinToString(", ") { DbNames.identifier(dataSource.dialect(), it.name) }
+    val own = DbTableQuery.clause(orderBy, "ORDER BY")
+    return when {
+      tieBreak.isEmpty() -> own.orEmpty()
+      own == null -> tieBreak
+      else -> "$own\n, $tieBreak"
+    }
+  }
+
   /** Asks for a file, then exports in the background with progress; cancelling leaves a partial file. */
   fun exportInBackground(project: Project, dataSource: DbDataSource, table: DbTableRef, where: String, orderBy: String, format: DbExportFormat) {
+    val refused = DbTableQuery.problem(where, orderBy)
+      ?: (SqlSafety.check(dataSource, listOf(DbTableQuery.select(dataSource.dialect(), table, where, orderBy, PAGE_SIZE, 0, DbPaging.of(dataSource))))
+            as? SqlSafety.Verdict.Blocked)?.message
+    if (refused != null) return notify(project, refused, NotificationType.ERROR)
     val path = DbExportUi.chooseFile(project, format, table.name) ?: return
     ProgressManager.getInstance().run(object : Task.Backgroundable(project, PhantomDbBundle.message("db.export.table.progress", table.name), true) {
       override fun run(indicator: ProgressIndicator) {
@@ -193,6 +232,9 @@ object DbTableExport {
         catch (e: CancellationException) {
           throw e
         }
+        catch (e: com.intellij.openapi.progress.ProcessCanceledException) {
+          throw e
+        }
         catch (e: DbException) {
           e.message.orEmpty() to NotificationType.ERROR
         }
@@ -202,10 +244,18 @@ object DbTableExport {
         catch (e: java.io.IOException) {
           (e.message ?: e.javaClass.simpleName) to NotificationType.ERROR
         }
-        NotificationGroupManager.getInstance().getNotificationGroup("Phantom Database").createNotification(text, type).notify(project)
+        catch (e: Exception) {
+          // a bug on our side: report it, and still tell the user the export stopped
+          com.intellij.openapi.diagnostic.logger<DbTableExport>().error(e)
+          PhantomDbBundle.message("db.export.table.failed", table.name, e.message ?: e.javaClass.simpleName) to NotificationType.ERROR
+        }
+        notify(project, text, type)
       }
     })
   }
+
+  private fun notify(project: Project, text: String, type: NotificationType) =
+    NotificationGroupManager.getInstance().getNotificationGroup("Phantom Database").createNotification(text, type).notify(project)
 }
 
 object DbExportUi {

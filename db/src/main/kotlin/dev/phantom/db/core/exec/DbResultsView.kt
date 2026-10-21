@@ -13,6 +13,7 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.JBColor
+import com.intellij.util.Alarm
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
@@ -247,7 +248,16 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
     val base = filterBase ?: return
     val bar = filterBar ?: return
     val ds = dataSource ?: return
+    DbTableQuery.problem(bar.where, bar.orderBy)?.let { return showError(it) }
     val sql = SingleTableSelect.refilter(base, bar.where, bar.orderBy) ?: return
+    when (val verdict = SqlSafety.check(ds, listOf(sql))) {
+      is SqlSafety.Verdict.Blocked -> return showError(verdict.message)
+      is SqlSafety.Verdict.Confirm -> if (com.intellij.openapi.ui.Messages.showOkCancelDialog(project, verdict.message, PhantomDbBundle.message("db.safety.title"),
+                                                                                           PhantomDbBundle.message("db.safety.run"),
+                                                                                           com.intellij.openapi.ui.Messages.getCancelButton(),
+                                                                                           com.intellij.openapi.ui.Messages.getWarningIcon()) != com.intellij.openapi.ui.Messages.OK) return
+      SqlSafety.Verdict.Ok -> {}
+    }
     val runIn = schema
     showRunning(SqlSafety.preview(sql), keepFilter = true)
     job = DbConnectionService.getInstance(project).launch {
@@ -299,11 +309,18 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
     updater.addRows(rows.rows.mapIndexed { i, values -> DataConsumer.Row.create(i, values) })
     updater.afterLastRowAdded()
     if (transposed) grid.resultView.isTransposed = true
-    grid.resultView.addSelectionChangedListener {
-      val values = DbGridSelection.values(grid)
-      aggregates.text = if (values.size > 1) DbAggregates.of(values).text() else ""
-    }
     val holder = GridHolder(grid, hookUp, rows)
+    // summing a selection and decoding a cell wait until the selection rests, so dragging over cells stays smooth
+    val settle = Alarm(Alarm.ThreadToUse.SWING_THREAD, grid)
+    grid.resultView.addSelectionChangedListener {
+      if (Disposer.isDisposed(grid)) return@addSelectionChangedListener
+      settle.cancelAllRequests()
+      settle.addRequest({
+        val values = DbGridSelection.values(grid)
+        aggregates.text = if (values.size > 1) DbAggregates.of(values).text() else ""
+        holder.viewer?.update()
+      }, SETTLE_MS)
+    }
     holders.add(holder)
     if (valueViewer) holder.showViewer(true)
     onGrid?.invoke(grid)
@@ -433,6 +450,10 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
   override fun dispose() {
     job?.cancel()
   }
+
+  private companion object {
+    const val SETTLE_MS = 150
+  }
 }
 
 /**
@@ -469,7 +490,7 @@ object DbResultsToolWindow {
 
   /** The first line of [sql] with text, shortened. */
   fun title(sql: String): String {
-    val line = sql.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() && !it.startsWith("--") } ?: sql.trim()
+    val line = SingleTableSelect.stripComments(sql).lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() } ?: sql.trim()
     return if (line.length > 40) line.take(39) + "…" else line
   }
 

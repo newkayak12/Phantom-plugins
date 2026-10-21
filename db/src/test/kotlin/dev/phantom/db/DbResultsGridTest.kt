@@ -81,7 +81,7 @@ class DbResultsGridTest : BasePlatformTestCase() {
       view.filter.orderBy = "id DESC"
       view.filter.apply()
       PlatformTestUtil.waitWithEventsDispatching("filtered", { view.offset == 0 && view.result.shownRows?.firstOrNull()?.firstOrNull() == 150 }, 20)
-      assertEquals("SELECT * FROM PUBLIC.GUEST WHERE id > 140 ORDER BY id DESC LIMIT 101", view.shownSql)
+      assertEquals("SELECT * FROM PUBLIC.GUEST WHERE (\nid > 140\n) ORDER BY id DESC\n LIMIT 101", view.shownSql)
       assertEquals(10, view.result.shownRows!!.size)
       assertEquals("id > 140", PropertiesComponent.getInstance().getList("phantom.db.where:${ds.id}|${view.table.catalog}|PUBLIC|GUEST")?.first())
 
@@ -111,10 +111,13 @@ class DbResultsGridTest : BasePlatformTestCase() {
   }
 
   fun testRefilterOfASingleTableSelect() {
-    assertEquals("select id, name from t x WHERE (x.id > 1) AND (name = 'a') ORDER BY name DESC limit 10",
+    assertEquals("select id, name from t x WHERE (\nx.id > 1\n) AND (\nname = 'a'\n) ORDER BY name DESC\n limit 10",
                  SingleTableSelect.refilter("select id, name from t x where x.id > 1 order by id limit 10;", "name = 'a'", "name DESC"))
-    assertEquals("SELECT * FROM t WHERE a = 'order by' ORDER BY id", SingleTableSelect.refilter("SELECT * FROM t ORDER BY id", "where a = 'order by'", ""))
+    assertEquals("SELECT * FROM t WHERE (\na = 'order by'\n) ORDER BY id", SingleTableSelect.refilter("SELECT * FROM t ORDER BY id", "where a = 'order by'", ""))
     assertEquals("SELECT * FROM t", SingleTableSelect.refilter("SELECT * FROM t", " ", ""))
+    // a comment ends with its line and cannot hide what follows
+    assertEquals("SELECT * FROM t WHERE (\na = 1 -- note\n) ORDER BY id -- why\n LIMIT 5",
+                 SingleTableSelect.refilter("SELECT * FROM t LIMIT 5", "a = 1 -- note", "id -- why"))
     assertNull(SingleTableSelect.refilter("SELECT * FROM a JOIN b ON a.id = b.id", "x = 1", ""))
   }
 
@@ -192,6 +195,7 @@ class DbResultsGridTest : BasePlatformTestCase() {
     PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
     table.setColumnSelectionInterval(0, 0)
     table.setRowSelectionInterval(0, 2)
+    PlatformTestUtil.waitWithEventsDispatching({ "no aggregates; selected " + table.selectedRowCount + "x" + table.selectedColumnCount }, { panel.shownAggregates.isNotEmpty() }, 5)
     assertEquals("3 cells · 2 distinct · sum 3.5 · avg 1.75 · min 1 · max 2.5", panel.shownAggregates)
 
     val mixed = DbAggregates.of(listOf(1, null, 2.5, 1))
@@ -199,6 +203,7 @@ class DbResultsGridTest : BasePlatformTestCase() {
     assertEquals(2, mixed.distinct)
     assertEquals(BigDecimal("4.5"), mixed.sum)
     assertEquals(BigDecimal("1.5"), mixed.avg)
+    assertEquals("1, 1.0 and 1.00 are one value", 1, DbAggregates.of(listOf(1, BigDecimal("1.0"), BigDecimal("1.00"))).distinct)
     assertFalse(DbAggregates.of(listOf(1, "a", null)).numeric)
     assertEquals("2 cells · 0 distinct", DbAggregates.of(listOf(null, null)).text())
   }
@@ -268,5 +273,36 @@ class DbResultsGridTest : BasePlatformTestCase() {
     val filtered = StringBuilder()
     runBlocking { DbTableExport.export(project, ds, table(ds, "BIG"), "id <= 3", "id DESC", DbExportFormat.JSON, filtered, pageSize = 2) }
     assertEquals("[\n  {\"ID\": 3, \"NAME\": \"n3\"},\n  {\"ID\": 2, \"NAME\": \"n2\"},\n  {\"ID\": 1, \"NAME\": \"n1\"}\n]", filtered.toString())
+
+    // a comment in the filter or order does not hide the paging (which would repeat the first page forever)
+    val commented = StringBuilder()
+    val n = runBlocking { DbTableExport.export(project, ds, table(ds, "BIG"), "id > 100 -- recent", "name -- by name", DbExportFormat.TSV, commented, pageSize = 20) }
+    assertEquals(50L, n)
+    assertEquals(50, commented.lines().drop(1).filter { it.isNotEmpty() }.distinct().size)
+    // without an ORDER BY the primary key orders the pages
+    assertEquals("ID", runBlocking { DbTableExport.totalOrder(project, ds, table(ds, "BIG"), "") })
+    assertEquals("name DESC\n, ID", runBlocking { DbTableExport.totalOrder(project, ds, table(ds, "BIG"), "ORDER BY name DESC") })
+    try {
+      runBlocking { DbTableExport.export(project, ds, table(ds, "BIG"), "1=1; DELETE FROM big", "", DbExportFormat.CSV, StringBuilder()) }
+      fail("a second statement in the filter must be refused")
+    }
+    catch (e: DbException) {
+      assertEquals(150L, (exec(ds, "SELECT COUNT(*) FROM big").single() as DbOutcome.Rows).rows.single()[0])
+    }
+  }
+
+  fun testInsertNamesAndLiterals() {
+    assertEquals("\"My Schema\".\"Users\"", DbExportFormat.tableSql(Dbms.POSTGRESQL, DbTableName("My Schema", "Users", schemaQuoted = true, tableQuoted = true)))
+    assertEquals("app.users", DbExportFormat.tableSql(Dbms.POSTGRESQL, DbTableName("app", "users")))
+    val rows = DbOutcome.Rows("SELECT * FROM t", listOf(DbColumn("Name", Types.VARCHAR, null, null), DbColumn("ID", Types.DOUBLE, null, null)),
+                              listOf(arrayOf("a\\b'c", Double.NaN)), false, 1)
+    // H2 folds unquoted names to upper case: a reported "Name" needs quotes, "ID" does not
+    assertEquals("INSERT INTO T (\"Name\", ID) VALUES ('a\\b''c', 'NaN');\n", DbExportFormat.INSERT.render(rows, "T", Dbms.H2))
+    assertEquals("INSERT INTO T (Name, ID) VALUES ('a\\\\b''c', 'NaN');\n", DbExportFormat.INSERT.render(rows, "T", Dbms.MYSQL))
+    assertEquals("| Name | ID |\n| --- | --- |\n| a\\\\b'c | NaN |\n",
+                 DbExportFormat.MARKDOWN.render(DbOutcome.Rows("", rows.columns, listOf(arrayOf("a\\b'c", "NaN")), false, 1), null, Dbms.H2))
+    assertEquals("x y z", DbExportFormat.MARKDOWN.render(DbOutcome.Rows("", rows.columns.take(1), listOf(arrayOf("x\ry\r\nz")), false, 1), null, Dbms.H2)
+      .lines()[2].removePrefix("| ").removeSuffix(" |"))
+    assertEquals("SELECT 1", DbResultsToolWindow.title("/* header\n   more */\n-- note\nSELECT 1"))
   }
 }

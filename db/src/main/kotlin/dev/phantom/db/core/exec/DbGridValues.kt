@@ -125,14 +125,15 @@ class DbAggregates(val count: Int, val distinct: Int, val sum: BigDecimal?, val 
   val numeric: Boolean get() = sum != null
 
   fun text(): String = buildString {
-    append("$count cells · $distinct distinct")
-    if (sum != null) append(" · sum ${plain(sum)} · avg ${plain(avg!!)} · min ${plain(min!!)} · max ${plain(max!!)}")
+    append(dev.phantom.db.core.PhantomDbBundle.message("db.grid.aggregates", count, distinct))
+    if (sum != null) append(dev.phantom.db.core.PhantomDbBundle.message("db.grid.aggregates.numbers", plain(sum), plain(avg!!), plain(min!!), plain(max!!)))
   }
 
   companion object {
     fun of(values: List<Any?>): DbAggregates {
       val present = values.filterNotNull()
-      val distinct = present.map { if (it is ByteArray) it.toList() else it }.toSet().size
+      // 1, 1.0 and 1.00 are one value
+      val distinct = present.map { v -> if (v is ByteArray) v.toList() else (v as? Number)?.let { n -> decimal(n)?.stripTrailingZeros() } ?: v }.toSet().size
       val numbers = present.takeIf { it.isNotEmpty() && it.all { v -> v is Number } }?.mapNotNull { decimal(it as Number) }
       if (numbers == null || numbers.size != present.size) return DbAggregates(values.size, distinct, null, null, null, null)
       val sum = numbers.fold(BigDecimal.ZERO, BigDecimal::add)

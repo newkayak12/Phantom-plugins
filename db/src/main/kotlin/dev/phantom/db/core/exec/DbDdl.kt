@@ -18,6 +18,12 @@ object DbNames {
     return "$q${name.replace("$q", "$q$q")}$q"
   }
 
+  /** [name] in quotes whatever it is, for a name that was quoted where it was written. */
+  fun quoted(dbms: Dbms, name: String): String {
+    val q = if (dbms.usesCatalogs) '`' else '"'
+    return "$q${name.replace("$q", "$q$q")}$q"
+  }
+
   /**
    * A name the database reports, written so it means exactly that name: [quote]d when it needs quotes or when it
    * is not in the case an unquoted name folds to (upper in H2, lower in PostgreSQL).
