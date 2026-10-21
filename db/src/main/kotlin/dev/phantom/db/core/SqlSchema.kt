@@ -17,6 +17,7 @@ import dev.phantom.db.core.exec.DbIndex
 import dev.phantom.db.core.exec.DbMetadataCache
 import dev.phantom.db.core.exec.DbObjectCache
 import dev.phantom.db.core.exec.DbPrimaryKey
+import dev.phantom.db.core.exec.DbSchemaChoice
 import dev.phantom.db.core.exec.DbSchemaRef
 import dev.phantom.db.core.exec.DbTableRef
 import kotlinx.coroutines.CompletableDeferred
@@ -60,10 +61,10 @@ class SqlSchema(private val project: Project) {
    * The data source's tables, or null when they are not loaded (still loading, timed out, or failed). [current]: the
    * schema chosen for the file, which then comes first; null or a name the data source does not list means its default.
    */
-  fun snapshot(dataSource: DbDataSource, load: Boolean = true, current: String? = null): SqlSchemaSnapshot? {
+  fun snapshot(dataSource: DbDataSource, load: Boolean = true, current: DbSchemaChoice? = null): SqlSchemaSnapshot? {
     loaded(dataSource, current)?.let { return it }
     if (!load) return null
-    val job = start("tables:" + dataSource.id + ":" + current.orEmpty()) { load(dataSource, current) } ?: return null
+    val job = start("tables:" + dataSource.id + ":" + current?.name.orEmpty() + ":" + current?.catalog.orEmpty()) { load(dataSource, current) } ?: return null
     await(job)
     return loaded(dataSource, current)
   }
@@ -73,7 +74,7 @@ class SqlSchema(private val project: Project) {
     snapshot(dataSource, load, schemaFor(file))
 
   /** The snapshot with [schema]'s tables loaded too, or null when they are not loaded. */
-  fun withSchema(dataSource: DbDataSource, schema: DbSchemaRef, load: Boolean = true, current: String? = null): SqlSchemaSnapshot? {
+  fun withSchema(dataSource: DbDataSource, schema: DbSchemaRef, load: Boolean = true, current: DbSchemaChoice? = null): SqlSchemaSnapshot? {
     loaded(dataSource, current)?.takeIf { it.isLoaded(schema) }?.let { return it }
     if (!load) return null
     val job = start("schema:" + schema) { DbMetadataCache.getInstance(project).tables(dataSource, schema) } ?: return null
@@ -114,13 +115,13 @@ class SqlSchema(private val project: Project) {
   }
 
   /** Loads the schema list and the [current] (else default) schema's tables now; for tests and callers already in a coroutine. */
-  suspend fun load(dataSource: DbDataSource, current: String? = null): SqlSchemaSnapshot? {
+  suspend fun load(dataSource: DbDataSource, current: DbSchemaChoice? = null): SqlSchemaSnapshot? {
     val cache = DbMetadataCache.getInstance(project)
     pick(cache.schemas(dataSource), current)?.let { cache.tables(dataSource, it) }
     return loaded(dataSource, current)
   }
 
-  private fun loaded(dataSource: DbDataSource, chosen: String?): SqlSchemaSnapshot? {
+  private fun loaded(dataSource: DbDataSource, chosen: DbSchemaChoice?): SqlSchemaSnapshot? {
     val cache = DbMetadataCache.getInstanceIfCreated(project) ?: return null
     val listed = cache.cachedSchemas(dataSource.id) ?: return null
     val current = pick(listed, chosen)
@@ -167,11 +168,13 @@ class SqlSchema(private val project: Project) {
 
   companion object {
     /** The chosen schema if the data source lists it, else the default one, which the cache lists first. */
-    private fun pick(schemas: List<DbSchemaRef>, chosen: String?): DbSchemaRef? =
-      chosen?.let { name -> schemas.firstOrNull { SqlNames.same(it.name, name) } } ?: schemas.firstOrNull()
+    private fun pick(schemas: List<DbSchemaRef>, chosen: DbSchemaChoice?): DbSchemaRef? {
+      val named = chosen?.takeUnless { it.isDefault }?.let { c -> schemas.filter { SqlNames.same(it.name, c.name) } }.orEmpty()
+      return named.firstOrNull { chosen?.catalog != null && it.catalog == chosen.catalog } ?: named.firstOrNull() ?: schemas.firstOrNull()
+    }
 
     /** The schema chosen for the file SQL is in (see [DbConsoles.schemaFor]); null for injected SQL and the default. */
-    fun schemaFor(file: PsiFile): String? {
+    fun schemaFor(file: PsiFile): DbSchemaChoice? {
       if (InjectedLanguageManager.getInstance(file.project).isInjectedFragment(file)) return null
       return DbConsoles.schemaFor(file.project, file.virtualFile ?: file.viewProvider.virtualFile)
              ?: file.originalFile.takeIf { it != file }?.let { DbConsoles.schemaFor(file.project, it.virtualFile) }

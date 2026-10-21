@@ -50,6 +50,9 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
   /** The data source the shown results came from; a single-table result from it can be edited in place. */
   var dataSource: DbDataSource? = null
 
+  /** The schema the shown results ran in; an edited unqualified table is looked up there. */
+  var schema: DbSchemaChoice? = null
+
   /** The table a data view shows; its grid then offers the foreign key actions. */
   var table: DbTableRef? = null
 
@@ -166,7 +169,7 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
     if (source != null) {
       // finding the table and its primary key needs the database; until then the grid is read-only
       val resolving = DbConnectionService.getInstance(project).launch {
-        val target = DbEditTargets.resolve(project, source, rows) ?: return@launch
+        val target = DbEditTargets.resolve(project, source, rows, schema) ?: return@launch
         withContext(Dispatchers.EDT) {
           if (Disposer.isDisposed(grid)) return@withContext
           hookUp.editing = DbGridEdits(project, source, target, hookUp).also { shownEditing = it }

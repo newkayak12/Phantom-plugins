@@ -41,6 +41,7 @@ import javax.swing.Icon
 object DbConsoles {
   private const val KEY_PREFIX = "phantom.db.dataSource:"
   private const val SCHEMA_PREFIX = "phantom.db.schema:"
+  private const val CATALOG_PREFIX = "phantom.db.schemaCatalog:"
 
   fun root(): Path = PathManager.getConfigDir().resolve("phantom-db/consoles")
 
@@ -61,18 +62,26 @@ object DbConsoles {
 
   /** Binds [file] to a data source; a schema chosen for another data source is dropped. */
   fun attach(project: Project, file: VirtualFile, dataSourceId: String?) {
-    if (dataSourceFor(project, file)?.id != dataSourceId) PropertiesComponent.getInstance(project).unsetValue(SCHEMA_PREFIX + file.url)
+    if (dataSourceFor(project, file)?.id != dataSourceId) {
+      PropertiesComponent.getInstance(project).unsetValue(SCHEMA_PREFIX + file.url)
+      PropertiesComponent.getInstance(project).unsetValue(CATALOG_PREFIX + file.url)
+    }
     PropertiesComponent.getInstance(project).setValue(KEY_PREFIX + file.url, dataSourceId)
     EditorNotifications.getInstance(project).updateNotifications(file)
     DbColorService.getInstance(project).refresh(file)
   }
 
   /** The schema (catalog in MySQL) chosen for [file]; null for the one the connection opens in. Kept per file in the workspace. */
-  fun schemaFor(project: Project, file: VirtualFile?): String? =
-    file?.let { PropertiesComponent.getInstance(project).getValue(SCHEMA_PREFIX + it.url) }?.ifEmpty { null }
+  fun schemaFor(project: Project, file: VirtualFile?): DbSchemaChoice? {
+    val properties = PropertiesComponent.getInstance(project)
+    val name = file?.let { properties.getValue(SCHEMA_PREFIX + it.url) }?.ifEmpty { null } ?: return null
+    return DbSchemaChoice(name, properties.getValue(CATALOG_PREFIX + file.url)?.ifEmpty { null })
+  }
 
-  fun setSchema(project: Project, file: VirtualFile, schema: String?) {
-    PropertiesComponent.getInstance(project).setValue(SCHEMA_PREFIX + file.url, schema?.ifEmpty { null })
+  fun setSchema(project: Project, file: VirtualFile, schema: DbSchemaChoice?) {
+    val chosen = schema?.takeUnless { it.isDefault }
+    PropertiesComponent.getInstance(project).setValue(SCHEMA_PREFIX + file.url, chosen?.name)
+    PropertiesComponent.getInstance(project).setValue(CATALOG_PREFIX + file.url, chosen?.catalog)
     EditorNotifications.getInstance(project).updateNotifications(file)
     // unqualified names now mean another schema's tables
     DaemonCodeAnalyzer.getInstance(project).restart("Phantom SQL schema chosen")
@@ -229,12 +238,12 @@ object DbRunner {
         return@launch
       }
       withContext(Dispatchers.EDT) {
-        val current = DbConsoles.schemaFor(project, file).orEmpty()
-        val step = object : BaseListPopupStep<String>(PhantomDbBundle.message("db.schema.choose"), schemaChoices(schemas)) {
-          override fun getTextFor(value: String): String = value.ifEmpty { PhantomDbBundle.message("db.schema.default") }
-          override fun getIconFor(value: String): Icon = if (value.isEmpty()) AllIcons.Nodes.DataTables else AllIcons.Nodes.DataSchema
+        val current = DbConsoles.schemaFor(project, file) ?: DbSchemaChoice.DEFAULT
+        val step = object : BaseListPopupStep<DbSchemaChoice>(PhantomDbBundle.message("db.schema.choose"), schemaChoices(schemas)) {
+          override fun getTextFor(value: DbSchemaChoice): String = schemaText(value)
+          override fun getIconFor(value: DbSchemaChoice): Icon = if (value.isDefault) AllIcons.Nodes.DataTables else AllIcons.Nodes.DataSchema
           override fun getDefaultOptionIndex(): Int = values.indexOf(current).coerceAtLeast(0)
-          override fun onChosen(selectedValue: String, finalChoice: Boolean): PopupStep<*>? {
+          override fun onChosen(selectedValue: DbSchemaChoice, finalChoice: Boolean): PopupStep<*>? {
             DbConsoles.setSchema(project, file, selectedValue)
             return FINAL_CHOICE
           }
@@ -245,11 +254,21 @@ object DbRunner {
     }
   }
 
-  /** "" (the connection's default) first, then the schema names. */
-  fun schemaChoices(schemas: List<DbSchemaRef>): List<String> = listOf("") + schemas.map { it.name }.filter { it.isNotEmpty() }.distinct()
+  /** The default first, then the schemas; one listed in several catalogs keeps its catalog to tell them apart. */
+  fun schemaChoices(schemas: List<DbSchemaRef>): List<DbSchemaChoice> {
+    val named = schemas.filter { it.name.isNotEmpty() }
+    val repeated = named.groupBy { it.name }.filterValues { refs -> refs.map { it.catalog }.distinct().size > 1 }.keys
+    return listOf(DbSchemaChoice.DEFAULT) + named.map { DbSchemaChoice(it.name, if (it.name in repeated && it.schema != null) it.catalog else null) }.distinct()
+  }
 
-  /** The schema statements from [file] run in: "" (where the connection opened) unless one was chosen. */
-  fun executionSchema(project: Project, file: VirtualFile): String = DbConsoles.schemaFor(project, file).orEmpty()
+  fun schemaText(choice: DbSchemaChoice): String = when {
+    choice.isDefault -> PhantomDbBundle.message("db.schema.default")
+    choice.catalog != null -> "${choice.name} (${choice.catalog})"
+    else -> choice.name
+  }
+
+  /** The schema statements from [file] run in: the default (where the connection opened) unless one was chosen. */
+  fun executionSchema(project: Project, file: VirtualFile): DbSchemaChoice = DbConsoles.schemaFor(project, file) ?: DbSchemaChoice.DEFAULT
 
   fun start(project: Project, file: VirtualFile, dataSource: DbDataSource, statements: List<String>) {
     val names = DbParameters.names(statements)
@@ -267,10 +286,12 @@ object DbRunner {
       SqlSafety.Verdict.Ok -> {}
     }
     val panel = DbResultsToolWindow.tabFor(project, file, dataSource)
+    val schema = executionSchema(project, file)
+    panel.schema = schema
     panel.showRunning(SqlSafety.preview(sql.first()) + if (sql.size > 1) " (+${sql.size - 1})" else "")
     val job = DbConnectionService.getInstance(project).launch {
       try {
-        val outcomes = DbExecutor.execute(project, dataSource, sql, schema = executionSchema(project, file))
+        val outcomes = DbExecutor.execute(project, dataSource, sql, schema = schema)
         withContext(Dispatchers.EDT) { panel.showOutcomes(outcomes) }
       }
       catch (e: CancellationException) {

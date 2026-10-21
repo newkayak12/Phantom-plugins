@@ -139,7 +139,7 @@ class SqlDataSourceNotificationProvider : EditorNotificationProvider {
           }
         }
         if (selected != null) {
-          val schema = DbConsoles.schemaFor(project, file) ?: PhantomDbBundle.message("db.schema.default")
+          val schema = DbRunner.schemaText(DbConsoles.schemaFor(project, file) ?: DbSchemaChoice.DEFAULT)
           createActionLabel(PhantomDbBundle.message("db.schema.current", schema)) { DbRunner.chooseSchema(project, file, this) }
         }
         if (selected != null && !selected.readOnly) {
