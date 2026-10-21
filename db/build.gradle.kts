@@ -16,6 +16,7 @@ dependencies {
     bundledModule("intellij.grid")
     bundledModule("intellij.grid.core.impl")
     bundledModule("intellij.grid.impl")
+    bundledModule("intellij.libraries.sshj")
   }
 }
 

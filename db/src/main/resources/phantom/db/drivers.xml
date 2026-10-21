@@ -15,6 +15,15 @@
     </artifacts>
     <option name="artifactsAreAlternatives" value="true" />
     <option name="dialect" value="MYSQL" />
+    <option name="sslProperties">
+      <map>
+        <entry key="require" value="sslMode=REQUIRED" />
+        <entry key="verify-ca" value="sslMode=VERIFY_CA" />
+        <entry key="verify-full" value="sslMode=VERIFY_IDENTITY" />
+        <entry key="ca" value="trustCertificateKeyStoreUrl=file:{file}" />
+        <entry key="cert" value="clientCertificateKeyStoreUrl=file:{file}" />
+      </map>
+    </option>
   </driver>
   <driver>
     <option name="id" value="mariadb" />
@@ -31,6 +40,15 @@
     </artifacts>
     <option name="artifactsAreAlternatives" value="true" />
     <option name="dialect" value="MARIADB" />
+    <option name="sslProperties">
+      <map>
+        <entry key="require" value="sslMode=trust" />
+        <entry key="verify-ca" value="sslMode=verify-ca" />
+        <entry key="verify-full" value="sslMode=verify-full" />
+        <entry key="ca" value="serverSslCert={file}" />
+        <entry key="cert" value="keyStore={file}" />
+      </map>
+    </option>
   </driver>
   <driver>
     <option name="id" value="postgresql" />
@@ -47,6 +65,17 @@
     </artifacts>
     <option name="artifactsAreAlternatives" value="true" />
     <option name="dialect" value="POSTGRESQL" />
+    <option name="sslProperties">
+      <map>
+        <entry key="enable" value="ssl=true" />
+        <entry key="require" value="sslmode=require" />
+        <entry key="verify-ca" value="sslmode=verify-ca" />
+        <entry key="verify-full" value="sslmode=verify-full" />
+        <entry key="ca" value="sslrootcert={file}" />
+        <entry key="cert" value="sslcert={file}" />
+        <entry key="key" value="sslkey={file}" />
+      </map>
+    </option>
   </driver>
   <driver>
     <option name="id" value="h2" />
@@ -86,6 +115,15 @@
       </map>
     </option>
     <option name="dialect" value="MYSQL" />
+    <option name="sslProperties">
+      <map>
+        <entry key="require" value="sslMode=REQUIRED" />
+        <entry key="verify-ca" value="sslMode=VERIFY_CA" />
+        <entry key="verify-full" value="sslMode=VERIFY_IDENTITY" />
+        <entry key="ca" value="trustCertificateKeyStoreUrl=file:{file}" />
+        <entry key="cert" value="clientCertificateKeyStoreUrl=file:{file}" />
+      </map>
+    </option>
   </driver>
   <driver>
     <option name="id" value="aws-mysql-jdbc" />
@@ -106,6 +144,15 @@
       </map>
     </option>
     <option name="dialect" value="MYSQL" />
+    <option name="sslProperties">
+      <map>
+        <entry key="require" value="sslMode=REQUIRED" />
+        <entry key="verify-ca" value="sslMode=VERIFY_CA" />
+        <entry key="verify-full" value="sslMode=VERIFY_IDENTITY" />
+        <entry key="ca" value="trustCertificateKeyStoreUrl=file:{file}" />
+        <entry key="cert" value="clientCertificateKeyStoreUrl=file:{file}" />
+      </map>
+    </option>
   </driver>
   <driver>
     <option name="id" value="aws-wrapper-postgresql" />
@@ -130,6 +177,17 @@
       </map>
     </option>
     <option name="dialect" value="POSTGRESQL" />
+    <option name="sslProperties">
+      <map>
+        <entry key="enable" value="ssl=true" />
+        <entry key="require" value="sslmode=require" />
+        <entry key="verify-ca" value="sslmode=verify-ca" />
+        <entry key="verify-full" value="sslmode=verify-full" />
+        <entry key="ca" value="sslrootcert={file}" />
+        <entry key="cert" value="sslcert={file}" />
+        <entry key="key" value="sslkey={file}" />
+      </map>
+    </option>
   </driver>
   <driver>
     <option name="id" value="redshift" />
@@ -152,6 +210,15 @@
     </option>
     <option name="iamUrlFrom" value="jdbc:redshift://" />
     <option name="iamUrlTo" value="jdbc:redshift:iam://" />
+    <option name="sslProperties">
+      <map>
+        <entry key="enable" value="ssl=true" />
+        <entry key="require" value="sslmode=require" />
+        <entry key="verify-ca" value="sslmode=verify-ca" />
+        <entry key="verify-full" value="sslmode=verify-full" />
+        <entry key="ca" value="sslrootcert={file}" />
+      </map>
+    </option>
   </driver>
   <driver>
     <option name="id" value="athena" />
@@ -200,6 +267,15 @@
     <artifacts>
       <option value="com.microsoft.sqlserver:mssql-jdbc" />
     </artifacts>
+    <option name="sslProperties">
+      <map>
+        <entry key="enable" value="encrypt=true" />
+        <entry key="require" value="trustServerCertificate=true" />
+        <entry key="verify-ca" value="trustServerCertificate=false" />
+        <entry key="verify-full" value="trustServerCertificate=false" />
+        <entry key="ca" value="trustStore={file}" />
+      </map>
+    </option>
   </driver>
   <driver>
     <option name="id" value="sqlite" />
@@ -228,6 +304,17 @@
     <artifacts>
       <option value="com.clickhouse:clickhouse-jdbc" />
     </artifacts>
+    <option name="sslProperties">
+      <map>
+        <entry key="enable" value="ssl=true" />
+        <entry key="require" value="sslmode=none" />
+        <entry key="verify-ca" value="sslmode=strict" />
+        <entry key="verify-full" value="sslmode=strict" />
+        <entry key="ca" value="sslrootcert={file}" />
+        <entry key="cert" value="sslcert={file}" />
+        <entry key="key" value="sslkey={file}" />
+      </map>
+    </option>
   </driver>
   <driver>
     <option name="id" value="snowflake" />

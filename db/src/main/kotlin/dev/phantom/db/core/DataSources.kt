@@ -101,18 +101,43 @@ class DbDataSource {
   var awsRegion: String = ""
   /** A [DbColors] palette key; "" or a key this version does not know means no color. */
   var color: String = ""
+  /** Connect through an SSH tunnel; the secrets (password, key passphrase) are in the IDE password safe. */
+  var sshEnabled: Boolean = false
+  var sshHost: String = ""
+  var sshPort: Int = 22
+  var sshUser: String = ""
+  var sshAuth: DbSshAuth = DbSshAuth.PASSWORD
+  var sshKeyFile: String = ""
+  /** Where the tunnel leads; empty: the host and port of the URL. Needed for URLs whose host and port cannot be read. */
+  var sshRemoteHost: String = ""
+  var sshRemotePort: Int? = null
+  /** SSL as set in the SSH/SSL tab, turned into the driver's own properties; the Properties table still wins. */
+  var sslEnabled: Boolean = false
+  var sslMode: DbSslMode = DbSslMode.REQUIRE
+  var sslCaFile: String = ""
+  var sslCertFile: String = ""
+  var sslKeyFile: String = ""
 
   fun copy(): DbDataSource = DbDataSource().also {
     it.id = id; it.name = name; it.dbms = dbms; it.url = url; it.user = user; it.readOnly = readOnly; it.manualCommit = manualCommit
     it.driverJars = ArrayList(driverJars); it.maxRows = maxRows; it.queryTimeoutSeconds = queryTimeoutSeconds
     it.driverId = driverId; it.properties = LinkedHashMap(properties); it.authKind = authKind
     it.awsProfile = awsProfile; it.awsRegion = awsRegion; it.color = color
+    it.sshEnabled = sshEnabled; it.sshHost = sshHost; it.sshPort = sshPort; it.sshUser = sshUser; it.sshAuth = sshAuth
+    it.sshKeyFile = sshKeyFile; it.sshRemoteHost = sshRemoteHost; it.sshRemotePort = sshRemotePort
+    it.sslEnabled = sslEnabled; it.sslMode = sslMode; it.sslCaFile = sslCaFile; it.sslCertFile = sslCertFile; it.sslKeyFile = sslKeyFile
   }
 
   override fun toString(): String = name
 }
 
 enum class DbAuthKind { PASSWORD, NONE, AWS_IAM }
+
+/** How the SSH tunnel signs in: a password, a private key file (with its passphrase, if any) or the running OpenSSH agent. */
+enum class DbSshAuth { PASSWORD, KEY, AGENT }
+
+/** Require: encrypted, certificate not checked. Verify CA: signed by the CA. Verify full: the CA and the host name. */
+enum class DbSslMode { REQUIRE, VERIFY_CA, VERIFY_FULL }
 
 /**
  * The bound driver, else the one matching the URL. Only a data source bound to no driver at all falls back to the
@@ -149,23 +174,34 @@ class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State> 
 
   fun find(id: String?): DbDataSource? = id?.let { i -> state.dataSources.firstOrNull { it.id == i } }
 
-  /** Adds [dataSource] or replaces the saved one with the same id. A `null` [password] leaves the saved one as is. */
-  fun save(dataSource: DbDataSource, password: CharArray?) {
+  /**
+   * Adds [dataSource] or replaces the saved one with the same id. A `null` [password] leaves the saved one as is; so does
+   * a `null` [sshSecret], which is the SSH password or the key passphrase, as [DbDataSource.sshAuth] says.
+   */
+  fun save(dataSource: DbDataSource, password: CharArray?, sshSecret: CharArray? = null) {
     dataSource.dbms = persistedDbms(dataSource.dialect())
     val i = state.dataSources.indexOfFirst { it.id == dataSource.id }
     if (i >= 0) state.dataSources[i] = dataSource else state.dataSources.add(dataSource)
     if (password != null) PasswordSafe.instance.set(credentials(dataSource.id), Credentials(dataSource.user, password))
+    if (sshSecret != null) {
+      val attributes = sshCredentials(dataSource.id, dataSource.sshAuth) ?: return changed()
+      PasswordSafe.instance.set(attributes, if (sshSecret.isEmpty()) null else Credentials(dataSource.sshUser, sshSecret))
+    }
     changed()
   }
 
   fun remove(id: String) {
     state.dataSources.removeIf { it.id == id }
     PasswordSafe.instance.set(credentials(id), null)
+    for (auth in DbSshAuth.entries) sshCredentials(id, auth)?.let { PasswordSafe.instance.set(it, null) }
     changed()
   }
 
   /** Blocking: the password safe may ask the OS keychain. Call off the EDT. */
   fun password(id: String): String? = PasswordSafe.instance.getPassword(credentials(id))
+
+  /** The SSH password or key passphrase saved for [dataSource]'s tunnel. Blocking, like [password]. */
+  fun sshSecret(dataSource: DbDataSource): String? = sshCredentials(dataSource.id, dataSource.sshAuth)?.let { PasswordSafe.instance.getPassword(it) }
 
   fun addListener(parent: Disposable, listener: () -> Unit) {
     listeners.add(listener)
@@ -178,6 +214,13 @@ class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State> 
     fun getInstance(project: Project): DbDataSourceService = project.service()
 
     fun credentials(id: String): CredentialAttributes = CredentialAttributes(generateServiceName("Phantom DB", id))
+
+    /** The SSH password and the key passphrase are kept apart from the database password and from each other; the agent needs none. */
+    fun sshCredentials(id: String, auth: DbSshAuth): CredentialAttributes? = when (auth) {
+      DbSshAuth.PASSWORD -> CredentialAttributes(generateServiceName("Phantom DB SSH password", id))
+      DbSshAuth.KEY -> CredentialAttributes(generateServiceName("Phantom DB SSH passphrase", id))
+      DbSshAuth.AGENT -> null
+    }
 
     /**
      * What `dbms` holds on disk. 0.10.0 cannot read [Dbms.GENERIC] (its loader fails on the unknown value), so such a data
