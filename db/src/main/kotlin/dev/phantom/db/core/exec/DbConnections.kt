@@ -57,6 +57,8 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
   private class Session {
     val mutex = Mutex()
     var connection: Connection? = null
+    /** The SSH tunnel [connection] goes through, released when it closes. */
+    var lease: DbTunnelLease? = null
     var idleClose: Job? = null
     /** Where [connection] is, as far as console schema choices go. */
     var schema = DbSessionSchema()
@@ -65,6 +67,8 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
   private val loaders = ConcurrentHashMap<List<Path>, URLClassLoader>()
   private val drivers = ConcurrentHashMap<Pair<List<Path>, String>, Driver>()
   private val sessions = ConcurrentHashMap<Pair<String, Purpose>, Session>()
+  /** SSH tunnels of data sources that connect through one, shared by their sessions. */
+  internal val tunnels = DbTunnels(DbSshTunnelOpener(project))
 
   /**
    * Runs [block] with the data source's connection for [purpose], opening it when needed. Calls are serialized.
@@ -77,9 +81,9 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
       session.idleClose?.cancel()
       try {
         withContext(Dispatchers.IO) {
-          var connection = session.connection?.takeUnless { it.isClosed } ?: open(dataSource, null).also {
-            session.connection = it
-            session.schema = DbSessionSchema()
+          var connection = session.connection?.takeUnless { it.isClosed } ?: run {
+            closeQuietly(session)
+            openSession(dataSource, session).also { session.schema = DbSessionSchema() }
           }
           try {
             if (schema != null) connection = session.schema.use(dataSource.dialect(), connection, schema) { reopen(dataSource, session) }
@@ -163,20 +167,58 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
       session.idleClose?.cancel()
       cs.launch(Dispatchers.IO) { session.mutex.withLock { closeQuietly(session) } }
     }
+    // the tunnel closes once the connections through it are closed; a connection opened meanwhile gets a new one
+    tunnels.detach(dataSourceId)
   }
 
-  /** Opens a throwaway connection with [password] and reports the server and driver versions. Blocking. */
-  fun testConnection(dataSource: DbDataSource, password: String?): String {
-    // the dialog shows the error inline: no balloon on top of it
-    open(dataSource, password ?: "", notify = false).use { c ->
-      val md = c.metaData
-      return PhantomDbBundle.message("db.test.ok", "${md.databaseProductName} ${md.databaseProductVersion}",
-                                     "${md.driverName} ${md.driverVersion}")
+  /**
+   * Opens a throwaway connection with [password] and reports the server and driver versions. Blocking. Through an SSH
+   * tunnel of its own, signed in with [sshSecret], which is closed again with the connection.
+   */
+  fun testConnection(dataSource: DbDataSource, password: String?, sshSecret: String? = null): String {
+    var tunnel: DbTunnel? = null
+    try {
+      if (dataSource.sshEnabled) {
+        val definition = dataSource.driver()
+        tunnel = tunnels.throwaway(dataSource, DbTunnelUrls.target(connectionUrl(definition, dataSource), definition, dataSource), sshSecret)
+      }
+      // the dialog shows the error inline: no balloon on top of it
+      open(dataSource, password ?: "", notify = false, tunnel = tunnel).use { c ->
+        val md = c.metaData
+        return PhantomDbBundle.message("db.test.ok", "${md.databaseProductName} ${md.databaseProductVersion}",
+                                       "${md.driverName} ${md.driverVersion}")
+      }
+    }
+    finally {
+      tunnel?.close()
     }
   }
 
-  /** Blocking. A `null` [password] means the saved one. [notify]: a driver that cannot be found also shows a balloon. */
-  fun open(dataSource: DbDataSource, password: String?, notify: Boolean = true): Connection {
+  /** A session's connection; through the data source's shared tunnel, whose lease the session keeps until it closes. */
+  private fun openSession(dataSource: DbDataSource, session: Session): Connection {
+    var lease: DbTunnelLease? = null
+    try {
+      val connection = open(dataSource, null) { target ->
+        tunnels.acquire(dataSource, target) { DbDataSourceService.getInstance(project).sshSecret(dataSource) }.also { lease = it }.tunnel
+      }
+      session.connection = connection
+      session.lease = lease
+      return connection
+    }
+    catch (e: Throwable) {
+      lease?.release()
+      throw e
+    }
+  }
+
+  /**
+   * Blocking. A `null` [password] means the saved one. [notify]: a driver that cannot be found also shows a balloon.
+   * A data source with SSH goes through [tunnel] (Test Connection's own).
+   */
+  fun open(dataSource: DbDataSource, password: String?, notify: Boolean = true, tunnel: DbTunnel? = null): Connection =
+    open(dataSource, password, notify) { tunnel ?: throw IllegalStateException("an SSH data source connects through a tunnel") }
+
+  private fun open(dataSource: DbDataSource, password: String?, notify: Boolean = true, tunnel: (DbHostPort) -> DbTunnel): Connection {
     val definition = dataSource.driver()
     if (definition == null) {
       val name = dataSource.driverId?.takeIf { it.isNotEmpty() } ?: dataSource.url
@@ -192,8 +234,17 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
     val driver = drivers.computeIfAbsent(located.jars to definition.driverClass) { loadDriver(it.first, it.second) }
     val secret = (password ?: DbDataSourceService.getInstance(project).password(dataSource.id))?.takeIf { it.isNotEmpty() }
     val props = connectionProperties(definition, dataSource, secret)
+    var url = connectionUrl(definition, dataSource).trim()
+    if (dataSource.sshEnabled) {
+      val target = DbTunnelUrls.target(url, definition, dataSource)
+      // rewritten first: a URL the tunnel cannot be put into fails before a tunnel is opened
+      DbTunnelUrls.rewrite(url, target, 1)
+      // the Properties table still wins
+      DbSsl.tunnelProperties(definition, dataSource, target.host).forEach { (k, v) -> if (k !in dataSource.properties) props[k] = v }
+      url = DbTunnelUrls.rewrite(url, target, tunnel(target).localPort)
+    }
     // drivers that find others or load SDK parts through the context loader (AWS JDBC Wrapper, AWS SDK) must see their own jars
-    val connection = withContextClassLoader(driver.javaClass.classLoader) { driver.connect(connectionUrl(definition, dataSource).trim(), props) }
+    val connection = withContextClassLoader(driver.javaClass.classLoader) { driver.connect(url, props) }
                      ?: throw DbException(rejectedUrlMessage(definition, dataSource.url, located.description))
     if (dataSource.readOnly) runCatching { connection.isReadOnly = true }
     else if (dataSource.manualCommit) connection.autoCommit = false
@@ -220,7 +271,7 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
       throw DbException(PhantomDbBundle.message("db.schema.default.pending", dataSource.name))
     }
     closeQuietly(session)
-    return open(dataSource, null).also { session.connection = it }
+    return openSession(dataSource, session)
   }
 
   /** The console connection may have left the chosen schema (a typed USE, SET, COMMIT or ROLLBACK): choose it again before the next run. Under the session's lock. */
@@ -233,10 +284,14 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
 
   private fun closeQuietly(session: Session) {
     session.idleClose = null
-    val c = session.connection ?: return
+    val c = session.connection
     session.connection = null
-    runCatching { if (!c.autoCommit) c.rollback() }
-    runCatching { c.close() }
+    if (c != null) {
+      runCatching { if (!c.autoCommit) c.rollback() }
+      runCatching { c.close() }
+    }
+    session.lease?.release()
+    session.lease = null
   }
 
   override fun dispose() {
@@ -248,6 +303,7 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
       }
     }
     sessions.clear()
+    tunnels.closeAll()
     for (loader in loaders.values) {
       // MySQL Connector/J keeps a cleanup thread per loader; stop it so the loader can go
       runCatching { loader.loadClass("com.mysql.cj.jdbc.AbandonedConnectionCleanupThread").getMethod("checkedShutdown").invoke(null) }
@@ -364,6 +420,8 @@ internal fun DbConnectionService.Companion.connectionProperties(definition: DbDr
     Dbms.POSTGRESQL -> props["connectTimeout"] = DbConnectionService.LOGIN_TIMEOUT_SECONDS.toString()
     Dbms.H2, Dbms.GENERIC -> {}
   }
+  // the SSL settings, then the Properties table, which wins
+  props.putAll(DbSsl.properties(definition, dataSource))
   props.putAll(dataSource.properties)
   when (dataSource.authKind) {
     DbAuthKind.PASSWORD -> {
@@ -382,10 +440,10 @@ internal fun DbConnectionService.Companion.connectionProperties(definition: DbDr
   return props
 }
 
-internal fun connectionUrl(definition: DbDriverDefinition, dataSource: DbDataSource): String {
-  val url = dataSource.url
-  val from = definition.iamUrlFrom
-  val to = definition.iamUrlTo
+internal fun connectionUrl(definition: DbDriverDefinition?, dataSource: DbDataSource): String {
+  val url = dataSource.url.trim()
+  val from = definition?.iamUrlFrom
+  val to = definition?.iamUrlTo
   return if (dataSource.authKind == DbAuthKind.AWS_IAM && !from.isNullOrEmpty() && to != null && url.startsWith(from)) to + url.removePrefix(from) else url
 }
 

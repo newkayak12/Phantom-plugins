@@ -26,6 +26,11 @@
   selw, ins, upd, del, crt; Find Usages and Rename of tables, views and columns across .sql files, consoles and SQL
   strings (and JPA mappings), changing SQL text only, never the database; unknown tables and columns are reported with
   quick fixes.
+  Connections can go through an SSH tunnel (password, key file or OpenSSH agent; unknown host keys confirmed and added to
+  ~/.ssh/known_hosts) and use SSL (mode, CA, client certificate and key mapped to each driver's properties), set in the
+  SSH/SSL tab. Diagram on a schema or selected tables draws them with their foreign keys (pan, zoom, drag, PNG export);
+  Import Data from CSV on a table maps columns by header and inserts in batches in one transaction; Explain Plan shows
+  the plan as a tree with cost, rows and time and the costliest step highlighted.
   ]]></description>
 
   <dependencies>

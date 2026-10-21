@@ -20,6 +20,8 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
+import com.intellij.ui.components.JBTabbedPane
+import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.ActionLink
 import com.intellij.ui.CollectionComboBoxModel
 import com.intellij.ui.dsl.builder.Row
@@ -39,6 +41,9 @@ import dev.phantom.db.core.exec.DbConnectionService
 import dev.phantom.db.core.exec.DbTransactions
 import dev.phantom.db.core.exec.DbExecutor
 import dev.phantom.db.core.exec.DbMetadataCache
+import dev.phantom.db.core.exec.DbSsl
+import java.awt.BorderLayout
+import javax.swing.JPanel
 import java.sql.SQLException
 import javax.swing.JComponent
 import javax.swing.event.DocumentEvent
@@ -86,6 +91,39 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
   private val maxRowsField = JBIntSpinner(source.maxRows, 1, 10_000)
   private val timeoutField = JBIntSpinner(source.queryTimeoutSeconds, 0, 3_600)
   private val testResult = JBLabel(" ")
+  internal val sshBox = JBCheckBox(PhantomDbBundle.message("db.dialog.ssh.use"), source.sshEnabled)
+  internal val sshHostField = JBTextField(source.sshHost)
+  internal val sshPortField = JBIntSpinner(source.sshPort.takeIf { it in 1..65535 } ?: 22, 1, 65535)
+  internal val sshUserField = JBTextField(source.sshUser)
+  internal val sshAuthCombo = ComboBox(DbSshAuth.entries.toTypedArray()).apply {
+    selectedItem = source.sshAuth
+    renderer = textListCellRenderer { it?.let { kind -> PhantomDbBundle.message("db.dialog.ssh.auth.${kind.name.lowercase()}") } }
+  }
+  private val sshPasswordField = JBPasswordField()
+  internal val sshKeyField = TextFieldWithBrowseButton().apply {
+    text = source.sshKeyFile
+    addBrowseFolderListener(project, FileChooserDescriptorFactory.createSingleFileDescriptor().withShowHiddenFiles(true))
+  }
+  private val sshPassphraseField = JBPasswordField()
+  internal val sshRemoteHostField = JBTextField(source.sshRemoteHost)
+  internal val sshRemotePortField = JBTextField(source.sshRemotePort?.toString().orEmpty())
+  internal val sslBox = JBCheckBox(PhantomDbBundle.message("db.dialog.ssl.use"), source.sslEnabled)
+  internal val sslModeCombo = ComboBox(DbSslMode.entries.toTypedArray()).apply {
+    selectedItem = source.sslMode
+    renderer = textListCellRenderer { it?.let { mode -> PhantomDbBundle.message("db.dialog.ssl.mode.${mode.name.lowercase()}") } }
+  }
+  private val sslCaField = fileField(source.sslCaFile)
+  private val sslCertField = fileField(source.sslCertFile)
+  private val sslKeyField = fileField(source.sslKeyFile)
+  internal val sslHint = JBLabel(PhantomDbBundle.message("db.dialog.ssl.generic")).apply { foreground = UIUtil.getContextHelpForeground() }
+  private lateinit var sshPasswordRow: Row
+  private lateinit var sshKeyRow: Row
+  private lateinit var sshPassphraseRow: Row
+  private lateinit var sshAgentRow: Row
+  /** Typed in this dialog, per field: the SSH password and the key passphrase are saved apart. */
+  private val sshSecretEdited = HashSet<JBPasswordField>()
+  private val sslCaLabel = JBLabel(PhantomDbBundle.message("db.dialog.ssl.ca"))
+  private val sslCertLabel = JBLabel(PhantomDbBundle.message("db.dialog.ssl.cert"))
   private lateinit var passwordRow: Row
   private lateinit var awsProfileRow: Row
   private lateinit var awsRegionRow: Row
@@ -111,6 +149,17 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
         passwordEdited = true
       }
     })
+    for (field in listOf(sshPasswordField, sshPassphraseField)) {
+      if (!isNew) field.emptyText.text = PhantomDbBundle.message("db.dialog.password.saved")
+      field.document.addDocumentListener(object : DocumentAdapter() {
+        override fun textChanged(e: DocumentEvent) {
+          sshSecretEdited += field
+        }
+      })
+    }
+    sshAuthCombo.addActionListener { updateSshRows() }
+    sshBox.addActionListener { updateSshRows() }
+    sslBox.addActionListener { updateSslRows() }
     // an id this IDE does not know stays unselected (and saved as is) until the user picks a driver
     val initial = registry.find(source.driverId) ?: if (source.driverId.isNullOrEmpty()) source.driver() else null
     fillDrivers(initial?.id)
@@ -156,12 +205,104 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     init()
     updateAuthRows()
     updateUrlMode()
+    updateSshRows()
+    updateSslRows()
     refreshDriver()
   }
 
   override fun getPreferredFocusedComponent(): JComponent = if (isNew) urlField else passwordField
 
-  override fun createCenterPanel(): JComponent = panel {
+  override fun createCenterPanel(): JComponent {
+    val tabs = JBTabbedPane()
+    tabs.addTab(PhantomDbBundle.message("db.dialog.tab.general"), generalPanel())
+    tabs.addTab(PhantomDbBundle.message("db.dialog.tab.ssh"), sshSslPanel())
+    val bottom = panel {
+      row {
+        button(PhantomDbBundle.message("db.dialog.test")) { testConnection() }
+        cell(testResult).align(AlignX.FILL)
+      }
+    }
+    return JPanel(BorderLayout()).apply {
+      add(tabs, BorderLayout.CENTER)
+      add(bottom, BorderLayout.SOUTH)
+    }
+  }
+
+  private fun sshSslPanel(): JComponent = panel {
+    group(PhantomDbBundle.message("db.dialog.ssh")) {
+      row { cell(sshBox) }
+      row(PhantomDbBundle.message("db.dialog.ssh.host")) {
+        cell(sshHostField).align(AlignX.FILL)
+        label(PhantomDbBundle.message("db.dialog.port"))
+        cell(sshPortField)
+      }
+      row(PhantomDbBundle.message("db.dialog.user")) { cell(sshUserField).align(AlignX.FILL) }
+      row(PhantomDbBundle.message("db.dialog.auth")) { cell(sshAuthCombo) }
+      sshPasswordRow = row(PhantomDbBundle.message("db.dialog.password")) { cell(sshPasswordField).align(AlignX.FILL) }
+      sshKeyRow = row(PhantomDbBundle.message("db.dialog.ssh.key")) { cell(sshKeyField).align(AlignX.FILL) }
+      sshPassphraseRow = row(PhantomDbBundle.message("db.dialog.ssh.passphrase")) { cell(sshPassphraseField).align(AlignX.FILL) }
+      sshAgentRow = row("") { comment(PhantomDbBundle.message("db.dialog.ssh.agent.hint")) }
+      row(PhantomDbBundle.message("db.dialog.ssh.remote")) {
+        cell(sshRemoteHostField).align(AlignX.FILL)
+        label(PhantomDbBundle.message("db.dialog.port"))
+        cell(sshRemotePortField).columns(6)
+      }.rowComment(PhantomDbBundle.message("db.dialog.ssh.remote.hint"))
+    }
+    group(PhantomDbBundle.message("db.dialog.ssl")) {
+      row { cell(sslBox) }
+      row { cell(sslHint) }
+      row(PhantomDbBundle.message("db.dialog.ssl.mode")) { cell(sslModeCombo) }
+      row(sslCaLabel) { cell(sslCaField).align(AlignX.FILL) }
+      row(sslCertLabel) { cell(sslCertField).align(AlignX.FILL) }
+      row(PhantomDbBundle.message("db.dialog.ssl.key")) { cell(sslKeyField).align(AlignX.FILL) }
+    }
+  }
+
+  private fun fileField(path: String) = TextFieldWithBrowseButton().apply {
+    text = path
+    addBrowseFolderListener(project, FileChooserDescriptorFactory.createSingleFileDescriptor())
+  }
+
+  private fun updateSshRows() {
+    if (!::sshPasswordRow.isInitialized) return
+    val on = sshBox.isSelected
+    val auth = sshAuthCombo.selectedItem as DbSshAuth
+    for (c in listOf(sshHostField, sshPortField, sshUserField, sshAuthCombo, sshPasswordField, sshKeyField, sshPassphraseField, sshRemoteHostField, sshRemotePortField)) {
+      c.isEnabled = on
+    }
+    sshPasswordRow.visible(auth == DbSshAuth.PASSWORD)
+    sshKeyRow.visible(auth == DbSshAuth.KEY)
+    sshPassphraseRow.visible(auth == DbSshAuth.KEY)
+    sshAgentRow.visible(auth == DbSshAuth.AGENT)
+  }
+
+  /** The driver's SSL mapping decides what can be set; a driver without one points at the Properties table. */
+  private fun updateSslRows() {
+    val driver = selectedDriver()
+    val supported = DbSsl.supports(driver)
+    sslHint.isVisible = !supported
+    sslBox.isEnabled = supported
+    val on = supported && sslBox.isSelected
+    sslModeCombo.isEnabled = on
+    sslCaField.isEnabled = on && DbSsl.takesFile(driver, DbSsl.CA)
+    sslCertField.isEnabled = on && DbSsl.takesFile(driver, DbSsl.CERT)
+    sslKeyField.isEnabled = on && DbSsl.takesFile(driver, DbSsl.KEY)
+    // MySQL Connector/J (and MariaDB's client certificate) take Java keystores, not PEM files
+    sslCaLabel.text = PhantomDbBundle.message(if (DbSsl.isKeystore(driver, DbSsl.CA)) "db.dialog.ssl.ca.keystore" else "db.dialog.ssl.ca")
+    sslCertLabel.text = PhantomDbBundle.message(if (DbSsl.isKeystore(driver, DbSsl.CERT)) "db.dialog.ssl.cert.keystore" else "db.dialog.ssl.cert")
+  }
+
+  /** The SSH password or key passphrase typed in the dialog; `null`: unchanged (the saved one). */
+  private fun typedSshSecret(): CharArray? {
+    val field = when (sshAuthCombo.selectedItem as DbSshAuth) {
+      DbSshAuth.PASSWORD -> sshPasswordField
+      DbSshAuth.KEY -> sshPassphraseField
+      DbSshAuth.AGENT -> return null
+    }
+    return if (isNew || field in sshSecretEdited) field.password else null
+  }
+
+  private fun generalPanel(): JComponent = panel {
     row(PhantomDbBundle.message("db.dialog.name")) { cell(nameField).align(AlignX.FILL).comment(PhantomDbBundle.message("db.dialog.name.hint")) }
     row(PhantomDbBundle.message("db.dialog.color")) { cell(colorCombo) }
     row(PhantomDbBundle.message("db.dialog.driver")) {
@@ -200,10 +341,6 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     collapsibleGroup(PhantomDbBundle.message("db.dialog.properties")) {
       row { cell(properties.component).align(AlignX.FILL).comment(PhantomDbBundle.message("db.dialog.properties.hint")) }
     }
-    row {
-      button(PhantomDbBundle.message("db.dialog.test")) { testConnection() }
-      cell(testResult).align(AlignX.FILL)
-    }
   }
 
   public override fun doValidate(): ValidationInfo? {
@@ -213,6 +350,18 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     }
     val url = urlField.text.trim()
     if (!url.startsWith("jdbc:", ignoreCase = true)) return ValidationInfo(PhantomDbBundle.message("db.dialog.url.invalid"), urlField)
+    if (sshBox.isSelected) {
+      if (sshHostField.text.isBlank()) return ValidationInfo(PhantomDbBundle.message("db.ssh.host.required"), sshHostField)
+      val port = sshRemotePortField.text.trim()
+      if (port.isNotEmpty() && port.toIntOrNull()?.takeIf { it in 1..65535 } == null) {
+        return ValidationInfo(PhantomDbBundle.message("db.dialog.ssh.remote.port.invalid"), sshRemotePortField)
+      }
+      if (sshAuthCombo.selectedItem == DbSshAuth.KEY && sshKeyField.text.isBlank()) return ValidationInfo(PhantomDbBundle.message("db.ssh.key.required"), sshKeyField.textField)
+    }
+    // through a tunnel the URL names 127.0.0.1, which a certificate checked against the host name never matches
+    if (DbSsl.verifyFullBreaksWithTunnel(selectedDriver(), current())) {
+      return ValidationInfo(PhantomDbBundle.message("db.dialog.ssl.verify.full.tunnel"), sslModeCombo).asWarning().withOKEnabled()
+    }
     return null
   }
 
@@ -233,6 +382,19 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     driverJars = this@DbDataSourceDialog.driverJars.toMutableList()
     maxRows = maxRowsField.number
     queryTimeoutSeconds = timeoutField.number
+    sshEnabled = sshBox.isSelected
+    sshHost = sshHostField.text.trim()
+    sshPort = sshPortField.number
+    sshUser = sshUserField.text.trim()
+    sshAuth = sshAuthCombo.selectedItem as DbSshAuth
+    sshKeyFile = sshKeyField.text.trim()
+    sshRemoteHost = sshRemoteHostField.text.trim()
+    sshRemotePort = sshRemotePortField.text.trim().toIntOrNull()
+    sslEnabled = sslBox.isSelected
+    sslMode = sslModeCombo.selectedItem as DbSslMode
+    sslCaFile = sslCaField.text.trim()
+    sslCertFile = sslCertField.text.trim()
+    sslKeyFile = sslKeyField.text.trim()
   }
 
   private fun selectedDriver(): DbDriverDefinition? = driverCombo.selectedItem as? DbDriverDefinition
@@ -277,6 +439,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     shownDriver = chosen
     updateAuthKinds()
     updateUrlMode()
+    updateSslRows()
     refreshDriver()
   }
 
@@ -390,6 +553,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
   private fun testConnection() {
     val probe = current()
     val typed = if (passwordEdited || isNew) String(passwordField.password) else null
+    val typedSsh = typedSshSecret()?.let { String(it) }
     testResult.text = " "
     var result: String? = null
     var error: String? = null
@@ -398,7 +562,8 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
         try {
           downloadIfMissing(project, probe, indicator)
           val password = typed ?: DbDataSourceService.getInstance(project).password(probe.id)
-          result = DbConnectionService.getInstance(project).testConnection(probe, password)
+          val sshSecret = if (!probe.sshEnabled) null else typedSsh ?: DbDataSourceService.getInstance(project).sshSecret(probe)
+          result = DbConnectionService.getInstance(project).testConnection(probe, password, sshSecret)
         }
         catch (e: ProcessCanceledException) {
           throw e
@@ -421,7 +586,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     if (!isNew && !DbTransactions.endOrKeep(project, current(), title)) return
     val saved = current()
     val password = if (passwordEdited || isNew) passwordField.password else null
-    DbDataSourceService.getInstance(project).save(saved, password)
+    DbDataSourceService.getInstance(project).save(saved, password, typedSshSecret())
     DbConnectionService.getInstance(project).disconnect(saved.id)
     if (saved.manualCommit && !saved.readOnly) DbChangesToolWindowFactory.ensureRegistered(project)
     DbMetadataCache.getInstanceIfCreated(project)?.invalidate(saved.id)

@@ -4,7 +4,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.14.0"
+version = "0.15.0"
 
 dependencies {
   intellijPlatform {
@@ -16,6 +16,7 @@ dependencies {
     bundledModule("intellij.grid")
     bundledModule("intellij.grid.core.impl")
     bundledModule("intellij.grid.impl")
+    bundledModule("intellij.libraries.sshj")
   }
 }
 

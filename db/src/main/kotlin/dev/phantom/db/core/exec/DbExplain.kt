@@ -12,16 +12,20 @@ import dev.phantom.db.core.Dbms
 import dev.phantom.db.core.PhantomDbBundle
 import dev.phantom.db.core.SqlFile
 
-/** EXPLAIN in each database's own form; ANALYZE runs the statement and reports the real plan. */
+/**
+ * EXPLAIN in each database's own form; ANALYZE runs the statement and reports the real plan. The forms a plan tree can be
+ * read from: JSON for PostgreSQL and MySQL/MariaDB, MySQL's EXPLAIN ANALYZE tree, H2's text.
+ */
 object DbExplain {
   /** `null` for a database without a dialect. */
   fun sql(dbms: Dbms, statement: String, analyze: Boolean): String? {
     val body = statement.trim().removeSuffix(";").trim()
     return when (dbms) {
-      Dbms.MYSQL -> if (analyze) "EXPLAIN ANALYZE $body" else "EXPLAIN $body"
+      // EXPLAIN ANALYZE prints MySQL's tree; it has no JSON form
+      Dbms.MYSQL -> if (analyze) "EXPLAIN ANALYZE $body" else "EXPLAIN FORMAT=JSON $body"
       // MariaDB spells it ANALYZE <statement>
-      Dbms.MARIADB -> if (analyze) "ANALYZE $body" else "EXPLAIN $body"
-      Dbms.POSTGRESQL -> if (analyze) "EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) $body" else "EXPLAIN (FORMAT TEXT) $body"
+      Dbms.MARIADB -> if (analyze) "ANALYZE FORMAT=JSON $body" else "EXPLAIN FORMAT=JSON $body"
+      Dbms.POSTGRESQL -> if (analyze) "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) $body" else "EXPLAIN (FORMAT JSON) $body"
       Dbms.H2 -> if (analyze) "EXPLAIN ANALYZE $body" else "EXPLAIN $body"
       Dbms.GENERIC -> null
     }
@@ -43,7 +47,7 @@ abstract class DbExplainAction(private val analyze: Boolean) : DumbAwareAction()
     val project = e.project ?: return
     val file = (e.getData(CommonDataKeys.PSI_FILE) as? SqlFile)?.virtualFile ?: return
     val statement = statement(e) ?: return
-    DbRunner.run(project, file, listOf(statement), e.getData(PlatformCoreDataKeys.CONTEXT_COMPONENT)) { dataSource ->
+    DbRunner.run(project, file, listOf(statement), e.getData(PlatformCoreDataKeys.CONTEXT_COMPONENT), present = { panel, outcomes -> panel.showPlan(outcomes) }) { dataSource ->
       if (analyze && SqlSafety.changesData(statement)) {
         if (dataSource.readOnly) {
           Messages.showErrorDialog(project, PhantomDbBundle.message("db.safety.read.only", dataSource.name, SqlSafety.preview(statement)),

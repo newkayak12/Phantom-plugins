@@ -217,6 +217,14 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       action("db.action.select.text", AllIcons.Debugger.Console, { selectedNode() is DbNode.Table }) {
         (selectedNode() as? DbNode.Table)?.let { openConsole(it.dataSource, selectAll(it)) }
       },
+      action("db.action.import.csv.text", AllIcons.ToolbarDecorator.Import, {
+        (selectedNode() as? DbNode.Table)?.let { !it.ref.isView && !it.dataSource.readOnly } == true
+      }) {
+        (selectedNode() as? DbNode.Table)?.let { DbCsvImportDialog.start(project, it.dataSource, it.ref) }
+      },
+      action("db.action.diagram.text", AllIcons.FileTypes.Diagram, { diagramTarget() != null }) {
+        diagramTarget()?.let { (ds, schema, tables) -> DbDiagrams.open(project, ds, schema, tables) }
+      },
       action("db.action.entity.text", AllIcons.Nodes.Class, { selectedNode() is DbNode.Table }) {
         (selectedNode() as? DbNode.Table)?.let { DbEntityGenerator.start(project, it.dataSource, it.ref) }
       },
@@ -525,6 +533,20 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
   }
 
   private fun selectedNode(): DbNode? = (tree.selectionPath?.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? DbNode
+
+  /** A diagram of the selected schema, or of the selected tables of one data source (null: all of their schema). */
+  internal fun diagramTarget(): Triple<DbDataSource, DbSchemaRef, List<DbTableRef>?>? {
+    val nodes = tree.selectionPaths.orEmpty().mapNotNull { (it.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? DbNode }
+    val tables = nodes.filterIsInstance<DbNode.Table>()
+    if (tables.isNotEmpty() && tables.size == nodes.size) {
+      val ds = tables.first().dataSource
+      if (tables.any { it.dataSource.id != ds.id }) return null
+      val ref = tables.first().ref
+      return Triple(ds, DbSchemaRef(ds.id, ref.catalog, ref.schema), tables.map { it.ref })
+    }
+    val schema = nodes.singleOrNull() as? DbNode.Schema ?: return null
+    return Triple(schema.dataSource, schema.ref, null)
+  }
 
   /** The data source of the selected node or one of its parents. */
   fun selectedSource(): DbDataSource? = selectedAncestor<DbNode.Source>()?.dataSource

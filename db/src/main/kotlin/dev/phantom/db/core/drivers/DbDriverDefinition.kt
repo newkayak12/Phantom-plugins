@@ -38,6 +38,13 @@ class DbDriverDefinition {
   /** URL prefix rewrite applied when the data source authenticates with AWS IAM. */
   var iamUrlFrom: String? = null
   var iamUrlTo: String? = null
+  /**
+   * How the data source's SSL settings become this driver's properties. Keys: `enable` (always when SSL is on), the modes
+   * `require`, `verify-ca`, `verify-full`, and the files `ca`, `cert`, `key`. Values: `name=value` pairs split by `;`, where
+   * `{file}` stands for the chosen file. Empty: the driver has no SSL settings here; use the Properties table.
+   */
+  @MapAnnotation
+  var sslProperties: MutableMap<String, String> = LinkedHashMap()
   var dialect: Dbms = Dbms.GENERIC
   /** Pinned after a download. */
   var resolvedVersion: String? = null
@@ -49,7 +56,7 @@ class DbDriverDefinition {
     it.id = id; it.name = name; it.builtIn = builtIn; it.icon = icon; it.driverClass = driverClass; it.urlTemplate = urlTemplate; it.defaultPort = defaultPort
     it.urlPrefixes = ArrayList(urlPrefixes); it.artifacts = ArrayList(artifacts); it.artifactsAreAlternatives = artifactsAreAlternatives; it.files = ArrayList(files)
     it.defaultProperties = LinkedHashMap(defaultProperties); it.iamProperties = LinkedHashMap(iamProperties)
-    it.iamUrlFrom = iamUrlFrom; it.iamUrlTo = iamUrlTo; it.dialect = dialect
+    it.iamUrlFrom = iamUrlFrom; it.iamUrlTo = iamUrlTo; it.dialect = dialect; it.sslProperties = LinkedHashMap(sslProperties)
     it.resolvedVersion = resolvedVersion; it.resolvedJars = ArrayList(resolvedJars)
   }
 
