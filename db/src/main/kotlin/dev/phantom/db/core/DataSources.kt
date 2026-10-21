@@ -264,9 +264,16 @@ object DbDrivers {
     return names.any { isDriverLibraryName(it) }
   }
 
-  /** True when [name] (like `Gradle: group:artifact:1.0`) contains `group:artifact` of a built-in driver's artifacts. */
-  internal fun isDriverLibraryName(name: String): Boolean =
-    DbDriverRegistry.builtIns.any { d -> d.artifacts.any { name.contains(it.split(':').take(2).joinToString(":")) } }
+  /**
+   * True when [name] (like `Gradle: group:artifact:1.0`) contains `group:artifact` of a built-in driver's own jar: every
+   * alternative name, else the first artifact. Helpers such as the AWS SDK's `rds` alone do not make a database project.
+   */
+  internal fun isDriverLibraryName(name: String): Boolean = driverRoots.any { name.contains(it) }
+
+  private val driverRoots: List<String> by lazy {
+    DbDriverRegistry.builtIns.flatMap { d -> if (d.artifactsAreAlternatives) d.artifacts else d.artifacts.take(1) }
+      .map { it.split(':').take(2).joinToString(":") }.distinct()
+  }
 
   internal fun versionOf(jarName: String, artifacts: List<String>): String? {
     for (coordinates in artifacts) {

@@ -256,10 +256,22 @@ class DbDriverRegistryTest : BasePlatformTestCase() {
     service.remove("r")
   }
 
+  fun testMarketplaceDetectsEveryDriverRoot() {
+    val marketplace = java.io.File("../.phantom/marketplace.json").readText()
+    val db = marketplace.substring(marketplace.indexOf("\"id\": \"dev.phantom.db\""), marketplace.indexOf("\"id\": \"dev.phantom.spring\""))
+    assertTrue(db.contains("\"version\": \"0.11.0\""))
+    for (d in DbDriverRegistry.builtIns) {
+      for (root in if (d.artifactsAreAlternatives) d.artifacts else d.artifacts.take(1)) assertTrue(root, db.contains("\"$root\""))
+    }
+    assertFalse(db.contains("software.amazon.awssdk:rds"))
+  }
+
   fun testSuggestionSeesAwsWrapper() {
     assertTrue(dev.phantom.db.core.DbDrivers.isDriverLibraryName("Gradle: software.amazon.jdbc:aws-advanced-jdbc-wrapper:2.5.0"))
     assertTrue(dev.phantom.db.core.DbDrivers.isDriverLibraryName("Gradle: com.mysql:mysql-connector-j:8.4.0"))
     assertFalse(dev.phantom.db.core.DbDrivers.isDriverLibraryName("Gradle: org.slf4j:slf4j-api:2.0.0"))
+    assertTrue(dev.phantom.db.core.DbDrivers.isDriverLibraryName("Gradle: com.amazon.redshift:redshift-jdbc42:2.1.0.30"))
+    assertFalse("an SDK helper alone is no driver", dev.phantom.db.core.DbDrivers.isDriverLibraryName("Gradle: software.amazon.awssdk:rds:2.25.0"))
   }
 }
 
