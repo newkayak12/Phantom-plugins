@@ -56,6 +56,13 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
   }
 
   private val nameField = JBTextField(source.name)
+  internal val colorCombo = ComboBox(DbColors.keys.toTypedArray()).apply {
+    selectedItem = source.color.takeIf { it in DbColors.keys } ?: ""
+    renderer = listCellRenderer<String> {
+      text(DbColors.displayName(value))
+      icon(DbColors.swatch(value))
+    }
+  }
   internal val driverCombo = ComboBox<DbDriverDefinition>().apply { renderer = driverRenderer { driverItems().firstOrNull { !it.builtIn } } }
   internal val urlField = JBTextField(source.url)
   private val userField = JBTextField(source.user)
@@ -156,6 +163,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
 
   override fun createCenterPanel(): JComponent = panel {
     row(PhantomDbBundle.message("db.dialog.name")) { cell(nameField).align(AlignX.FILL).comment(PhantomDbBundle.message("db.dialog.name.hint")) }
+    row(PhantomDbBundle.message("db.dialog.color")) { cell(colorCombo) }
     row(PhantomDbBundle.message("db.dialog.driver")) {
       cell(driverCombo)
       link(PhantomDbBundle.message("db.dialog.drivers")) { openDrivers() }
@@ -221,6 +229,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     properties = LinkedHashMap(this@DbDataSourceDialog.properties.values)
     readOnly = readOnlyBox.isSelected
     manualCommit = manualCommitBox.isSelected
+    color = colorCombo.selectedItem as String
     driverJars = this@DbDataSourceDialog.driverJars.toMutableList()
     maxRows = maxRowsField.number
     queryTimeoutSeconds = timeoutField.number

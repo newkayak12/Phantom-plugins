@@ -104,7 +104,13 @@ sealed interface DbNode {
 class DbExplorerPanel(private val project: Project, parent: Disposable) : SimpleToolWindowPanel(true, true) {
   private val root = DefaultMutableTreeNode()
   private val model = DefaultTreeModel(root)
-  val tree: Tree = Tree(model)
+  val tree: Tree = object : Tree(model) {
+    /** Rows of a colored data source, its own and all below it, get its tint. */
+    override fun getPathBackground(path: TreePath, row: Int): java.awt.Color? {
+      val source = ((path.path.getOrNull(1) as? DefaultMutableTreeNode)?.userObject as? DbNode.Source)?.dataSource
+      return DbColors.tint(source?.color) ?: super.getPathBackground(path, row)
+    }
+  }
   private val loading = HashSet<DefaultMutableTreeNode>()
 
   init {

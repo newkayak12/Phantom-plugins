@@ -15,6 +15,7 @@ import dev.phantom.db.core.drivers.DbDriverRegistry
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import org.jetbrains.annotations.TestOnly
 import java.net.URLClassLoader
 import java.nio.file.Path
 import java.sql.*
@@ -57,24 +58,36 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
     val mutex = Mutex()
     var connection: Connection? = null
     var idleClose: Job? = null
+    /** Where [connection] is, as far as console schema choices go. */
+    var schema = DbSessionSchema()
   }
 
   private val loaders = ConcurrentHashMap<List<Path>, URLClassLoader>()
   private val drivers = ConcurrentHashMap<Pair<List<Path>, String>, Driver>()
   private val sessions = ConcurrentHashMap<Pair<String, Purpose>, Session>()
 
-  /** Runs [block] with the data source's connection for [purpose], opening it when needed. Calls are serialized. */
-  suspend fun <T> withConnection(dataSource: DbDataSource, purpose: Purpose, block: suspend (Connection) -> T): T {
+  /**
+   * Runs [block] with the data source's connection for [purpose], opening it when needed. Calls are serialized.
+   * [schema]: the schema (catalog in MySQL) to run in first, [DbSchemaChoice.DEFAULT] for the one the connection opened
+   * in, null to leave it where it is.
+   */
+  suspend fun <T> withConnection(dataSource: DbDataSource, purpose: Purpose, schema: DbSchemaChoice? = null, block: suspend (Connection) -> T): T {
     val session = sessions.computeIfAbsent(dataSource.id to purpose) { Session() }
     return session.mutex.withLock {
       session.idleClose?.cancel()
       try {
         withContext(Dispatchers.IO) {
-          val connection = session.connection?.takeUnless { it.isClosed } ?: open(dataSource, null).also { session.connection = it }
+          var connection = session.connection?.takeUnless { it.isClosed } ?: open(dataSource, null).also {
+            session.connection = it
+            session.schema = DbSessionSchema()
+          }
           try {
+            if (schema != null) connection = session.schema.use(dataSource.dialect(), connection, schema) { reopen(dataSource, session) }
             block(connection)
           }
           catch (e: SQLException) {
+            // a failure can abort the transaction, and with it a schema switch made inside it (PostgreSQL's search_path)
+            if (!runCatching { connection.autoCommit }.getOrDefault(true)) session.schema.forget()
             if (!runCatching { connection.isValid(2) }.getOrDefault(false)) {
               closeQuietly(session)
               // a lost connection takes its open transaction with it
@@ -120,6 +133,8 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
           DbPendingChanges.getInstanceIfCreated(project)?.discard(dataSource.id)
           throw DbException(PhantomDbBundle.message("db.changes.connection.lost", dataSource.name))
         }
+        // a schema switch made inside the transaction ends with it
+        session.schema.forget()
         if (commit) connection.commit() else connection.rollback()
         DbPendingChanges.getInstanceIfCreated(project)?.discard(dataSource.id)
       }
@@ -199,6 +214,23 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
     }
   }
 
+  /** A new console connection, to get back to "no schema"; an open transaction would be lost, so not then. */
+  private fun reopen(dataSource: DbDataSource, session: Session): Connection {
+    if (DbPendingChanges.getInstanceIfCreated(project)?.hasPending(dataSource.id) == true) {
+      throw DbException(PhantomDbBundle.message("db.schema.default.pending", dataSource.name))
+    }
+    closeQuietly(session)
+    return open(dataSource, null).also { session.connection = it }
+  }
+
+  /** The console connection may have left the chosen schema (a typed USE, SET, COMMIT or ROLLBACK): choose it again before the next run. Under the session's lock. */
+  internal fun forgetSchema(dataSourceId: String) {
+    sessions[dataSourceId to Purpose.CONSOLE]?.schema?.forget()
+  }
+
+  @TestOnly
+  internal fun appliedSchema(dataSourceId: String): DbSchemaChoice? = sessions[dataSourceId to Purpose.CONSOLE]?.schema?.applied
+
   private fun closeQuietly(session: Session) {
     session.idleClose = null
     val c = session.connection ?: return
@@ -230,6 +262,82 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
     internal const val LOGIN_TIMEOUT_SECONDS = 15
 
     fun getInstance(project: Project): DbConnectionService = project.service()
+  }
+}
+
+/**
+ * Whether choosing a console schema sets the connection's catalog (MySQL, MariaDB; another JDBC driver that has
+ * catalogs but no schemas) rather than its schema.
+ */
+internal fun switchesCatalog(dialect: Dbms, md: () -> DatabaseMetaData): Boolean = when {
+  dialect.usesCatalogs -> true
+  dialect != Dbms.GENERIC -> false
+  else -> runCatching { md().let { !it.supportsSchemasInDataManipulation() && it.supportsCatalogsInDataManipulation() } }.getOrDefault(false)
+}
+
+/** A schema a console runs in. [catalog] tells apart schemas of one name in several catalogs; an empty [name] is the connection's default. */
+data class DbSchemaChoice(val name: String, val catalog: String? = null) {
+  val isDefault: Boolean get() = name.isEmpty()
+
+  companion object {
+    val DEFAULT: DbSchemaChoice = DbSchemaChoice("")
+  }
+}
+
+/** Where a console connection is, so a console's schema choice is applied only when it changes. Used under the session's lock. */
+internal class DbSessionSchema {
+  /** The choice applied last; null when not known (after a rollback, a typed USE or SET, a failure inside a transaction). */
+  @Volatile
+  var applied: DbSchemaChoice? = DbSchemaChoice.DEFAULT
+    private set
+
+  /** Catalog and schema the connection opened in, read before the first switch. */
+  private var openedIn: Pair<String?, String?>? = null
+
+  fun forget() {
+    applied = null
+  }
+
+  /**
+   * Puts [connection] in [choice] and returns the connection to go on with: [reopen]'s when the default is no schema at
+   * all (a MySQL URL without a database), where only a new connection gets back to. Throws when the driver ignores it.
+   */
+  fun use(dialect: Dbms, connection: Connection, choice: DbSchemaChoice, reopen: () -> Connection): Connection {
+    if (choice == applied) return connection
+    val catalogs = switchesCatalog(dialect) { connection.metaData }
+    val opened = openedIn ?: (read { connection.catalog } to read { connection.schema }).also { openedIn = it }
+    val target = if (!choice.isDefault) choice.name else if (catalogs) opened.first else opened.second
+    if (target.isNullOrEmpty()) {
+      return reopen().also {
+        applied = DbSchemaChoice.DEFAULT
+        openedIn = null
+      }
+    }
+    try {
+      if (catalogs) connection.catalog = target
+      else {
+        val catalog = if (choice.isDefault) opened.first else choice.catalog
+        if (catalog != null && !catalog.equals(read { connection.catalog }, ignoreCase = true)) connection.catalog = catalog
+        connection.schema = target
+      }
+    }
+    catch (_: AbstractMethodError) {
+      // a driver older than JDBC 4.1
+      throw DbException(PhantomDbBundle.message("db.schema.unsupported", target))
+    }
+    // some drivers accept the call and stay where they are (SQL Server warns, SQLite ignores it)
+    val now = read { if (catalogs) connection.catalog else connection.schema }
+    if (!target.equals(now, ignoreCase = true)) throw DbException(PhantomDbBundle.message("db.schema.unsupported", target))
+    applied = choice
+    return connection
+  }
+
+  /** Pre-4.1 drivers lack the getters (AbstractMethodError); others may throw. */
+  private inline fun read(get: () -> String?): String? = try {
+    get()
+  }
+  catch (_: Throwable) {
+    null
   }
 }
 
@@ -294,16 +402,25 @@ internal fun rejectedUrlMessage(definition: DbDriverDefinition, url: String, dri
 object DbExecutor {
   private val LOG = logger<DbExecutor>()
   private const val LOB_LIMIT = 4096
+  /** Typed statements after which the console connection may be in another schema. */
+  private val LEAVES_SCHEMA = setOf("USE", "SET", "COMMIT", "ROLLBACK")
 
-  /** Runs [statements] in order and stops at the first failure. Cancelling the coroutine cancels the running statement. */
-  suspend fun execute(project: Project, dataSource: DbDataSource, statements: List<String>, onOutcome: suspend (DbOutcome) -> Unit = {}): List<DbOutcome> {
+  /**
+   * Runs [statements] in order and stops at the first failure. Cancelling the coroutine cancels the running statement.
+   * [schema] as in [DbConnectionService.withConnection]; a schema that cannot be chosen throws its [SQLException] or a [DbException].
+   */
+  suspend fun execute(project: Project, dataSource: DbDataSource, statements: List<String>, schema: DbSchemaChoice? = null,
+                      onOutcome: suspend (DbOutcome) -> Unit = {}): List<DbOutcome> {
     val outcomes = ArrayList<DbOutcome>()
-    DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.CONSOLE) { connection ->
+    DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.CONSOLE, schema) { connection ->
       for (sql in statements) {
         val outcome = runOne(connection, dataSource, sql)
         outcomes.addAll(outcome)
         outcome.forEach { DbQueryHistory.getInstance(project).record(dataSource, it) }
         outcome.forEach { onOutcome(it) }
+        if (SqlSafety.firstKeyword(sql) in LEAVES_SCHEMA || (!connection.autoCommit && outcome.any { it is DbOutcome.Failed })) {
+          DbConnectionService.getInstance(project).forgetSchema(dataSource.id)
+        }
         if (outcome.any { it is DbOutcome.Failed }) break
         if (outcome.any { it is DbOutcome.Updated } && SqlSafety.isDdl(sql)) {
           DbMetadataCache.getInstanceIfCreated(project)?.invalidate(dataSource.id)
@@ -479,8 +596,9 @@ class DbMetadataCache(private val project: Project) {
   private val columns = ConcurrentHashMap<DbTableRef, List<DbColumnInfo>>()
 
   suspend fun schemas(dataSource: DbDataSource): List<DbSchemaRef> = schemas[dataSource.id] ?: metadata(dataSource) { md, c ->
-    val current = if (dataSource.dialect().usesCatalogs) c.catalog else runCatching { c.schema }.getOrNull()
-    val all = if (dataSource.dialect().usesCatalogs) {
+    val catalogs = switchesCatalog(dataSource.dialect()) { md }
+    val current = if (catalogs) c.catalog else runCatching { c.schema }.getOrNull()
+    val all = if (catalogs) {
       md.catalogs.use { rs -> generateSequence { if (rs.next()) DbSchemaRef(dataSource.id, rs.getString(1), null) else null }.toList() }
     }
     else {

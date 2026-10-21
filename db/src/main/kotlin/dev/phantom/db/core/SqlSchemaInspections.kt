@@ -18,7 +18,7 @@ abstract class SqlSchemaInspection : SqlInspection() {
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
     val file = holder.file as? SqlFile ?: return PsiElementVisitor.EMPTY_VISITOR
     val dataSource = SqlSchema.dataSourceFor(file, strict = true) ?: return PsiElementVisitor.EMPTY_VISITOR
-    if (SqlSchema.getInstance(file.project).snapshot(dataSource) == null) return PsiElementVisitor.EMPTY_VISITOR
+    if (SqlSchema.getInstance(file.project).snapshotFor(file, dataSource) == null) return PsiElementVisitor.EMPTY_VISITOR
     return super.buildVisitor(holder, isOnTheFly)
   }
 

@@ -44,7 +44,7 @@ import javax.swing.JPanel
  * edit in place; its popup and Ctrl+B follow foreign keys to the referenced row and back.
  */
 class DbTableDataView(private val project: Project, dataSource: DbDataSource, val table: DbTableRef) : JPanel(BorderLayout()), Disposable {
-  private val dataSourceId = dataSource.id
+  internal val dataSourceId = dataSource.id
   private val fallback = dataSource
   private val key = "${dataSource.id}|${table.catalog}|${table.schema}|${table.name}"
   private val where = TextFieldWithStoredHistory("phantom.db.where:$key")

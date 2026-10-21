@@ -48,7 +48,7 @@ class SqlDbTarget(private val context: PsiElement, val dataSource: DbDataSource,
 object SqlResolver {
   private fun schema(element: PsiElement, load: Boolean): Pair<DbDataSource, SqlSchemaSnapshot>? {
     val ds = SqlSchema.dataSourceFor(element.containingFile, strict = false) ?: return null
-    return ds to (SqlSchema.getInstance(element.project).snapshot(ds, load) ?: return null)
+    return ds to (SqlSchema.getInstance(element.project).snapshotFor(element.containingFile, ds, load) ?: return null)
   }
 
   fun table(ref: SqlTableRef, load: Boolean = true): SqlResolution {
@@ -60,7 +60,7 @@ object SqlResolver {
     else {
       // a schema the cache does not list (information_schema, pg_catalog): nothing to say
       val schema = current.schema(schemaName) ?: return SqlResolution.Unknown
-      SqlSchema.getInstance(ref.project).withSchema(ds, schema, load) ?: return SqlResolution.Unknown
+      SqlSchema.getInstance(ref.project).withSchema(ds, schema, load, SqlSchema.schemaFor(ref.containingFile)) ?: return SqlResolution.Unknown
     }
     val table = snapshot.find(name, schemaName).firstOrNull() ?: return SqlResolution.Missing
     return SqlResolution.Found(SqlDbTarget(ref, ds, table, null))
@@ -152,7 +152,7 @@ class SqlUnresolvedAnnotator : Annotator {
     if (statement.firstKeyword !in CHECKED) return
     val file = element.containingFile
     val ds = SqlSchema.dataSourceFor(file, strict = true) ?: return
-    if (SqlSchema.getInstance(element.project).snapshot(ds) == null) return
+    if (SqlSchema.getInstance(element.project).snapshotFor(file, ds) == null) return
     val (resolution, message, range) = when (element) {
       is SqlTableRef -> Triple(SqlResolver.table(element), PhantomDbBundle.message("sql.unresolved.table", element.tableName), element.nameRange)
       is SqlQualifier -> Triple(SqlResolver.qualifier(element), PhantomDbBundle.message("sql.unresolved.qualifier", element.qualifierName), element.nameRange)

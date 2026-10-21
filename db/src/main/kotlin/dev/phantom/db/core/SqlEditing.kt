@@ -109,7 +109,7 @@ class SqlCompletionContributor : CompletionContributor() {
         val result = resultSet.caseInsensitive()
         val project = position.project
         val dataSource = SqlSchema.dataSourceFor(parameters.originalFile, strict = false)
-        val schema = dataSource?.let { SqlSchema.getInstance(project).snapshot(it) }
+        val schema = dataSource?.let { SqlSchema.getInstance(project).snapshotFor(parameters.originalFile, it) }
         val columns = { table: DbTableRef -> dataSource?.let { SqlSchema.getInstance(project).columns(it, table) }.orEmpty() }
         when (val parent = position.parent) {
           is SqlColumnRef -> {
@@ -135,7 +135,7 @@ class SqlCompletionContributor : CompletionContributor() {
           is SqlTableRef -> {
             val schemaName = parent.schemaName
             val tables = if (schemaName == null || dataSource == null) schema
-            else schema?.schema(schemaName)?.let { SqlSchema.getInstance(project).withSchema(dataSource, it) }
+            else schema?.schema(schemaName)?.let { SqlSchema.getInstance(project).withSchema(dataSource, it, current = SqlSchema.schemaFor(parameters.originalFile)) }
             tables?.tables?.filter { schemaName == null || SqlNames.same(it.schema ?: it.catalog.orEmpty(), schemaName) }?.forEach { result.addElement(table(it)) }
             if (schemaName != null) return
             schema?.schemas?.forEach { result.addElement(PrioritizedLookupElement.withPriority(LookupElementBuilder.create(it.name).withIcon(AllIcons.Nodes.DataSchema), 2.0)) }

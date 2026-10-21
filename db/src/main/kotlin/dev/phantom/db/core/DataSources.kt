@@ -99,12 +99,14 @@ class DbDataSource {
   var authKind: DbAuthKind = DbAuthKind.PASSWORD
   var awsProfile: String = ""
   var awsRegion: String = ""
+  /** A [DbColors] palette key; "" or a key this version does not know means no color. */
+  var color: String = ""
 
   fun copy(): DbDataSource = DbDataSource().also {
     it.id = id; it.name = name; it.dbms = dbms; it.url = url; it.user = user; it.readOnly = readOnly; it.manualCommit = manualCommit
     it.driverJars = ArrayList(driverJars); it.maxRows = maxRows; it.queryTimeoutSeconds = queryTimeoutSeconds
     it.driverId = driverId; it.properties = LinkedHashMap(properties); it.authKind = authKind
-    it.awsProfile = awsProfile; it.awsRegion = awsRegion
+    it.awsProfile = awsProfile; it.awsRegion = awsRegion; it.color = color
   }
 
   override fun toString(): String = name

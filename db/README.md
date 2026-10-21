@@ -18,6 +18,8 @@ A JDBC console for MySQL, MariaDB, PostgreSQL, H2, AWS, Oracle, SQL Server and m
 - **Manual commit** (a data source setting): statements run in an open transaction. The **Database Changes** tool window lists what is in it, with **Commit** and **Roll Back**; `COMMIT`/`ROLLBACK` typed in the console work too, and closing the project asks first.
 - **Edit in the grid**: a result from one table that includes its primary key can be edited in place. A changed cell runs an `UPDATE` by key, deleted rows a `DELETE`; Add Row and Clone Row open an `INSERT` in the console to finish. On a manual-commit data source the edits wait in Database Changes.
 - **Compare With…** on a schema: the diff viewer shows tables, columns, keys and indexes of two schemas (any data sources), and opens the SQL that makes the other one match in its console. Drops are written commented out.
+- **Data source colors** (as in DataGrip): pick a color in the data source dialog. Its consoles and `.sql` files get it as editor background and tab color, its rows in the Database tree a tint, its result tabs a stripe. Saving the data source recolors them right away. The color is saved with the data source, so the team shares it.
+- **Schema per console**: **Schema: …** above a console or `.sql` file (or **Choose Schema…** in the editor menu) picks the schema it runs in, the catalog for MySQL and MariaDB. Statements run there, and unqualified table names in completion, navigation and checks resolve there first. The choice is kept per file.
 - Passwords go to the IDE password safe, never to the project files.
 - Nothing runs at startup; the plugin loads its code when a `.sql` file or the tool window opens.
 

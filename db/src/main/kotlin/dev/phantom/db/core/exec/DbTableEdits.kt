@@ -126,10 +126,13 @@ object DbEditTargets {
   /**
    * The edit target of a result, or null when its rows cannot be traced back to table rows: not a single-table select,
    * a read-only or dialect-less data source, a view or table without a primary key, or a key column missing from the result.
+   * [schema]: the one the select ran in; an unqualified table is looked up there and edited with that qualifier.
    */
-  suspend fun resolve(project: Project, dataSource: DbDataSource, rows: DbOutcome.Rows): DbEditTarget? {
+  suspend fun resolve(project: Project, dataSource: DbDataSource, rows: DbOutcome.Rows, schema: DbSchemaChoice? = null): DbEditTarget? {
     if (dataSource.readOnly || !dataSource.dialect().hasDialect) return null
-    val name = SingleTableSelect.parse(rows.sql) ?: return null
+    val parsed = SingleTableSelect.parse(rows.sql) ?: return null
+    // the chosen name is the database's own spelling: no case folding
+    val name = if (parsed.schema == null && schema != null && !schema.isDefault) parsed.copy(schema = schema.name, schemaQuoted = true) else parsed
     return try {
       DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.METADATA) { connection ->
         withContext(Dispatchers.IO) {
