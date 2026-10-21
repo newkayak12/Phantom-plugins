@@ -1,6 +1,8 @@
 // Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.db
 
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.JBColor
@@ -76,12 +78,17 @@ class DbColorTest : BasePlatformTestCase() {
     val file = myFixture.configureByText("q.sql", "SELECT 1").virtualFile
     val provider = DbEditorTabColorProvider()
     assertNull(provider.getEditorTabColor(project, file))
-    val editor = myFixture.editor as EditorEx
+    val factory = com.intellij.openapi.editor.EditorFactory.getInstance()
+    val editor = factory.createEditor(myFixture.editor.document, project, file, false, EditorKind.MAIN_EDITOR) as EditorEx
+    // a preview (like the fixture's own, untyped editor) keeps its background
+    val preview = factory.createEditor(myFixture.editor.document, project, file, true, EditorKind.PREVIEW) as EditorEx
+    disposeOnTearDown(Disposable { factory.releaseEditor(editor); factory.releaseEditor(preview) })
     val schemeBackground = editor.backgroundColor
 
     DbConsoles.attach(project, file, red.id)
     assertEquals(DbColors.tint("red"), provider.getEditorTabColor(project, file))
     assertEquals(DbColors.tint("red"), editor.backgroundColor)
+    assertEquals(schemeBackground, preview.backgroundColor)
 
     // saving the data source recolors open editors
     DbDataSourceService.getInstance(project).save(red.copy().apply { color = "blue" }, null)

@@ -7,6 +7,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.event.EditorFactoryEvent
 import com.intellij.openapi.editor.event.EditorFactoryListener
 import com.intellij.openapi.editor.ex.EditorEx
@@ -100,6 +101,8 @@ class DbColorService(private val project: Project) : Disposable {
   /** Sets the tint as the editor's background; an editor this never tinted is left alone. */
   fun paint(editor: Editor, file: VirtualFile) {
     val ex = editor as? EditorEx ?: return
+    // previews, diff panes and consoles keep their own background
+    if (ex.editorKind != EditorKind.MAIN_EDITOR) return
     val tint = DbColors.tintFor(project, file)
     if (tint == null && ex.getUserData(TINTED) != true) return
     ex.setBackgroundColor(tint)
