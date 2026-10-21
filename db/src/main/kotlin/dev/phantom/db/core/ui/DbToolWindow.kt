@@ -140,7 +140,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       },
       action("db.action.ddl.text", AllIcons.Actions.Preview, { ddlTarget() != null }) { showDdl() },
       action("db.action.modify.text", AllIcons.Actions.Edit, {
-        (selectedNode() as? DbNode.Table)?.let { !it.ref.isView && !it.dataSource.readOnly } == true
+        (selectedNode() as? DbNode.Table)?.let { !it.ref.isView && !it.dataSource.readOnly && it.dataSource.dbms.hasDialect } == true
       }) { modifyTable() },
       action("db.action.select.text", AllIcons.Debugger.Console, { selectedNode() is DbNode.Table }) {
         (selectedNode() as? DbNode.Table)?.let { openConsole(it.dataSource, selectAll(it)) }
@@ -148,7 +148,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       action("db.action.entity.text", AllIcons.Nodes.Class, { selectedNode() is DbNode.Table }) {
         (selectedNode() as? DbNode.Table)?.let { DbEntityGenerator.start(project, it.dataSource, it.ref) }
       },
-      action("db.action.compare.text", AllIcons.Actions.Diff, { selectedNode() is DbNode.Schema }) {
+      action("db.action.compare.text", AllIcons.Actions.Diff, { (selectedNode() as? DbNode.Schema)?.dataSource?.dbms?.hasDialect == true }) {
         (selectedNode() as? DbNode.Schema)?.let { DbSchemaCompare.chooseAndCompare(project, DbSchemaSide(it.dataSource, it.ref), tree) }
       },
     )
@@ -232,7 +232,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
     is DbNode.Routine -> node.dataSource to DbDdl.Target.Routine(node.routine)
     is DbNode.Trigger -> node.dataSource to DbDdl.Target.Trigger(node.trigger)
     else -> null
-  }
+  }?.takeIf { it.first.dbms.hasDialect }
 
   /** Opens the DDL of the selected table, view, routine or trigger in a read-only SQL tab. */
   private fun showDdl() {

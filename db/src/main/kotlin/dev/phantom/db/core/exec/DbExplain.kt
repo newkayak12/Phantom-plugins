@@ -13,7 +13,8 @@ import dev.phantom.db.core.SqlFile
 
 /** EXPLAIN in each database's own form; ANALYZE runs the statement and reports the real plan. */
 object DbExplain {
-  fun sql(dbms: Dbms, statement: String, analyze: Boolean): String {
+  /** `null` for a database without a dialect. */
+  fun sql(dbms: Dbms, statement: String, analyze: Boolean): String? {
     val body = statement.trim().removeSuffix(";").trim()
     return when (dbms) {
       Dbms.MYSQL -> if (analyze) "EXPLAIN ANALYZE $body" else "EXPLAIN $body"
@@ -21,6 +22,7 @@ object DbExplain {
       Dbms.MARIADB -> if (analyze) "ANALYZE $body" else "EXPLAIN $body"
       Dbms.POSTGRESQL -> if (analyze) "EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) $body" else "EXPLAIN (FORMAT TEXT) $body"
       Dbms.H2 -> if (analyze) "EXPLAIN ANALYZE $body" else "EXPLAIN $body"
+      Dbms.GENERIC -> null
     }
   }
 }
@@ -30,7 +32,10 @@ abstract class DbExplainAction(private val analyze: Boolean) : DumbAwareAction()
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
   override fun update(e: AnActionEvent) {
-    e.presentation.isEnabledAndVisible = e.getData(CommonDataKeys.PSI_FILE) is SqlFile && statement(e) != null
+    val file = e.getData(CommonDataKeys.PSI_FILE) as? SqlFile
+    val project = e.project
+    val dialect = project == null || file?.virtualFile?.let { DbConsoles.dataSourceFor(project, it) }?.dbms?.hasDialect != false
+    e.presentation.isEnabledAndVisible = file != null && dialect && statement(e) != null
   }
 
   override fun actionPerformed(e: AnActionEvent) {
@@ -49,7 +54,7 @@ abstract class DbExplainAction(private val analyze: Boolean) : DumbAwareAction()
                                              PhantomDbBundle.message("db.safety.run"), Messages.getCancelButton(), Messages.getWarningIcon())
         if (ok != Messages.OK) return@run null
       }
-      listOf(DbExplain.sql(dataSource.dbms, statement, analyze))
+      DbExplain.sql(dataSource.dbms, statement, analyze)?.let { listOf(it) }
     }
   }
 

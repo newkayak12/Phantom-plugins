@@ -4,6 +4,7 @@ package dev.phantom.db.core.exec
 import com.intellij.openapi.project.Project
 import dev.phantom.db.core.DbDataSource
 import dev.phantom.db.core.Dbms
+import dev.phantom.db.core.PhantomDbBundle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.sql.DatabaseMetaData
@@ -94,6 +95,7 @@ object DbSchemaDiff {
    * there to read and enable by hand. Tables are matched by name ignoring case, as are columns.
    */
   fun migration(source: DbSchemaModel, target: DbSchemaModel, dbms: Dbms): List<String> {
+    if (!dbms.hasDialect) throw DbException(PhantomDbBundle.message("db.generic.unsupported"))
     val q = quoter(dbms)
     val out = ArrayList<String>()
     val targetTables = target.tables.values.associateBy { it.name.lowercase() }
@@ -150,7 +152,7 @@ object DbSchemaDiff {
       if (!old.type.equals(c.type, ignoreCase = true)) add("ALTER TABLE ${q(table)} ALTER COLUMN ${q(c.name)} TYPE ${c.type};")
       if (old.nullable != c.nullable) add("ALTER TABLE ${q(table)} ALTER COLUMN ${q(c.name)} ${if (c.nullable) "DROP" else "SET"} NOT NULL;")
     }.joinToString("\n")
-    Dbms.H2 -> buildList {
+    Dbms.H2, Dbms.GENERIC -> buildList {
       if (!old.type.equals(c.type, ignoreCase = true)) add("ALTER TABLE ${q(table)} ALTER COLUMN ${q(c.name)} SET DATA TYPE ${c.type};")
       if (old.nullable != c.nullable) add("ALTER TABLE ${q(table)} ALTER COLUMN ${q(c.name)} SET ${if (c.nullable) "NULL" else "NOT NULL"};")
     }.joinToString("\n")

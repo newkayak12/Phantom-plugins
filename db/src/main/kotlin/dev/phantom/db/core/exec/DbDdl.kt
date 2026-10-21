@@ -71,6 +71,7 @@ object DbDdl {
                                   "JOIN pg_namespace n ON n.oid = r.relnamespace WHERE n.nspname = ? AND t.tgname = ?",
                                target.trigger.schema.name, target.trigger.name)
     }
+    Dbms.GENERIC -> null
     Dbms.H2 -> when (target) {
       is Target.Table -> if (!target.ref.isView) null else single(c, "SELECT VIEW_DEFINITION FROM INFORMATION_SCHEMA.VIEWS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?",
                                                                     target.ref.schema.orEmpty(), target.ref.name)

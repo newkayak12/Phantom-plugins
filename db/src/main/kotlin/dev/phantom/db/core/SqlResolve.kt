@@ -179,6 +179,7 @@ class SqlUnresolvedAnnotator : Annotator {
                                         "DAY_MINUTE", "DAY_SECOND", "HOUR_MINUTE", "HOUR_SECOND", "MINUTE_SECOND")
       Dbms.POSTGRESQL -> setOf("EPOCH", "DOW", "DOY", "ISODOW", "CURRENT_SCHEMA", "CURRENT_CATALOG", "CURRENT_ROLE", "EXCLUDED")
       Dbms.H2 -> setOf("CURRENT_SCHEMA", "CURRENT_CATALOG", "SYSDATE")
+      Dbms.GENERIC -> emptySet()
     }
   }
 }

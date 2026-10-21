@@ -113,6 +113,7 @@ class DbObjectCache(private val project: Project) {
 
   suspend fun triggers(dataSource: DbDataSource, schema: DbSchemaRef): List<DbTrigger> = triggers[schema] ?: metadata(dataSource) { _, c ->
     val sql = when (dataSource.dbms) {
+      Dbms.GENERIC -> return@metadata emptyList()
       Dbms.MYSQL, Dbms.MARIADB ->
         "SELECT TRIGGER_NAME, EVENT_OBJECT_TABLE, ACTION_TIMING, EVENT_MANIPULATION FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = ? ORDER BY TRIGGER_NAME"
       Dbms.POSTGRESQL ->

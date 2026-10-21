@@ -2,6 +2,7 @@
 package dev.phantom.db.core.exec
 
 import dev.phantom.db.core.Dbms
+import dev.phantom.db.core.PhantomDbBundle
 
 /**
  * The statements that turn a table's columns and indexes from one definition into another, as edited in Modify Table.
@@ -15,6 +16,7 @@ object DbAlter {
 
   fun statements(dbms: Dbms, table: DbTableRef, before: List<ColumnDef>, after: List<ColumnDef>,
                  indexesBefore: List<IndexDef> = emptyList(), indexesAfter: List<IndexDef> = emptyList()): List<String> {
+    if (!dbms.hasDialect) throw DbException(PhantomDbBundle.message("db.generic.unsupported"))
     val t = DbNames.table(dbms, table)
     fun q(s: String) = DbNames.quote(dbms, s)
     val result = ArrayList<String>()
@@ -47,6 +49,7 @@ object DbAlter {
       when (dbms) {
         // MySQL restates the whole column; anything left out (default, NOT NULL) would be lost
         Dbms.MYSQL, Dbms.MARIADB -> result += "ALTER TABLE $t MODIFY COLUMN ${definition(dbms, column)}"
+        Dbms.GENERIC -> {}
         Dbms.POSTGRESQL, Dbms.H2 -> {
           if (typeChanged) {
             result += "ALTER TABLE $t ALTER COLUMN $c " + (if (dbms == Dbms.POSTGRESQL) "TYPE " else "SET DATA TYPE ") + column.type
@@ -76,6 +79,6 @@ object DbAlter {
   private fun dropIndex(dbms: Dbms, table: DbTableRef, name: String): String = when (dbms) {
     Dbms.MYSQL, Dbms.MARIADB -> "DROP INDEX ${DbNames.quote(dbms, name)} ON ${DbNames.table(dbms, table)}"
     // an index lives in the table's schema
-    Dbms.POSTGRESQL, Dbms.H2 -> "DROP INDEX ${DbNames.qualified(dbms, table.schema, name)}"
+    Dbms.POSTGRESQL, Dbms.H2, Dbms.GENERIC -> "DROP INDEX ${DbNames.qualified(dbms, table.schema, name)}"
   }
 }

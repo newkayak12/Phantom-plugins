@@ -41,7 +41,9 @@ enum class Dbms(
           listOf("org.mariadb.jdbc:mariadb-java-client")),
   POSTGRESQL("PostgreSQL", "jdbc:postgresql:", "jdbc:postgresql://localhost:5432/postgres", "org.postgresql.Driver",
              listOf("org.postgresql:postgresql")),
-  H2("H2", "jdbc:h2:", "jdbc:h2:mem:test", "org.h2.Driver", listOf("com.h2database:h2"));
+  H2("H2", "jdbc:h2:", "jdbc:h2:mem:test", "org.h2.Driver", listOf("com.h2database:h2")),
+  /** Any other JDBC database: connects and browses, but has no SQL dialect knowledge. Never detected from a URL. */
+  GENERIC("Other", "", "jdbc:", "", emptyList());
 
   val icon: Icon
     get() = when (this) {
@@ -49,7 +51,11 @@ enum class Dbms(
       MARIADB -> AllIcons.Providers.Mariadb
       POSTGRESQL -> AllIcons.Providers.Postgresql
       H2 -> AllIcons.Providers.H2
+      GENERIC -> AllIcons.Nodes.DataTables
     }
+
+  /** False for [GENERIC]: no EXPLAIN, DDL, schema changes or dialect checks. */
+  val hasDialect: Boolean get() = this != GENERIC
 
   /** MySQL keeps databases in catalogs; the others in schemas. */
   val usesCatalogs: Boolean get() = this == MYSQL || this == MARIADB
@@ -57,7 +63,7 @@ enum class Dbms(
   companion object {
     fun forUrl(url: String): Dbms? {
       val u = url.trim().removePrefix("jdbc:p6spy:").let { if (it.startsWith("jdbc:")) it else "jdbc:$it" }
-      return entries.firstOrNull { u.startsWith(it.urlPrefix, ignoreCase = true) }
+      return entries.firstOrNull { it.hasDialect && u.startsWith(it.urlPrefix, ignoreCase = true) }
     }
   }
 }

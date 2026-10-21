@@ -158,7 +158,7 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
   /** Blocking. A `null` [password] means the saved one. */
   fun open(dataSource: DbDataSource, password: String?): Connection {
     val located = DbDrivers.find(project, dataSource)
-                  ?: throw DbException(PhantomDbBundle.message("db.driver.missing", dataSource.dbms.displayName, dataSource.dbms.artifacts.first()))
+                  ?: throw DbException(PhantomDbBundle.message("db.driver.missing", dataSource.dbms.displayName, dataSource.dbms.artifacts.firstOrNull() ?: "its driver jar"))
     val driver = drivers.computeIfAbsent(located.jars to dataSource.dbms) { loadDriver(it.first, dataSource.dbms) }
     val props = Properties()
     if (dataSource.user.isNotEmpty()) props["user"] = dataSource.user
@@ -168,7 +168,7 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
     when (dataSource.dbms) {
       Dbms.MYSQL, Dbms.MARIADB -> props["connectTimeout"] = (LOGIN_TIMEOUT_SECONDS * 1000).toString()
       Dbms.POSTGRESQL -> props["connectTimeout"] = LOGIN_TIMEOUT_SECONDS.toString()
-      Dbms.H2 -> {}
+      Dbms.H2, Dbms.GENERIC -> {}
     }
     val connection = driver.connect(dataSource.url.trim(), props)
                      ?: throw DbException(PhantomDbBundle.message("db.driver.url.rejected", dataSource.url, located.description))
