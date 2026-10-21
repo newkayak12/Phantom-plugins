@@ -57,6 +57,7 @@ object DbConsoles {
   fun attach(project: Project, file: VirtualFile, dataSourceId: String?) {
     PropertiesComponent.getInstance(project).setValue(KEY_PREFIX + file.url, dataSourceId)
     EditorNotifications.getInstance(project).updateNotifications(file)
+    DbColorService.getInstance(project).refresh(file)
   }
 
   /** The data source's console file, created on first use. */

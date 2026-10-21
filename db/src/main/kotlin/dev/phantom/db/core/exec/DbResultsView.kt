@@ -18,12 +18,17 @@ import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBTabbedPane
 import com.intellij.ui.components.JBTextArea
+import com.intellij.ui.content.Content
 import com.intellij.ui.content.ContentFactory
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
+import dev.phantom.db.core.DbColorService
+import dev.phantom.db.core.DbColors
 import dev.phantom.db.core.DbDataSource
+import dev.phantom.db.core.DbDataSourceService
 import dev.phantom.db.core.PhantomDbBundle
 import dev.phantom.db.core.ui.DbForeignKeyActions
+import dev.phantom.db.core.ui.DbTableDataView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.withContext
@@ -220,7 +225,7 @@ object DbResultsToolWindow {
       val unpinned = manager.contents.filter { !it.isPinned }
       if (unpinned.size > MAX_TABS) unpinned.take(unpinned.size - MAX_TABS).forEach { manager.removeContent(it, true) }
     }).also { it.dataSource = dataSource }
-    manager.contents.firstOrNull { it.component === panel }?.let { manager.setSelectedContent(it) }
+    manager.contents.firstOrNull { it.component === panel }?.let { paint(project, it); manager.setSelectedContent(it) }
     toolWindow.show()
     return panel
   }
@@ -235,9 +240,28 @@ object DbResultsToolWindow {
       val unpinned = manager.contents.filter { !it.isPinned }
       if (unpinned.size > MAX_TABS) unpinned.take(unpinned.size - MAX_TABS).forEach { manager.removeContent(it, true) }
     }
+    paint(project, content)
     manager.setSelectedContent(content)
     toolWindow.show()
     return content.component
+  }
+
+  /** Gives every result tab the stripe of its data source's color, e.g. after a data source was saved. */
+  fun repaintTabs(project: Project) {
+    ToolWindowManager.getInstance(project).getToolWindow(ID)?.contentManager?.contents?.forEach { paint(project, it) }
+  }
+
+  /** A top stripe in the data source's color: tool window tabs do not paint a content's tab color. */
+  private fun paint(project: Project, content: Content) {
+    DbColorService.getInstance(project)
+    val component = content.component
+    val id = when (component) {
+      is DbResultPanel -> component.dataSource?.id
+      is DbTableDataView -> component.dataSourceId
+      else -> return
+    }
+    val stripe = DbColors.stripe(DbDataSourceService.getInstance(project).find(id)?.color)
+    component.border = if (stripe != null) javax.swing.BorderFactory.createMatteBorder(JBUI.scale(3), 0, 0, 0, stripe) else JBUI.Borders.empty()
   }
 
   private fun toolWindow(project: Project): ToolWindow {

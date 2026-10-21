@@ -102,6 +102,8 @@
     <lang.findUsagesProvider language="SQL" implementationClass="dev.phantom.db.core.SqlFindUsagesProvider"/>
     <runLineMarkerContributor language="SQL" implementationClass="dev.phantom.db.core.exec.SqlRunLineMarkerContributor"/>
     <editorNotificationProvider implementation="dev.phantom.db.core.exec.SqlDataSourceNotificationProvider"/>
+    <editorTabColorProvider implementation="dev.phantom.db.core.DbEditorTabColorProvider"/>
+    <editorFactoryListener implementation="dev.phantom.db.core.DbEditorColorListener"/>
     <actionPromoter implementation="dev.phantom.db.core.exec.SqlActionPromoter"/>
     <toolWindow id="Database" anchor="right" secondary="false" icon="AllIcons.Nodes.DataTables"
                 factoryClass="dev.phantom.db.core.ui.DbToolWindowFactory"/>
