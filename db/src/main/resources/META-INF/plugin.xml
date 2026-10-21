@@ -18,6 +18,9 @@
   A data source can have a color (as in DataGrip): its consoles and .sql files get it as editor background and tab
   color, its tree rows and result tabs too. A console or .sql file can run in a chosen schema (catalog in MySQL), which
   unqualified table names in completion and checks also resolve against.
+  The Database tree groups each schema's tables, views, routines, triggers and sequences in folders, can be filtered by
+  name, and Navigate → Database Object (a Database tab in Search Everywhere) finds loaded tables, views, routines and
+  columns without connecting. A data source can have several consoles (New Console), kept in Scratches and Consoles.
   ]]></description>
 
   <dependencies>
