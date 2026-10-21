@@ -7,7 +7,6 @@ import dev.phantom.db.core.*
 import dev.phantom.db.core.drivers.DbDriverDefinition
 import dev.phantom.db.core.drivers.DbDriverRegistry
 import dev.phantom.db.core.exec.*
-import dev.phantom.db.core.ui.DbDataSourceDialog
 import kotlinx.coroutines.runBlocking
 import java.sql.Types
 
@@ -66,14 +65,6 @@ class DbGenericDialectTest : BasePlatformTestCase() {
     val name = DbTableName(null, "t")
     assertNotNull(DbEditTargets.build(Dbms.H2, "\"", name, null, "T", listOf("id"), listOf("id"), columns))
     assertNull(DbEditTargets.build(Dbms.GENERIC, "\"", name, null, "T", listOf("id"), listOf("id"), columns))
-  }
-
-  fun testDialogKeepsUrlTypedForOther() {
-    assertFalse(DbDataSourceDialog.replacesUrl("jdbc:redshift://x:5439/dev", Dbms.GENERIC))
-    assertTrue(DbDataSourceDialog.replacesUrl("jdbc:mysql://localhost:3306/", Dbms.GENERIC))
-    assertTrue(DbDataSourceDialog.replacesUrl("", Dbms.GENERIC))
-    assertTrue(DbDataSourceDialog.replacesUrl("jdbc:redshift://x:5439/dev", Dbms.MYSQL))
-    assertFalse(DbDataSourceDialog.replacesUrl("jdbc:mysql://h/db", Dbms.MYSQL))
   }
 
   fun testGenericHasNoDriverToFind() {

@@ -134,6 +134,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       action("db.action.remove.text", AllIcons.General.Remove, { selectedSource() != null }) { remove() },
       Separator.getInstance(),
       action("db.action.refresh.text", AllIcons.Actions.Refresh) { refresh() },
+      action("db.action.drivers.text", AllIcons.General.Settings) { DbDriversDialog(project, selectedSource()?.let { it.driverId ?: it.driver()?.id }).show() },
       action("db.action.console.text", AllIcons.Debugger.Console, { selectedSource() != null }) { selectedSource()?.let { openConsole(it, null) } },
       ActionManager.getInstance().getAction("PhantomDb.ShowHistory"),
       action("db.action.data.text", AllIcons.Nodes.DataTables, { selectedNode() is DbNode.Table }) {

@@ -12,16 +12,16 @@ import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import dev.phantom.db.core.PhantomDbBundle
 import dev.phantom.db.core.DbDataSource
-import dev.phantom.db.core.ui.DbDataSourceDialog
+import dev.phantom.db.core.driver
+import dev.phantom.db.core.ui.DbDriversDialog
 
 /** Balloon actions for a connection that has no driver: nothing is downloaded until the user clicks. */
 object DbDriverActions {
   /** The live balloon per (data source, driver): a console retry must not stack a second one. */
   private val live = java.util.concurrent.ConcurrentHashMap<Pair<String, String>, com.intellij.notification.Notification>()
 
-  /** Task 7 retargets this to the Drivers dialog, selecting `dataSource.driverId`. */
   fun configureDrivers(project: Project, dataSource: DbDataSource) {
-    invokeLater(ModalityState.nonModal()) { DbDataSourceDialog.edit(project, dataSource) }
+    invokeLater(ModalityState.nonModal()) { DbDriversDialog(project, select = dataSource.driverId ?: dataSource.driver()?.id).show() }
   }
 
   fun notifyMissing(project: Project, dataSource: DbDataSource, definition: DbDriverDefinition?, message: String) {
@@ -37,7 +37,7 @@ object DbDriverActions {
     notification.notify(project)
   }
 
-  fun download(project: Project, definition: DbDriverDefinition) {
+  fun download(project: Project?, definition: DbDriverDefinition) {
     ProgressManager.getInstance().run(object : Task.Backgroundable(project, PhantomDbBundle.message("db.driver.download.title", definition.name), true) {
       override fun run(indicator: ProgressIndicator) {
         val downloaded = try {
@@ -57,7 +57,7 @@ object DbDriverActions {
     })
   }
 
-  private fun notify(project: Project, message: String, type: NotificationType) {
+  private fun notify(project: Project?, message: String, type: NotificationType) {
     NotificationGroupManager.getInstance().getNotificationGroup("Phantom Database")
       .createNotification(PhantomDbBundle.message("db.driver.notification.title"), message, type).notify(project)
   }

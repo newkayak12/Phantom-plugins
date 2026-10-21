@@ -137,11 +137,4 @@ class DbDriverRegistryTest : BasePlatformTestCase() {
     assertFalse(xml.contains("awsSecret"))
     service.remove("r")
   }
-
-  fun testChangingDbmsRebindsDriver() {
-    val ui = dev.phantom.db.core.ui.DbDataSourceDialog
-    assertEquals("postgresql", ui.driverIdFor("mysql", Dbms.MYSQL, Dbms.POSTGRESQL))
-    assertNull(ui.driverIdFor("mysql", Dbms.MYSQL, Dbms.GENERIC))
-    assertEquals("aws-wrapper-mysql", ui.driverIdFor("aws-wrapper-mysql", Dbms.MYSQL, Dbms.MYSQL))
-  }
 }
