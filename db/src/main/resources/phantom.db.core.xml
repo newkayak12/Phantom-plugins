@@ -128,6 +128,7 @@
     <toolWindow id="Database Changes" anchor="bottom" secondary="false" icon="AllIcons.Vcs.Changelist"
                 factoryClass="dev.phantom.db.core.ui.DbChangesToolWindowFactory"/>
     <projectCloseHandler implementation="dev.phantom.db.core.exec.DbPendingChangesCloseHandler"/>
+    <fileEditorProvider implementation="dev.phantom.db.core.ui.DbDiagramEditorProvider"/>
     <scratch.rootType implementation="dev.phantom.db.core.exec.DbConsoleRootType"/>
     <searchEverywhereContributor implementation="dev.phantom.db.core.ui.DbSearchEverywhereContributor$Factory"/>
     <notificationGroup id="Phantom Database" displayType="BALLOON" bundle="messages.PhantomDbBundle" key="db.notification.group"/>
