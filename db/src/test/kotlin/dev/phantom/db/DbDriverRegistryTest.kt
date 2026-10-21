@@ -7,6 +7,8 @@ import com.intellij.util.xmlb.XmlSerializer
 import dev.phantom.db.core.Dbms
 import dev.phantom.db.core.drivers.DbDriverDefinition
 import dev.phantom.db.core.drivers.DbDriverRegistry
+import dev.phantom.db.core.dialect
+import dev.phantom.db.core.driver
 
 class DbDriverRegistryTest : BasePlatformTestCase() {
   companion object {
@@ -102,5 +104,37 @@ class DbDriverRegistryTest : BasePlatformTestCase() {
     r.save(DbDriverDefinition().apply { id = "c2"; name = "C2"; driverClass = "x.Y" })
     r.remove("c2")
     assertEquals(2, count)
+  }
+
+  fun testOldStateMigratesToBuiltInDriver() {
+    // state as 0.10.0 wrote it: no driverId
+    val old = dev.phantom.db.core.DbDataSourceService.State().apply {
+      dataSources.add(dev.phantom.db.core.DbDataSource().apply { id = "a"; name = "pg"; dbms = Dbms.POSTGRESQL; url = "jdbc:postgresql://h/x" })
+    }
+    val xml = JDOMUtil.write(XmlSerializer.serialize(old))
+    assertFalse(xml, xml.contains("name=\"driverId\" value"))
+    val state = XmlSerializer.deserialize(JDOMUtil.load(xml), dev.phantom.db.core.DbDataSourceService.State::class.java)
+    val service = dev.phantom.db.core.DbDataSourceService.getInstance(project)
+    service.loadState(state)
+    val ds = service.find("a")!!
+    assertEquals("postgresql", ds.driverId)
+    assertEquals(Dbms.POSTGRESQL, ds.dialect())
+  }
+
+  fun testUnknownDriverIdFallsBackByUrl() {
+    val ds = dev.phantom.db.core.DbDataSource().apply { driverId = "someone-elses"; url = "jdbc:aws-wrapper:mysql://h/x"; dbms = Dbms.MYSQL }
+    assertEquals("aws-wrapper-mysql", ds.driver()?.id)
+  }
+
+  fun testSavedDataSourceStillWritesDbms() {
+    val service = dev.phantom.db.core.DbDataSourceService.getInstance(project)
+    val ds = dev.phantom.db.core.DbDataSource().apply { id = "r"; name = "rs"; driverId = "redshift"; url = "jdbc:redshift://h/x" }
+    service.save(ds, null)
+    val xml = JDOMUtil.write(XmlSerializer.serialize(service.state))
+    assertTrue(xml, xml.contains("name=\"dbms\" value=\"GENERIC\""))
+    assertTrue(xml, xml.contains("redshift"))
+    assertFalse(xml.contains("assword"))
+    assertFalse(xml.contains("awsSecret"))
+    service.remove("r")
   }
 }

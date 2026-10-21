@@ -15,8 +15,11 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.JarFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.util.text.VersionComparatorUtil
+import com.intellij.util.xmlb.annotations.MapAnnotation
 import com.intellij.util.xmlb.annotations.Tag
 import com.intellij.util.xmlb.annotations.XCollection
+import dev.phantom.db.core.drivers.DbDriverDefinition
+import dev.phantom.db.core.drivers.DbDriverRegistry
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.UUID
@@ -84,14 +87,35 @@ class DbDataSource {
   var driverJars: MutableList<String> = ArrayList()
   var maxRows: Int = 500
   var queryTimeoutSeconds: Int = 60
+  /** The [DbDriverDefinition] this data source connects with. `null` in state written before drivers existed. */
+  var driverId: String? = null
+  /** JDBC connection properties; override the driver's defaults. */
+  @MapAnnotation
+  var properties: MutableMap<String, String> = LinkedHashMap()
+  var authKind: DbAuthKind = DbAuthKind.PASSWORD
+  var awsProfile: String = ""
+  var awsRegion: String = ""
 
   fun copy(): DbDataSource = DbDataSource().also {
     it.id = id; it.name = name; it.dbms = dbms; it.url = url; it.user = user; it.readOnly = readOnly; it.manualCommit = manualCommit
     it.driverJars = ArrayList(driverJars); it.maxRows = maxRows; it.queryTimeoutSeconds = queryTimeoutSeconds
+    it.driverId = driverId; it.properties = LinkedHashMap(properties); it.authKind = authKind
+    it.awsProfile = awsProfile; it.awsRegion = awsRegion
   }
 
   override fun toString(): String = name
 }
+
+enum class DbAuthKind { PASSWORD, NONE, AWS_IAM }
+
+/** The bound driver, else the one matching the URL, else the built-in for the saved [DbDataSource.dbms]. */
+fun DbDataSource.driver(): DbDriverDefinition? {
+  val registry = DbDriverRegistry.getInstance()
+  return registry.find(driverId) ?: registry.forUrl(url) ?: registry.builtInFor(dbms)
+}
+
+/** SQL dialect of this data source: that of its driver; [DbDataSource.dbms] is only the persisted copy. */
+fun DbDataSource.dialect(): Dbms = driver()?.dialect ?: dbms
 
 /** Project data sources. Loaded on first use (tool window, console, `.sql` editor banner), never at startup. */
 @Service(Service.Level.PROJECT)
@@ -107,6 +131,9 @@ class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State> 
 
   override fun getState(): State = state
   override fun loadState(state: State) {
+    state.dataSources.filter { it.driverId == null }.forEach { ds ->
+      DbDriverRegistry.getInstance().builtInFor(ds.dbms)?.let { ds.driverId = it.id }
+    }
     this.state = state
   }
 
@@ -116,6 +143,7 @@ class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State> 
 
   /** Adds [dataSource] or replaces the saved one with the same id. A `null` [password] leaves the saved one as is. */
   fun save(dataSource: DbDataSource, password: CharArray?) {
+    dataSource.dbms = dataSource.dialect()
     val i = state.dataSources.indexOfFirst { it.id == dataSource.id }
     if (i >= 0) state.dataSources[i] = dataSource else state.dataSources.add(dataSource)
     if (password != null) PasswordSafe.instance.set(credentials(dataSource.id), Credentials(dataSource.user, password))

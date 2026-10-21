@@ -126,7 +126,7 @@ class DbChangesPanel(private val project: Project, parent: Disposable) : SimpleT
     override fun customizeCellRenderer(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean) {
       when (val item = (value as? DefaultMutableTreeNode)?.userObject) {
         is DbDataSource -> {
-          icon = item.dbms.icon
+          icon = item.dialect().icon
           append(item.name)
           append("  " + PhantomDbBundle.message("db.changes.count", (value as DefaultMutableTreeNode).childCount), SimpleTextAttributes.GRAYED_ATTRIBUTES)
         }

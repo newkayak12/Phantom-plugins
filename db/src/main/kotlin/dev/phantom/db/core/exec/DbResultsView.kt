@@ -2,6 +2,7 @@
 package dev.phantom.db.core.exec
 
 import com.intellij.database.datagrid.*
+import dev.phantom.db.core.dialect
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.EDT
@@ -98,7 +99,7 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
     (outcomes.lastOrNull { it is DbOutcome.Rows } as? DbOutcome.Rows)?.let { shownResult ->
       lateinit var link: ActionLink
       link = ActionLink(PhantomDbBundle.message("db.run.export")) {
-        DbExportUi.show(project, link, shownResult, dataSource?.dbms ?: dev.phantom.db.core.Dbms.MYSQL)
+        DbExportUi.show(project, link, shownResult, dataSource?.dialect() ?: dev.phantom.db.core.Dbms.MYSQL)
       }
       top.add(link)
     }

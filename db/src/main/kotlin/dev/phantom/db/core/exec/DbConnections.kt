@@ -2,6 +2,7 @@
 package dev.phantom.db.core.exec
 
 import com.intellij.openapi.Disposable
+import dev.phantom.db.core.dialect
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceIfCreated
@@ -412,8 +413,8 @@ class DbMetadataCache(private val project: Project) {
   private val columns = ConcurrentHashMap<DbTableRef, List<DbColumnInfo>>()
 
   suspend fun schemas(dataSource: DbDataSource): List<DbSchemaRef> = schemas[dataSource.id] ?: metadata(dataSource) { md, c ->
-    val current = if (dataSource.dbms.usesCatalogs) c.catalog else runCatching { c.schema }.getOrNull()
-    val all = if (dataSource.dbms.usesCatalogs) {
+    val current = if (dataSource.dialect().usesCatalogs) c.catalog else runCatching { c.schema }.getOrNull()
+    val all = if (dataSource.dialect().usesCatalogs) {
       md.catalogs.use { rs -> generateSequence { if (rs.next()) DbSchemaRef(dataSource.id, rs.getString(1), null) else null }.toList() }
     }
     else {

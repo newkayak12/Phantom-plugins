@@ -12,7 +12,7 @@ import com.intellij.psi.util.PsiTreeUtil
  */
 class SqlFunctionArgumentsInspection : SqlInspection() {
   override fun checkQuery(query: SqlScope, items: List<SqlItem>, holder: ProblemsHolder) {
-    val dbms = SqlSchema.dataSourceFor(holder.file, strict = false)?.dbms
+    val dbms = SqlSchema.dataSourceFor(holder.file, strict = false)?.dialect()
     for (i in 0 until items.size - 1) {
       val name = items[i]
       val open = items[i + 1]
@@ -79,7 +79,7 @@ class SqlFunctionArgumentsInspection : SqlInspection() {
 /** MySQL's `IF(c, a, b)` runs only on MySQL and MariaDB; `CASE WHEN c THEN a ELSE b END` means the same everywhere. Off by default. */
 class SqlIfFunctionInspection : SqlInspection() {
   override fun checkQuery(query: SqlScope, items: List<SqlItem>, holder: ProblemsHolder) {
-    val dbms = SqlSchema.dataSourceFor(holder.file, strict = false)?.dbms ?: return
+    val dbms = SqlSchema.dataSourceFor(holder.file, strict = false)?.dialect() ?: return
     if (dbms != Dbms.MYSQL && dbms != Dbms.MARIADB) return
     for (i in 0 until items.size - 1) {
       if (!items[i].isKeyword("IF") || items[i + 1].type != SqlTokens.LPAREN || items.getOrNull(i - 1)?.type == SqlTokens.DOT) continue
@@ -102,7 +102,7 @@ class SqlIfFunctionInspection : SqlInspection() {
  */
 class SqlReservedIdentifierInspection : SqlInspection() {
   override fun checkDdl(statement: SqlStatement, holder: ProblemsHolder) {
-    val dbms = SqlSchema.dataSourceFor(holder.file, strict = false)?.dbms ?: return
+    val dbms = SqlSchema.dataSourceFor(holder.file, strict = false)?.dialect() ?: return
     val reserved = when (dbms) {
       Dbms.MYSQL -> MYSQL_RESERVED
       Dbms.POSTGRESQL -> POSTGRESQL_RESERVED

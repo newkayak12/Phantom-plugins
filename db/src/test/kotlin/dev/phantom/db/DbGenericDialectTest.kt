@@ -4,6 +4,8 @@ package dev.phantom.db
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import dev.phantom.db.core.*
+import dev.phantom.db.core.drivers.DbDriverDefinition
+import dev.phantom.db.core.drivers.DbDriverRegistry
 import dev.phantom.db.core.exec.*
 import dev.phantom.db.core.ui.DbDataSourceDialog
 import java.sql.Types
@@ -31,6 +33,11 @@ class DbGenericDialectTest : BasePlatformTestCase() {
       url = "jdbc:h2:mem:bound_${System.nanoTime()};DB_CLOSE_DELAY=-1"
       user = "sa"
       driverJars = arrayListOf(DbConsoleTest.h2Jar.toString())
+      // the url alone would resolve to the H2 preset, so bind the driver whose dialect is under test
+      driverId = if (dbms == Dbms.GENERIC) "generic-test" else dbms.name.lowercase()
+    }
+    if (dbms == Dbms.GENERIC) {
+      DbDriverRegistry.getInstance().save(DbDriverDefinition().apply { id = "generic-test"; name = "Generic"; driverClass = "org.h2.Driver" })
     }
     DbDataSourceService.getInstance(project).save(ds, CharArray(0))
     try {
@@ -43,6 +50,7 @@ class DbGenericDialectTest : BasePlatformTestCase() {
     finally {
       DbConnectionService.getInstance(project).disconnect(ds.id)
       DbDataSourceService.getInstance(project).remove(ds.id)
+      DbDriverRegistry.getInstance().remove("generic-test")
     }
   }
 

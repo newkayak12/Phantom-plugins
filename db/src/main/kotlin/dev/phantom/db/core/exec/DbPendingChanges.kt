@@ -2,6 +2,7 @@
 package dev.phantom.db.core.exec
 
 import com.intellij.openapi.application.ApplicationManager
+import dev.phantom.db.core.dialect
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceIfCreated
@@ -44,7 +45,7 @@ class DbPendingChanges(private val project: Project) {
       outcomes.any { it is DbOutcome.Failed } -> return
       SqlSafety.endsTransaction(sql) -> discard(dataSource.id)
       // MySQL, MariaDB and H2 commit implicitly around DDL, so everything so far is in the database; PostgreSQL DDL is transactional
-      SqlSafety.isDdl(sql) && dataSource.dbms != Dbms.POSTGRESQL -> discard(dataSource.id)
+      SqlSafety.isDdl(sql) && dataSource.dialect() != Dbms.POSTGRESQL -> discard(dataSource.id)
       SqlSafety.changesData(sql) -> {
         val rows = outcomes.filterIsInstance<DbOutcome.Updated>().sumOf { it.count }
         changes.computeIfAbsent(dataSource.id) { CopyOnWriteArrayList() }.add(DbPendingChange(dataSource.id, sql, rows, Instant.now()))

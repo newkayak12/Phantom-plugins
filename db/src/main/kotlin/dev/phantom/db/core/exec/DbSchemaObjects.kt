@@ -2,6 +2,7 @@
 package dev.phantom.db.core.exec
 
 import com.intellij.openapi.components.Service
+import dev.phantom.db.core.dialect
 import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceIfCreated
 import com.intellij.openapi.project.Project
@@ -54,7 +55,7 @@ class DbObjectCache(private val project: Project) {
       rows(rs) {
         if (it.getString("TABLE_NAME") != table.name) null
         else DbColumnDetail(it.getString("COLUMN_NAME"), typeText(it), it.getInt("NULLABLE") != DatabaseMetaData.columnNoNulls,
-                            it.getString("COLUMN_DEF")?.takeIf { d -> d.isNotBlank() }?.let { d -> defaultExpression(dataSource.dbms, d) },
+                            it.getString("COLUMN_DEF")?.takeIf { d -> d.isNotBlank() }?.let { d -> defaultExpression(dataSource.dialect(), d) },
                             runCatching { it.getString("IS_AUTOINCREMENT") == "YES" }.getOrDefault(false),
                             runCatching { it.getString("IS_GENERATEDCOLUMN") == "YES" }.getOrDefault(false))
       }
@@ -112,7 +113,7 @@ class DbObjectCache(private val project: Project) {
   }.also { routines[schema] = it }
 
   suspend fun triggers(dataSource: DbDataSource, schema: DbSchemaRef): List<DbTrigger> = triggers[schema] ?: metadata(dataSource) { _, c ->
-    val sql = when (dataSource.dbms) {
+    val sql = when (dataSource.dialect()) {
       Dbms.GENERIC -> return@metadata emptyList()
       Dbms.MYSQL, Dbms.MARIADB ->
         "SELECT TRIGGER_NAME, EVENT_OBJECT_TABLE, ACTION_TIMING, EVENT_MANIPULATION FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = ? ORDER BY TRIGGER_NAME"

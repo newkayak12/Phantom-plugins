@@ -2,6 +2,7 @@
 package dev.phantom.db.core.ui
 
 import com.intellij.diff.DiffContentFactory
+import dev.phantom.db.core.dialect
 import com.intellij.diff.DiffManager
 import com.intellij.diff.requests.SimpleDiffRequest
 import com.intellij.diff.util.DiffUserDataKeys
@@ -48,7 +49,7 @@ object DbSchemaCompare {
         }
         JBPopupFactory.getInstance().createListPopup(object : BaseListPopupStep<DbSchemaSide>(PhantomDbBundle.message("db.compare.choose", source.title), sides) {
           override fun getTextFor(value: DbSchemaSide): String = value.title
-          override fun getIconFor(value: DbSchemaSide): Icon = value.dataSource.dbms.icon
+          override fun getIconFor(value: DbSchemaSide): Icon = value.dataSource.dialect().icon
           override fun isSpeedSearchEnabled(): Boolean = true
           override fun onChosen(selectedValue: DbSchemaSide, finalChoice: Boolean): PopupStep<*>? {
             doFinalStep { compare(project, source, selectedValue) }
@@ -80,7 +81,7 @@ object DbSchemaCompare {
     val request = SimpleDiffRequest(PhantomDbBundle.message("db.compare.diff.title", source.title, target.title),
                                     contents.create(project, DbSchemaDiff.dump(left)), contents.create(project, DbSchemaDiff.dump(right)),
                                     source.title, target.title)
-    val statements = DbSchemaDiff.migration(left, right, target.dataSource.dbms)
+    val statements = DbSchemaDiff.migration(left, right, target.dataSource.dialect())
     request.putUserData(DiffUserDataKeys.CONTEXT_ACTIONS, listOf(object : DumbAwareAction(
       PhantomDbBundle.message("db.compare.migration", target.dataSource.name), null, AllIcons.Actions.Execute) {
       override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT

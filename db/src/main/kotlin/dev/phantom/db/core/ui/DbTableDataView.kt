@@ -2,6 +2,7 @@
 package dev.phantom.db.core.ui
 
 import com.intellij.database.DatabaseDataKeys
+import dev.phantom.db.core.dialect
 import com.intellij.database.datagrid.DataGrid
 import com.intellij.database.datagrid.ModelIndex
 import com.intellij.database.run.ui.DataAccessType
@@ -138,7 +139,7 @@ class DbTableDataView(private val project: Project, dataSource: DbDataSource, va
     job?.cancel()
     val ds = dataSource
     val size = pageSize
-    val sql = DbTableQuery.select(ds.dbms, table, where.text, orderBy.text, size + 1, newOffset)
+    val sql = DbTableQuery.select(ds.dialect(), table, where.text, orderBy.text, size + 1, newOffset)
     result.dataSource = ds
     result.showRunning(SqlSafety.preview(sql))
     shownCount = null
@@ -172,7 +173,7 @@ class DbTableDataView(private val project: Project, dataSource: DbDataSource, va
 
   private fun count(onCounted: (Long) -> Unit = {}) {
     val ds = dataSource
-    val sql = DbTableQuery.count(ds.dbms, table, where.text)
+    val sql = DbTableQuery.count(ds.dialect(), table, where.text)
     total.text = PhantomDbBundle.message("db.data.counting")
     DbConnectionService.getInstance(project).launch {
       val outcome = runCatching { DbExecutor.execute(project, ds, listOf(sql)).singleOrNull() }.getOrNull()
@@ -236,7 +237,7 @@ object DbForeignKeyActions {
           .filter { fk -> fk.columns.any { it.equals(c.column, ignoreCase = true) } }
         withContext(Dispatchers.EDT) {
           choose(c, fks, { "${it.refTable.name} (${it.refColumns.joinToString()})" }, "db.fk.none") { fk ->
-            DbForeignKeyNavigation.referenced(c.dataSource.dbms, fk, c.valueOf)?.let { DbTableDataView.open(c.project, c.dataSource, fk.refTable, it) }
+            DbForeignKeyNavigation.referenced(c.dataSource.dialect(), fk, c.valueOf)?.let { DbTableDataView.open(c.project, c.dataSource, fk.refTable, it) }
           }
         }
       }
@@ -255,7 +256,7 @@ object DbForeignKeyActions {
         val fks = runCatching { DbObjectCache.getInstance(c.project).referencingKeys(c.dataSource, c.table) }.getOrDefault(emptyList())
         withContext(Dispatchers.EDT) {
           choose(c, fks, { "${it.table.name} (${it.columns.joinToString()})" }, "db.fk.no.referencing") { fk ->
-            DbForeignKeyNavigation.referencing(c.dataSource.dbms, fk, c.valueOf)?.let { DbTableDataView.open(c.project, c.dataSource, fk.table, it) }
+            DbForeignKeyNavigation.referencing(c.dataSource.dialect(), fk, c.valueOf)?.let { DbTableDataView.open(c.project, c.dataSource, fk.table, it) }
           }
         }
       }

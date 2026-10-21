@@ -2,6 +2,7 @@
 package dev.phantom.db.core.exec
 
 import com.intellij.openapi.project.Project
+import dev.phantom.db.core.dialect
 import dev.phantom.db.core.DbDataSource
 import dev.phantom.db.core.Dbms
 import kotlinx.coroutines.Dispatchers
@@ -127,7 +128,7 @@ object DbEditTargets {
    * a read-only or dialect-less data source, a view or table without a primary key, or a key column missing from the result.
    */
   suspend fun resolve(project: Project, dataSource: DbDataSource, rows: DbOutcome.Rows): DbEditTarget? {
-    if (dataSource.readOnly || !dataSource.dbms.hasDialect) return null
+    if (dataSource.readOnly || !dataSource.dialect().hasDialect) return null
     val name = SingleTableSelect.parse(rows.sql) ?: return null
     return try {
       DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.METADATA) { connection ->
@@ -136,7 +137,7 @@ object DbEditTargets {
           val schema = name.schema?.let { normalize(md, it, name.schemaQuoted) }
           val table = normalize(md, name.table, name.tableQuoted)
           val (catalog, schemaPattern) = when {
-            dataSource.dbms.usesCatalogs -> (schema ?: connection.catalog) to null
+            dataSource.dialect().usesCatalogs -> (schema ?: connection.catalog) to null
             else -> null to (schema ?: runCatching { connection.schema }.getOrNull())
           }
           val tableType = md.getTables(catalog, schemaPattern, table, null).use { rs ->
@@ -151,7 +152,7 @@ object DbEditTargets {
             generateSequence { if (rs.next()) rs.getString("TABLE_NAME") to rs.getString("COLUMN_NAME") else null }
               .filter { it.first == table }.map { it.second }.toList()
           }
-          build(dataSource.dbms, md.identifierQuoteString?.trim().orEmpty(), name, schema, table, keys, tableColumns, rows.columns)
+          build(dataSource.dialect(), md.identifierQuoteString?.trim().orEmpty(), name, schema, table, keys, tableColumns, rows.columns)
         }
       }
     }

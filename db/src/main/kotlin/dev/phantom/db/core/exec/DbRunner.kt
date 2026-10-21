@@ -2,6 +2,7 @@
 package dev.phantom.db.core.exec
 
 import com.intellij.ide.util.PropertiesComponent
+import dev.phantom.db.core.dialect
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -60,7 +61,7 @@ object DbConsoles {
   /** The data source's console file, created on first use. */
   fun consoleFile(dataSource: DbDataSource): VirtualFile? {
     val dir = root().resolve(dataSource.id)
-    val name = FileUtil.sanitizeFileName(dataSource.name.ifBlank { dataSource.dbms.displayName }, false) + ".sql"
+    val name = FileUtil.sanitizeFileName(dataSource.name.ifBlank { dataSource.dialect().displayName }, false) + ".sql"
     val existing = Files.list(dir.also { Files.createDirectories(it) }).use { s -> s.filter { it.toString().endsWith(".sql") }.findFirst().orElse(null) }
     val path = existing ?: dir.resolve(name).also { Files.writeString(it, "") }
     return LocalFileSystem.getInstance().refreshAndFindFileByNioFile(path)
@@ -175,7 +176,7 @@ object DbRunner {
     val all = DbDataSourceService.getInstance(project).dataSources
     val step = object : BaseListPopupStep<DbDataSource>(PhantomDbBundle.message("db.datasource.choose"), all) {
       override fun getTextFor(value: DbDataSource): String = value.name
-      override fun getIconFor(value: DbDataSource): Icon = value.dbms.icon
+      override fun getIconFor(value: DbDataSource): Icon = value.dialect().icon
       override fun onChosen(selectedValue: DbDataSource, finalChoice: Boolean): PopupStep<*>? {
         DbConsoles.attach(project, file, selectedValue.id)
         onChosen(selectedValue)

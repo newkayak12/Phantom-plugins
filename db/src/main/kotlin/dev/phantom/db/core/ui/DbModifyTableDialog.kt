@@ -2,6 +2,7 @@
 package dev.phantom.db.core.ui
 
 import com.intellij.openapi.application.EDT
+import dev.phantom.db.core.dialect
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.Messages
@@ -75,7 +76,7 @@ class DbModifyTableDialog(
   }
 
   fun statements(): List<String> = DbAlter.statements(
-    dataSource.dbms, table, columnsBefore,
+    dataSource.dialect(), table, columnsBefore,
     columns.items.filter { it.name.isNotBlank() && it.type.isNotBlank() }.map { DbAlter.ColumnDef(it.original, it.name.trim(), it.type.trim(), it.nullable, it.default.trim().ifEmpty { null }) },
     indexesBefore,
     indexes.items.filter { it.name.isNotBlank() && it.columns.isNotBlank() }

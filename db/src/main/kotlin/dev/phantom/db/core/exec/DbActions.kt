@@ -2,6 +2,7 @@
 package dev.phantom.db.core.exec
 
 import com.intellij.execution.Location
+import dev.phantom.db.core.dialect
 import com.intellij.execution.lineMarker.RunLineMarkerContributor
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.*
@@ -110,7 +111,7 @@ class SqlDataSourceNotificationProvider : EditorNotificationProvider {
           else -> PhantomDbBundle.message("db.tx.auto")
         }
         text = listOfNotNull(if (console) null else source, mode).joinToString("  ·  ")
-        selected?.let { icon(it.dbms.icon) }
+        selected?.let { icon(it.dialect().icon) }
         if (!console) {
           createActionLabel(PhantomDbBundle.message("db.datasource.change")) {
             DbRunner.chooseDataSource(project, file, this) {}

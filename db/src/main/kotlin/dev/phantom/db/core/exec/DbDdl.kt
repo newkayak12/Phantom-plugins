@@ -2,6 +2,7 @@
 package dev.phantom.db.core.exec
 
 import com.intellij.openapi.project.Project
+import dev.phantom.db.core.dialect
 import dev.phantom.db.core.DbDataSource
 import dev.phantom.db.core.Dbms
 import dev.phantom.db.core.SqlTokens
@@ -36,7 +37,7 @@ object DbDdl {
   }
 
   suspend fun ddl(project: Project, dataSource: DbDataSource, target: Target): String {
-    val dbms = dataSource.dbms
+    val dbms = dataSource.dialect()
     val reported = DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.METADATA) { c ->
       withContext(Dispatchers.IO) { runCatching { reported(c, dbms, target) }.getOrNull() }
     }
@@ -47,8 +48,8 @@ object DbDdl {
         createTable(dbms, target.ref, objects.columnDetails(dataSource, target.ref), objects.primaryKey(dataSource, target.ref),
                     objects.foreignKeys(dataSource, target.ref), objects.indexes(dataSource, target.ref))
       }
-      is Target.Routine -> "-- ${dataSource.dbms.displayName} does not report the source of ${target.routine.name}\n"
-      is Target.Trigger -> "-- ${dataSource.dbms.displayName} does not report the source of ${target.trigger.name}\n"
+      is Target.Routine -> "-- ${dataSource.dialect().displayName} does not report the source of ${target.routine.name}\n"
+      is Target.Trigger -> "-- ${dataSource.dialect().displayName} does not report the source of ${target.trigger.name}\n"
     }
   }
 

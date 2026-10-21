@@ -2,6 +2,7 @@
 package dev.phantom.db.core.exec
 
 import com.intellij.openapi.actionSystem.ActionUpdateThread
+import dev.phantom.db.core.dialect
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.PlatformCoreDataKeys
@@ -34,7 +35,7 @@ abstract class DbExplainAction(private val analyze: Boolean) : DumbAwareAction()
   override fun update(e: AnActionEvent) {
     val file = e.getData(CommonDataKeys.PSI_FILE) as? SqlFile
     val project = e.project
-    val dialect = project == null || file?.virtualFile?.let { DbConsoles.dataSourceFor(project, it) }?.dbms?.hasDialect != false
+    val dialect = project == null || file?.virtualFile?.let { DbConsoles.dataSourceFor(project, it) }?.dialect()?.hasDialect != false
     e.presentation.isEnabledAndVisible = file != null && dialect && statement(e) != null
   }
 
@@ -54,7 +55,7 @@ abstract class DbExplainAction(private val analyze: Boolean) : DumbAwareAction()
                                              PhantomDbBundle.message("db.safety.run"), Messages.getCancelButton(), Messages.getWarningIcon())
         if (ok != Messages.OK) return@run null
       }
-      DbExplain.sql(dataSource.dbms, statement, analyze)?.let { listOf(it) }
+      DbExplain.sql(dataSource.dialect(), statement, analyze)?.let { listOf(it) }
     }
   }
 

@@ -157,7 +157,7 @@ class SqlUnresolvedAnnotator : Annotator {
       is SqlTableRef -> Triple(SqlResolver.table(element), PhantomDbBundle.message("sql.unresolved.table", element.tableName), element.nameRange)
       is SqlQualifier -> Triple(SqlResolver.qualifier(element), PhantomDbBundle.message("sql.unresolved.qualifier", element.qualifierName), element.nameRange)
       is SqlColumnRef -> {
-        if (element.qualifier == null && element.columnName.uppercase().let { it in BARE_WORDS || it in dialectWords(ds.dbms) }) return
+        if (element.qualifier == null && element.columnName.uppercase().let { it in BARE_WORDS || it in dialectWords(ds.dialect()) }) return
         Triple(SqlResolver.column(element), PhantomDbBundle.message("sql.unresolved.column", element.columnName), element.nameRange)
       }
       else -> return
