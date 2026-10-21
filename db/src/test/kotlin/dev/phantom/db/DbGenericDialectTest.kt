@@ -77,7 +77,7 @@ class DbGenericDialectTest : BasePlatformTestCase() {
 
   fun testGenericHasNoDriverToFind() {
     val ds = DbDataSource().apply { dbms = Dbms.GENERIC; url = "jdbc:nothing:x" }
-    assertNull(DbDrivers.fromLocalCaches(Dbms.GENERIC))
+    assertNull(DbDrivers.fromLocalCaches(DbDriverDefinition().apply { dialect = Dbms.GENERIC }))
     assertNull(DbDrivers.find(null, ds))
   }
 }

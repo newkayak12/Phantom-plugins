@@ -11,6 +11,7 @@ import com.intellij.openapi.util.JDOMUtil
 import com.intellij.openapi.vfs.JarFileSystem
 import com.intellij.openapi.vfs.LocalFileSystem
 import dev.phantom.db.core.*
+import dev.phantom.db.core.drivers.DbDriverRegistry
 import dev.phantom.db.core.exec.*
 import dev.phantom.db.core.ui.DbChangesToolWindowFactory
 import dev.phantom.db.core.ui.DbDataSourceDialog
@@ -30,7 +31,7 @@ class DbConsoleTest : BasePlatformTestCase() {
 
     /** The H2 driver from the local Gradle or Maven cache: the same lookup a data source without a chosen jar uses. */
     val h2Jar: Path by lazy {
-      DbDrivers.fromLocalCaches(Dbms.H2)?.jars?.single() ?: error("These tests need com.h2database:h2 in ~/.gradle or ~/.m2")
+      DbDrivers.fromLocalCaches(DbDriverRegistry.builtIns.single { it.id == "h2" })?.jars?.single() ?: error("These tests need com.h2database:h2 in ~/.gradle or ~/.m2")
     }
   }
 
@@ -120,9 +121,9 @@ class DbConsoleTest : BasePlatformTestCase() {
         Files.writeString(dir.resolve("mysql-connector-j-$v.jar"), "")
         Files.writeString(dir.resolve("mysql-connector-j-$v-sources.jar"), "")
       }
-      val found = DbDrivers.fromLocalCaches(Dbms.MYSQL, home)!!
+      val found = DbDrivers.fromLocalCaches(DbDriverRegistry.builtIns.single { it.id == "mysql" }, home)!!
       assertEquals("9.1.0", found.version)
-      assertNull(DbDrivers.fromLocalCaches(Dbms.POSTGRESQL, home))
+      assertNull(DbDrivers.fromLocalCaches(DbDriverRegistry.builtIns.single { it.id == "postgresql" }, home))
     }
     finally {
       FileUtil.delete(home)

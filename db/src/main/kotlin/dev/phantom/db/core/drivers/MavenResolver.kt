@@ -28,7 +28,7 @@ data class ResolvedArtifact(val group: String, val artifact: String, val version
  * A minimal Maven resolver: walks POMs (parents, properties, dependencyManagement, BOM imports, exclusions) breadth-first
  * and returns the jars to download. Only produces URLs; downloading and checksum verification are the caller's job.
  */
-class MavenResolver(private val repositories: List<String>, private val fetcher: ArtifactFetcher) {
+class MavenResolver(private val repositories: List<String>, val fetcher: ArtifactFetcher) {
   private class Dep(
     val group: String, val artifact: String, val version: String?, val scope: String?, val type: String?,
     val optional: Boolean, val exclusions: List<Pair<String, String>>,
