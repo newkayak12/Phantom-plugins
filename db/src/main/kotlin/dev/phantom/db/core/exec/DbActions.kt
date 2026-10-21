@@ -97,11 +97,14 @@ class SqlSelectSchemaAction : DumbAwareAction() {
   }
 }
 
-/** In a `.sql` editor, the run shortcut wins over other actions bound to the same keys. */
+/**
+ * In a `.sql` editor, Run Statement and Query History win over editor actions bound to the same keys (Cmd/Ctrl+Enter is
+ * also Split Line and Generate); other editors keep their order.
+ */
 class SqlActionPromoter : ActionPromoter {
   override fun promote(actions: List<AnAction>, context: DataContext): List<AnAction> {
     if (context.getData(CommonDataKeys.PSI_FILE) !is SqlFile) return emptyList()
-    return actions.filterIsInstance<SqlRunStatementAction>()
+    return actions.filterIsInstance<SqlRunStatementAction>() + actions.filterIsInstance<DbShowHistoryAction>()
   }
 }
 

@@ -115,6 +115,8 @@
   <actions resource-bundle="messages.PhantomDbBundle">
     <action id="PhantomDb.RunStatement" class="dev.phantom.db.core.exec.SqlRunStatementAction" icon="AllIcons.Actions.Execute">
       <keyboard-shortcut keymap="$default" first-keystroke="control ENTER"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta ENTER"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta ENTER"/>
       <add-to-group group-id="EditorPopupMenu" anchor="first"/>
     </action>
     <action id="PhantomDb.SelectDataSource" class="dev.phantom.db.core.exec.SqlSelectDataSourceAction">
@@ -125,6 +127,8 @@
     </action>
     <action id="PhantomDb.ShowHistory" class="dev.phantom.db.core.exec.DbShowHistoryAction" icon="AllIcons.Vcs.History">
       <keyboard-shortcut keymap="$default" first-keystroke="control alt E"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt E"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt E"/>
       <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.SelectDataSource"/>
     </action>
     <action id="PhantomDb.ExplainPlan" class="dev.phantom.db.core.exec.DbExplainPlanAction">
