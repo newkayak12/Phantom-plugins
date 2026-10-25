@@ -165,8 +165,13 @@ class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State> 
   private val listeners = CopyOnWriteArrayList<() -> Unit>()
 
   override fun getState(): State = state
-  /** Taken as written: a data source without a driver id finds its built-in through [driver], so opening changes nothing on disk. */
+  /**
+   * Taken as written: a data source without a driver id finds its built-in through [driver], so opening changes nothing on disk.
+   * An element the serializer cannot read (a hand-edited file, or one from a newer version) comes back as null; it is dropped.
+   */
   override fun loadState(state: State) {
+    // a Kotlin lambda would null-check its parameter; the Java predicate sees the null
+    state.dataSources.removeIf(java.util.Objects::isNull)
     this.state = state
   }
 
