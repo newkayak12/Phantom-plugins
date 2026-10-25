@@ -8,6 +8,7 @@ import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CustomShortcutSet
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
@@ -77,14 +78,17 @@ class DbFilterBar(private val project: Project, historyKey: String, context: DbF
   }
 
   inner class Field(private val historyKey: String, context: DbFilterContext, hint: String) {
-    private val file: PsiFile = PsiFileFactory.getInstance(project)
-      .createFileFromText("filter.sql", SqlFileType.INSTANCE, "", LocalTimeCounter.currentTime(), true)
-      .also {
-        DbFilterContext.attach(it, context)
-        // a fragment is not a statement: no syntax errors or inspections, only colors and completion
-        DaemonCodeAnalyzer.getInstance(project).setHighlightingEnabled(it, false)
-      }
-    private val editor = EditorTextField(PsiDocumentManager.getInstance(project).getDocument(file), project, SqlFileType.INSTANCE, false, true).apply {
+    // built on the EDT when a table opens; creating the PSI and its document needs a read action there
+    private val file: PsiFile = runReadAction {
+      PsiFileFactory.getInstance(project)
+        .createFileFromText("filter.sql", SqlFileType.INSTANCE, "", LocalTimeCounter.currentTime(), true)
+        .also {
+          DbFilterContext.attach(it, context)
+          // a fragment is not a statement: no syntax errors or inspections, only colors and completion
+          DaemonCodeAnalyzer.getInstance(project).setHighlightingEnabled(it, false)
+        }
+    }
+    private val editor = EditorTextField(runReadAction { PsiDocumentManager.getInstance(project).getDocument(file) }, project, SqlFileType.INSTANCE, false, true).apply {
       setPlaceholder(hint)
       setShowPlaceholderWhenFocused(true)
       toolTipText = hint

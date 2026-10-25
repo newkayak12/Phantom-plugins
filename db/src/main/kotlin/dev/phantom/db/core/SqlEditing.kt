@@ -106,6 +106,10 @@ class SqlCompletionContributor : CompletionContributor() {
       override fun addCompletions(parameters: CompletionParameters, context: ProcessingContext, resultSet: CompletionResultSet) {
         val position = parameters.position
         if (position.node.elementType in SqlTokens.COMMENTS || position.node.elementType == SqlTokens.STRING) return
+        // right after a digit (`LIMIT 10`, `id = 2`) the lexer splits off the dummy identifier with an empty prefix,
+        // which would offer every name and let Enter insert one instead of running or applying the text
+        val offset = parameters.offset
+        if (resultSet.prefixMatcher.prefix.isEmpty() && offset > 0 && parameters.editor.document.charsSequence[offset - 1].isDigit()) return
         val result = resultSet.caseInsensitive()
         // a WHERE / ORDER BY fragment over a grid: the columns it filters, then keywords
         dev.phantom.db.core.ui.DbFilterContext.of(parameters.originalFile)?.let { filter ->

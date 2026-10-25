@@ -128,6 +128,14 @@ class SqlIntelligenceTest : BasePlatformTestCase() {
     sql("SELECT l.<caret> FROM audit.log_entry l")
     myFixture.completeBasic()
     assertSameElements(myFixture.lookupElementStrings!!, "ID", "MESSAGE")
+
+    // nothing right after a number: Enter must not turn `id = 2` into `id = 2EMAIL`
+    sql("SELECT * FROM reservation WHERE id = 2<caret>")
+    myFixture.completeBasic()
+    assertEmpty(myFixture.lookupElementStrings.orEmpty())
+    sql("SELECT * FROM reservation LIMIT 10<caret>")
+    myFixture.completeBasic()
+    assertEmpty(myFixture.lookupElementStrings.orEmpty())
   }
 
   fun testResolveToDatabaseAndAliases() {
