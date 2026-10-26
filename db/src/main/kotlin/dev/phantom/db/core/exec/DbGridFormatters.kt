@@ -17,8 +17,6 @@ import com.intellij.database.run.ui.grid.editors.TimestampDelegate
 import com.intellij.database.run.ui.grid.editors.Formatter
 import com.intellij.util.Function
 import java.sql.Types
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 import java.time.temporal.ChronoField
 
@@ -42,9 +40,15 @@ class DbFormatterCreatorProvider : FormatterCreatorProvider {
 }
 
 class DbFormatterCreator : FormatterCreator() {
-  /** The column's scale for a TIMESTAMP, 0 for anything else or a scale the driver made up. */
-  public override fun calculateScale(column: GridColumn?, config: ObjectFormatterConfig?): Int =
-    if (column is JdbcGridColumn && column.type == Types.TIMESTAMP) column.scale.coerceIn(0, minOf(MAX_SCALE, MAX_FRACTION_DIGITS)) else 0
+  /**
+   * The column's scale for a TIMESTAMP, 0 for anything else or a scale the driver made up. A driver that gives no scale
+   * (MySQL) has it in the precision: 19 characters for the whole seconds, then the dot and the digits.
+   */
+  public override fun calculateScale(column: GridColumn?, config: ObjectFormatterConfig?): Int {
+    if (column !is JdbcGridColumn || column.type != Types.TIMESTAMP) return 0
+    val scale = if (column.scale > 0) column.scale else column.size - 20
+    return scale.coerceIn(0, minOf(MAX_SCALE, MAX_FRACTION_DIGITS))
+  }
 
   public override fun newIntrinsicTimestampFormat(column: GridColumn?, scale: Int, resolver: BoundaryValueResolver,
                                                   config: ObjectFormatterConfig?, formatsCache: FormatsCache): Formatter {
@@ -65,17 +69,10 @@ class DbFormatterCreator : FormatterCreator() {
 
 /**
  * The grid's object formatter. The community CSV setup gives a grid a formatter with the base [FormatterCreator], which
- * does not ask the provider, so the grid is given one made with the provider's creator. A `java.time` date-time is shown
- * as `yyyy-MM-dd HH:mm:ss[.fff]`, not in its ISO form with the 'T'.
+ * does not ask the provider, so the grid is given one made with the provider's creator.
  */
 class DbObjectFormatter(creator: FormatterCreator) : BaseObjectFormatter(FormatsCache(), creator) {
-  override fun objectToString(o: Any?, column: GridColumn?, config: ObjectFormatterConfig): String? =
-    if (o is LocalDateTime) LOCAL_DATE_TIME.format(o) else super.objectToString(o, column, config)
-
   companion object {
-    private val LOCAL_DATE_TIME: DateTimeFormatter = DateTimeFormatterBuilder().appendPattern("yyyy-MM-dd HH:mm:ss")
-      .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true).toFormatter()
-
     fun install(grid: DataGrid) {
       val formatter = DbObjectFormatter(FormatterCreator.get(grid))
       grid.setObjectFormatterProvider { formatter }

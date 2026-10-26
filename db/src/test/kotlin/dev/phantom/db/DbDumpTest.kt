@@ -44,7 +44,7 @@ class DbDumpTest : BasePlatformTestCase() {
   fun testMysqlDumpCommand() {
     val cmd = DbDump.dumpCommand(mysql(), null, out, "mysqldump", "s3cret")
     assertEquals("mysqldump", cmd.exePath)
-    assertEquals(listOf("--host=db.example", "--port=3307", "--user=app", "--routines", "--triggers", "--single-transaction",
+    assertEquals(listOf("--protocol=TCP", "--host=db.example", "--port=3307", "--user=app", "--routines", "--triggers", "--single-transaction",
                         "--result-file=/tmp/out.sql", "shop"), cmd.parametersList.list)
     assertEquals("s3cret", cmd.environment["MYSQL_PWD"])
   }
@@ -58,7 +58,7 @@ class DbDumpTest : BasePlatformTestCase() {
 
   fun testRestoreCommands() {
     val my = DbDump.restoreCommand(mysql(), null, out, "mysql", "s3cret")
-    assertEquals(listOf("--host=db.example", "--port=3307", "--user=app", "shop"), my.parametersList.list)
+    assertEquals(listOf("--protocol=TCP", "--host=db.example", "--port=3307", "--user=app", "shop"), my.parametersList.list)
     assertEquals(File("/tmp/out.sql"), my.inputFile)
     val pg = DbDump.restoreCommand(source(Dbms.POSTGRESQL, "jdbc:postgresql://pg:5433/app"), null, out, "psql", "s3cret")
     assertEquals(listOf("--host=pg", "--port=5433", "--username=app", "--dbname=app", "-v", "ON_ERROR_STOP=1", "--file=/tmp/out.sql"), pg.parametersList.list)
@@ -69,7 +69,7 @@ class DbDumpTest : BasePlatformTestCase() {
     val cmd = DbDump.dumpCommand(mysql("jdbc:mysql://db.example/shop"), null, out, "mysqldump", null)
     assertTrue(cmd.parametersList.list.none { it.startsWith("--port") })
     val aws = DbDump.dumpCommand(mysql("jdbc:aws-wrapper:mysql://aurora.example/shop"), null, out, "mysqldump", null)
-    assertEquals("--host=aurora.example", aws.parametersList.list.first())
+    assertTrue("--host=aurora.example" in aws.parametersList.list)
     assertEquals("shop", aws.parametersList.list.last())
     val pg = DbDump.dumpCommand(source(Dbms.POSTGRESQL, "jdbc:postgresql://pg/app"), null, out, "pg_dump", null)
     assertTrue(pg.parametersList.list.none { it.startsWith("--port") })

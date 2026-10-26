@@ -14,6 +14,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import dev.phantom.db.core.*
 import dev.phantom.db.core.exec.*
 import kotlinx.coroutines.runBlocking
+import dev.phantom.db.core.exec.DbGridTime
 import java.sql.Timestamp
 import java.sql.Types
 import java.time.LocalDateTime
@@ -77,16 +78,16 @@ class DbTimestampDisplayTest : BasePlatformTestCase() {
     else -> null
   }
 
-  private fun panelOf(type: Int, scale: Int, values: List<Any?>): DbResultPanel {
+  private fun panelOf(type: Int, scale: Int, values: List<Any?>, precision: Int = 0): DbResultPanel {
     val panel = DbResultPanel(project)
     Disposer.register(testRootDisposable, panel)
-    panel.showOutcomes(listOf(DbOutcome.Rows("SELECT v FROM t", listOf(DbColumn("v", type, null, classOf(type), 0, scale)), values.map { arrayOf(it) }, false, 1)))
+    panel.showOutcomes(listOf(DbOutcome.Rows("SELECT v FROM t", listOf(DbColumn("v", type, null, classOf(type), precision, scale)), values.map { arrayOf(it) }, false, 1)))
     return panel
   }
 
   /** [values] shown in one column of [type] and [scale] of a Phantom grid, as text. */
-  private fun shown(type: Int, scale: Int, vararg values: Any?): List<String?> {
-    val grid = panelOf(type, scale, values.toList()).shownGrid!!
+  private fun shown(type: Int, scale: Int, vararg values: Any?, precision: Int = 0): List<String?> {
+    val grid = panelOf(type, scale, values.toList(), precision).shownGrid!!
     val model = grid.dataHookup.dataModel
     val c = ModelIndex.forColumn(model, 0)
     return values.indices.map { r -> grid.objectFormatter.objectToString(model.getValueAt(ModelIndex.forRow(model, r), c), model.getColumn(c), grid.getFormatterConfig(c)!!) }
@@ -105,6 +106,12 @@ class DbTimestampDisplayTest : BasePlatformTestCase() {
 
   fun testMicrosecondTimestampShowsFraction() {
     assertEquals(listOf("2026-10-26 09:49:28.123456"), shown(Types.TIMESTAMP, 6, ts("2026-10-26 09:49:28.123456")))
+  }
+
+  /** MySQL Connector/J gives a TIMESTAMP(6) scale 0 and precision 26 (19 + the dot + 6 digits). */
+  fun testScaleFromPrecisionWhenDriverGivesNone() {
+    assertEquals(listOf("2026-10-26 09:49:28.123456"), shown(Types.TIMESTAMP, 0, ts("2026-10-26 09:49:28.123456"), precision = 26))
+    assertEquals(listOf("2026-10-26 09:49:28"), shown(Types.TIMESTAMP, 0, ts("2026-10-26 09:49:28.5"), precision = 19))
   }
 
   fun testZeroFractionShowsNoDigits() {
@@ -150,6 +157,14 @@ class DbTimestampDisplayTest : BasePlatformTestCase() {
   fun testLocalDateTimeShownWithoutT() {
     assertEquals(listOf("2026-10-26 09:49:28.123", "2026-10-26 09:49:28"),
                  shown(Types.TIMESTAMP, 3, LocalDateTime.of(2026, 10, 26, 9, 49, 28, 123_000_000), LocalDateTime.of(2026, 10, 26, 9, 49, 28)))
+  }
+
+  /** MySQL's DATETIME comes as a LocalDateTime: in the grid it is a TIMESTAMP (so the calendar opens on it), out of it the same time. */
+  fun testLocalDateTimeIsATimestampInTheGrid() {
+    val value = LocalDateTime.of(2026, 10, 26, 9, 49, 28, 123_000_000)
+    val inGrid = DbGridTime.toGrid(value)
+    assertTrue(inGrid is Timestamp)
+    assertEquals(Timestamp.valueOf(value), DbGridTime.fromGrid(inGrid))
   }
 
   fun testFractionalEditRoundTrips() {

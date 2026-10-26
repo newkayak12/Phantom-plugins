@@ -94,7 +94,8 @@ object DbDump {
     val end = endpoint(ds.url) ?: throw DbException(PhantomDbBundle.message("db.dump.no.address", ds.url))
     return if (isMysql(ds)) {
       val database = schema ?: end.database
-      val cmd = GeneralCommandLine(exe).withParameters("--host=${end.host}")
+      // TCP even for localhost, where the client would otherwise take the local socket and not the port (a container's)
+      val cmd = GeneralCommandLine(exe).withParameters("--protocol=TCP", "--host=${end.host}")
       end.port?.let { cmd.addParameter("--port=$it") }
       if (ds.user.isNotEmpty()) cmd.addParameter("--user=${ds.user}")
       cmd.addParameters("--routines", "--triggers", "--single-transaction", "--result-file=$out")
@@ -116,7 +117,7 @@ object DbDump {
   fun restoreCommand(ds: DbDataSource, schema: String?, input: Path, exe: String, password: String?): GeneralCommandLine {
     val end = endpoint(ds.url) ?: throw DbException(PhantomDbBundle.message("db.dump.no.address", ds.url))
     return if (isMysql(ds)) {
-      val cmd = GeneralCommandLine(exe).withParameters("--host=${end.host}")
+      val cmd = GeneralCommandLine(exe).withParameters("--protocol=TCP", "--host=${end.host}")
       end.port?.let { cmd.addParameter("--port=$it") }
       if (ds.user.isNotEmpty()) cmd.addParameter("--user=${ds.user}")
       (schema ?: end.database)?.let { cmd.addParameter(it) }
