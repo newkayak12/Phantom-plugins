@@ -159,6 +159,25 @@ class DbGridSubmitAndCommitAction : DbGridAction() {
   }
 }
 
+/** Preview Pending Changes: the statements Submit would run, in a popup to read or copy. */
+class DbGridPreviewChangesAction : DbGridAction() {
+  override fun isEnabled(grid: DataGrid): Boolean = edits(grid)?.hasPendingChanges() == true
+
+  override fun perform(grid: DataGrid) {
+    val text = edits(grid)?.pendingChanges ?: return
+    val area = com.intellij.ui.components.JBTextArea(text).apply {
+      isEditable = false
+      font = com.intellij.util.ui.JBUI.Fonts.create(java.awt.Font.MONOSPACED, font.size)
+      border = com.intellij.util.ui.JBUI.Borders.empty(6, 8)
+    }
+    com.intellij.openapi.ui.popup.JBPopupFactory.getInstance()
+      .createComponentPopupBuilder(com.intellij.ui.components.JBScrollPane(area).apply { preferredSize = com.intellij.util.ui.JBUI.size(560, 220) }, area)
+      .setTitle(PhantomDbBundle.message("action.PhantomDb.Grid.PreviewChanges.text"))
+      .setResizable(true).setMovable(true).setRequestFocus(true)
+      .createPopup().showInCenterOf(grid.panel.component)
+  }
+}
+
 /** Submit Changes Immediately: each edit runs as it is made instead of waiting for Submit. */
 class DbGridSubmitImmediatelyAction : com.intellij.openapi.project.DumbAwareToggleAction() {
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT

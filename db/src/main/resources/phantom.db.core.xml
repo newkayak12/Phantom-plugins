@@ -228,6 +228,7 @@
             use-shortcut-of="PhantomDb.RunStatement"/>
     <action id="PhantomDb.Grid.SubmitAndCommit" class="dev.phantom.db.core.exec.DbGridSubmitAndCommitAction" icon="AllIcons.Actions.Commit"
             use-shortcut-of="PhantomDb.Commit"/>
+    <action id="PhantomDb.Grid.PreviewChanges" class="dev.phantom.db.core.exec.DbGridPreviewChangesAction" icon="AllIcons.Actions.Preview"/>
     <action id="PhantomDb.Grid.SubmitImmediately" class="dev.phantom.db.core.exec.DbGridSubmitImmediatelyAction"/>
     <action id="PhantomDb.Grid.SelectRow" class="dev.phantom.db.core.exec.DbGridSelectRowAction">
       <keyboard-shortcut keymap="$default" first-keystroke="shift SPACE"/>

@@ -164,6 +164,50 @@ class DbGridEditTest : BasePlatformTestCase() {
     assertEquals(listOf(listOf<Any?>(1, "z"), listOf<Any?>(3, "c")), rows(other, "SELECT * FROM t ORDER BY id").rows.map { it.toList() })
   }
 
+  /** Add Row and Clone Row add rows in the grid, filled in place and inserted on Submit; columns left empty take their defaults. */
+  fun testNewRowsAreInsertedOnSubmit() = immediately(false) {
+    val ds = h2()
+    exec(ds, "CREATE TABLE t (id INT PRIMARY KEY, name VARCHAR(10), note VARCHAR(10) DEFAULT 'n')", "INSERT INTO t VALUES (1, 'a', 'x')")
+    myFixture.configureByText("ins.sql", "SELECT * FROM t")
+    DbRunner.start(project, myFixture.file.virtualFile, ds, listOf("SELECT * FROM t"))
+    val panel = { ToolWindowManager.getInstance(project).getToolWindow(DbResultsToolWindow.ID)?.contentManager?.selectedContent?.component as? DbResultPanel }
+    PlatformTestUtil.waitWithEventsDispatching("grid not editable; status: ${panel()?.shownStatus}", { panel()?.shownEditing != null }, 20)
+    val edits = panel()!!.shownEditing!!
+    val model = edits.hookUp.dataModel
+    val source = GridRequestSource(null)
+
+    edits.insertRows(source, 1)
+    assertEquals(2, model.rowCount)
+    assertTrue(edits.isInsertedRow(ModelIndex.forRow(model, 1)))
+    assertEquals(com.intellij.database.datagrid.MutationType.INSERT, edits.getMutationType(ModelIndex.forRow(model, 1)))
+    edits.mutate(source, ModelIndexSet.forRows(model, 1), ModelIndexSet.forColumns(model, 0), 2, true)
+    edits.mutate(source, ModelIndexSet.forRows(model, 1), ModelIndexSet.forColumns(model, 1), "b", true)
+    edits.cloneRow(source, ModelIndex.forRow(model, 0))
+    edits.mutate(source, ModelIndexSet.forRows(model, 2), ModelIndexSet.forColumns(model, 0), 3, true)
+    edits.insertRows(source, 1)
+    // a new row deleted before Submit just goes away; Revert does the same
+    edits.deleteRows(source, ModelIndexSet.forRows(model, 3))
+    assertEquals(3, model.rowCount)
+    assertEquals("""
+      INSERT INTO "T" ("ID", "NAME") VALUES (2, 'b');
+      INSERT INTO "T" ("ID", "NAME", "NOTE") VALUES (3, 'a', 'x');
+    """.trimIndent(), edits.pendingChanges)
+    assertEmpty(rows(ds, "SELECT * FROM t WHERE id > 1").rows)
+
+    var submitted: Boolean? = null
+    edits.submit(source) { submitted = it }
+    PlatformTestUtil.waitWithEventsDispatching("not submitted", { submitted != null }, 20)
+    assertTrue(submitted!!)
+    assertFalse(edits.hasPendingChanges())
+    assertFalse(edits.isInsertedRow(ModelIndex.forRow(model, 1)))
+    assertEquals(listOf(listOf<Any?>(1, "a", "x"), listOf<Any?>(2, "b", "n"), listOf<Any?>(3, "a", "x")),
+                 rows(ds, "SELECT * FROM t ORDER BY id").rows.map { it.toList() })
+
+    edits.insertRows(source, 1)
+    edits.revert(source, ModelIndexSet.forRows(model, 3), ModelIndexSet.forColumns(model, 0))
+    assertEquals(3, model.rowCount)
+  }
+
   /** Submit Changes Immediately: each edit runs as it is made. */
   fun testGridEditsGoToTheTableAndWaitForCommit() = immediately(true) {
     val ds = h2(manualCommit = true)

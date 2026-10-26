@@ -295,7 +295,7 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
     val hookUp = DbEditableHookUp(project, model)
     val tableActions = if (table == null) emptyList() else listOf(DbForeignKeyActions.group(), Separator.getInstance())
     val manager = com.intellij.openapi.actionSystem.ActionManager.getInstance()
-    val setValue = listOf("PhantomDb.Grid.Submit", "PhantomDb.Grid.SubmitAndCommit", "Console.TableResult.RevertSelected", "PhantomDb.Grid.SubmitImmediately")
+    val setValue = listOf("PhantomDb.Grid.Submit", "PhantomDb.Grid.SubmitAndCommit", "Console.TableResult.RevertSelected", "PhantomDb.Grid.PreviewChanges", "PhantomDb.Grid.SubmitImmediately")
                      .mapNotNull { manager.getAction(it) } + Separator.getInstance() +
                    listOf(manager.getAction("PhantomDb.Grid.SetNull"), manager.getAction("PhantomDb.Grid.SetDefault"), Separator.getInstance()) +
                    listOf("PhantomDb.Grid.EditFilterCriteria", "PhantomDb.Grid.EditOrdering", "PhantomDb.Grid.SelectRow", "PhantomDb.Grid.SelectColumn")

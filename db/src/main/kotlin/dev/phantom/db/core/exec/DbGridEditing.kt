@@ -73,6 +73,9 @@ class DbGridEdits(
   /** Rows marked deleted, waiting for Submit. EDT only. */
   private val deleted: MutableSet<GridRow> = Collections.newSetFromMap(IdentityHashMap())
 
+  /** New rows (Add Row, Clone Row) waiting for Submit; their set cells are in [changed]. EDT only. */
+  private val inserted: MutableSet<GridRow> = Collections.newSetFromMap(IdentityHashMap())
+
   @Volatile
   private var failed = false
 
@@ -86,7 +89,7 @@ class DbGridEdits(
   override fun isUpdateSafe(rowIndices: ModelIndexSet<GridRow>, columnIndices: ModelIndexSet<GridColumn>, newValue: Any?): Boolean =
     columnIndices.asIterable().all { target.isEditable(it.value) }
 
-  override fun hasPendingChanges(): Boolean = live(changed.keys).isNotEmpty() || live(deleted).isNotEmpty()
+  override fun hasPendingChanges(): Boolean = live(changed.keys).isNotEmpty() || live(deleted).isNotEmpty() || live(inserted).isNotEmpty()
 
   override fun hasUnparsedValues(): Boolean = false
 
@@ -128,7 +131,7 @@ class DbGridEdits(
     if (edits.isEmpty()) return
     for (edit in edits) {
       val loaded = edit.row.getValue(edit.column)
-      if (edit.value !== DEFAULT && edit.value == loaded) {
+      if (edit.row !in inserted && edit.value !== DEFAULT && edit.value == loaded) {
         changed[edit.row]?.let { cells -> cells.remove(edit.column); if (cells.isEmpty()) changed.remove(edit.row) }
       }
       else changed.getOrPut(edit.row) { LinkedHashMap() }[edit.column] = edit.value
@@ -139,42 +142,68 @@ class DbGridEdits(
   override fun deleteRows(source: GridRequestSource, rows: ModelIndexSet<GridRow>) {
     val selected = rows.asIterable().mapNotNull { hookUp.row(it) }.toList()
     if (selected.isEmpty()) return
+    // a new row not submitted yet just goes away
+    val fresh = selected.filter { it in inserted }
+    if (fresh.isNotEmpty()) {
+      fresh.forEach(::drop)
+      if (fresh.size == selected.size) return
+    }
     if (!immediate) {
-      deleted.addAll(selected)
+      deleted.addAll(selected - fresh.toSet())
       selected.forEach { cellsUpdated(it, (0 until hookUp.dataModel.columnCount).toList(), source) }
       return
     }
+    val existing = selected - fresh.toSet()
     if (!dataSource.manualCommit) {
-      val answer = Messages.showYesNoDialog(project, PhantomDbBundle.message("db.edit.delete.confirm", selected.size, target.displayName),
+      val answer = Messages.showYesNoDialog(project, PhantomDbBundle.message("db.edit.delete.confirm", existing.size, target.displayName),
                                             PhantomDbBundle.message("db.edit.delete.title"), Messages.getWarningIcon())
       if (answer != Messages.YES) return
     }
-    apply(source, selected.map { Op.Delete(it) })
+    apply(source, existing.map { Op.Delete(it) })
   }
 
-  /** Submit (Ctrl+Enter): the waiting changes, updates first, then deletions; stops at the first that fails. */
+  /** Takes a new, unsubmitted row out of the grid. */
+  private fun drop(row: GridRow) {
+    inserted.remove(row)
+    changed.remove(row)
+    val index = hookUp.rowIndex(row)
+    if (index >= 0) hookUp.updater.removeRows(index, 1)
+  }
+
+  /** Submit (Ctrl+Enter): the waiting changes, updates first, then new rows, then deletions; stops at the first that fails. */
   override fun submit(source: GridRequestSource, unused: Boolean) {
     submit(source) {}
   }
 
   /** As [submit]; [then] gets whether everything was written (Submit and Commit commits only then). */
   fun submit(source: GridRequestSource, then: suspend (Boolean) -> Unit) {
-    val ops = live(changed.keys).filter { it !in deleted }.flatMap { row -> changed[row]!!.map { (c, v) -> Op.Cell(Edit(row, c, v)) } } +
-              live(deleted).map { Op.Delete(it) }
+    val ops = updatedRows().flatMap { row -> changed[row]!!.map { (c, v) -> Op.Cell(Edit(row, c, v)) } } +
+              live(inserted).map { Op.Insert(it) } + live(deleted).map { Op.Delete(it) }
     apply(source, ops, then)
   }
 
   /** The statements Submit would run, one per line. */
   override fun getPendingChanges(): String =
-    (live(changed.keys).filter { it !in deleted }.flatMap { row ->
-      changed[row]!!.map { (c, v) -> statement(Edit(row, c, v)).display }
-    } + live(deleted).map { target.delete(GridRow.getValues(it)).display }).joinToString(";\n", postfix = if (hasPendingChanges()) ";" else "")
+    (updatedRows().flatMap { row -> changed[row]!!.map { (c, v) -> statement(Edit(row, c, v)).display } } +
+     live(inserted).map { insertStatement(it).display } +
+     live(deleted).map { target.delete(GridRow.getValues(it)).display }).joinToString(";\n", postfix = if (hasPendingChanges()) ";" else "")
+
+  /** Loaded rows with edited cells, not deleted. */
+  private fun updatedRows(): List<GridRow> = live(changed.keys).filter { it !in deleted && it !in inserted }
+
+  /** A new row's INSERT: the cells set in it, DEFAULT ones left to the database. */
+  private fun insertStatement(row: GridRow): DbStatement =
+    target.insert(changed[row].orEmpty().filterValues { it !== DEFAULT })
 
   /** Revert Selected (Ctrl+Alt+Z): drops the changes of the selected cells and undeletes the selected rows. */
   override fun revert(source: GridRequestSource, rows: ModelIndexSet<GridRow>, columns: ModelIndexSet<GridColumn>) {
     val cols = columns.asIterable().map { it.value }.toSet()
-    for (index in rows.asIterable()) {
+    for (index in rows.asIterable().sortedByDescending { it.value }) {
       val row = hookUp.row(index) ?: continue
+      if (row in inserted) {
+        drop(row)
+        continue
+      }
       deleted.remove(row)
       changed[row]?.let { cells -> cells.keys.removeAll(cols); if (cells.isEmpty()) changed.remove(row) }
       cellsUpdated(row, (0 until hookUp.dataModel.columnCount).toList(), source)
@@ -184,6 +213,7 @@ class DbGridEdits(
   override fun getMutationType(row: ModelIndex<GridRow>): MutationType? {
     val r = hookUp.row(row) ?: return null
     return when {
+      r in inserted -> MutationType.INSERT
       r in deleted -> MutationType.DELETE
       changed.containsKey(r) -> MutationType.MODIFY
       else -> null
@@ -193,6 +223,7 @@ class DbGridEdits(
   override fun getMutationType(row: ModelIndex<GridRow>, column: ModelIndex<GridColumn>): MutationType? {
     val r = hookUp.row(row) ?: return null
     return when {
+      r in inserted -> MutationType.INSERT
       r in deleted -> MutationType.DELETE
       changed[r]?.containsKey(column.value) == true -> MutationType.MODIFY
       else -> null
@@ -209,7 +240,7 @@ class DbGridEdits(
     val cols = columns.asIterable().map { it.value }.toSet()
     return rows.asIterable().any { index ->
       val r = hookUp.row(index) ?: return@any false
-      r in deleted || changed[r]?.keys?.any { it in cols } == true
+      r in deleted || r in inserted || changed[r]?.keys?.any { it in cols } == true
     }
   }
 
@@ -232,6 +263,7 @@ class DbGridEdits(
   private sealed interface Op {
     class Cell(val edit: Edit) : Op
     class Delete(val row: GridRow) : Op
+    class Insert(val row: GridRow) : Op
   }
 
   /** Runs each operation's statement in order, stopping at the first that fails, and shows what was written. */
@@ -254,6 +286,7 @@ class DbGridEdits(
             else if (error == null) read(target.selectValue(GridRow.getValues(op.edit.row), op.edit.column)) else null
           }
           is Op.Delete -> error = problem(run(target.delete(GridRow.getValues(op.row))))
+          is Op.Insert -> error = problem(run(insertStatement(op.row)))
         }
         withContext(Dispatchers.EDT) {
           if (error != null) {
@@ -267,6 +300,11 @@ class DbGridEdits(
               changed[row]?.let { cells -> cells.remove(op.edit.column); if (cells.isEmpty()) changed.remove(row) }
               row.setValue(op.edit.column, value)
               cellsUpdated(row, listOf(op.edit.column), source)
+            }
+            is Op.Insert -> {
+              inserted.remove(op.row)
+              changed.remove(op.row)?.forEach { (c, v) -> if (v !== DEFAULT) op.row.setValue(c, v) }
+              cellsUpdated(op.row, (0 until hookUp.dataModel.columnCount).toList(), source)
             }
             is Op.Delete -> {
               deleted.remove(op.row)
@@ -284,30 +322,59 @@ class DbGridEdits(
     }
   }
 
-  /** New rows are written in a console, where the values and defaults can be filled in before running. */
+  /**
+   * Add Row: empty rows at the end of the grid, filled in place and inserted on Submit (columns left empty take their
+   * defaults). With Submit Changes Immediately on, an INSERT to finish opens in a console instead.
+   */
   override fun insertRows(source: GridRequestSource, amount: Int) {
-    DbConsoles.openConsole(project, dataSource, target.insertTemplate(null))
+    if (immediate) {
+      DbConsoles.openConsole(project, dataSource, target.insertTemplate(null))
+      return
+    }
+    addRows(List(amount.coerceAtLeast(1)) { arrayOfNulls<Any?>(hookUp.dataModel.columnCount) }, copied = false)
   }
 
+  /** Clone Row: a new row with the values of [toClone], key included, to change before Submit. */
   override fun cloneRow(source: GridRequestSource, toClone: ModelIndex<GridRow>) {
     val row = hookUp.row(toClone) ?: return
-    DbConsoles.openConsole(project, dataSource, target.insertTemplate(GridRow.getValues(row)))
+    if (immediate) {
+      DbConsoles.openConsole(project, dataSource, target.insertTemplate(GridRow.getValues(row)))
+      return
+    }
+    addRows(listOf(GridRow.getValues(row).copyOf()), copied = true)
+  }
+
+  private fun addRows(values: List<Array<Any?>>, copied: Boolean) {
+    val start = hookUp.dataModel.rowCount
+    val rows = values.mapIndexed { i, v -> com.intellij.database.datagrid.DataConsumer.Row.create(start + i, v) }
+    hookUp.updater.addRows(rows)
+    for ((i, v) in values.withIndex()) {
+      val row = hookUp.row(ModelIndex.forRow(hookUp.dataModel, start + i)) ?: continue
+      inserted.add(row)
+      if (copied) changed[row] = LinkedHashMap(v.indices.filter { target.isEditable(it) }.associateWith { v[it] })
+    }
   }
 
   override fun isDeletedRow(row: ModelIndex<GridRow>): Boolean = hookUp.row(row)?.let { it in deleted } == true
 
   override fun isDeletedRows(rows: ModelIndexSet<GridRow>): Boolean = rows.asIterable().toList().let { list -> list.isNotEmpty() && list.all { isDeletedRow(it) } }
 
-  override fun isInsertedRow(row: ModelIndex<GridRow>): Boolean = false
+  override fun isInsertedRow(row: ModelIndex<GridRow>): Boolean = hookUp.row(row)?.let { it in inserted } == true
 
+  /**
+   * The grid counts this many rows past its model's; new rows here are rows of the model itself (so they edit, sort and
+   * render like the others), hence none.
+   */
   override fun getInsertedRowsCount(): Int = 0
 
-  override fun getLastInsertedRow(): ModelIndex<GridRow> = ModelIndex.forRow(hookUp.dataModel, -1)
+  override fun getLastInsertedRow(): ModelIndex<GridRow> =
+    ModelIndex.forRow(hookUp.dataModel, live(inserted).lastOrNull()?.let { hookUp.rowIndex(it) } ?: -1)
 
   override fun getAffectedRows(): ModelIndexSet<GridRow> =
-    ModelIndexSet.forRows(hookUp.dataModel, *(live(changed.keys) + live(deleted)).map { hookUp.rowIndex(it) }.distinct().sorted().toIntArray())
+    ModelIndexSet.forRows(hookUp.dataModel, *(live(changed.keys) + live(deleted) + live(inserted)).map { hookUp.rowIndex(it) }.distinct().sorted().toIntArray())
 
-  override fun getInsertedRows(): JBIterable<ModelIndex<GridRow>> = JBIterable.empty()
+  override fun getInsertedRows(): JBIterable<ModelIndex<GridRow>> =
+    JBIterable.from(live(inserted).map { ModelIndex.forRow(hookUp.dataModel, hookUp.rowIndex(it)) })
 
   // columns are the table's: not added, removed or renamed from a result
   override fun deleteColumns(source: GridRequestSource, columns: ModelIndexSet<GridColumn>) = Unit

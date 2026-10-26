@@ -139,6 +139,17 @@ class DbEditTarget(
 
   fun delete(row: Array<Any?>): DbStatement = DbStatement("DELETE FROM $tableSql WHERE ${keyCondition()}", keyParams(row), dbms)
 
+  /** `INSERT INTO t (c, …) VALUES (?, …)` for the [values] set in a new grid row; the other columns take their defaults. */
+  fun insert(values: Map<Int, Any?>): DbStatement {
+    val columns = values.keys.filter { isEditable(it) }.sorted()
+    if (columns.isEmpty()) {
+      val sql = if (dbms.usesCatalogs) "INSERT INTO $tableSql () VALUES ()" else "INSERT INTO $tableSql DEFAULT VALUES"
+      return DbStatement(sql, emptyList(), dbms)
+    }
+    return DbStatement("INSERT INTO $tableSql (${columns.joinToString { columnSql[it]!! }}) VALUES (${columns.joinToString { "?" }})",
+                       columns.map { DbParam(values[it], sqlTypes[it]) }, dbms)
+  }
+
   /** An INSERT with [values] (or NULLs) for the table columns of the result, to finish in a console. */
   fun insertTemplate(values: Array<Any?>?): String {
     val columns = columnSql.indices.filter { isEditable(it) }
