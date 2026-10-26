@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.SimpleListCellRenderer
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBPasswordField
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
@@ -16,6 +17,7 @@ import com.intellij.ui.dsl.builder.panel
 import dev.phantom.db.core.DbDataSource
 import dev.phantom.db.core.DbDataSourceService
 import dev.phantom.db.core.DbPasswordStorage
+import dev.phantom.db.core.DbSshAuth
 import dev.phantom.db.core.PhantomDbBundle
 import javax.swing.JComponent
 
@@ -44,6 +46,44 @@ object DbPasswordPrompt {
         service.save(saved, signIn.password.toCharArray())
       }
       result = signIn
+    }, ModalityState.any())
+    return result
+  }
+
+  /**
+   * The SSH password or key passphrase of [dataSource]'s tunnel, asked like [ask]; kept in the password safe when Save is
+   * on. `null`: cancelled (or not askable from this thread).
+   */
+  fun askSsh(project: Project, dataSource: DbDataSource, error: String?): String? {
+    val app = ApplicationManager.getApplication()
+    if (app.isDispatchThread || app.isReadAccessAllowed || app.isHeadlessEnvironment) return null
+    var result: String? = null
+    app.invokeAndWait({
+      if (project.isDisposed) return@invokeAndWait
+      val key = if (dataSource.sshAuth == DbSshAuth.KEY) "db.ssh.passphrase.title" else "db.ssh.password.title"
+      val password = JBPasswordField()
+      val save = JBCheckBox(PhantomDbBundle.message("db.ssh.save"), true)
+      val dialog = object : DialogWrapper(project) {
+        init {
+          title = PhantomDbBundle.message(key, dataSource.sshUser.ifEmpty { System.getProperty("user.name") } + "@" + dataSource.sshHost)
+          init()
+        }
+
+        override fun getPreferredFocusedComponent(): JComponent = password
+
+        override fun createCenterPanel(): JComponent = panel {
+          if (error != null) row { label(error).applyToComponent { foreground = com.intellij.ui.JBColor.RED } }
+          row(PhantomDbBundle.message("db.dialog.password")) { cell(password).align(AlignX.FILL).columns(COLUMNS_MEDIUM) }
+          row { cell(save) }
+        }
+      }
+      if (!dialog.showAndGet()) return@invokeAndWait
+      val secret = String(password.password)
+      if (save.isSelected) {
+        val service = DbDataSourceService.getInstance(project)
+        service.find(dataSource.id)?.let { service.save(it.copy(), null, secret.toCharArray()) }
+      }
+      result = secret
     }, ModalityState.any())
     return result
   }

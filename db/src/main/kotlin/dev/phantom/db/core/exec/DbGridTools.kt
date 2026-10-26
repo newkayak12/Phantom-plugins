@@ -6,6 +6,11 @@ import com.intellij.database.datagrid.DataGrid
 import com.intellij.database.datagrid.GridColumn
 import com.intellij.database.datagrid.GridRow
 import com.intellij.database.datagrid.ModelIndex
+import com.intellij.database.datagrid.ModelIndexSet
+import com.intellij.database.run.ui.DataGridRequestPlace
+import com.intellij.database.datagrid.GridRequestSource
+import com.intellij.openapi.actionSystem.ActionPromoter
+import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.database.run.ui.DataAccessType
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -70,5 +75,48 @@ object DbCopyActions {
     val grid = e.getData(DatabaseDataKeys.DATA_GRID_KEY) ?: return null
     val panel = UIUtil.getParentOfType(DbResultPanel::class.java, grid.panel.component) ?: return null
     return grid to panel
+  }
+}
+
+/** Set NULL (Ctrl+Alt+N) and Set DEFAULT (Ctrl+Alt+D) on the selected cells of an editable result, as in DataGrip. */
+abstract class DbGridSetAction : DumbAwareAction() {
+  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+  override fun update(e: AnActionEvent) {
+    val grid = e.getData(DatabaseDataKeys.DATA_GRID_KEY)
+    val edits = grid?.let { edits(it) }
+    e.presentation.isVisible = grid != null
+    e.presentation.isEnabled = edits != null && grid.selectionModel.selectedColumns.asIterable().any { edits.target.isEditable(it.value) }
+  }
+
+  override fun actionPerformed(e: AnActionEvent) {
+    val grid = e.getData(DatabaseDataKeys.DATA_GRID_KEY) ?: return
+    val edits = edits(grid) ?: return
+    val selection = grid.selectionModel
+    apply(edits, GridRequestSource(DataGridRequestPlace(grid)), selection.selectedRows, selection.selectedColumns)
+  }
+
+  protected abstract fun apply(edits: DbGridEdits, source: GridRequestSource, rows: ModelIndexSet<GridRow>, columns: ModelIndexSet<GridColumn>)
+
+  companion object {
+    fun edits(grid: DataGrid): DbGridEdits? = (grid.dataHookup as? DbEditableHookUp)?.editing
+  }
+}
+
+class DbGridSetNullAction : DbGridSetAction() {
+  override fun apply(edits: DbGridEdits, source: GridRequestSource, rows: ModelIndexSet<GridRow>, columns: ModelIndexSet<GridColumn>) =
+    edits.mutate(source, rows, columns, null, true)
+}
+
+class DbGridSetDefaultAction : DbGridSetAction() {
+  override fun apply(edits: DbGridEdits, source: GridRequestSource, rows: ModelIndexSet<GridRow>, columns: ModelIndexSet<GridColumn>) =
+    edits.setDefault(source, rows, columns)
+}
+
+/** In a result grid Set NULL and Set DEFAULT win over IDE actions on the same keys (Inline, Choose Debug Configuration). */
+class DbGridActionPromoter : ActionPromoter {
+  override fun promote(actions: List<AnAction>, context: DataContext): List<AnAction> {
+    if (context.getData(DatabaseDataKeys.DATA_GRID_KEY) == null) return emptyList()
+    return actions.filterIsInstance<DbGridSetAction>()
   }
 }

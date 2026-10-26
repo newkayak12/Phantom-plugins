@@ -3,6 +3,8 @@ package dev.phantom.db.core.ui
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.util.PropertiesComponent
+import com.intellij.openapi.ide.CopyPasteManager
+import java.awt.datatransfer.StringSelection
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.DocumentAdapter
@@ -94,6 +96,8 @@ class DbShowToolWindowAction : DumbAwareAction() {
 /** Tree node payloads. */
 sealed interface DbNode {
   class Source(val dataSource: DbDataSource) : DbNode
+  /** A data source folder; [path] is the whole group, `a/b`, its last part the name shown. */
+  class Group(val path: String) : DbNode
   class Schema(val dataSource: DbDataSource, val ref: DbSchemaRef) : DbNode
   class Table(val dataSource: DbDataSource, val ref: DbTableRef) : DbNode
   /** [foreignKey]: the column is part of a foreign key of its table. */
@@ -134,6 +138,7 @@ sealed interface DbNode {
     /** What speed search matches: the name each node shows first. */
     fun text(node: DbNode?): String = objectName(node) ?: when (node) {
       is Source -> node.dataSource.name
+      is Group -> node.path.substringAfterLast('/')
       is Schema -> node.ref.name
       is Column -> node.info.name
       is Folder -> PhantomDbBundle.message(node.kind.key)
@@ -156,7 +161,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
   val tree: Tree = object : Tree(model) {
     /** Rows of a colored data source, its own and all below it, get its tint. */
     override fun getPathBackground(path: TreePath, row: Int): java.awt.Color? {
-      val source = ((path.path.getOrNull(1) as? DefaultMutableTreeNode)?.userObject as? DbNode.Source)?.dataSource
+      val source = path.path.firstNotNullOfOrNull { ((it as? DefaultMutableTreeNode)?.userObject as? DbNode.Source)?.dataSource }
       return DbColors.tint(source?.color) ?: super.getPathBackground(path, row)
     }
   }
@@ -203,6 +208,12 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       command("Add") { add() },
       command("Edit", { selectedSource() != null }) { edit() },
       command("Remove", { selectedNode() is DbNode.Source }) { remove() },
+      command("Duplicate", { selectedNode() is DbNode.Source }) { (selectedNode() as? DbNode.Source)?.let { duplicate(it.dataSource) } },
+      command("CopySource", { selectedNode() is DbNode.Source }) {
+        (selectedNode() as? DbNode.Source)?.let { CopyPasteManager.getInstance().setContents(StringSelection(DbDataSourceClipboard.write(listOf(it.dataSource)))) }
+      },
+      command("PasteSource", { DbDataSourceClipboard.read(clipboardText()).isNotEmpty() }) { paste() },
+      command("MoveToGroup", { selectedNode() is DbNode.Source || selectedNode() is DbNode.Group }) { moveToGroup() },
       command("MakeGlobal", { selectedNode() is DbNode.Source }) {
         (selectedNode() as? DbNode.Source)?.dataSource?.let { ds -> DbDataSourceService.getInstance(project).save(ds.copy().apply { global = !ds.global }, null) }
       },
@@ -216,6 +227,10 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
         (selectedNode() as? DbNode.Table)?.let { DbTableDataView.open(project, it.dataSource, it.ref) }
       },
       command("Ddl", { ddlTarget() != null }) { ddlTarget()?.let { showDdl(project, it.first, it.second) } },
+      command("CopyDdl", { ddlTarget() != null }) { ddlTarget()?.let { copyDdl(project, it.first, it.second) } },
+      command("SqlGenerator", { (selectedNode() as? DbNode.Table)?.dataSource?.dialect()?.hasDialect == true }) {
+        (selectedNode() as? DbNode.Table)?.let { sqlGenerator(project, it.dataSource, it.ref) }
+      },
       command("Modify", {
         (selectedNode() as? DbNode.Table)?.let { !it.ref.isView && !it.dataSource.readOnly && it.dataSource.dialect().hasDialect } == true
       }) { modifyTable() },
@@ -270,17 +285,38 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
 
   /** Rebuilds the data source level; expanded data sources stay expanded and reload their children. */
   fun reload() {
-    val expanded = TreeUtil.collectExpandedUserObjects(tree).filterIsInstance<DbNode.Source>().map { it.dataSource.id }.toSet()
+    val expandedObjects = TreeUtil.collectExpandedUserObjects(tree)
+    val expanded = expandedObjects.filterIsInstance<DbNode.Source>().map { it.dataSource.id }.toSet()
+    val expandedGroups = expandedObjects.filterIsInstance<DbNode.Group>().map { it.path }.toSet()
     root.removeAllChildren()
     loaded.clear()
     loading.clear()
-    for (ds in DbDataSourceService.getInstance(project).dataSources) root.add(expandable(DbNode.Source(ds)))
+    val groups = HashMap<String, DefaultMutableTreeNode>()
+    fun group(path: String): DefaultMutableTreeNode {
+      if (path.isEmpty()) return root
+      return groups.getOrPut(path) {
+        val parent = group(path.substringBeforeLast('/', ""))
+        DefaultMutableTreeNode(DbNode.Group(path), true).also { parent.add(it) }
+      }
+    }
+    val sources = DbDataSourceService.getInstance(project).dataSources
+    // folders first, as in DataGrip
+    for (ds in sources) if (groupOf(ds).isNotEmpty()) group(groupOf(ds))
+    for (ds in sources) group(groupOf(ds)).add(expandable(DbNode.Source(ds)))
+    // the filter re-adds a group's children from here
+    for (node in groups.values) loaded[node] = node.children().toList().map { it as DefaultMutableTreeNode }
     model.reload()
-    for (i in 0 until root.childCount) {
-      val node = root.getChildAt(i) as DefaultMutableTreeNode
+    for (node in groups.values.sortedBy { it.level }) if ((node.userObject as DbNode.Group).path in expandedGroups) tree.expandPath(TreePath(node.path))
+    for (node in sourceNodes()) {
       if ((node.userObject as DbNode.Source).dataSource.id in expanded) tree.expandPath(TreePath(node.path))
     }
   }
+
+  /** The data source nodes, at the top or in their groups. */
+  internal fun sourceNodes(): List<DefaultMutableTreeNode> =
+    TreeUtil.treeNodeTraverser(root).filter(DefaultMutableTreeNode::class.java).filter { it.userObject is DbNode.Source }.toList()
+
+  private fun groupOf(ds: DbDataSource): String = ds.group.split('/').map { it.trim() }.filter { it.isNotEmpty() }.joinToString("/")
 
   private fun load(node: DefaultMutableTreeNode) {
     val placeholder = (node.firstOrNull())?.userObject
@@ -425,6 +461,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
     if (!active) return true
     return when {
       payload is DbNode.Source -> true
+      payload is DbNode.Group -> !visible.isNullOrEmpty()
       name != null -> name.lowercase().contains(filter)
       payload is DbNode.Schema || payload is DbNode.Folder -> !visible.isNullOrEmpty()
       else -> false
@@ -491,8 +528,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
 
   /** Lists the data source's consoles again where its Consoles folder is loaded. */
   fun consolesChanged(dataSourceId: String) {
-    for (i in 0 until root.childCount) {
-      val source = root.getChildAt(i) as DefaultMutableTreeNode
+    for (source in sourceNodes()) {
       if ((source.userObject as? DbNode.Source)?.dataSource?.id != dataSourceId) continue
       loaded[source]?.firstOrNull { (it.userObject as? DbNode.Folder)?.kind == DbNode.Folder.Kind.CONSOLES }?.takeIf { it in loaded }?.let(::reloadChildren)
     }
@@ -507,6 +543,50 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
 
   private fun add() {
     DbDataSourceDialog.create(project)
+  }
+
+  /** A copy with a new id, " (copy)" in its name and no saved password (asked at the first connect). */
+  private fun duplicate(ds: DbDataSource) {
+    val copy = ds.copy().apply {
+      id = java.util.UUID.randomUUID().toString()
+      name = PhantomDbBundle.message("db.datasource.copy.name", ds.name)
+    }
+    DbDataSourceService.getInstance(project).save(copy, null)
+  }
+
+  private fun clipboardText(): String? =
+    runCatching { CopyPasteManager.getInstance().getContents<String>(java.awt.datatransfer.DataFlavor.stringFlavor) }.getOrNull()
+
+  /** Data sources copied (here or in another project or IDE) are added with new ids, in the selected group; passwords stay behind. */
+  private fun paste() {
+    val group = (selectedNode() as? DbNode.Group)?.path ?: selectedSource()?.group
+    val service = DbDataSourceService.getInstance(project)
+    for (ds in DbDataSourceClipboard.read(clipboardText())) {
+      ds.id = java.util.UUID.randomUUID().toString()
+      if (group != null) ds.group = group
+      service.save(ds, null)
+    }
+  }
+
+  /** Move to Group (F6, as in DataGrip): a data source into a folder (`a/b` nests, empty takes it out); on a folder, renames it. */
+  private fun moveToGroup() {
+    val service = DbDataSourceService.getInstance(project)
+    when (val node = selectedNode()) {
+      is DbNode.Source -> {
+        val group = Messages.showInputDialog(project, PhantomDbBundle.message("db.group.prompt"), PhantomDbBundle.message("db.group.title"), null,
+                                             node.dataSource.group, null) ?: return
+        service.save(node.dataSource.copy().apply { this.group = group.trim() }, null)
+      }
+      is DbNode.Group -> {
+        val renamed = Messages.showInputDialog(project, PhantomDbBundle.message("db.group.prompt"), PhantomDbBundle.message("db.group.rename"), null,
+                                               node.path, null)?.trim() ?: return
+        for (ds in service.dataSources) {
+          val g = ds.group.trim()
+          if (g == node.path || g.startsWith(node.path + "/")) service.save(ds.copy().apply { group = renamed + g.removePrefix(node.path) }, null)
+        }
+      }
+      else -> {}
+    }
   }
 
   private fun edit() {
@@ -605,6 +685,45 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       else DbTableDataView.open(project, dataSource, ref)
     }
 
+    /** Copies the DDL of a table, view, routine or trigger (Copy DDL, as in DataGrip). */
+    fun copyDdl(project: Project, dataSource: DbDataSource, target: DbDdl.Target) {
+      DbConnectionService.getInstance(project).launch {
+        val text = ddlText(project, dataSource, target)
+        withContext(Dispatchers.EDT) {
+          com.intellij.openapi.ide.CopyPasteManager.getInstance().setContents(java.awt.datatransfer.StringSelection(text))
+          com.intellij.openapi.wm.WindowManager.getInstance().getStatusBar(project)?.info = PhantomDbBundle.message("db.ddl.copied")
+        }
+      }
+    }
+
+    /** Opens the table's DDL with a SELECT, INSERT, UPDATE and DELETE of its columns in a read-only SQL tab. */
+    fun sqlGenerator(project: Project, dataSource: DbDataSource, ref: DbTableRef) {
+      DbConnectionService.getInstance(project).launch {
+        val ddl = ddlText(project, dataSource, DbDdl.Target.Table(ref))
+        val columns = try {
+          DbMetadataCache.getInstance(project).columns(dataSource, ref)
+        }
+        catch (e: SQLException) {
+          emptyList()
+        }
+        val text = DbSqlGenerator.text(dataSource.dialect(), ref, columns, ddl)
+        withContext(Dispatchers.EDT) {
+          val file = com.intellij.testFramework.LightVirtualFile("${ref.name} (SQL Generator).sql", SqlFileType.INSTANCE, text).apply { isWritable = false }
+          FileEditorManager.getInstance(project).openFile(file, true)
+        }
+      }
+    }
+
+    private suspend fun ddlText(project: Project, dataSource: DbDataSource, target: DbDdl.Target): String = try {
+      DbDdl.ddl(project, dataSource, target)
+    }
+    catch (e: SQLException) {
+      "-- " + DbExecutor.message(e)
+    }
+    catch (e: DbException) {
+      "-- " + e.message
+    }
+
     /** Opens the DDL of a table, view, routine or trigger in a read-only SQL tab. */
     fun showDdl(project: Project, dataSource: DbDataSource, target: DbDdl.Target) {
       val name = when (target) {
@@ -613,15 +732,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
         is DbDdl.Target.Trigger -> target.trigger.name
       }
       DbConnectionService.getInstance(project).launch {
-        val text = try {
-          DbDdl.ddl(project, dataSource, target)
-        }
-        catch (e: SQLException) {
-          "-- " + DbExecutor.message(e)
-        }
-        catch (e: DbException) {
-          "-- " + e.message
-        }
+        val text = ddlText(project, dataSource, target)
         withContext(Dispatchers.EDT) {
           val file = com.intellij.testFramework.LightVirtualFile("$name.sql", SqlFileType.INSTANCE, text).apply { isWritable = false }
           FileEditorManager.getInstance(project).openFile(file, true)
@@ -639,6 +750,10 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
           append("  " + node.dataSource.url.removePrefix("jdbc:"), SimpleTextAttributes.GRAYED_ATTRIBUTES)
           if (node.dataSource.readOnly) append("  " + PhantomDbBundle.message("db.tree.read.only"), SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES)
           if (node.dataSource.global) append("  " + PhantomDbBundle.message("db.tree.global"), SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES)
+        }
+        is DbNode.Group -> {
+          icon = AllIcons.Nodes.Folder
+          append(node.path.substringAfterLast('/'))
         }
         is DbNode.Schema -> {
           icon = AllIcons.Nodes.DataSchema
@@ -746,5 +861,26 @@ class DbTreeActionPromoter : ActionPromoter {
   override fun promote(actions: List<AnAction>, context: DataContext): List<AnAction> {
     if (DbTreeAction.panel(context) == null) return emptyList()
     return actions.filterIsInstance<DbTreeAction>()
+  }
+}
+
+/** Data sources on the clipboard as XML, the format they are saved in, without passwords (which never are in it). */
+object DbDataSourceClipboard {
+  private const val ROOT = "phantom-data-sources"
+
+  fun write(sources: List<DbDataSource>): String {
+    val element = org.jdom.Element(ROOT)
+    sources.forEach { element.addContent(com.intellij.util.xmlb.XmlSerializer.serialize(it)) }
+    return com.intellij.openapi.util.JDOMUtil.write(element)
+  }
+
+  /** Empty for anything that is not such XML. */
+  fun read(text: String?): List<DbDataSource> {
+    if (text == null || !text.trimStart().startsWith("<$ROOT")) return emptyList()
+    return runCatching {
+      com.intellij.openapi.util.JDOMUtil.load(text).children.mapNotNull { child ->
+        runCatching { com.intellij.util.xmlb.XmlSerializer.deserialize(child, DbDataSource::class.java) }.getOrNull()
+      }
+    }.getOrDefault(emptyList())
   }
 }

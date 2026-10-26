@@ -49,6 +49,9 @@ class DbGridEdits(
   /** Runs the statement; tests replace it to run without the IDE's connection service. */
   internal var run: suspend (DbStatement) -> DbOutcome = { DbExecutor.execute(project, dataSource, it) }
 
+  /** Reads a value back (Set DEFAULT); tests replace it like [run]. */
+  internal var read: suspend (DbStatement) -> Any? = { DbExecutor.firstValue(project, dataSource, it) }
+
   override fun isUpdateSafe(rowIndices: ModelIndexSet<GridRow>, columnIndices: ModelIndexSet<GridColumn>, newValue: Any?): Boolean =
     columnIndices.asIterable().all { target.isEditable(it.value) }
 
@@ -70,16 +73,37 @@ class DbGridEdits(
       if (!target.isEditable(m.column.value)) return@mapNotNull null
       Edit(row, m.column.value, m.value)
     }
+    apply(source, edits) { edit -> run(target.update(GridRow.getValues(edit.row), edit.column, edit.value)) to edit.value }
+  }
+
+  /**
+   * Set DEFAULT: `UPDATE … SET column = DEFAULT` for the cells, then the value the database put there is read back by key.
+   * A NULL default shows as NULL.
+   */
+  fun setDefault(source: GridRequestSource, rows: ModelIndexSet<GridRow>, columns: ModelIndexSet<GridColumn>) {
+    val edits = rows.asIterable().flatMap { r ->
+      val row = hookUp.row(r) ?: return@flatMap emptyList()
+      columns.asIterable().filter { target.isEditable(it.value) }.map { c -> Edit(row, c.value, null) }.toList()
+    }.toList()
+    apply(source, edits) { edit ->
+      val values = GridRow.getValues(edit.row)
+      val outcome = run(target.updateToDefault(values, edit.column))
+      outcome to if (outcome is DbOutcome.Updated && outcome.count == 1L) read(target.selectValue(values, edit.column)) else null
+    }
+  }
+
+  /** Runs each edit's statement in order, stopping at the first that fails; [statement] gives its outcome and the cell's new value. */
+  private fun apply(source: GridRequestSource, edits: List<Edit>, statement: suspend (Edit) -> Pair<DbOutcome, Any?>) {
     if (edits.isEmpty()) return
     hookUp.notifyRequestStarted(source)
     DbConnectionService.getInstance(project).launch {
       var ok = true
       for (edit in edits) {
-        val outcome = run(target.update(GridRow.getValues(edit.row), edit.column, edit.value))
+        val (outcome, value) = statement(edit)
         val error = problem(outcome)
         withContext(Dispatchers.EDT) {
           if (error == null) {
-            edit.row.setValue(edit.column, edit.value)
+            edit.row.setValue(edit.column, value)
             val index = ModelIndex.forRow(hookUp.dataModel, hookUp.rowIndex(edit.row))
             (hookUp.mutationModel as GridMutationModel).notifyCellsUpdated(
               ModelIndexSet.forRows(hookUp.dataModel, index.value), ModelIndexSet.forColumns(hookUp.dataModel, edit.column), source.place)

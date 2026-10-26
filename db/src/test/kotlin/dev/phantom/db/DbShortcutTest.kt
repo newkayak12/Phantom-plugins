@@ -64,6 +64,11 @@ class DbShortcutTest : BasePlatformTestCase() {
       assertTrue(mac, KeyStroke.getKeyStroke("meta I") in shortcuts(mac, "PhantomDb.Tree.Edit"))
     }
     assertTrue(KeyStroke.getKeyStroke("control shift Q") in shortcuts("\$default", "PhantomDb.NewConsole"))
+    for ((id, key) in listOf("PhantomDb.Grid.SetNull" to "control alt N", "PhantomDb.Grid.SetDefault" to "control alt D",
+                             "PhantomDb.SelectInTree" to "alt shift B", "PhantomDb.Tree.CopyDdl" to "control shift C",
+                             "PhantomDb.Tree.SqlGenerator" to "control alt G")) {
+      assertTrue(id, KeyStroke.getKeyStroke(key) in shortcuts("\$default", id))
+    }
     assertTrue(KeyStroke.getKeyStroke("control alt shift ENTER") in shortcuts("\$default", "PhantomDb.Commit"))
     for (keymap in listOf("\$default", "Mac OS X 10.5+")) {
       for ((ours, theirs) in listOf("PhantomDb.Cancel" to "Stop", "PhantomDb.JumpToConsole" to "Console.Open", "PhantomDb.Tree.Remove" to "\$Delete",
@@ -80,7 +85,7 @@ class DbShortcutTest : BasePlatformTestCase() {
   fun testTreeCommands() {
     val manager = ActionManager.getInstance()
     for (name in listOf("Add", "Edit", "Remove", "MakeGlobal", "Refresh", "Drivers", "OpenConsole", "Data", "Ddl", "Modify", "Select", "ImportCsv",
-                        "Diagram", "Entity", "Compare")) {
+                        "Diagram", "Entity", "Compare", "CopyDdl", "SqlGenerator")) {
       val action = manager.getAction("PhantomDb.Tree.$name")
       assertTrue(name, action is dev.phantom.db.core.ui.DbTreeAction)
       assertFalse(name, action.templateText.isNullOrBlank())

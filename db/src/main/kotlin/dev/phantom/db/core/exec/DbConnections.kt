@@ -553,6 +553,22 @@ object DbExecutor {
       outcome
     }
 
+  /** The first column of the first row [statement] (a query) returns; `null` when it has none or fails. */
+  suspend fun firstValue(project: Project, dataSource: DbDataSource, statement: DbStatement): Any? =
+    DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.CONSOLE) { connection ->
+      withContext(Dispatchers.IO) {
+        runCatching {
+          connection.prepareStatement(statement.sql).use { ps ->
+            statement.params.forEachIndexed { i, p ->
+              val type = DbEditTargets.bindType(p.sqlType)
+              if (p.value == null) ps.setNull(i + 1, type) else ps.setObject(i + 1, p.value, type)
+            }
+            ps.executeQuery().use { rs -> if (rs.next()) rs.getObject(1) else null }
+          }
+        }.getOrNull()
+      }
+    }
+
   private fun java.sql.PreparedStatement.executeLargeUpdateOrPlain(): Long =
     try {
       executeLargeUpdate()

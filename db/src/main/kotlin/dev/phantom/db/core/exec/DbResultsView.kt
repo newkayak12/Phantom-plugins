@@ -294,7 +294,9 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
     val model = DataGridListModel { a, b -> a == b }
     val hookUp = DbEditableHookUp(project, model)
     val tableActions = if (table == null) emptyList() else listOf(DbForeignKeyActions.group(), Separator.getInstance())
-    val popup = DefaultActionGroup(tableActions + listOf(DbCopyActions.group(), Separator.getInstance(), GridUtil.getGridPopupActions()))
+    val manager = com.intellij.openapi.actionSystem.ActionManager.getInstance()
+    val setValue = listOf(manager.getAction("PhantomDb.Grid.SetNull"), manager.getAction("PhantomDb.Grid.SetDefault"), Separator.getInstance())
+    val popup = DefaultActionGroup(tableActions + setValue + listOf(DbCopyActions.group(), Separator.getInstance(), GridUtil.getGridPopupActions()))
     val grid = GridUtil.createDataGrid(project, hookUp, popup,
                                        BiConsumer { g, appearance ->
                                          // the setup the community CSV editor uses: helpers, renderers, formatters, cell editors

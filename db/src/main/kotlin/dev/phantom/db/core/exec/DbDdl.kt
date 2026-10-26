@@ -145,3 +145,29 @@ object DbDdl {
     }
   }
 }
+
+/**
+ * SQL Generator (Ctrl+Alt+G, as in DataGrip): for a table, its DDL followed by a SELECT, INSERT, UPDATE and DELETE of
+ * its columns, keyed by the primary key (all columns when it has none), with `?` for the values.
+ */
+object DbSqlGenerator {
+  fun text(dbms: Dbms, table: DbTableRef, columns: List<DbColumnInfo>, ddl: String?): String {
+    val name = DbNames.table(dbms, table)
+    val names = columns.map { DbNames.identifier(dbms, it.name) }
+    val keys = columns.filter { it.primaryKey }.ifEmpty { columns }.map { DbNames.identifier(dbms, it.name) }
+    val where = keys.joinToString(" AND ") { "$it = ?" }
+    val list = names.joinToString(",\n       ")
+    return buildString {
+      if (!ddl.isNullOrBlank()) append(ddl.trimEnd().removeSuffix(";")).append(";\n\n")
+      append("SELECT ").append(list.ifEmpty { "*" }).append("\nFROM ").append(name).append(";\n\n")
+      if (table.isView || names.isEmpty()) return@buildString
+      append("INSERT INTO ").append(name).append(" (").append(names.joinToString()).append(")\nVALUES (")
+        .append(names.joinToString { "?" }).append(");\n\n")
+      val set = columns.filterNot { it.primaryKey }.map { DbNames.identifier(dbms, it.name) }
+      if (set.isNotEmpty()) {
+        append("UPDATE ").append(name).append("\nSET ").append(set.joinToString(",\n    ") { "$it = ?" }).append("\nWHERE ").append(where).append(";\n\n")
+      }
+      append("DELETE FROM ").append(name).append("\nWHERE ").append(where).append(";\n")
+    }
+  }
+}

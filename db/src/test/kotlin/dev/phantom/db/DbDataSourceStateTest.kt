@@ -93,4 +93,41 @@ class DbDataSourceStateTest : BasePlatformTestCase() {
     assertFalse(isAuthFailure(SQLException("no table", "42S02", 1146)))
     assertFalse(isAuthFailure(SQLException("timeout", "08001", 0)))
   }
+
+  /** Copy / Paste of data sources: the settings as XML, never a password. */
+  fun testClipboard() {
+    val ds = DbDataSource().apply { name = "c"; url = "jdbc:h2:mem:c"; user = "sa"; group = "prod/eu" }
+    val text = dev.phantom.db.core.ui.DbDataSourceClipboard.write(listOf(ds))
+    assertFalse(text, text.contains("assword"))
+    val read = dev.phantom.db.core.ui.DbDataSourceClipboard.read(text).single()
+    assertEquals(listOf("c", "jdbc:h2:mem:c", "sa", "prod/eu"), listOf(read.name, read.url, read.user, read.group))
+    assertEmpty(dev.phantom.db.core.ui.DbDataSourceClipboard.read("SELECT 1"))
+    assertEmpty(dev.phantom.db.core.ui.DbDataSourceClipboard.read("<phantom-data-sources><broken"))
+  }
+
+  /** Groups are folders above their data sources, nested by `/`; data sources outside any stay at the top. */
+  fun testGroupsInTree() {
+    val service = DbDataSourceService.getInstance(project)
+    val a = DbDataSource().apply { name = "a"; url = "jdbc:h2:mem:ga"; group = "prod/eu" }
+    val b = DbDataSource().apply { name = "b"; url = "jdbc:h2:mem:gb" }
+    try {
+      service.save(a, null)
+      service.save(b, null)
+      val panel = dev.phantom.db.core.ui.DbExplorerPanel(project, testRootDisposable)
+      val root = panel.tree.model.root as javax.swing.tree.DefaultMutableTreeNode
+      val top = root.children().toList().map { (it as javax.swing.tree.DefaultMutableTreeNode).userObject }
+      assertEquals("prod", (top[0] as dev.phantom.db.core.ui.DbNode.Group).path)
+      assertEquals("b", (top[1] as dev.phantom.db.core.ui.DbNode.Source).dataSource.name)
+      val source = panel.sourceNodes().single { (it.userObject as dev.phantom.db.core.ui.DbNode.Source).dataSource.id == a.id }
+      assertEquals("prod/eu", ((source.parent as javax.swing.tree.DefaultMutableTreeNode).userObject as dev.phantom.db.core.ui.DbNode.Group).path)
+      // the filter keeps the folders of what it shows
+      panel.setFilter("zzz")
+      panel.setFilter("")
+      assertEquals(2, panel.sourceNodes().size)
+    }
+    finally {
+      service.remove(a.id)
+      service.remove(b.id)
+    }
+  }
 }

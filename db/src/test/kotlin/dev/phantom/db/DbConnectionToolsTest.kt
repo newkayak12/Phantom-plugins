@@ -288,7 +288,7 @@ class DbConnectionToolsTest : BasePlatformTestCase() {
     val port = ServerSocket(0).use { it.localPort }
     val ds = DbDataSource().apply { sshEnabled = true; sshHost = "127.0.0.1"; sshPort = port; sshUser = "u" }
     try {
-      DbSshTunnelOpener(project) { _, _, _ -> false }.open(ds, "x", DbHostPort("db", 3306))
+      DbSshTunnelOpener(project, confirmHostKey = { _, _, _ -> false }).open(ds, "x", DbHostPort("db", 3306))
       fail("nothing listens there")
     }
     catch (e: DbException) {

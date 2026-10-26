@@ -130,6 +130,13 @@ class DbEditTarget(
     return DbStatement("UPDATE $tableSql SET ${columnSql[column]} = ? WHERE ${keyCondition()}", params, dbms)
   }
 
+  fun updateToDefault(row: Array<Any?>, column: Int): DbStatement =
+    DbStatement("UPDATE $tableSql SET ${columnSql[column]} = DEFAULT WHERE ${keyCondition()}", keyParams(row), dbms)
+
+  /** The column's value in the row with [row]'s key, as the database has it now. */
+  fun selectValue(row: Array<Any?>, column: Int): DbStatement =
+    DbStatement("SELECT ${columnSql[column]} FROM $tableSql WHERE ${keyCondition()}", keyParams(row), dbms)
+
   fun delete(row: Array<Any?>): DbStatement = DbStatement("DELETE FROM $tableSql WHERE ${keyCondition()}", keyParams(row), dbms)
 
   /** An INSERT with [values] (or NULLs) for the table columns of the result, to finish in a console. */

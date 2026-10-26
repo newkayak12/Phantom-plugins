@@ -138,4 +138,53 @@ class DbGridEditTest : BasePlatformTestCase() {
     val outcome = runBlocking { DbExecutor.execute(project, ds, target.update(arrayOf(1, "a"), 1, "b")) }
     assertEquals(0L, (outcome as DbOutcome.Updated).count)
   }
+
+  /** Set NULL and Set DEFAULT (Ctrl+Alt+N / D): an UPDATE by key, and the default read back into the cell. */
+  fun testSetNullAndDefault() {
+    val ds = h2()
+    exec(ds, "CREATE TABLE t (id INT PRIMARY KEY, name VARCHAR(10) DEFAULT 'dflt')", "INSERT INTO t VALUES (1, 'a')")
+    myFixture.configureByText("set.sql", "SELECT * FROM t")
+    DbRunner.start(project, myFixture.file.virtualFile, ds, listOf("SELECT * FROM t"))
+    val panel = { ToolWindowManager.getInstance(project).getToolWindow(DbResultsToolWindow.ID)?.contentManager?.selectedContent?.component as? DbResultPanel }
+    PlatformTestUtil.waitWithEventsDispatching("grid not editable; status: ${panel()?.shownStatus}", { panel()?.shownEditing != null }, 20)
+    val edits = panel()!!.shownEditing!!
+    val model = edits.hookUp.dataModel
+    fun cell() = model.getValueAt(ModelIndex.forRow(model, 0), ModelIndex.forColumn(model, 1))
+
+    edits.mutate(GridRequestSource(null), ModelIndexSet.forRows(model, 0), ModelIndexSet.forColumns(model, 1), null, true)
+    PlatformTestUtil.waitWithEventsDispatching("not set to NULL", { rows(ds, "SELECT name FROM t").rows.single()[0] == null && cell() == null }, 20)
+
+    edits.setDefault(GridRequestSource(null), ModelIndexSet.forRows(model, 0), ModelIndexSet.forColumns(model, 1))
+    PlatformTestUtil.waitWithEventsDispatching("default not read back", { cell() == "dflt" }, 20)
+    assertEquals("dflt", rows(ds, "SELECT name FROM t").rows.single()[0])
+    // the key column is not editable: nothing to set
+    edits.setDefault(GridRequestSource(null), ModelIndexSet.forRows(model, 0), ModelIndexSet.forColumns(model, 0))
+    assertEquals(1, rows(ds, "SELECT id FROM t").rows.single()[0])
+  }
+
+  fun testSqlGenerator() {
+    val table = DbTableRef("ds", null, "PUBLIC", "ORDERS", "TABLE")
+    val columns = listOf(DbColumnInfo("ID", "INT", false, true), DbColumnInfo("NAME", "VARCHAR", true, false))
+    val text = DbSqlGenerator.text(Dbms.H2, table, columns, "CREATE TABLE ORDERS (ID INT PRIMARY KEY, NAME VARCHAR(10));")
+    assertEquals("""
+      CREATE TABLE ORDERS (ID INT PRIMARY KEY, NAME VARCHAR(10));
+
+      SELECT ID,
+             NAME
+      FROM PUBLIC.ORDERS;
+
+      INSERT INTO PUBLIC.ORDERS (ID, NAME)
+      VALUES (?, ?);
+
+      UPDATE PUBLIC.ORDERS
+      SET NAME = ?
+      WHERE ID = ?;
+
+      DELETE FROM PUBLIC.ORDERS
+      WHERE ID = ?;
+
+    """.trimIndent(), text)
+    val view = DbSqlGenerator.text(Dbms.H2, DbTableRef("ds", null, "PUBLIC", "V", "VIEW"), columns, null)
+    assertFalse(view, view.contains("INSERT"))
+  }
 }

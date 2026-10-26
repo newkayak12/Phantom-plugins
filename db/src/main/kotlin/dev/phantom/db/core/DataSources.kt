@@ -122,6 +122,8 @@ class DbDataSource {
   var sslCaFile: String = ""
   var sslCertFile: String = ""
   var sslKeyFile: String = ""
+  /** The folder the Database tree shows it in ("Move to Group", as in DataGrip); `/` nests folders. Empty: at the top. */
+  var group: String = ""
   var credentialStorage: DbPasswordStorage = DbPasswordStorage.FOREVER
   /** Kept in the IDE-wide list (every project), not the project's; which file it is in says so, so it is not written. */
   @get:Transient
@@ -135,7 +137,7 @@ class DbDataSource {
     it.sshEnabled = sshEnabled; it.sshHost = sshHost; it.sshPort = sshPort; it.sshUser = sshUser; it.sshAuth = sshAuth
     it.sshKeyFile = sshKeyFile; it.sshRemoteHost = sshRemoteHost; it.sshRemotePort = sshRemotePort
     it.sslEnabled = sslEnabled; it.sslMode = sslMode; it.sslCaFile = sslCaFile; it.sslCertFile = sslCertFile; it.sslKeyFile = sslKeyFile
-    it.credentialStorage = credentialStorage; it.global = global
+    it.credentialStorage = credentialStorage; it.global = global; it.group = group
   }
 
   override fun toString(): String = name

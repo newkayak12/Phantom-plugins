@@ -138,6 +138,7 @@
     <editorFactoryListener implementation="dev.phantom.db.core.DbEditorColorListener"/>
     <actionPromoter implementation="dev.phantom.db.core.exec.SqlActionPromoter"/>
     <actionPromoter implementation="dev.phantom.db.core.ui.DbTreeActionPromoter"/>
+    <actionPromoter implementation="dev.phantom.db.core.exec.DbGridActionPromoter"/>
     <toolWindow id="Database" anchor="right" secondary="false" icon="AllIcons.Nodes.DataTables"
                 factoryClass="dev.phantom.db.core.ui.DbToolWindowFactory"/>
     <toolWindow id="Database Changes" anchor="bottom" secondary="false" icon="AllIcons.Vcs.Changelist"
@@ -194,6 +195,12 @@
       <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta control N"/>
       <add-to-group group-id="ToolsMenu" anchor="last"/>
     </action>
+    <action id="PhantomDb.SelectInTree" class="dev.phantom.db.core.ui.DbSelectInTreeAction" icon="AllIcons.General.Locate">
+      <keyboard-shortcut keymap="$default" first-keystroke="alt shift B"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="alt shift B"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="alt shift B"/>
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.SelectSchema"/>
+    </action>
     <action id="PhantomDb.JumpToConsole" class="dev.phantom.db.core.ui.DbJumpToConsoleAction" icon="AllIcons.Debugger.Console"
             use-shortcut-of="Console.Open">
       <add-to-group group-id="GoToTargetEx" anchor="last"/>
@@ -207,6 +214,12 @@
     <action id="PhantomDb.Cancel" class="dev.phantom.db.core.exec.DbCancelAction" icon="AllIcons.Actions.Suspend" use-shortcut-of="Stop">
       <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.RunStatement"/>
     </action>
+    <action id="PhantomDb.Grid.SetNull" class="dev.phantom.db.core.exec.DbGridSetNullAction">
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt N"/>
+    </action>
+    <action id="PhantomDb.Grid.SetDefault" class="dev.phantom.db.core.exec.DbGridSetDefaultAction">
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt D"/>
+    </action>
     <!-- Database tree commands, with DataGrip's keys; the tree's own toolbar and popup show them -->
     <action id="PhantomDb.Tree.Add" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.General.Add" use-shortcut-of="NewElement"/>
     <action id="PhantomDb.Tree.Edit" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Edit">
@@ -215,12 +228,29 @@
       <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta I"/>
     </action>
     <action id="PhantomDb.Tree.Remove" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.General.Remove" use-shortcut-of="$Delete"/>
+    <action id="PhantomDb.Tree.Duplicate" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Copy" use-shortcut-of="EditorDuplicate"/>
+    <action id="PhantomDb.Tree.CopySource" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Copy" use-shortcut-of="$Copy"/>
+    <action id="PhantomDb.Tree.PasteSource" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.MenuPaste" use-shortcut-of="$Paste"/>
+    <action id="PhantomDb.Tree.MoveToGroup" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Nodes.Folder" use-shortcut-of="Move"/>
     <action id="PhantomDb.Tree.MakeGlobal" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Nodes.PpWeb"/>
     <action id="PhantomDb.Tree.Refresh" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Refresh" use-shortcut-of="Refresh"/>
     <action id="PhantomDb.Tree.Drivers" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.General.Settings"/>
     <action id="PhantomDb.Tree.OpenConsole" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Debugger.Console"/>
     <action id="PhantomDb.Tree.Data" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Nodes.DataTables"/>
     <action id="PhantomDb.Tree.Ddl" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Preview" use-shortcut-of="GotoDeclaration"/>
+    <action id="PhantomDb.Tree.CopyDdl" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Copy">
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt shift G"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="control shift C"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift G"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift C"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt shift G"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta shift C"/>
+    </action>
+    <action id="PhantomDb.Tree.SqlGenerator" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Lightning">
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt G"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt G"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt G"/>
+    </action>
     <action id="PhantomDb.Tree.Modify" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Edit" use-shortcut-of="ChangeSignature"/>
     <action id="PhantomDb.Tree.Select" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Debugger.Console"/>
     <action id="PhantomDb.Tree.ImportCsv" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.ToolbarDecorator.Import"/>

@@ -1,10 +1,17 @@
 // Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.db.core.ui
 
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.application.EDT
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.util.ui.tree.TreeUtil
 import dev.phantom.db.core.DbDataSource
+import dev.phantom.db.core.SqlDbTarget
+import dev.phantom.db.core.SqlFile
+import dev.phantom.db.core.exec.DbConsoles
 import dev.phantom.db.core.exec.DbConnectionService
 import dev.phantom.db.core.exec.DbRoutine
 import dev.phantom.db.core.exec.DbTableRef
@@ -38,6 +45,21 @@ object DbTreeNavigation {
     }
   }
 
+  /** The data source's own node. */
+  fun select(project: Project, dataSource: DbDataSource, focus: Boolean = true) {
+    DbToolWindowFactory.show(project, focus)
+    DbConnectionService.getInstance(project).launch {
+      withContext(Dispatchers.EDT) {
+        val panel = DbExplorerPanel.find(project) ?: return@withContext
+        panel.setFilter("")
+        val tree = panel.tree
+        val node = panel.sourceNodes().firstOrNull { (it.userObject as DbNode.Source).dataSource.id == dataSource.id } ?: return@withContext
+        TreeUtil.selectPath(tree, TreePath(node.path))
+        if (focus) tree.requestFocusInWindow()
+      }
+    }
+  }
+
   private fun select(project: Project, dataSource: DbDataSource, schemaName: String?, folder: DbNode.Folder.Kind, column: String?,
                      focus: Boolean, matches: (Any?) -> Boolean) {
     DbToolWindowFactory.show(project, focus)
@@ -46,8 +68,7 @@ object DbTreeNavigation {
         val panel = DbExplorerPanel.find(project) ?: return@withContext
         panel.setFilter("")
         val tree = panel.tree
-        val root = tree.model.root as DefaultMutableTreeNode
-        var node = child(root) { (it as? DbNode.Source)?.dataSource?.id == dataSource.id } ?: return@withContext
+        var node = panel.sourceNodes().firstOrNull { (it.userObject as DbNode.Source).dataSource.id == dataSource.id } ?: return@withContext
         node = expandTo(tree, node) { (it as? DbNode.Schema)?.ref?.name == schemaName } ?: return@withContext
         node = expandTo(tree, node) { (it as? DbNode.Folder)?.kind == folder } ?: return@withContext
         node = expandTo(tree, node, matches) ?: return@withContext
@@ -70,5 +91,29 @@ object DbTreeNavigation {
       delay(50)
     }
     return null
+  }
+}
+
+/**
+ * Select in Database View (Alt+Shift+B, as in DataGrip): the table or column at the caret of a `.sql` file or console,
+ * else the file's data source, selected in the Database tree.
+ */
+class DbSelectInTreeAction : DumbAwareAction() {
+  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
+  override fun update(e: AnActionEvent) {
+    e.presentation.isEnabledAndVisible = e.project != null && e.getData(CommonDataKeys.PSI_FILE) is SqlFile
+  }
+
+  override fun actionPerformed(e: AnActionEvent) {
+    val project = e.project ?: return
+    val file = e.getData(CommonDataKeys.PSI_FILE) as? SqlFile ?: return
+    val offset = e.getData(CommonDataKeys.EDITOR)?.caretModel?.offset
+    val target = offset?.let { file.findReferenceAt(it)?.resolve() as? SqlDbTarget }
+    if (target != null) {
+      DbTreeNavigation.select(project, target.dataSource, target.table, target.column?.name)
+      return
+    }
+    DbConsoles.dataSourceFor(project, file.virtualFile)?.let { DbTreeNavigation.select(project, it) }
   }
 }

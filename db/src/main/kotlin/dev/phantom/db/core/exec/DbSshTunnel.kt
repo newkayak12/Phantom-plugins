@@ -10,6 +10,7 @@ import com.intellij.openapi.util.SystemInfo
 import dev.phantom.db.core.DbDataSource
 import dev.phantom.db.core.DbSshAuth
 import dev.phantom.db.core.PhantomDbBundle
+import dev.phantom.db.core.ui.DbPasswordPrompt
 import net.schmizz.sshj.DefaultConfig
 import net.schmizz.sshj.SSHClient
 import net.schmizz.sshj.common.Buffer
@@ -19,6 +20,7 @@ import net.schmizz.sshj.common.SSHPacket
 import net.schmizz.sshj.connection.channel.direct.LocalPortForwarder
 import net.schmizz.sshj.connection.channel.direct.Parameters
 import net.schmizz.sshj.transport.verification.OpenSSHKnownHosts
+import net.schmizz.sshj.userauth.UserAuthException
 import net.schmizz.sshj.userauth.method.AbstractAuthMethod
 import java.io.File
 import java.io.IOException
@@ -43,6 +45,11 @@ class DbSshTunnelOpener(
   private val project: Project?,
   /** Asks whether to trust an unknown host key; called off the EDT. */
   private val confirmHostKey: (host: String, keyType: String, fingerprint: String) -> Boolean = { h, t, f -> askHostKey(project, h, t, f) },
+  /**
+   * Asks for the SSH password or key passphrase when none is saved or the server (or the key file) refuses it; `null`:
+   * cancelled. Off the EDT, like the rest.
+   */
+  private val askSecret: (DbDataSource, String?) -> String? = { ds, error -> project?.let { DbPasswordPrompt.askSsh(it, ds, error) } },
 ) : DbTunnelOpener {
   override fun open(dataSource: DbDataSource, secret: String?, target: DbHostPort): DbTunnel {
     val host = dataSource.sshHost.trim()
@@ -57,11 +64,33 @@ class DbSshTunnelOpener(
       ssh.addHostKeyVerifier(knownHosts)
       ssh.connect(host, dataSource.sshPort.takeIf { it > 0 } ?: 22)
       when (dataSource.sshAuth) {
-        DbSshAuth.PASSWORD -> ssh.authPassword(user, secret.orEmpty().toCharArray())
+        DbSshAuth.PASSWORD -> {
+          var password = secret?.takeIf { it.isNotEmpty() } ?: askSecret(dataSource, null) ?: secret.orEmpty()
+          while (true) {
+            try {
+              ssh.authPassword(user, password.toCharArray())
+              break
+            }
+            catch (e: UserAuthException) {
+              password = askSecret(dataSource, e.message ?: e.javaClass.simpleName) ?: throw e
+            }
+          }
+        }
         DbSshAuth.KEY -> {
           val file = dataSource.sshKeyFile.trim().ifEmpty { throw DbException(PhantomDbBundle.message("db.ssh.key.required")) }
-          val keys = if (secret.isNullOrEmpty()) ssh.loadKeys(expandHome(file)) else ssh.loadKeys(expandHome(file), secret.toCharArray())
-          ssh.authPublickey(user, keys)
+          var passphrase = secret
+          while (true) {
+            try {
+              val keys = if (passphrase.isNullOrEmpty()) ssh.loadKeys(expandHome(file)) else ssh.loadKeys(expandHome(file), passphrase.toCharArray())
+              ssh.authPublickey(user, keys)
+              break
+            }
+            // an encrypted key without (or with a wrong) passphrase fails to load
+            catch (e: java.io.IOException) {
+              if (e is UserAuthException || e is net.schmizz.sshj.transport.TransportException) throw e
+              passphrase = askSecret(dataSource, e.message ?: e.javaClass.simpleName) ?: throw e
+            }
+          }
         }
         DbSshAuth.AGENT -> {
           val agent = DbSshAgent.connect() ?: throw DbException(PhantomDbBundle.message("db.ssh.agent.missing"))
