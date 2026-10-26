@@ -38,6 +38,8 @@ MySQL, MariaDB, PostgreSQL, H2, AWS, Oracle, SQL Server 등을 위한 JDBC 콘�
 - **SQL Generator…**(Ctrl+Alt+G)는 테이블의 DDL과 기본 키 기준 SELECT, INSERT, UPDATE, DELETE를 엽니다. **Copy DDL**(Ctrl+Shift+C / Ctrl+Alt+Shift+G)은 DDL을 복사합니다. **Select in Database View**(Alt+Shift+B)는 `.sql` 파일이나 콘솔에서 캐럿의 테이블이나 컬럼을, 없으면 데이터 소스를 트리에서 선택합니다.
 - 편집 가능한 그리드에서 **Set NULL**(Ctrl+Alt+N), **Set DEFAULT**(Ctrl+Alt+D). Set DEFAULT는 DB가 넣은 값을 다시 읽어 셀에 보여줍니다.
 - **SSH 비밀번호나 키 패스프레이즈**가 없거나 거부되면 연결할 때 물어보고(**Save** 선택 가능) 터널을 다시 시도합니다.
+- **세션**(DataGrip처럼): 연결된 데이터 소스는 트리에 초록 점이 붙습니다. **Disconnect**(트리에서 Cmd+F2 / Ctrl+F2)는 연결을 닫고, **Sessions…**는 열린 연결(콘솔 공유 연결, 콘솔 전용 연결, 스키마 트리 연결; 연 시각, 열린 트랜잭션)을 보여주며 하나 또는 전부 닫을 수 있습니다. **Single session mode**(데이터 소스 대화상자, 기본 켜짐)는 콘솔들이 연결 하나를 같이 씁니다. 끄면 콘솔마다 따로 연결합니다. Manual commit은 항상 하나를 같이 씁니다.
+- **Schemas**(데이터 소스 대화상자, Options): 트리, 완성, 검사가 읽을 스키마(MySQL은 카탈로그)를 쉼표로 구분한 이름이나 glob(`app, sales_*`)으로 정하고, `!이름`으로 뺍니다. 비우면 전부 읽습니다.
 - **Make Global**(Database 트리의 데이터 소스)은 데이터 소스를 IDE로 옮겨 모든 프로젝트에 비밀번호와 함께 보이게 합니다. **Move to Project**로 되돌립니다. 전역 데이터 소스는 트리에 *global*로 표시됩니다.
 - IDE 시작 때는 아무것도 하지 않습니다. `.sql` 파일이나 툴 윈도우를 열 때 코드를 불러옵니다.
 

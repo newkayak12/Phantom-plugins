@@ -228,6 +228,8 @@
       <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta I"/>
     </action>
     <action id="PhantomDb.Tree.Remove" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.General.Remove" use-shortcut-of="$Delete"/>
+    <action id="PhantomDb.Tree.Disconnect" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Suspend" use-shortcut-of="Stop"/>
+    <action id="PhantomDb.Tree.Sessions" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Nodes.Plugin"/>
     <action id="PhantomDb.Tree.Duplicate" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Copy" use-shortcut-of="EditorDuplicate"/>
     <action id="PhantomDb.Tree.CopySource" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Copy" use-shortcut-of="$Copy"/>
     <action id="PhantomDb.Tree.PasteSource" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.MenuPaste" use-shortcut-of="$Paste"/>

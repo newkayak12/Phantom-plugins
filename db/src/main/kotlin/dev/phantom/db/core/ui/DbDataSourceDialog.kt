@@ -90,10 +90,12 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
   private val properties = DbPropertiesTable().apply { values = source.properties }
   private val readOnlyBox = JBCheckBox(PhantomDbBundle.message("db.dialog.read.only"), source.readOnly)
   private val manualCommitBox = JBCheckBox(PhantomDbBundle.message("db.dialog.manual.commit"), source.manualCommit)
+  internal val singleSessionBox = JBCheckBox(PhantomDbBundle.message("db.dialog.single.session"), source.singleSession)
   private val driverLabel = JBLabel(" ")
   private val downloadLink = ActionLink(PhantomDbBundle.message("db.dialog.driver.download")) { downloadDriver() }.apply { isVisible = false }
   private val maxRowsField = JBIntSpinner(source.maxRows, 1, 10_000)
   private val timeoutField = JBIntSpinner(source.queryTimeoutSeconds, 0, 3_600)
+  internal val schemasField = JBTextField(source.schemas)
   private val testResult = JBLabel(" ")
   internal val sshBox = JBCheckBox(PhantomDbBundle.message("db.dialog.ssh.use"), source.sshEnabled)
   internal val sshHostField = JBTextField(source.sshHost)
@@ -162,6 +164,9 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
       })
     }
     sshAuthCombo.addActionListener { updateSshRows() }
+    // a manual-commit transaction is one per data source: its consoles share the connection
+    manualCommitBox.addActionListener { singleSessionBox.isEnabled = !manualCommitBox.isSelected }
+    singleSessionBox.isEnabled = !manualCommitBox.isSelected
     sshBox.addActionListener { updateSshRows() }
     sslBox.addActionListener { updateSslRows() }
     // an id this IDE does not know stays unselected (and saved as is) until the user picks a driver
@@ -335,6 +340,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     awsRegionRow = row(PhantomDbBundle.message("db.dialog.aws.region")) { cell(awsRegionField).align(AlignX.FILL) }
     row { cell(readOnlyBox) }
     row { cell(manualCommitBox).comment(PhantomDbBundle.message("db.dialog.manual.commit.hint")) }
+    row { cell(singleSessionBox).comment(PhantomDbBundle.message("db.dialog.single.session.hint")) }
     collapsibleGroup(PhantomDbBundle.message("db.dialog.options")) {
       row(PhantomDbBundle.message("db.dialog.driver.files")) {
         link(PhantomDbBundle.message("db.dialog.driver.choose")) { chooseJars() }
@@ -345,6 +351,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
       }
       row(PhantomDbBundle.message("db.dialog.max.rows")) { cell(maxRowsField) }
       row(PhantomDbBundle.message("db.dialog.timeout")) { cell(timeoutField) }
+      row(PhantomDbBundle.message("db.dialog.schemas")) { cell(schemasField).align(AlignX.FILL).comment(PhantomDbBundle.message("db.dialog.schemas.hint")) }
     }
     collapsibleGroup(PhantomDbBundle.message("db.dialog.properties")) {
       row { cell(properties.component).align(AlignX.FILL).comment(PhantomDbBundle.message("db.dialog.properties.hint")) }
@@ -386,11 +393,13 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     properties = LinkedHashMap(this@DbDataSourceDialog.properties.values)
     readOnly = readOnlyBox.isSelected
     manualCommit = manualCommitBox.isSelected
+    singleSession = singleSessionBox.isSelected
     credentialStorage = credentialStorageCombo.selectedItem as DbPasswordStorage
     color = colorCombo.selectedItem as String
     driverJars = this@DbDataSourceDialog.driverJars.toMutableList()
     maxRows = maxRowsField.number
     queryTimeoutSeconds = timeoutField.number
+    schemas = schemasField.text.trim()
     sshEnabled = sshBox.isSelected
     sshHost = sshHostField.text.trim()
     sshPort = sshPortField.number

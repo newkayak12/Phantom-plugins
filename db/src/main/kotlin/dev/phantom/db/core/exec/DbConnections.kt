@@ -55,9 +55,19 @@ sealed interface DbOutcome {
 class DbConnectionService(private val project: Project, private val cs: CoroutineScope) : Disposable {
   enum class Purpose { CONSOLE, METADATA }
 
+  /**
+   * A session: the data source's connection for [purpose]; [console] is set for a console with a connection of its own
+   * (a data source without single session mode), else all consoles share one.
+   */
+  data class SessionKey(val dataSourceId: String, val purpose: Purpose, val console: String? = null)
+
+  /** What the Sessions list shows of an open session. */
+  class SessionInfo(val key: SessionKey, val openedAt: Long, val inTransaction: Boolean)
+
   private class Session {
     val mutex = Mutex()
     var connection: Connection? = null
+    var openedAt: Long = 0
     /** The SSH tunnel [connection] goes through, released when it closes. */
     var lease: DbTunnelLease? = null
     var idleClose: Job? = null
@@ -67,7 +77,8 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
 
   private val loaders = ConcurrentHashMap<List<Path>, URLClassLoader>()
   private val drivers = ConcurrentHashMap<Pair<List<Path>, String>, Driver>()
-  private val sessions = ConcurrentHashMap<Pair<String, Purpose>, Session>()
+  private val sessions = ConcurrentHashMap<SessionKey, Session>()
+  private val sessionListeners = java.util.concurrent.CopyOnWriteArrayList<() -> Unit>()
   /** SSH tunnels of data sources that connect through one, shared by their sessions. */
   internal val tunnels = DbTunnels(DbSshTunnelOpener(project))
 
@@ -76,8 +87,9 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
    * [schema]: the schema (catalog in MySQL) to run in first, [DbSchemaChoice.DEFAULT] for the one the connection opened
    * in, null to leave it where it is.
    */
-  suspend fun <T> withConnection(dataSource: DbDataSource, purpose: Purpose, schema: DbSchemaChoice? = null, block: suspend (Connection) -> T): T {
-    val session = sessions.computeIfAbsent(dataSource.id to purpose) { Session() }
+  suspend fun <T> withConnection(dataSource: DbDataSource, purpose: Purpose, schema: DbSchemaChoice? = null, console: String? = null,
+                                 block: suspend (Connection) -> T): T {
+    val session = sessions.computeIfAbsent(key(dataSource, purpose, console)) { Session() }
     return session.mutex.withLock {
       session.idleClose?.cancel()
       try {
@@ -119,14 +131,41 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
   fun launch(block: suspend CoroutineScope.() -> Unit): Job = cs.launch(Dispatchers.IO, block = block)
 
   fun isConnected(dataSourceId: String): Boolean =
-    Purpose.entries.any { sessions[dataSourceId to it]?.connection?.let { c -> runCatching { !c.isClosed }.getOrDefault(false) } == true }
+    sessions.any { (k, s) -> k.dataSourceId == dataSourceId && s.connection?.let { c -> runCatching { !c.isClosed }.getOrDefault(false) } == true }
+
+  /** The session [console] runs in: its own when the data source has no single session (and no manual commit, whose transaction is one per data source). */
+  fun key(dataSource: DbDataSource, purpose: Purpose, console: String?): SessionKey =
+    if (purpose == Purpose.CONSOLE && console != null && !dataSource.singleSession && !dataSource.manualCommit) SessionKey(dataSource.id, purpose, console)
+    else SessionKey(dataSource.id, purpose)
+
+  /** The open sessions, for the Sessions list. */
+  fun openSessions(): List<SessionInfo> = sessions.entries.mapNotNull { (k, s) ->
+    val c = s.connection?.takeUnless { runCatching { it.isClosed }.getOrDefault(true) } ?: return@mapNotNull null
+    SessionInfo(k, s.openedAt, !runCatching { c.autoCommit }.getOrDefault(true))
+  }.sortedWith(compareBy({ it.key.dataSourceId }, { it.key.purpose }, { it.key.console.orEmpty() }))
+
+  /** Closes one session; an open transaction in it is rolled back. */
+  fun close(key: SessionKey) {
+    if (key.purpose == Purpose.CONSOLE && key.console == null) DbPendingChanges.getInstanceIfCreated(project)?.discard(key.dataSourceId)
+    val session = sessions.remove(key) ?: return
+    session.idleClose?.cancel()
+    cs.launch(Dispatchers.IO) { session.mutex.withLock { closeQuietly(session) } }
+  }
+
+  /** Called (on any thread) when a session opens or closes. */
+  fun addSessionListener(parent: Disposable, listener: () -> Unit) {
+    sessionListeners.add(listener)
+    com.intellij.openapi.util.Disposer.register(parent) { sessionListeners.remove(listener) }
+  }
+
+  private fun sessionsChanged() = sessionListeners.forEach { it() }
 
   /**
    * Commits or rolls back the console connection's open transaction. Fails when the connection is gone, since its
    * changes went with it.
    */
   suspend fun endTransaction(dataSource: DbDataSource, commit: Boolean) {
-    val session = sessions[dataSource.id to Purpose.CONSOLE]
+    val session = sessions[SessionKey(dataSource.id, Purpose.CONSOLE)]
     if (session == null) {
       DbPendingChanges.getInstanceIfCreated(project)?.discard(dataSource.id)
       throw DbException(PhantomDbBundle.message("db.changes.connection.lost", dataSource.name))
@@ -151,7 +190,7 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
    * whatever is open, so end the transaction first.
    */
   suspend fun applyCommitMode(dataSource: DbDataSource) {
-    val session = sessions[dataSource.id to Purpose.CONSOLE] ?: return
+    val session = sessions[SessionKey(dataSource.id, Purpose.CONSOLE)] ?: return
     session.mutex.withLock {
       withContext(Dispatchers.IO) {
         val connection = session.connection?.takeUnless { runCatching { it.isClosed }.getOrDefault(true) } ?: return@withContext
@@ -163,8 +202,8 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
   /** Closes the data source's connections, e.g. after it was edited or removed. Uncommitted changes are rolled back. */
   fun disconnect(dataSourceId: String) {
     DbPendingChanges.getInstanceIfCreated(project)?.discard(dataSourceId)
-    for (purpose in Purpose.entries) {
-      val session = sessions.remove(dataSourceId to purpose) ?: continue
+    for (key in sessions.keys.filter { it.dataSourceId == dataSourceId }) {
+      val session = sessions.remove(key) ?: continue
       session.idleClose?.cancel()
       cs.launch(Dispatchers.IO) { session.mutex.withLock { closeQuietly(session) } }
     }
@@ -204,6 +243,8 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
       }
       session.connection = connection
       session.lease = lease
+      session.openedAt = System.currentTimeMillis()
+      sessionsChanged()
       return connection
     }
     catch (e: Throwable) {
@@ -304,12 +345,12 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
   }
 
   /** The console connection may have left the chosen schema (a typed USE, SET, COMMIT or ROLLBACK): choose it again before the next run. Under the session's lock. */
-  internal fun forgetSchema(dataSourceId: String) {
-    sessions[dataSourceId to Purpose.CONSOLE]?.schema?.forget()
+  internal fun forgetSchema(dataSource: DbDataSource, console: String? = null) {
+    sessions[key(dataSource, Purpose.CONSOLE, console)]?.schema?.forget()
   }
 
   @TestOnly
-  internal fun appliedSchema(dataSourceId: String): DbSchemaChoice? = sessions[dataSourceId to Purpose.CONSOLE]?.schema?.applied
+  internal fun appliedSchema(dataSourceId: String): DbSchemaChoice? = sessions[SessionKey(dataSourceId, Purpose.CONSOLE)]?.schema?.applied
 
   private fun closeQuietly(session: Session) {
     session.idleClose = null
@@ -321,6 +362,7 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
     }
     session.lease?.release()
     session.lease = null
+    if (c != null) sessionsChanged()
   }
 
   override fun dispose() {
@@ -506,16 +548,16 @@ object DbExecutor {
    * [history]: false keeps the statements out of the query history (the pages of an export).
    */
   suspend fun execute(project: Project, dataSource: DbDataSource, statements: List<String>, schema: DbSchemaChoice? = null,
-                      history: Boolean = true, onOutcome: suspend (DbOutcome) -> Unit = {}): List<DbOutcome> {
+                      history: Boolean = true, console: String? = null, onOutcome: suspend (DbOutcome) -> Unit = {}): List<DbOutcome> {
     val outcomes = ArrayList<DbOutcome>()
-    DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.CONSOLE, schema) { connection ->
+    DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.CONSOLE, schema, console) { connection ->
       for (sql in statements) {
         val outcome = runOne(connection, dataSource, sql)
         outcomes.addAll(outcome)
         if (history) outcome.forEach { DbQueryHistory.getInstance(project).record(dataSource, it) }
         outcome.forEach { onOutcome(it) }
         if (SqlSafety.firstKeyword(sql) in LEAVES_SCHEMA || (!connection.autoCommit && outcome.any { it is DbOutcome.Failed })) {
-          DbConnectionService.getInstance(project).forgetSchema(dataSource.id)
+          DbConnectionService.getInstance(project).forgetSchema(dataSource, console)
         }
         if (outcome.any { it is DbOutcome.Failed }) break
         if (outcome.any { it is DbOutcome.Updated } && SqlSafety.isDdl(sql)) {
@@ -723,7 +765,7 @@ class DbMetadataCache(private val project: Project) {
       }
       all.sortedWith(compareBy<DbSchemaRef> { !it.name.equals(current, ignoreCase = true) }.thenBy { isSystem(it) }.thenBy { it.name.lowercase() })
     }.also { schemas[dataSource.id] = it }
-    return if (includeSystem) all else all.filterNot(::isSystem)
+    return (if (includeSystem) all else all.filterNot(::isSystem)).filter { DbSchemaScope.matches(dataSource.schemas, it.name) }
   }
 
   suspend fun tables(dataSource: DbDataSource, schema: DbSchemaRef): List<DbTableRef> = tables[schema] ?: metadata(dataSource) { md, _ ->
@@ -760,7 +802,10 @@ class DbMetadataCache(private val project: Project) {
 
   fun cachedColumns(table: DbTableRef): List<DbColumnInfo>? = columns[table]
 
-  fun cachedSchemas(dataSourceId: String): List<DbSchemaRef>? = schemas[dataSourceId]?.filterNot(::isSystem)
+  fun cachedSchemas(dataSourceId: String): List<DbSchemaRef>? {
+    val scope = DbDataSourceService.getInstance(project).find(dataSourceId)?.schemas.orEmpty()
+    return schemas[dataSourceId]?.filterNot(::isSystem)?.filter { DbSchemaScope.matches(scope, it.name) }
+  }
 
   /** Every table, view and column the tree has loaded, of every data source; never connects. */
   fun cachedTables(): List<DbTableRef> = tables.values.flatten()

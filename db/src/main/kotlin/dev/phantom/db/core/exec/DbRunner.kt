@@ -336,7 +336,7 @@ object DbRunner {
     panel.showRunning(SqlSafety.preview(sql.first()) + if (sql.size > 1) " (+${sql.size - 1})" else "")
     val job = DbConnectionService.getInstance(project).launch {
       try {
-        val outcomes = DbExecutor.execute(project, dataSource, sql, schema = schema)
+        val outcomes = DbExecutor.execute(project, dataSource, sql, schema = schema, console = file.url)
         withContext(Dispatchers.EDT) { if (present != null) present(panel, outcomes) else panel.showOutcomes(outcomes) }
       }
       catch (e: CancellationException) {

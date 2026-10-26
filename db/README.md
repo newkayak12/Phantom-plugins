@@ -38,6 +38,8 @@ A JDBC console for MySQL, MariaDB, PostgreSQL, H2, AWS, Oracle, SQL Server and m
 - **SQL Generator…** (Ctrl+Alt+G) opens a table's DDL with a SELECT, INSERT, UPDATE and DELETE of its columns keyed by the primary key; **Copy DDL** (Ctrl+Shift+C / Ctrl+Alt+Shift+G) copies the DDL; **Select in Database View** (Alt+Shift+B) in a `.sql` file or console selects the table or column at the caret, else the data source, in the tree.
 - **Set NULL** (Ctrl+Alt+N) and **Set DEFAULT** (Ctrl+Alt+D) in an editable grid; Set DEFAULT reads the value the database put there back into the cell.
 - **SSH password or key passphrase** missing or refused: asked at connect (with **Save**), and the tunnel tries again.
+- **Sessions** (as in DataGrip): a connected data source has a green dot in the tree; **Disconnect** (Cmd+F2 / Ctrl+F2 in the tree) closes its connections, **Sessions…** lists the open ones (shared console connection, a console's own, the schema tree's; since when, open transaction) to close one or all. **Single session mode** (data source dialog, on by default) shares one connection among the consoles; off, each console gets its own. Manual commit always shares one.
+- **Schemas** (data source dialog, Options): which schemas (catalogs in MySQL) the tree, completion and checks load, as names or globs separated by commas (`app, sales_*`), `!name` to leave one out; empty loads all.
 - **Make Global** (Database tree, on a data source) moves it to the IDE so every project lists it, with its password; **Move to Project** takes it back. Global data sources are marked *global* in the tree.
 - Nothing runs at startup; the plugin loads its code when a `.sql` file or the tool window opens.
 

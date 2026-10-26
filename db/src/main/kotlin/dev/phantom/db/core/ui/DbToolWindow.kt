@@ -208,6 +208,14 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       command("Add") { add() },
       command("Edit", { selectedSource() != null }) { edit() },
       command("Remove", { selectedNode() is DbNode.Source }) { remove() },
+      command("Disconnect", { selectedSource()?.let { DbConnectionService.getInstance(project).isConnected(it.id) } == true }) {
+        selectedSource()?.let { ds ->
+          if (DbTransactions.endOrKeep(project, ds, PhantomDbBundle.message("action.PhantomDb.Tree.Disconnect.text"))) {
+            DbConnectionService.getInstance(project).disconnect(ds.id)
+          }
+        }
+      },
+      command("Sessions") { DbSessionsDialog(project).show() },
       command("Duplicate", { selectedNode() is DbNode.Source }) { (selectedNode() as? DbNode.Source)?.let { duplicate(it.dataSource) } },
       command("CopySource", { selectedNode() is DbNode.Source }) {
         (selectedNode() as? DbNode.Source)?.let { CopyPasteManager.getInstance().setContents(StringSelection(DbDataSourceClipboard.write(listOf(it.dataSource)))) }
@@ -277,6 +285,10 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
     setContent(ScrollPaneFactory.createScrollPane(tree, true))
     PopupHandler.installPopupMenu(tree, group, "PhantomDbExplorerPopup")
 
+    // the green dot of a connected data source
+    DbConnectionService.getInstance(project).addSessionListener(parent) {
+      com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater({ tree.repaint() }, project.disposed)
+    }
     DbDataSourceService.getInstance(project).addListener(parent) {
       com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater({ reload() }, project.disposed)
     }
@@ -741,11 +753,12 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
     }
   }
 
-  private class Renderer : ColoredTreeCellRenderer() {
+  private inner class Renderer : ColoredTreeCellRenderer() {
     override fun customizeCellRenderer(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean) {
       when (val node = (value as? DefaultMutableTreeNode)?.userObject as? DbNode) {
         is DbNode.Source -> {
-          icon = PhantomDbIcons.forDataSource(node.dataSource)
+          val base = PhantomDbIcons.forDataSource(node.dataSource)
+          icon = if (DbConnectionService.getInstance(project).isConnected(node.dataSource.id)) com.intellij.execution.runners.ExecutionUtil.getLiveIndicator(base) else base
           append(node.dataSource.name)
           append("  " + node.dataSource.url.removePrefix("jdbc:"), SimpleTextAttributes.GRAYED_ATTRIBUTES)
           if (node.dataSource.readOnly) append("  " + PhantomDbBundle.message("db.tree.read.only"), SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES)

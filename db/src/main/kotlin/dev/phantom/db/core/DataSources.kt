@@ -91,6 +91,10 @@ class DbDataSource {
   var readOnly: Boolean = false
   /** Changes stay in an open transaction until committed from the Database Changes tool window. */
   var manualCommit: Boolean = false
+  /** All consoles share one connection (the default); off, each console gets its own, as in DataGrip. Manual commit always shares. */
+  var singleSession: Boolean = true
+  /** The schemas (catalogs in MySQL) the tree, completion and checks load: comma-separated names or globs, `!` excludes. Empty: all. */
+  var schemas: String = ""
   /** Driver jars chosen by hand. Empty: find the driver in project libraries, then in the Gradle and Maven caches. */
   @XCollection(style = XCollection.Style.v2)
   var driverJars: MutableList<String> = ArrayList()
@@ -130,7 +134,7 @@ class DbDataSource {
   var global: Boolean = false
 
   fun copy(): DbDataSource = DbDataSource().also {
-    it.id = id; it.name = name; it.dbms = dbms; it.url = url; it.user = user; it.readOnly = readOnly; it.manualCommit = manualCommit
+    it.id = id; it.name = name; it.dbms = dbms; it.url = url; it.user = user; it.readOnly = readOnly; it.manualCommit = manualCommit; it.singleSession = singleSession; it.schemas = schemas
     it.driverJars = ArrayList(driverJars); it.maxRows = maxRows; it.queryTimeoutSeconds = queryTimeoutSeconds
     it.driverId = driverId; it.properties = LinkedHashMap(properties); it.authKind = authKind
     it.awsProfile = awsProfile; it.awsRegion = awsRegion; it.color = color
@@ -528,4 +532,21 @@ object DbDrivers {
   private const val GRADLE_FILES = ".gradle/caches/modules-2/files-2.1"
   /** Not a real URL: [fetchLocal] maps it onto the Gradle cache layout. */
   private const val GRADLE_CACHE_BASE = "gradle-cache:/"
+}
+
+/**
+ * Which schemas a data source introspects, as DataGrip's Schemas tab: [pattern] is comma-separated names or globs (`*`, `?`),
+ * case-insensitive; one starting with `!` excludes. Only exclusions: everything else. Empty: all.
+ */
+object DbSchemaScope {
+  fun matches(pattern: String, name: String): Boolean {
+    val parts = pattern.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+    if (parts.isEmpty()) return true
+    val (excludes, includes) = parts.partition { it.startsWith("!") }
+    if (excludes.any { glob(it.removePrefix("!").trim()).matches(name) }) return false
+    return includes.isEmpty() || includes.any { glob(it).matches(name) }
+  }
+
+  private fun glob(text: String): Regex =
+    Regex(text.split('*').joinToString(".*") { part -> part.split('?').joinToString(".") { Regex.escape(it) } }, RegexOption.IGNORE_CASE)
 }
