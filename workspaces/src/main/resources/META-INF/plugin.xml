@@ -1,0 +1,30 @@
+<idea-plugin>
+  <id>dev.phantom.workspaces</id>
+  <name>Phantom Workspaces</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>User Interface</category>
+  <description><![CDATA[
+  All open projects in one window, like browser tabs. A tab strip above the editor lists every open project: click to
+  switch, middle-click or the close button to close. Project windows share one size, position and maximized state, so
+  switching looks like changing tabs of one window; a project switched to from the strip also takes full screen, but
+  full screen is never pushed to the windows behind. Next/previous project: Window | Next Project Window. Works on every OS; no native window tabs. Turn it off in Settings | Advanced Settings | Phantom Workspaces.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.platform"/>
+  </dependencies>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <ideRootPaneNorth implementation="dev.phantom.workspaces.core.ProjectTabsNorthExtension" order="last"/>
+    <advancedSetting id="phantom.workspaces.project.tabs" default="true"
+                     bundle="messages.PhantomWorkspacesBundle" groupKey="advanced.settings.phantom.workspaces"/>
+  </extensions>
+  <applicationListeners>
+    <listener class="dev.phantom.workspaces.core.ProjectTabsCloseListener" topic="com.intellij.openapi.project.ProjectCloseListener"/>
+    <listener class="dev.phantom.workspaces.core.ProjectTabsSettingListener"
+              topic="com.intellij.openapi.options.advanced.AdvancedSettingsChangeListener"/>
+  </applicationListeners>
+  <projectListeners>
+    <listener class="dev.phantom.workspaces.core.ProjectTabsRenameListener" topic="com.intellij.openapi.project.ProjectNameListener"/>
+  </projectListeners>
+</idea-plugin>

@@ -1,0 +1,354 @@
+// Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
+package dev.phantom.workspaces
+
+import dev.phantom.workspaces.core.StackedWindow
+import dev.phantom.workspaces.core.WindowStack
+import dev.phantom.workspaces.core.WindowState
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.awt.Rectangle
+
+class WindowStackTest {
+  private val log = mutableListOf<String>()
+  private val screen = Rectangle(0, 0, 1920, 1080)
+  private val home = Rectangle(100, 100, 1200, 800)
+  private val elsewhere = Rectangle(500, 50, 900, 700)
+
+  /**
+   * A project window as the OS treats it: maximized and full-screen windows report the screen as their bounds and keep
+   * their normal bounds aside; entering or leaving full screen is asynchronous ([finishTransition]).
+   */
+  private inner class FakeWindow(
+    val name: String,
+    var normal: Rectangle,
+    var maximized: Boolean = false,
+    var fullScreen: Boolean = false,
+  ) : StackedWindow {
+    override var isActive: Boolean = false
+    override var isInTransition: Boolean = false
+    val applied = mutableListOf<WindowState>()
+    private var afterTransition: (() -> Unit)? = null
+
+    override val state: WindowState
+      get() = WindowState(if (maximized || fullScreen) screen else normal, maximized, fullScreen)
+
+    override fun apply(state: WindowState) {
+      log += "apply $name"
+      applied += state
+      if (state.fullScreen != fullScreen) {
+        isInTransition = true
+        if (!state.fullScreen) {
+          // leaving: the window is out of full screen at once, the bounds settle when the animation ends
+          fullScreen = false
+          afterTransition = { windowed(state) }
+        }
+        else {
+          afterTransition = { fullScreen = true }
+        }
+        return
+      }
+      if (!state.fullScreen) windowed(state)
+    }
+
+    private fun windowed(state: WindowState) {
+      if (state.maximized) {
+        maximized = true
+      }
+      else {
+        maximized = false
+        normal = state.bounds
+      }
+    }
+
+    fun finishTransition() {
+      isInTransition = false
+      afterTransition?.invoke()
+      afterTransition = null
+    }
+
+    override fun activate() {
+      log += "activate $name"
+    }
+  }
+
+  private val stack = WindowStack()
+
+  private fun window(name: String, bounds: Rectangle = home, maximized: Boolean = false, fullScreen: Boolean = false) =
+    FakeWindow(name, bounds, maximized, fullScreen)
+
+  /** [window] in front changes, the debounce timer fires. */
+  private fun moveFront(window: FakeWindow, change: FakeWindow.() -> Unit) {
+    window.change()
+    stack.moved(window)
+    stack.flush()
+  }
+
+  private fun stackOf(vararg windows: FakeWindow) {
+    windows.forEach { stack.add(it) }
+    stack.activated(windows.first())
+    windows.first().isActive = true
+    log.clear()
+  }
+
+  @Test
+  fun `the first window sets where every project window goes`() {
+    val a = window("a")
+    stack.add(a)
+    assertEquals(WindowState(home, maximized = false, fullScreen = false), stack.shared)
+    assertTrue(a.applied.isEmpty())
+  }
+
+  @Test
+  fun `a project that opens later opens exactly on top of the others`() {
+    val a = window("a")
+    val b = window("b", elsewhere)
+    stack.add(a)
+    stack.add(b)
+    assertEquals(home, b.normal)
+  }
+
+  @Test
+  fun `a window that opens while the stack is off is left where it is`() {
+    val a = window("a")
+    val b = window("b", elsewhere)
+    stack.add(a)
+    stack.add(b, align = false)
+    assertEquals(elsewhere, b.normal)
+  }
+
+  @Test
+  fun `moving or resizing the window in front moves the windows behind it`() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(a, b)
+    moveFront(a) { normal = elsewhere }
+    assertEquals(elsewhere, b.normal)
+    assertEquals(elsewhere, stack.shared!!.bounds)
+  }
+
+  @Test
+  fun `changes of a window behind are ignored, so syncing cannot echo back and forth`() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(a, b)
+    b.normal = elsewhere
+    assertFalse(stack.moved(b))
+    stack.flush()
+    assertEquals(home, a.normal)
+    assertEquals(home, stack.shared!!.bounds)
+    assertTrue(a.applied.isEmpty())
+  }
+
+  @Test
+  fun `a window that is already in place is not touched`() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(a, b)
+    moveFront(a) { normal = elsewhere }
+    moveFront(a) {}
+    moveFront(a) {}
+    assertEquals(1, b.applied.size)
+    assertTrue(a.applied.isEmpty())
+  }
+
+  @Test
+  fun `maximizing the window in front maximizes the others`() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(a, b)
+    moveFront(a) { maximized = true }
+    assertTrue(b.maximized)
+  }
+
+  // finding 5
+  @Test
+  fun `maximizing keeps the normal size, so un-maximizing comes back to it`() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(a, b)
+    moveFront(a) { maximized = true }
+    assertEquals(WindowState(home, maximized = true, fullScreen = false), stack.shared)
+    assertEquals(home, b.normal)
+    stack.switchTo(b)
+    assertTrue(b.maximized)
+    assertEquals(home, b.normal)
+  }
+
+  @Test
+  fun `full screen is not pushed to the windows behind, it follows on switch`() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(a, b)
+    moveFront(a) { fullScreen = true }
+    assertTrue(b.applied.isEmpty())
+    // the shared bounds stay the bounds to come back to when leaving full screen
+    assertEquals(WindowState(home, maximized = false, fullScreen = true), stack.shared)
+
+    stack.switchTo(b)
+    b.finishTransition()
+    assertTrue(b.fullScreen)
+    assertEquals(listOf("apply b", "activate b"), log)
+  }
+
+  // finding 1
+  @Test
+  fun `a project that opens while the others are full screen does not go full screen too`() {
+    val a = window("a")
+    stackOf(a)
+    moveFront(a) { fullScreen = true }
+    val b = window("b", elsewhere)
+    stack.add(b)
+    b.finishTransition()
+    assertFalse(b.fullScreen)
+    assertTrue(b.applied.none { it.fullScreen })
+    assertEquals(home, b.normal)
+  }
+
+  // finding 1
+  @Test
+  fun `a window that reopens in full screen is not taken out of it`() {
+    val a = window("a")
+    stackOf(a)
+    val b = window("b", fullScreen = true)
+    stack.add(b)
+    b.finishTransition()
+    assertTrue(b.fullScreen)
+    assertTrue(b.applied.isEmpty())
+  }
+
+  // finding 1
+  @Test
+  fun `a full screen window that comes to front without a switch stays full screen`() {
+    val a = window("a")
+    val b = window("b", fullScreen = true)
+    stackOf(a, b)
+    stack.activated(b)
+    b.finishTransition()
+    assertTrue(b.fullScreen)
+    assertTrue(b.applied.isEmpty())
+  }
+
+  // finding 2
+  @Test
+  fun `bounds are not taken from a window while it leaves full screen`() {
+    val a = window("a")
+    val b = window("b", bounds = elsewhere, fullScreen = true)
+    stackOf(a, b)
+    stack.switchTo(b)
+    b.isActive = true
+    a.isActive = false
+    assertTrue(b.isInTransition)
+    // the OS restores b's old bounds during the animation, before b is put in place
+    moveFront(b) { normal = elsewhere }
+    assertEquals(home, stack.shared!!.bounds)
+    assertEquals(home, a.normal)
+
+    b.finishTransition()
+    assertFalse(b.fullScreen)
+    assertEquals(home, b.normal)
+    moveFront(b) {}
+    assertEquals(home, stack.shared!!.bounds)
+    assertEquals(home, a.normal)
+  }
+
+  // finding 3
+  @Test
+  fun `turning the stack back on takes the window in front as it is now`() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(a, b)
+    // stack off: a is moved, nothing follows
+    a.normal = elsewhere
+    stack.lead(a)
+    assertEquals(elsewhere, stack.shared!!.bounds)
+    assertEquals(elsewhere, b.normal)
+    stack.switchTo(b)
+    assertEquals(elsewhere, b.normal)
+  }
+
+  // finding 4
+  @Test
+  fun `a resize right before a switch is not lost`() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(a, b)
+    a.normal = elsewhere
+    stack.moved(a) // the debounce timer has not fired yet
+    stack.switchTo(b)
+    assertEquals(elsewhere, b.normal)
+    assertEquals(elsewhere, a.normal)
+    stack.flush() // the timer fires late
+    assertEquals(elsewhere, a.normal)
+  }
+
+  // finding 4
+  @Test
+  fun `a resize right before another window comes to front is not lost`() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(a, b)
+    a.normal = elsewhere
+    stack.moved(a)
+    a.isActive = false
+    b.isActive = true
+    stack.activated(b)
+    stack.flush()
+    assertEquals(elsewhere, b.normal)
+    assertEquals(elsewhere, a.normal)
+  }
+
+  // finding 4
+  @Test
+  fun `the window in front leads even while the IDE is in the background`() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(a, b)
+    a.isActive = false // e.g. moved by a window manager tool
+    moveFront(a) { normal = elsewhere }
+    assertEquals(elsewhere, b.normal)
+    stack.activated(a)
+    assertEquals(elsewhere, a.normal)
+  }
+
+  @Test
+  fun `switching puts the target in place before bringing it to front`() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(a, b)
+    b.normal = elsewhere // e.g. restored from its own saved bounds after the stack was off
+    stack.switchTo(b)
+    assertEquals(home, b.normal)
+    assertEquals(listOf("apply b", "activate b"), log)
+  }
+
+  @Test
+  fun `switching to a window that is in place only brings it to front`() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(a, b)
+    stack.switchTo(b)
+    assertEquals(listOf("activate b"), log)
+  }
+
+  @Test
+  fun `a window brought to front some other way is put in place too`() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(a, b)
+    b.normal = elsewhere
+    stack.activated(b)
+    assertEquals(home, b.normal)
+  }
+
+  @Test
+  fun `a closed window is no longer moved`() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(a, b)
+    stack.remove(b)
+    moveFront(a) { normal = elsewhere }
+    assertEquals(home, b.normal)
+  }
+}
