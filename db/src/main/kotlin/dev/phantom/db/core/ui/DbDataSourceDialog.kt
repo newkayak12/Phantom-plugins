@@ -72,6 +72,10 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
   internal val urlField = JBTextField(source.url)
   private val userField = JBTextField(source.user)
   private val passwordField = JBPasswordField()
+  internal val passwordStorageCombo = ComboBox(DbPasswordStorage.entries.toTypedArray()).apply {
+    selectedItem = source.passwordStorage
+    renderer = com.intellij.ui.SimpleListCellRenderer.create("") { DbPasswordPrompt.storageName(it) }
+  }
   internal val authCombo = ComboBox(DbAuthKind.entries.toTypedArray()).apply {
     selectedItem = source.authKind
     renderer = textListCellRenderer { it?.let { kind -> PhantomDbBundle.message("db.dialog.auth.${kind.name.lowercase()}") } }
@@ -322,7 +326,11 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     }
     row(PhantomDbBundle.message("db.dialog.auth")) { cell(authCombo) }
     row(PhantomDbBundle.message("db.dialog.user")) { cell(userField).align(AlignX.FILL) }
-    passwordRow = row(PhantomDbBundle.message("db.dialog.password")) { cell(passwordField).align(AlignX.FILL) }
+    passwordRow = row(PhantomDbBundle.message("db.dialog.password")) {
+      cell(passwordField).align(AlignX.FILL)
+      label(PhantomDbBundle.message("db.password.save"))
+      cell(passwordStorageCombo)
+    }
     awsProfileRow = row(PhantomDbBundle.message("db.dialog.aws.profile")) { cell(awsProfileField).align(AlignX.FILL).comment(PhantomDbBundle.message("db.dialog.aws.profile.hint")) }
     awsRegionRow = row(PhantomDbBundle.message("db.dialog.aws.region")) { cell(awsRegionField).align(AlignX.FILL) }
     row { cell(readOnlyBox) }
@@ -378,6 +386,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     properties = LinkedHashMap(this@DbDataSourceDialog.properties.values)
     readOnly = readOnlyBox.isSelected
     manualCommit = manualCommitBox.isSelected
+    passwordStorage = passwordStorageCombo.selectedItem as DbPasswordStorage
     color = colorCombo.selectedItem as String
     driverJars = this@DbDataSourceDialog.driverJars.toMutableList()
     maxRows = maxRowsField.number

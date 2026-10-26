@@ -12,6 +12,7 @@ import dev.phantom.db.core.*
 import dev.phantom.db.core.drivers.DbDriverActions
 import dev.phantom.db.core.drivers.DbDriverDefinition
 import dev.phantom.db.core.drivers.DbDriverRegistry
+import dev.phantom.db.core.ui.DbPasswordPrompt
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -198,7 +199,7 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
   private fun openSession(dataSource: DbDataSource, session: Session): Connection {
     var lease: DbTunnelLease? = null
     try {
-      val connection = open(dataSource, null) { target ->
+      val connection = open(dataSource, null, ask = true) { target ->
         tunnels.acquire(dataSource, target) { DbDataSourceService.getInstance(project).sshSecret(dataSource) }.also { lease = it }.tunnel
       }
       session.connection = connection
@@ -218,7 +219,12 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
   fun open(dataSource: DbDataSource, password: String?, notify: Boolean = true, tunnel: DbTunnel? = null): Connection =
     open(dataSource, password, notify) { tunnel ?: throw IllegalStateException("an SSH data source connects through a tunnel") }
 
-  private fun open(dataSource: DbDataSource, password: String?, notify: Boolean = true, tunnel: (DbHostPort) -> DbTunnel): Connection {
+  /**
+   * [ask]: a data source whose password is saved "never" asks for it first, and a sign-in the database refuses asks again
+   * (as DataGrip does) until it succeeds or is cancelled.
+   */
+  private fun open(dataSource: DbDataSource, password: String?, notify: Boolean = true, ask: Boolean = false,
+                   tunnel: (DbHostPort) -> DbTunnel): Connection {
     val definition = dataSource.driver()
     if (definition == null) {
       val name = dataSource.driverId?.takeIf { it.isNotEmpty() } ?: dataSource.url
@@ -232,8 +238,15 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
       throw DbException(message)
     }
     val driver = drivers.computeIfAbsent(located.jars to definition.driverClass) { loadDriver(it.first, it.second) }
-    val secret = (password ?: DbDataSourceService.getInstance(project).password(dataSource.id))?.takeIf { it.isNotEmpty() }
-    val props = connectionProperties(definition, dataSource, secret)
+    val asks = ask && password == null && dataSource.authKind == DbAuthKind.PASSWORD
+    var signIn = dataSource
+    var secret = (password ?: DbDataSourceService.getInstance(project).password(dataSource.id))?.takeIf { it.isNotEmpty() }
+    if (asks && secret == null && dataSource.passwordStorage == DbPasswordStorage.NEVER) {
+      val typed = DbPasswordPrompt.ask(project, dataSource, null) ?: throw DbException(PhantomDbBundle.message("db.password.cancelled"))
+      signIn = dataSource.copy().apply { user = typed.user }
+      secret = typed.password
+    }
+    val props = connectionProperties(definition, signIn, secret)
     var url = connectionUrl(definition, dataSource).trim()
     if (dataSource.sshEnabled) {
       val target = DbTunnelUrls.target(url, definition, dataSource)
@@ -244,8 +257,24 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
       url = DbTunnelUrls.rewrite(url, target, tunnel(target).localPort)
     }
     // drivers that find others or load SDK parts through the context loader (AWS JDBC Wrapper, AWS SDK) must see their own jars
-    val connection = withContextClassLoader(driver.javaClass.classLoader) { driver.connect(url, props) }
+    var connection: Connection? = null
+    var attempt = props
+    while (connection == null) {
+      connection = try {
+        withContextClassLoader(driver.javaClass.classLoader) { driver.connect(url, attempt) }
                      ?: throw DbException(rejectedUrlMessage(definition, dataSource.url, located.description))
+      }
+      catch (e: SQLException) {
+        if (!asks || !isAuthFailure(e)) throw e
+        val typed = DbPasswordPrompt.ask(project, signIn, DbExecutor.message(e)) ?: throw e
+        signIn = signIn.copy().apply { user = typed.user }
+        attempt = Properties().apply { putAll(props) }
+        attempt.remove("password")
+        if (signIn.user.isNotEmpty()) attempt["user"] = signIn.user
+        if (typed.password.isNotEmpty()) attempt["password"] = typed.password
+        null
+      }
+    }
     if (dataSource.readOnly) runCatching { connection.isReadOnly = true }
     else if (dataSource.manualCommit) connection.autoCommit = false
     return connection
@@ -411,6 +440,14 @@ internal inline fun <T> withContextClassLoader(loader: ClassLoader?, block: () -
 }
 
 /** Driver defaults, then login timeouts, then the data source's own properties, then the authentication. */
+/**
+ * The database refused the user name or password: SQLSTATE class 28 (PostgreSQL, H2 and most drivers), MySQL/MariaDB 1045,
+ * SQL Server 18456, Oracle ORA-01017.
+ */
+internal fun isAuthFailure(e: SQLException): Boolean = generateSequence(e) { it.nextException }.take(5).any {
+  it.sqlState?.startsWith("28") == true || it.errorCode in setOf(1045, 18456, 1017)
+}
+
 internal fun DbConnectionService.Companion.connectionProperties(definition: DbDriverDefinition, dataSource: DbDataSource, password: String?): Properties {
   val props = Properties()
   props.putAll(definition.defaultProperties)

@@ -201,6 +201,21 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       action("db.action.add.text", AllIcons.General.Add) { add() },
       action("db.action.edit.text", AllIcons.Actions.Edit, { selectedSource() != null }) { edit() },
       action("db.action.remove.text", AllIcons.General.Remove, { selectedSource() != null }) { remove() },
+      object : DumbAwareAction() {
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+        override fun update(e: AnActionEvent) {
+          val ds = (selectedNode() as? DbNode.Source)?.dataSource
+          e.presentation.isEnabledAndVisible = ds != null
+          val key = if (ds?.global == true) "db.action.make.project" else "db.action.make.global"
+          e.presentation.text = PhantomDbBundle.message("$key.text")
+          e.presentation.description = PhantomDbBundle.message("$key.description")
+          e.presentation.icon = if (ds?.global == true) AllIcons.Nodes.Module else AllIcons.Nodes.PpWeb
+        }
+        override fun actionPerformed(e: AnActionEvent) {
+          val ds = (selectedNode() as? DbNode.Source)?.dataSource ?: return
+          DbDataSourceService.getInstance(project).save(ds.copy().apply { global = !ds.global }, null)
+        }
+      },
       Separator.getInstance(),
       action("db.action.refresh.text", AllIcons.Actions.Refresh) { refresh() },
       action("db.action.drivers.text", AllIcons.General.Settings) { DbDriversDialog(project, selectedSource()?.let { it.driverId ?: it.driver()?.id }).show() },
@@ -626,6 +641,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
           append(node.dataSource.name)
           append("  " + node.dataSource.url.removePrefix("jdbc:"), SimpleTextAttributes.GRAYED_ATTRIBUTES)
           if (node.dataSource.readOnly) append("  " + PhantomDbBundle.message("db.tree.read.only"), SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES)
+          if (node.dataSource.global) append("  " + PhantomDbBundle.message("db.tree.global"), SimpleTextAttributes.GRAYED_ITALIC_ATTRIBUTES)
         }
         is DbNode.Schema -> {
           icon = AllIcons.Nodes.DataSchema

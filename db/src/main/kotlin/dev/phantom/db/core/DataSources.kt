@@ -17,6 +17,7 @@ import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.util.text.VersionComparatorUtil
 import com.intellij.util.xmlb.annotations.MapAnnotation
 import com.intellij.util.xmlb.annotations.Tag
+import com.intellij.util.xmlb.annotations.Transient
 import com.intellij.util.xmlb.annotations.XCollection
 import com.intellij.openapi.progress.ProcessCanceledException
 import dev.phantom.db.core.drivers.ArtifactFetcher
@@ -27,6 +28,7 @@ import dev.phantom.db.core.drivers.MavenResolver
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import javax.swing.Icon
 import kotlin.io.path.isDirectory
@@ -75,7 +77,10 @@ enum class Dbms(
   }
 }
 
-/** Saved in `.idea/phantomDataSources.xml`. The password is not here: it lives in the IDE password safe. */
+/**
+ * Saved in `.idea/phantomDataSources.xml`, or, made global, in the IDE's `phantomDataSources.xml` where every project sees it.
+ * The password is not here: it lives in the IDE password safe (or only in memory, as [passwordStorage] says).
+ */
 @Tag("data-source")
 class DbDataSource {
   var id: String = UUID.randomUUID().toString()
@@ -117,6 +122,10 @@ class DbDataSource {
   var sslCaFile: String = ""
   var sslCertFile: String = ""
   var sslKeyFile: String = ""
+  var passwordStorage: DbPasswordStorage = DbPasswordStorage.FOREVER
+  /** Kept in the IDE-wide list (every project), not the project's; which file it is in says so, so it is not written. */
+  @get:Transient
+  var global: Boolean = false
 
   fun copy(): DbDataSource = DbDataSource().also {
     it.id = id; it.name = name; it.dbms = dbms; it.url = url; it.user = user; it.readOnly = readOnly; it.manualCommit = manualCommit
@@ -126,12 +135,16 @@ class DbDataSource {
     it.sshEnabled = sshEnabled; it.sshHost = sshHost; it.sshPort = sshPort; it.sshUser = sshUser; it.sshAuth = sshAuth
     it.sshKeyFile = sshKeyFile; it.sshRemoteHost = sshRemoteHost; it.sshRemotePort = sshRemotePort
     it.sslEnabled = sslEnabled; it.sslMode = sslMode; it.sslCaFile = sslCaFile; it.sslCertFile = sslCertFile; it.sslKeyFile = sslKeyFile
+    it.passwordStorage = passwordStorage; it.global = global
   }
 
   override fun toString(): String = name
 }
 
 enum class DbAuthKind { PASSWORD, NONE, AWS_IAM }
+
+/** As DataGrip's Save: in the password safe, in memory until the IDE closes, or asked at every connect. */
+enum class DbPasswordStorage { FOREVER, UNTIL_RESTART, NEVER }
 
 /** How the SSH tunnel signs in: a password, a private key file (with its passphrase, if any) or the running OpenSSH agent. */
 enum class DbSshAuth { PASSWORD, KEY, AGENT }
@@ -152,10 +165,42 @@ fun DbDataSource.driver(): DbDriverDefinition? {
 /** SQL dialect of this data source: that of its driver; [DbDataSource.dbms] is only the persisted copy (never `GENERIC` on disk). */
 fun DbDataSource.dialect(): Dbms = driver()?.dialect ?: dbms
 
-/** Project data sources. Loaded on first use (tool window, console, `.sql` editor banner), never at startup. */
+/** The data sources every project sees ("Make Global"). Loaded on first use, like the project's. */
+@Service(Service.Level.APP)
+@State(name = "PhantomGlobalDataSources", storages = [Storage("phantomDataSources.xml")])
+class DbGlobalDataSourceService : PersistentStateComponent<DbDataSourceService.State> {
+  private var state = DbDataSourceService.State()
+  private val listeners = CopyOnWriteArrayList<() -> Unit>()
+
+  override fun getState(): DbDataSourceService.State = state
+  override fun loadState(state: DbDataSourceService.State) {
+    state.dataSources.removeIf(java.util.Objects::isNull)
+    state.dataSources.forEach { it.global = true }
+    this.state = state
+  }
+
+  internal val list: MutableList<DbDataSource> get() = state.dataSources
+
+  fun addListener(parent: Disposable, listener: () -> Unit) {
+    listeners.add(listener)
+    Disposer.register(parent) { listeners.remove(listener) }
+  }
+
+  internal fun changed() = listeners.forEach { it() }
+
+  companion object {
+    fun getInstance(): DbGlobalDataSourceService = service()
+  }
+}
+
+/**
+ * The data sources of a project: its own, then the global ones. Loaded on first use (tool window, console, `.sql` editor
+ * banner), never at startup. [DbDataSource.global] says which list a data source is saved in; saving it with the flag
+ * changed moves it (Make Global / Move to Project), keeping its id and so its passwords.
+ */
 @Service(Service.Level.PROJECT)
 @State(name = "PhantomDataSources", storages = [Storage("phantomDataSources.xml")])
-class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State> {
+class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State>, Disposable {
   class State {
     @XCollection(style = XCollection.Style.v2)
     var dataSources: MutableList<DbDataSource> = ArrayList()
@@ -163,6 +208,11 @@ class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State> 
 
   private var state = State()
   private val listeners = CopyOnWriteArrayList<() -> Unit>()
+  private val global = DbGlobalDataSourceService.getInstance()
+
+  init {
+    global.addListener(this) { changed() }
+  }
 
   override fun getState(): State = state
   /**
@@ -172,41 +222,53 @@ class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State> 
   override fun loadState(state: State) {
     // a Kotlin lambda would null-check its parameter; the Java predicate sees the null
     state.dataSources.removeIf(java.util.Objects::isNull)
+    state.dataSources.forEach { it.global = false }
     this.state = state
   }
 
-  val dataSources: List<DbDataSource> get() = state.dataSources.toList()
+  override fun dispose() {}
 
-  fun find(id: String?): DbDataSource? = id?.let { i -> state.dataSources.firstOrNull { it.id == i } }
+  /** The project's data sources, then the global ones a project one with the same id does not hide. */
+  val dataSources: List<DbDataSource>
+    get() {
+      val own = state.dataSources.toList()
+      val ids = own.mapTo(HashSet()) { it.id }
+      return own + global.list.filter { it.id !in ids }
+    }
+
+  fun find(id: String?): DbDataSource? = id?.let { i -> state.dataSources.firstOrNull { it.id == i } ?: global.list.firstOrNull { it.id == i } }
 
   /**
-   * Adds [dataSource] or replaces the saved one with the same id. A `null` [password] leaves the saved one as is; so does
-   * a `null` [sshSecret], which is the SSH password or the key passphrase, as [DbDataSource.sshAuth] says.
+   * Adds [dataSource] or replaces the saved one with the same id, in the list [DbDataSource.global] names (and out of the
+   * other). A `null` [password] leaves the saved one as is; so does a `null` [sshSecret], which is the SSH password or the
+   * key passphrase, as [DbDataSource.sshAuth] says. The password goes where [DbDataSource.passwordStorage] says.
    */
   fun save(dataSource: DbDataSource, password: CharArray?, sshSecret: CharArray? = null) {
     dataSource.dbms = persistedDbms(dataSource.dialect())
-    val i = state.dataSources.indexOfFirst { it.id == dataSource.id }
-    if (i >= 0) state.dataSources[i] = dataSource else state.dataSources.add(dataSource)
-    if (password != null) PasswordSafe.instance.set(credentials(dataSource.id), Credentials(dataSource.user, password))
+    val (target, other) = if (dataSource.global) global.list to state.dataSources else state.dataSources to global.list
+    val movedOut = other.removeIf { it.id == dataSource.id }
+    val i = target.indexOfFirst { it.id == dataSource.id }
+    if (i >= 0) target[i] = dataSource else target.add(dataSource)
+    DbSecrets.setPassword(dataSource, password)
     if (sshSecret != null) {
-      val attributes = sshCredentials(dataSource.id, dataSource.sshAuth) ?: return changed()
-      PasswordSafe.instance.set(attributes, if (sshSecret.isEmpty()) null else Credentials(dataSource.sshUser, sshSecret))
+      sshCredentials(dataSource.id, dataSource.sshAuth)?.let { DbSecrets.set(it, dataSource.sshUser, sshSecret) }
     }
-    changed()
+    if (dataSource.global || movedOut) global.changed() else changed()
   }
 
   fun remove(id: String) {
+    val wasGlobal = global.list.removeIf { it.id == id }
     state.dataSources.removeIf { it.id == id }
-    PasswordSafe.instance.set(credentials(id), null)
-    for (auth in DbSshAuth.entries) sshCredentials(id, auth)?.let { PasswordSafe.instance.set(it, null) }
-    changed()
+    DbSecrets.set(credentials(id), "", null)
+    for (auth in DbSshAuth.entries) sshCredentials(id, auth)?.let { DbSecrets.set(it, "", null) }
+    if (wasGlobal) global.changed() else changed()
   }
 
-  /** Blocking: the password safe may ask the OS keychain. Call off the EDT. */
-  fun password(id: String): String? = PasswordSafe.instance.getPassword(credentials(id))
+  /** Blocking the first time: the password safe may ask the OS keychain. Call off the EDT. Then kept in memory. */
+  fun password(id: String): String? = DbSecrets.password(id)
 
   /** The SSH password or key passphrase saved for [dataSource]'s tunnel. Blocking, like [password]. */
-  fun sshSecret(dataSource: DbDataSource): String? = sshCredentials(dataSource.id, dataSource.sshAuth)?.let { PasswordSafe.instance.getPassword(it) }
+  fun sshSecret(dataSource: DbDataSource): String? = sshCredentials(dataSource.id, dataSource.sshAuth)?.let { DbSecrets.get(it) }
 
   fun addListener(parent: Disposable, listener: () -> Unit) {
     listeners.add(listener)
@@ -232,6 +294,50 @@ class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State> 
      * source keeps the serializer default, which is not written; its driver id is what makes it GENERIC.
      */
     internal fun persistedDbms(dialect: Dbms): Dbms = if (dialect.hasDialect) dialect else DbDataSource().dbms
+  }
+}
+
+/**
+ * Secrets, read from the password safe once per IDE run and then kept in memory, so the OS keychain is asked once, not at
+ * every connection. A password saved "until restart" is only here; one saved "never" is not kept at all.
+ */
+object DbSecrets {
+  private val cache = ConcurrentHashMap<String, String>()
+
+  fun password(id: String): String? = get(DbDataSourceService.credentials(id))
+
+  /** A `null` [password] keeps the saved one, moved to where [DbDataSource.passwordStorage] now says. */
+  fun setPassword(dataSource: DbDataSource, password: CharArray?) {
+    val attributes = DbDataSourceService.credentials(dataSource.id)
+    when (dataSource.passwordStorage) {
+      DbPasswordStorage.FOREVER -> if (password != null) set(attributes, dataSource.user, password)
+      DbPasswordStorage.UNTIL_RESTART -> {
+        PasswordSafe.instance.set(attributes, null)
+        if (password != null) {
+          if (password.isEmpty()) cache.remove(attributes.serviceName) else cache[attributes.serviceName] = String(password)
+        }
+      }
+      DbPasswordStorage.NEVER -> set(attributes, "", null)
+    }
+  }
+
+  fun get(attributes: CredentialAttributes): String? {
+    cache[attributes.serviceName]?.let { return it }
+    val value = PasswordSafe.instance.getPassword(attributes) ?: return null
+    cache[attributes.serviceName] = value
+    return value
+  }
+
+  /** A `null` or empty [secret] removes it. */
+  fun set(attributes: CredentialAttributes, user: String, secret: CharArray?) {
+    if (secret == null || secret.isEmpty()) {
+      cache.remove(attributes.serviceName)
+      PasswordSafe.instance.set(attributes, null)
+    }
+    else {
+      cache[attributes.serviceName] = String(secret)
+      PasswordSafe.instance.set(attributes, Credentials(user, secret))
+    }
   }
 }
 
