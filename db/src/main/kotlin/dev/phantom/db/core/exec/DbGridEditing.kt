@@ -64,6 +64,9 @@ class DbGridEdits(
   /** Runs the statement; tests replace it to run without the IDE's connection service. */
   internal var run: suspend (DbStatement) -> DbOutcome = { DbExecutor.execute(project, dataSource, it) }
 
+  /** Reads a new row back as stored; tests replace it like [run]. */
+  internal var readRow: suspend (DbStatement) -> List<Any?>? = { DbExecutor.firstRow(project, dataSource, it) }
+
   /** Reads a value back (Set DEFAULT); tests replace it like [run]. */
   internal var read: suspend (DbStatement) -> Any? = { DbExecutor.firstValue(project, dataSource, it) }
 
@@ -192,8 +195,9 @@ class DbGridEdits(
   private fun updatedRows(): List<GridRow> = live(changed.keys).filter { it !in deleted && it !in inserted }
 
   /** A new row's INSERT: the cells set in it, DEFAULT ones left to the database. */
-  private fun insertStatement(row: GridRow): DbStatement =
-    target.insert(changed[row].orEmpty().filterValues { it !== DEFAULT })
+  private fun insertStatement(row: GridRow): DbStatement = target.insert(insertValues(row))
+
+  private fun insertValues(row: GridRow): Map<Int, Any?> = changed[row].orEmpty().filterValues { it !== DEFAULT }
 
   /** Revert Selected (Ctrl+Alt+Z): drops the changes of the selected cells and undeletes the selected rows. */
   override fun revert(source: GridRequestSource, rows: ModelIndexSet<GridRow>, columns: ModelIndexSet<GridColumn>) {
@@ -278,15 +282,23 @@ class DbGridEdits(
       for (op in ops) {
         val error: String?
         var value: Any? = null
+        var stored: List<Any?>? = null
         when (op) {
           is Op.Cell -> {
             val outcome = run(statement(op.edit))
             error = problem(outcome)
             value = if (op.edit.value !== DEFAULT) op.edit.value
-            else if (error == null) read(target.selectValue(GridRow.getValues(op.edit.row), op.edit.column)) else null
+            else if (error == null) DbGridTime.toGrid(read(target.selectValue(GridRow.getValues(op.edit.row), op.edit.column))) else null
           }
           is Op.Delete -> error = problem(run(target.delete(GridRow.getValues(op.row))))
-          is Op.Insert -> error = problem(run(insertStatement(op.row)))
+          is Op.Insert -> {
+            val values = insertValues(op.row)
+            val outcome = run(target.insert(values))
+            error = problem(outcome)
+            // the database's defaults and generated key, so the row shows (and edits) as stored
+            stored = if (error != null) null
+            else target.insertedKey(values, (outcome as? DbOutcome.Updated)?.generatedKeys.orEmpty())?.let { readRow(target.selectRow(it)) }
+          }
         }
         withContext(Dispatchers.EDT) {
           if (error != null) {
@@ -304,6 +316,7 @@ class DbGridEdits(
             is Op.Insert -> {
               inserted.remove(op.row)
               changed.remove(op.row)?.forEach { (c, v) -> if (v !== DEFAULT) op.row.setValue(c, v) }
+              stored?.forEachIndexed { i, v -> op.row.setValue(target.editableColumns[i], DbGridTime.toGrid(v)) }
               cellsUpdated(op.row, (0 until hookUp.dataModel.columnCount).toList(), source)
             }
             is Op.Delete -> {

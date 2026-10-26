@@ -126,7 +126,7 @@ class DbEditTarget(
 
   /** `UPDATE t SET c = ? WHERE k = ?`, with [newValue] then the key values of [row]. */
   fun update(row: Array<Any?>, column: Int, newValue: Any?): DbStatement {
-    val params = listOf(DbParam(newValue, sqlTypes[column])) + keyParams(row)
+    val params = listOf(param(newValue, column)) + keyParams(row)
     return DbStatement("UPDATE $tableSql SET ${columnSql[column]} = ? WHERE ${keyCondition()}", params, dbms)
   }
 
@@ -137,6 +137,29 @@ class DbEditTarget(
   fun selectValue(row: Array<Any?>, column: Int): DbStatement =
     DbStatement("SELECT ${columnSql[column]} FROM $tableSql WHERE ${keyCondition()}", keyParams(row), dbms)
 
+  /**
+   * The key of a row just inserted with [values] (grid values by column): the ones set, else the [generated] keys, by
+   * column name or, for a one-column key and one generated value, that value. `null` when part of it is not known.
+   */
+  fun insertedKey(values: Map<Int, Any?>, generated: Map<String, Any?>): Array<Any?>? {
+    val row = arrayOfNulls<Any?>(columnSql.size)
+    for (k in keyColumns) {
+      row[k] = when {
+        values[k] != null -> values[k]
+        else -> (generated.entries.firstOrNull { it.key.equals(columnSql[k]!!.trim('`', '"', '[', ']'), ignoreCase = true) }?.value
+                  ?: generated.values.singleOrNull()?.takeIf { keyColumns.size == 1 })?.let(DbGridTime::toGrid)
+                ?: return null
+      }
+    }
+    return row
+  }
+
+  /** The table columns of the result in the row with [row]'s key, in [editableColumns] order: to show a new row as stored. */
+  fun selectRow(row: Array<Any?>): DbStatement =
+    DbStatement("SELECT ${editableColumns.joinToString { columnSql[it]!! }} FROM $tableSql WHERE ${keyCondition()}", keyParams(row), dbms)
+
+  val editableColumns: List<Int> get() = columnSql.indices.filter { isEditable(it) }
+
   fun delete(row: Array<Any?>): DbStatement = DbStatement("DELETE FROM $tableSql WHERE ${keyCondition()}", keyParams(row), dbms)
 
   /** `INSERT INTO t (c, …) VALUES (?, …)` for the [values] set in a new grid row; the other columns take their defaults. */
@@ -144,28 +167,33 @@ class DbEditTarget(
     val columns = values.keys.filter { isEditable(it) }.sorted()
     if (columns.isEmpty()) {
       val sql = if (dbms.usesCatalogs) "INSERT INTO $tableSql () VALUES ()" else "INSERT INTO $tableSql DEFAULT VALUES"
-      return DbStatement(sql, emptyList(), dbms)
+      return DbStatement(sql, emptyList(), dbms, returnsKeys = true)
     }
     return DbStatement("INSERT INTO $tableSql (${columns.joinToString { columnSql[it]!! }}) VALUES (${columns.joinToString { "?" }})",
-                       columns.map { DbParam(values[it], sqlTypes[it]) }, dbms)
+                       columns.map { param(values[it], it) }, dbms, returnsKeys = true)
   }
 
   /** An INSERT with [values] (or NULLs) for the table columns of the result, to finish in a console. */
   fun insertTemplate(values: Array<Any?>?): String {
     val columns = columnSql.indices.filter { isEditable(it) }
-    val literals = columns.map { i -> if (values == null) "NULL" else DbStatement.literal(values[i], dbms) }
+    val literals = columns.map { i -> if (values == null) "NULL" else DbStatement.literal(DbGridTime.fromGrid(values[i]), dbms) }
     return "INSERT INTO $tableSql (${columns.joinToString { columnSql[it]!! }}) VALUES (${literals.joinToString()});"
   }
 
   private fun keyCondition(): String = keyColumns.joinToString(" AND ") { "${columnSql[it]} = ?" }
 
-  private fun keyParams(row: Array<Any?>): List<DbParam> = keyColumns.map { DbParam(row[it], sqlTypes[it]) }
+  private fun keyParams(row: Array<Any?>): List<DbParam> = keyColumns.map { param(row[it], it) }
+
+  /** Values come from the grid, dates and times in its form. */
+  private fun param(value: Any?, column: Int) = DbParam(DbGridTime.fromGrid(value), sqlTypes[column])
 }
 
 data class DbParam(val value: Any?, val sqlType: Int)
 
 /** A prepared statement and its parameters; [display] is the SQL with the values written in, for people to read. */
-class DbStatement(val sql: String, val params: List<DbParam>, private val dbms: Dbms) {
+class DbStatement(val sql: String, val params: List<DbParam>, private val dbms: Dbms,
+                  /** An INSERT whose generated keys are wanted ([DbOutcome.Updated.generatedKeys]). */
+                  val returnsKeys: Boolean = false) {
   val display: String
     get() {
       val values = params.iterator()

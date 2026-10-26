@@ -297,7 +297,7 @@ object DbForeignKeyActions {
     val names = model.columns.map { it.name }
     val valueOf: (String) -> Any? = { name ->
       val i = names.indexOfFirst { it.equals(name, ignoreCase = true) }
-      if (i < 0) DbForeignKeyNavigation.Missing else model.getValueAt(row, ModelIndex.forColumn(model, i))
+      if (i < 0) DbForeignKeyNavigation.Missing else DbGridTime.fromGrid(model.getValueAt(row, ModelIndex.forColumn(model, i)))
     }
     return Context(project, dataSource, table, model.getColumn(column)?.name ?: return null, valueOf)
   }

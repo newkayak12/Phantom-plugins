@@ -32,7 +32,7 @@ object DbGridSelection {
   fun rows(grid: DataGrid, columns: List<DbColumn>, sql: String): DbOutcome.Rows {
     val (rows, cols) = indices(grid)
     val model = grid.getDataModel(DataAccessType.DATA_WITH_MUTATIONS)
-    val values = rows.map { r -> Array(cols.size) { c -> model.getValueAt(r, cols[c]) } }
+    val values = rows.map { r -> Array(cols.size) { c -> DbGridTime.fromGrid(model.getValueAt(r, cols[c])) } }
     return DbOutcome.Rows(sql, cols.map { columns.getOrElse(it.value) { c -> DbColumn("column${c + 1}", java.sql.Types.OTHER, null, null) } }, values, false, 0)
   }
 
@@ -41,7 +41,7 @@ object DbGridSelection {
     val (rows, cols) = indices(grid)
     if (rows.size.toLong() * cols.size > AGGREGATE_LIMIT) return emptyList()
     val model = grid.getDataModel(DataAccessType.DATA_WITH_MUTATIONS)
-    return rows.flatMap { r -> cols.map { c -> model.getValueAt(r, c) } }
+    return rows.flatMap { r -> cols.map { c -> DbGridTime.fromGrid(model.getValueAt(r, c)) } }
   }
 
   private fun indices(grid: DataGrid): Pair<List<ModelIndex<GridRow>>, List<ModelIndex<GridColumn>>> {

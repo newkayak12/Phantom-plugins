@@ -94,7 +94,7 @@ class DbValueViewer(private val project: Project, private val grid: DataGrid, pr
     // an edit not applied yet stays while the same cell is selected
     if (cell == (row to column) && text.text != shownText) return
     cell = row to column
-    val value = model.getValueAt(row, column)
+    val value = DbGridTime.fromGrid(model.getValueAt(row, column))
     show(DbCellView.of(value), value as? ByteArray)
   }
 

@@ -2,6 +2,8 @@
 package dev.phantom.db.core.exec
 
 import com.intellij.database.datagrid.*
+import com.intellij.database.datagrid.color.GridColorModelImpl
+import com.intellij.database.datagrid.color.MutationsColorLayer
 import dev.phantom.db.core.dialect
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
@@ -312,7 +314,7 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
     // fill through the updater so the grid gets the column and row events it lays itself out from
     val updater = hookUp.createUpdater()
     updater.setColumns(rows.columns.mapIndexed { i, c -> DataConsumer.Column(i, c.name, c.sqlType, c.typeName, c.className) })
-    updater.addRows(rows.rows.mapIndexed { i, values -> DataConsumer.Row.create(i, values) })
+    updater.addRows(rows.rows.mapIndexed { i, values -> DataConsumer.Row.create(i, DbGridTime.toGrid(values)) })
     updater.afterLastRowAdded()
     if (transposed) grid.resultView.isTransposed = true
     val holder = GridHolder(grid, hookUp, rows)
@@ -338,7 +340,11 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
         val target = DbEditTargets.resolve(project, source, rows, schema) ?: return@launch
         withContext(Dispatchers.EDT) {
           if (Disposer.isDisposed(grid)) return@withContext
-          hookUp.editing = DbGridEdits(project, source, target, hookUp).also { shownEditing = it }
+          val edits = DbGridEdits(project, source, target, hookUp).also { shownEditing = it }
+          hookUp.editing = edits
+          // the grid made its change colors with the mutator it had then, none, so changed, new and deleted cells looked as
+          // the others; that layer passes colors through, and removeLayer fails on its fixed-size list, so it stays
+          (grid.colorModel as? GridColorModelImpl)?.addLayer(MutationsColorLayer(edits))
           holder.viewer?.update()
         }
       }

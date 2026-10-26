@@ -139,6 +139,11 @@ class DbGridEditTest : BasePlatformTestCase() {
     assertEquals("loaded value stays until Submit", "a", model.getValueAt(ModelIndex.forRow(model, 0), ModelIndex.forColumn(model, 1)))
     assertEquals(com.intellij.database.datagrid.MutationType.MODIFY, edits.getMutationType(ModelIndex.forRow(model, 0), ModelIndex.forColumn(model, 1)))
     assertTrue(edits.isDeletedRow(ModelIndex.forRow(model, 1)))
+    // changed, new and deleted cells are colored by the grid's mutation layer, which asks these edits (the test color scheme has no such colors)
+    val colors = panel()!!.shownGrid!!.colorModel
+    val layers = colors.javaClass.getDeclaredField("myLayers").apply { isAccessible = true }.get(colors) as Array<*>
+    assertTrue(layers.filterIsInstance<com.intellij.database.datagrid.color.MutationsColorLayer>()
+                 .any { it.javaClass.getDeclaredField("myMutator").apply { isAccessible = true }.get(it) === edits })
     assertEquals("""
       UPDATE "T" SET "NAME" = 'z' WHERE "ID" = 1;
       UPDATE "T" SET "NAME" = 'y' WHERE "ID" = 3;
@@ -202,10 +207,39 @@ class DbGridEditTest : BasePlatformTestCase() {
     assertFalse(edits.isInsertedRow(ModelIndex.forRow(model, 1)))
     assertEquals(listOf(listOf<Any?>(1, "a", "x"), listOf<Any?>(2, "b", "n"), listOf<Any?>(3, "a", "x")),
                  rows(ds, "SELECT * FROM t ORDER BY id").rows.map { it.toList() })
+    assertEquals("the default the database put there is shown", "n", model.getValueAt(ModelIndex.forRow(model, 1), ModelIndex.forColumn(model, 2)))
 
     edits.insertRows(source, 1)
     edits.revert(source, ModelIndexSet.forRows(model, 3), ModelIndexSet.forColumns(model, 0))
     assertEquals(3, model.rowCount)
+  }
+
+  /** A new row without its generated key shows the key the database made, so it can be edited again. */
+  fun testNewRowShowsItsGeneratedKey() = immediately(false) {
+    val ds = h2()
+    exec(ds, "CREATE TABLE t (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(10), status VARCHAR(10) DEFAULT 'active')", "INSERT INTO t (name) VALUES ('a')")
+    myFixture.configureByText("gen.sql", "SELECT * FROM t")
+    DbRunner.start(project, myFixture.file.virtualFile, ds, listOf("SELECT * FROM t"))
+    val panel = { ToolWindowManager.getInstance(project).getToolWindow(DbResultsToolWindow.ID)?.contentManager?.selectedContent?.component as? DbResultPanel }
+    PlatformTestUtil.waitWithEventsDispatching("grid not editable; status: ${panel()?.shownStatus}", { panel()?.shownEditing != null }, 20)
+    val edits = panel()!!.shownEditing!!
+    val model = edits.hookUp.dataModel
+    val source = GridRequestSource(null)
+    fun cell(c: Int) = model.getValueAt(ModelIndex.forRow(model, 1), ModelIndex.forColumn(model, c))
+
+    edits.insertRows(source, 1)
+    edits.mutate(source, ModelIndexSet.forRows(model, 1), ModelIndexSet.forColumns(model, 1), "b", true)
+    var submitted: Boolean? = null
+    edits.submit(source) { submitted = it }
+    PlatformTestUtil.waitWithEventsDispatching("not submitted", { submitted != null }, 20)
+    assertTrue(submitted!!)
+    assertEquals(listOf<Any?>(2, "b", "active"), (0..2).map { cell(it) })
+
+    edits.mutate(source, ModelIndexSet.forRows(model, 1), ModelIndexSet.forColumns(model, 1), "c", true)
+    submitted = null
+    edits.submit(source) { submitted = it }
+    PlatformTestUtil.waitWithEventsDispatching("not submitted", { submitted != null }, 20)
+    assertEquals(listOf<Any?>("a", "c"), rows(ds, "SELECT name FROM t ORDER BY id").rows.map { it[0] })
   }
 
   /** Submit Changes Immediately: each edit runs as it is made. */
@@ -233,6 +267,49 @@ class DbGridEditTest : BasePlatformTestCase() {
 
     runBlocking { pending.commit(ds) }
     assertEquals(listOf(listOf<Any?>(1, "z")), rows(other, "SELECT * FROM t ORDER BY id").rows.map { it.toList() })
+  }
+
+  /**
+   * East of UTC a TIMESTAMP showed hours early and a DATE the day before: the grid reads java.sql values as UTC wall clock.
+   * Shown as stored, and a value the grid parses (UTC wall clock) is written as typed.
+   */
+  fun testDatesAndTimesShowAndSaveAsStored() = immediately(true) {
+    val zone = java.util.TimeZone.getDefault()
+    java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Asia/Seoul"))
+    try {
+      val ds = h2()
+      exec(ds, "CREATE TABLE t (id INT PRIMARY KEY, ts TIMESTAMP, d DATE, tm TIME)",
+           "INSERT INTO t VALUES (1, TIMESTAMP '2026-10-26 09:49:28', DATE '2000-01-15', TIME '13:45:00')")
+      myFixture.configureByText("time.sql", "SELECT * FROM t")
+      DbRunner.start(project, myFixture.file.virtualFile, ds, listOf("SELECT * FROM t"))
+      val panel = { ToolWindowManager.getInstance(project).getToolWindow(DbResultsToolWindow.ID)?.contentManager?.selectedContent?.component as? DbResultPanel }
+      PlatformTestUtil.waitWithEventsDispatching("grid not editable; status: ${panel()?.shownStatus}", { panel()?.shownEditing != null }, 20)
+      val grid = panel()!!.shownGrid!!
+      val model = panel()!!.shownEditing!!.hookUp.dataModel
+      fun shown(column: Int): String {
+        val c = ModelIndex.forColumn(model, column)
+        return grid.objectFormatter.objectToString(model.getValueAt(ModelIndex.forRow(model, 0), c), model.getColumn(c), grid.getFormatterConfig(c)!!)!!
+      }
+      assertEquals("2026-10-26 09:49:28", shown(1))
+      assertEquals("2000-01-15", shown(2))
+      assertEquals("13:45:00", shown(3))
+
+      val edits = panel()!!.shownEditing!!
+      val typed = java.sql.Timestamp.from(java.time.Instant.parse("2026-10-27T08:00:00Z"))
+      edits.mutate(GridRequestSource(null), ModelIndexSet.forRows(model, 0), ModelIndexSet.forColumns(model, 1), typed, true)
+      edits.mutate(GridRequestSource(null), ModelIndexSet.forRows(model, 0), ModelIndexSet.forColumns(model, 2),
+                   java.sql.Date(java.time.LocalDate.of(2001, 2, 3).toEpochDay() * 86_400_000L), true)
+      PlatformTestUtil.waitWithEventsDispatching("not saved", {
+        shown(2) == "2001-02-03" &&
+        rows(ds, "SELECT CAST(ts AS VARCHAR), CAST(d AS VARCHAR) FROM t").rows.single().toList() == listOf<Any?>("2026-10-27 08:00:00", "2001-02-03")
+      }, 20)
+      assertEquals("2026-10-27 08:00:00", shown(1))
+      assertEquals(listOf<Any?>(java.sql.Timestamp.valueOf("2026-10-27 08:00:00"), java.sql.Date.valueOf("2001-02-03")),
+                   DbGridTime.fromGrid(model.getValueAt(ModelIndex.forRow(model, 0), ModelIndex.forColumn(model, 1))).let { listOf(it, DbGridTime.fromGrid(model.getValueAt(ModelIndex.forRow(model, 0), ModelIndex.forColumn(model, 2)))) })
+    }
+    finally {
+      java.util.TimeZone.setDefault(zone)
+    }
   }
 
   fun testEditOfAVanishedRowIsReported() {

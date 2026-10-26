@@ -39,7 +39,9 @@ sealed interface DbOutcome {
   class Rows(override val sql: String, val columns: List<DbColumn>, val rows: List<Array<Any?>>, val truncated: Boolean,
              override val elapsedMs: Long) : DbOutcome
 
-  class Updated(override val sql: String, val count: Long, override val elapsedMs: Long) : DbOutcome
+  /** [generatedKeys]: the keys the database made for an INSERT that asked for them ([DbStatement.returnsKeys]), by column label. */
+  class Updated(override val sql: String, val count: Long, override val elapsedMs: Long,
+                val generatedKeys: Map<String, Any?> = emptyMap()) : DbOutcome
 
   class Failed(override val sql: String, val message: String, override val elapsedMs: Long) : DbOutcome
 }
@@ -581,13 +583,22 @@ object DbExecutor {
       val started = System.nanoTime()
       val outcome = withContext(Dispatchers.IO) {
         try {
-          connection.prepareStatement(statement.sql).use { ps ->
+          val prepared = if (statement.returnsKeys) connection.prepareStatement(statement.sql, java.sql.Statement.RETURN_GENERATED_KEYS)
+          else connection.prepareStatement(statement.sql)
+          prepared.use { ps ->
             if (dataSource.queryTimeoutSeconds > 0) ps.queryTimeout = dataSource.queryTimeoutSeconds
             statement.params.forEachIndexed { i, p ->
               val type = DbEditTargets.bindType(p.sqlType)
               if (p.value == null) ps.setNull(i + 1, type) else ps.setObject(i + 1, p.value, type)
             }
-            DbOutcome.Updated(statement.display, ps.executeLargeUpdateOrPlain(), (System.nanoTime() - started) / 1_000_000)
+            val count = ps.executeLargeUpdateOrPlain()
+            val keys = if (!statement.returnsKeys) emptyMap() else runCatching {
+              ps.generatedKeys.use { rs ->
+                if (!rs.next()) emptyMap()
+                else (1..rs.metaData.columnCount).associate { rs.metaData.getColumnLabel(it) to rs.getObject(it) }
+              }
+            }.getOrDefault(emptyMap())
+            DbOutcome.Updated(statement.display, count, (System.nanoTime() - started) / 1_000_000, keys)
           }
         }
         catch (e: SQLException) {
@@ -596,6 +607,22 @@ object DbExecutor {
       }
       if (!connection.autoCommit) DbPendingChanges.getInstance(project).afterStatement(dataSource, outcome.sql, listOf(outcome))
       outcome
+    }
+
+  /** The first row [statement] (a query) returns, every column; `null` when it has none or fails. */
+  suspend fun firstRow(project: Project, dataSource: DbDataSource, statement: DbStatement): List<Any?>? =
+    DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.CONSOLE) { connection ->
+      withContext(Dispatchers.IO) {
+        runCatching {
+          connection.prepareStatement(statement.sql).use { ps ->
+            statement.params.forEachIndexed { i, p ->
+              val type = DbEditTargets.bindType(p.sqlType)
+              if (p.value == null) ps.setNull(i + 1, type) else ps.setObject(i + 1, p.value, type)
+            }
+            ps.executeQuery().use { rs -> if (rs.next()) (1..rs.metaData.columnCount).map { value(rs, it) } else null }
+          }
+        }.getOrNull()
+      }
     }
 
   /** The first column of the first row [statement] (a query) returns; `null` when it has none or fails. */
