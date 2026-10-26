@@ -71,13 +71,13 @@ class DbDataSourceStateTest : BasePlatformTestCase() {
 
   fun testPasswordStorage() {
     val service = DbDataSourceService.getInstance(project)
-    val ds = DbDataSource().apply { name = "p"; url = "jdbc:h2:mem:p"; user = "sa"; passwordStorage = DbPasswordStorage.UNTIL_RESTART }
+    val ds = DbDataSource().apply { name = "p"; url = "jdbc:h2:mem:p"; user = "sa"; credentialStorage = DbPasswordStorage.UNTIL_RESTART }
     try {
       service.save(ds, "mem".toCharArray())
       assertEquals("mem", service.password(ds.id))
-      service.save(ds.copy().apply { passwordStorage = DbPasswordStorage.NEVER }, null)
+      service.save(ds.copy().apply { credentialStorage = DbPasswordStorage.NEVER }, null)
       assertNull(service.password(ds.id))
-      service.save(ds.copy().apply { passwordStorage = DbPasswordStorage.FOREVER }, "kept".toCharArray())
+      service.save(ds.copy().apply { credentialStorage = DbPasswordStorage.FOREVER }, "kept".toCharArray())
       assertEquals("kept", service.password(ds.id))
     }
     finally {

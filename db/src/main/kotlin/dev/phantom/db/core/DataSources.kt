@@ -79,7 +79,7 @@ enum class Dbms(
 
 /**
  * Saved in `.idea/phantomDataSources.xml`, or, made global, in the IDE's `phantomDataSources.xml` where every project sees it.
- * The password is not here: it lives in the IDE password safe (or only in memory, as [passwordStorage] says).
+ * The password is not here: it lives in the IDE password safe (or only in memory, as [credentialStorage] says).
  */
 @Tag("data-source")
 class DbDataSource {
@@ -122,7 +122,7 @@ class DbDataSource {
   var sslCaFile: String = ""
   var sslCertFile: String = ""
   var sslKeyFile: String = ""
-  var passwordStorage: DbPasswordStorage = DbPasswordStorage.FOREVER
+  var credentialStorage: DbPasswordStorage = DbPasswordStorage.FOREVER
   /** Kept in the IDE-wide list (every project), not the project's; which file it is in says so, so it is not written. */
   @get:Transient
   var global: Boolean = false
@@ -135,7 +135,7 @@ class DbDataSource {
     it.sshEnabled = sshEnabled; it.sshHost = sshHost; it.sshPort = sshPort; it.sshUser = sshUser; it.sshAuth = sshAuth
     it.sshKeyFile = sshKeyFile; it.sshRemoteHost = sshRemoteHost; it.sshRemotePort = sshRemotePort
     it.sslEnabled = sslEnabled; it.sslMode = sslMode; it.sslCaFile = sslCaFile; it.sslCertFile = sslCertFile; it.sslKeyFile = sslKeyFile
-    it.passwordStorage = passwordStorage; it.global = global
+    it.credentialStorage = credentialStorage; it.global = global
   }
 
   override fun toString(): String = name
@@ -241,7 +241,7 @@ class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State>,
   /**
    * Adds [dataSource] or replaces the saved one with the same id, in the list [DbDataSource.global] names (and out of the
    * other). A `null` [password] leaves the saved one as is; so does a `null` [sshSecret], which is the SSH password or the
-   * key passphrase, as [DbDataSource.sshAuth] says. The password goes where [DbDataSource.passwordStorage] says.
+   * key passphrase, as [DbDataSource.sshAuth] says. The password goes where [DbDataSource.credentialStorage] says.
    */
   fun save(dataSource: DbDataSource, password: CharArray?, sshSecret: CharArray? = null) {
     dataSource.dbms = persistedDbms(dataSource.dialect())
@@ -306,10 +306,10 @@ object DbSecrets {
 
   fun password(id: String): String? = get(DbDataSourceService.credentials(id))
 
-  /** A `null` [password] keeps the saved one, moved to where [DbDataSource.passwordStorage] now says. */
+  /** A `null` [password] keeps the saved one, moved to where [DbDataSource.credentialStorage] now says. */
   fun setPassword(dataSource: DbDataSource, password: CharArray?) {
     val attributes = DbDataSourceService.credentials(dataSource.id)
-    when (dataSource.passwordStorage) {
+    when (dataSource.credentialStorage) {
       DbPasswordStorage.FOREVER -> if (password != null) set(attributes, dataSource.user, password)
       DbPasswordStorage.UNTIL_RESTART -> {
         PasswordSafe.instance.set(attributes, null)

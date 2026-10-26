@@ -169,6 +169,8 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
   /** Lower-cased filter text; empty shows everything. */
   private var filter = ""
   private var expandedBeforeFilter: List<TreePath> = emptyList()
+  /** The tree commands by action id; filled while the toolbar is built in init, so declared before it. */
+  private val commands = HashMap<String, Command>()
 
   init {
     tree.isRootVisible = false
@@ -198,52 +200,40 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
                                                   KeyboardShortcut(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), null)), tree, parent)
 
     val group = DefaultActionGroup(
-      action("db.action.add.text", AllIcons.General.Add) { add() },
-      action("db.action.edit.text", AllIcons.Actions.Edit, { selectedSource() != null }) { edit() },
-      action("db.action.remove.text", AllIcons.General.Remove, { selectedSource() != null }) { remove() },
-      object : DumbAwareAction() {
-        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
-        override fun update(e: AnActionEvent) {
-          val ds = (selectedNode() as? DbNode.Source)?.dataSource
-          e.presentation.isEnabledAndVisible = ds != null
-          val key = if (ds?.global == true) "db.action.make.project" else "db.action.make.global"
-          e.presentation.text = PhantomDbBundle.message("$key.text")
-          e.presentation.description = PhantomDbBundle.message("$key.description")
-          e.presentation.icon = if (ds?.global == true) AllIcons.Nodes.Module else AllIcons.Nodes.PpWeb
-        }
-        override fun actionPerformed(e: AnActionEvent) {
-          val ds = (selectedNode() as? DbNode.Source)?.dataSource ?: return
-          DbDataSourceService.getInstance(project).save(ds.copy().apply { global = !ds.global }, null)
-        }
+      command("Add") { add() },
+      command("Edit", { selectedSource() != null }) { edit() },
+      command("Remove", { selectedNode() is DbNode.Source }) { remove() },
+      command("MakeGlobal", { selectedNode() is DbNode.Source }) {
+        (selectedNode() as? DbNode.Source)?.dataSource?.let { ds -> DbDataSourceService.getInstance(project).save(ds.copy().apply { global = !ds.global }, null) }
       },
       Separator.getInstance(),
-      action("db.action.refresh.text", AllIcons.Actions.Refresh) { refresh() },
-      action("db.action.drivers.text", AllIcons.General.Settings) { DbDriversDialog(project, selectedSource()?.let { it.driverId ?: it.driver()?.id }).show() },
-      action("db.action.console.text", AllIcons.Debugger.Console, { selectedSource() != null }) { selectedSource()?.let { openConsole(it, null) } },
+      command("Refresh") { refresh() },
+      command("Drivers") { DbDriversDialog(project, selectedSource()?.let { it.driverId ?: it.driver()?.id }).show() },
+      command("OpenConsole", { selectedSource() != null }) { selectedSource()?.let { openConsole(it, null) } },
       ActionManager.getInstance().getAction("PhantomDb.NewConsole"),
       ActionManager.getInstance().getAction("PhantomDb.ShowHistory"),
-      action("db.action.data.text", AllIcons.Nodes.DataTables, { selectedNode() is DbNode.Table }) {
+      command("Data", { selectedNode() is DbNode.Table }) {
         (selectedNode() as? DbNode.Table)?.let { DbTableDataView.open(project, it.dataSource, it.ref) }
       },
-      action("db.action.ddl.text", AllIcons.Actions.Preview, { ddlTarget() != null }) { ddlTarget()?.let { showDdl(project, it.first, it.second) } },
-      action("db.action.modify.text", AllIcons.Actions.Edit, {
+      command("Ddl", { ddlTarget() != null }) { ddlTarget()?.let { showDdl(project, it.first, it.second) } },
+      command("Modify", {
         (selectedNode() as? DbNode.Table)?.let { !it.ref.isView && !it.dataSource.readOnly && it.dataSource.dialect().hasDialect } == true
       }) { modifyTable() },
-      action("db.action.select.text", AllIcons.Debugger.Console, { selectedNode() is DbNode.Table }) {
+      command("Select", { selectedNode() is DbNode.Table }) {
         (selectedNode() as? DbNode.Table)?.let { openConsole(it.dataSource, selectAll(it)) }
       },
-      action("db.action.import.csv.text", AllIcons.ToolbarDecorator.Import, {
+      command("ImportCsv", {
         (selectedNode() as? DbNode.Table)?.let { !it.ref.isView && !it.dataSource.readOnly } == true
       }) {
         (selectedNode() as? DbNode.Table)?.let { DbCsvImportDialog.start(project, it.dataSource, it.ref) }
       },
-      action("db.action.diagram.text", AllIcons.FileTypes.Diagram, { diagramTarget() != null }) {
+      command("Diagram", { diagramTarget() != null }) {
         diagramTarget()?.let { (ds, schema, tables) -> DbDiagrams.open(project, ds, schema, tables) }
       },
-      action("db.action.entity.text", AllIcons.Nodes.Class, { selectedNode() is DbNode.Table }) {
+      command("Entity", { selectedNode() is DbNode.Table }) {
         (selectedNode() as? DbNode.Table)?.let { DbEntityGenerator.start(project, it.dataSource, it.ref) }
       },
-      action("db.action.compare.text", AllIcons.Actions.Diff, { (selectedNode() as? DbNode.Schema)?.dataSource?.dialect()?.hasDialect == true }) {
+      command("Compare", { (selectedNode() as? DbNode.Schema)?.dataSource?.dialect()?.hasDialect == true }) {
         (selectedNode() as? DbNode.Schema)?.let { DbSchemaCompare.chooseAndCompare(project, DbSchemaSide(it.dataSource, it.ref), tree) }
       },
       Separator.getInstance(),
@@ -583,17 +573,24 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
 
   private fun DefaultMutableTreeNode.firstOrNull(): DefaultMutableTreeNode? = if (childCount > 0) getChildAt(0) as DefaultMutableTreeNode else null
 
-  private fun action(key: String, icon: javax.swing.Icon, enabled: () -> Boolean = { true }, perform: () -> Unit): AnAction =
-    object : DumbAwareAction(PhantomDbBundle.message(key), null, icon) {
-      override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
-      override fun update(e: AnActionEvent) {
-        e.presentation.isEnabled = enabled()
-      }
+  /** What the registered `PhantomDb.Tree.<name>` action does here; the action itself (text, icon, shortcut) is in the plugin XML. */
+  internal class Command(val enabled: () -> Boolean, val perform: () -> Unit)
 
-      override fun actionPerformed(e: AnActionEvent) = perform()
-    }
+  internal fun command(id: String): Command? = commands[id]
+
+  private fun command(name: String, enabled: () -> Boolean = { true }, perform: () -> Unit): AnAction {
+    val id = DbTreeAction.PREFIX + name
+    commands[id] = Command(enabled, perform)
+    return ActionManager.getInstance().getAction(id)
+  }
+
+  override fun uiDataSnapshot(sink: DataSink) {
+    super.uiDataSnapshot(sink)
+    sink[KEY] = this
+  }
 
   companion object {
+    val KEY: DataKey<DbExplorerPanel> = DataKey.create("PhantomDb.ExplorerPanel")
     private const val SYSTEM_SCHEMAS_KEY = "phantom.db.tree.systemSchemas"
 
     fun showSystemSchemas(project: Project): Boolean = PropertiesComponent.getInstance(project).getBoolean(SYSTEM_SCHEMAS_KEY, false)
@@ -703,5 +700,51 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
         null -> {}
       }
     }
+  }
+}
+
+/**
+ * A Database tree command (`PhantomDb.Tree.*`), registered so the keymap can bind it, with DataGrip's shortcuts; the
+ * tree's panel says whether it applies and runs it. Outside the tree it is hidden.
+ */
+class DbTreeAction : DumbAwareAction() {
+  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+  private fun command(e: AnActionEvent): DbExplorerPanel.Command? =
+    panel(e.dataContext)?.command(ActionManager.getInstance().getId(this) ?: return null)
+
+  override fun update(e: AnActionEvent) {
+    val command = command(e)
+    e.presentation.isVisible = command != null
+    e.presentation.isEnabled = command?.enabled?.invoke() == true
+    if (ActionManager.getInstance().getId(this) == PREFIX + "MakeGlobal") {
+      val global = panel(e.dataContext)?.selectedSource()?.global == true
+      val key = if (global) "db.action.make.project" else "db.action.make.global"
+      e.presentation.text = PhantomDbBundle.message("$key.text")
+      e.presentation.description = PhantomDbBundle.message("$key.description")
+      e.presentation.icon = if (global) AllIcons.Nodes.Module else AllIcons.Nodes.PpWeb
+      // only on a data source, so the toolbar does not carry it greyed out
+      e.presentation.isVisible = e.presentation.isEnabled
+    }
+  }
+
+  override fun actionPerformed(e: AnActionEvent) {
+    command(e)?.perform?.invoke()
+  }
+
+  companion object {
+    const val PREFIX: String = "PhantomDb.Tree."
+
+    /** The panel whose tree the context is in; not its filter field, where Delete and the like are the text's. */
+    internal fun panel(context: DataContext): DbExplorerPanel? =
+      context.getData(DbExplorerPanel.KEY)?.takeIf { context.getData(PlatformCoreDataKeys.CONTEXT_COMPONENT) === it.tree }
+  }
+}
+
+/** In the Database tree its own commands win over IDE actions on the same keys (Delete, Cmd+N, Cmd+B, Cmd+D, ...). */
+class DbTreeActionPromoter : ActionPromoter {
+  override fun promote(actions: List<AnAction>, context: DataContext): List<AnAction> {
+    if (DbTreeAction.panel(context) == null) return emptyList()
+    return actions.filterIsInstance<DbTreeAction>()
   }
 }

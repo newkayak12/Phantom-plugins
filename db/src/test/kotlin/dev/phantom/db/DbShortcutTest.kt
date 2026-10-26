@@ -55,4 +55,45 @@ class DbShortcutTest : BasePlatformTestCase() {
     val java = myFixture.configureByText("A.java", "class A {}")
     assertEmpty(SqlActionPromoter().promote(actions, SimpleDataContext.getSimpleContext(CommonDataKeys.PSI_FILE, java)))
   }
+
+  /** DataGrip's keys: New Console, Commit, Cancel (Stop's), Jump to Console (Console.Open's) and the Database tree commands. */
+  fun testDataGripShortcuts() {
+    for (mac in listOf("Mac OS X 10.5+", "Mac OS X")) {
+      assertTrue(mac, KeyStroke.getKeyStroke("meta shift L") in shortcuts(mac, "PhantomDb.NewConsole"))
+      assertTrue(mac, KeyStroke.getKeyStroke("meta alt shift ENTER") in shortcuts(mac, "PhantomDb.Commit"))
+      assertTrue(mac, KeyStroke.getKeyStroke("meta I") in shortcuts(mac, "PhantomDb.Tree.Edit"))
+    }
+    assertTrue(KeyStroke.getKeyStroke("control shift Q") in shortcuts("\$default", "PhantomDb.NewConsole"))
+    assertTrue(KeyStroke.getKeyStroke("control alt shift ENTER") in shortcuts("\$default", "PhantomDb.Commit"))
+    for (keymap in listOf("\$default", "Mac OS X 10.5+")) {
+      for ((ours, theirs) in listOf("PhantomDb.Cancel" to "Stop", "PhantomDb.JumpToConsole" to "Console.Open", "PhantomDb.Tree.Remove" to "\$Delete",
+                                    "PhantomDb.Tree.Add" to "NewElement", "PhantomDb.Tree.Refresh" to "Refresh", "PhantomDb.Tree.Ddl" to "GotoDeclaration",
+                                    "PhantomDb.Tree.Modify" to "ChangeSignature", "PhantomDb.Tree.Compare" to "CompareTwoFiles")) {
+        val expected = shortcuts(keymap, theirs)
+        assertTrue("$keymap $theirs", expected.isNotEmpty())
+        assertEquals("$keymap $ours", expected, shortcuts(keymap, ours))
+      }
+    }
+  }
+
+  /** Every tree command is registered, and the tree's commands win only in the tree, not in its filter field. */
+  fun testTreeCommands() {
+    val manager = ActionManager.getInstance()
+    for (name in listOf("Add", "Edit", "Remove", "MakeGlobal", "Refresh", "Drivers", "OpenConsole", "Data", "Ddl", "Modify", "Select", "ImportCsv",
+                        "Diagram", "Entity", "Compare")) {
+      val action = manager.getAction("PhantomDb.Tree.$name")
+      assertTrue(name, action is dev.phantom.db.core.ui.DbTreeAction)
+      assertFalse(name, action.templateText.isNullOrBlank())
+    }
+    val panel = dev.phantom.db.core.ui.DbExplorerPanel(project, testRootDisposable)
+    val remove = manager.getAction("PhantomDb.Tree.Remove")
+    val delete = manager.getAction("\$Delete")
+    fun context(component: java.awt.Component) = SimpleDataContext.builder()
+      .add(dev.phantom.db.core.ui.DbExplorerPanel.KEY, panel)
+      .add(com.intellij.openapi.actionSystem.PlatformCoreDataKeys.CONTEXT_COMPONENT, component)
+      .build()
+    val promoter = dev.phantom.db.core.ui.DbTreeActionPromoter()
+    assertEquals(listOf(remove), promoter.promote(listOf(delete, remove), context(panel.tree)))
+    assertEmpty(promoter.promote(listOf(delete, remove), context(javax.swing.JTextField())))
+  }
 }

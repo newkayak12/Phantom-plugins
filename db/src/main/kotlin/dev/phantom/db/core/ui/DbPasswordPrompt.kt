@@ -40,7 +40,7 @@ object DbPasswordPrompt {
       val service = DbDataSourceService.getInstance(project)
       service.find(dataSource.id)?.copy()?.let { saved ->
         saved.user = signIn.user
-        saved.passwordStorage = storage
+        saved.credentialStorage = storage
         service.save(saved, signIn.password.toCharArray())
       }
       result = signIn
@@ -54,7 +54,7 @@ object DbPasswordPrompt {
     val user = JBTextField(dataSource.user)
     val password = JBPasswordField()
     val storage = ComboBox(DbPasswordStorage.entries.toTypedArray()).apply {
-      selectedItem = dataSource.passwordStorage
+      selectedItem = dataSource.credentialStorage
       renderer = SimpleListCellRenderer.create("") { storageName(it) }
     }
 

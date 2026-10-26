@@ -494,6 +494,12 @@ object DbResultsToolWindow {
     return if (line.length > 40) line.take(39) + "…" else line
   }
 
+  /** The tabs of [file] with a statement still running. */
+  fun running(project: Project, file: VirtualFile): List<DbResultPanel> =
+    ToolWindowManager.getInstance(project).getToolWindow(ID)?.contentManager?.contents.orEmpty()
+      .mapNotNull { it.component as? DbResultPanel }
+      .filter { it.tabKey?.startsWith(file.url + "|") == true && it.job?.isActive == true }
+
   /** Closes every tab but [keep] and the pinned ones. */
   fun closeOthers(project: Project, keep: Content?) {
     val manager = ToolWindowManager.getInstance(project).getToolWindow(ID)?.contentManager ?: return
@@ -570,4 +576,21 @@ object DbResultsToolWindow {
   )
 
   private fun selected(project: Project): Content? = ToolWindowManager.getInstance(project).getToolWindow(ID)?.contentManager?.selectedContent
+}
+
+/** Stops what the editor's file is running, on Stop's keys (Cmd+F2 / Ctrl+F2) as DataGrip's Cancel. */
+class DbCancelAction : com.intellij.openapi.project.DumbAwareAction() {
+  override fun getActionUpdateThread(): com.intellij.openapi.actionSystem.ActionUpdateThread = com.intellij.openapi.actionSystem.ActionUpdateThread.EDT
+
+  override fun update(e: com.intellij.openapi.actionSystem.AnActionEvent) {
+    val project = e.project
+    val file = e.getData(com.intellij.openapi.actionSystem.CommonDataKeys.VIRTUAL_FILE)
+    e.presentation.isEnabledAndVisible = project != null && file != null && DbResultsToolWindow.running(project, file).isNotEmpty()
+  }
+
+  override fun actionPerformed(e: com.intellij.openapi.actionSystem.AnActionEvent) {
+    val project = e.project ?: return
+    val file = e.getData(com.intellij.openapi.actionSystem.CommonDataKeys.VIRTUAL_FILE) ?: return
+    DbResultsToolWindow.running(project, file).forEach { it.job?.cancel() }
+  }
 }

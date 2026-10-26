@@ -241,7 +241,7 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
     val asks = ask && password == null && dataSource.authKind == DbAuthKind.PASSWORD
     var signIn = dataSource
     var secret = (password ?: DbDataSourceService.getInstance(project).password(dataSource.id))?.takeIf { it.isNotEmpty() }
-    if (asks && secret == null && dataSource.passwordStorage == DbPasswordStorage.NEVER) {
+    if (asks && secret == null && dataSource.credentialStorage == DbPasswordStorage.NEVER) {
       val typed = DbPasswordPrompt.ask(project, dataSource, null) ?: throw DbException(PhantomDbBundle.message("db.password.cancelled"))
       signIn = dataSource.copy().apply { user = typed.user }
       secret = typed.password

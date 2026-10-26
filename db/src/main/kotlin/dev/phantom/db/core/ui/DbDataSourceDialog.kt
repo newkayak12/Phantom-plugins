@@ -72,8 +72,8 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
   internal val urlField = JBTextField(source.url)
   private val userField = JBTextField(source.user)
   private val passwordField = JBPasswordField()
-  internal val passwordStorageCombo = ComboBox(DbPasswordStorage.entries.toTypedArray()).apply {
-    selectedItem = source.passwordStorage
+  internal val credentialStorageCombo = ComboBox(DbPasswordStorage.entries.toTypedArray()).apply {
+    selectedItem = source.credentialStorage
     renderer = com.intellij.ui.SimpleListCellRenderer.create("") { DbPasswordPrompt.storageName(it) }
   }
   internal val authCombo = ComboBox(DbAuthKind.entries.toTypedArray()).apply {
@@ -329,7 +329,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     passwordRow = row(PhantomDbBundle.message("db.dialog.password")) {
       cell(passwordField).align(AlignX.FILL)
       label(PhantomDbBundle.message("db.password.save"))
-      cell(passwordStorageCombo)
+      cell(credentialStorageCombo)
     }
     awsProfileRow = row(PhantomDbBundle.message("db.dialog.aws.profile")) { cell(awsProfileField).align(AlignX.FILL).comment(PhantomDbBundle.message("db.dialog.aws.profile.hint")) }
     awsRegionRow = row(PhantomDbBundle.message("db.dialog.aws.region")) { cell(awsRegionField).align(AlignX.FILL) }
@@ -386,7 +386,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     properties = LinkedHashMap(this@DbDataSourceDialog.properties.values)
     readOnly = readOnlyBox.isSelected
     manualCommit = manualCommitBox.isSelected
-    passwordStorage = passwordStorageCombo.selectedItem as DbPasswordStorage
+    credentialStorage = credentialStorageCombo.selectedItem as DbPasswordStorage
     color = colorCombo.selectedItem as String
     driverJars = this@DbDataSourceDialog.driverJars.toMutableList()
     maxRows = maxRowsField.number
