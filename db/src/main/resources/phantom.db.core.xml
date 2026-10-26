@@ -139,6 +139,7 @@
     <actionPromoter implementation="dev.phantom.db.core.exec.SqlActionPromoter"/>
     <actionPromoter implementation="dev.phantom.db.core.ui.DbTreeActionPromoter"/>
     <actionPromoter implementation="dev.phantom.db.core.exec.DbGridActionPromoter"/>
+    <serviceViewContributor implementation="dev.phantom.db.core.ui.DbServiceViewContributor"/>
     <toolWindow id="Database" anchor="right" secondary="false" icon="AllIcons.Nodes.DataTables"
                 factoryClass="dev.phantom.db.core.ui.DbToolWindowFactory"/>
     <toolWindow id="Database Changes" anchor="bottom" secondary="false" icon="AllIcons.Vcs.Changelist"
@@ -161,6 +162,9 @@
     </action>
     <action id="PhantomDb.SelectSchema" class="dev.phantom.db.core.exec.SqlSelectSchemaAction" icon="AllIcons.Nodes.DataSchema">
       <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.SelectDataSource"/>
+    </action>
+    <action id="PhantomDb.SelectSession" class="dev.phantom.db.core.exec.SqlSelectSessionAction" icon="AllIcons.Debugger.Console">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.SelectSchema"/>
     </action>
     <action id="PhantomDb.ShowHistory" class="dev.phantom.db.core.exec.DbShowHistoryAction" icon="AllIcons.Vcs.History">
       <keyboard-shortcut keymap="$default" first-keystroke="control alt E"/>
@@ -220,6 +224,21 @@
     <action id="PhantomDb.Grid.SetDefault" class="dev.phantom.db.core.exec.DbGridSetDefaultAction">
       <keyboard-shortcut keymap="$default" first-keystroke="control alt D"/>
     </action>
+    <action id="PhantomDb.Grid.Submit" class="dev.phantom.db.core.exec.DbGridSubmitAction" icon="AllIcons.Actions.Commit"
+            use-shortcut-of="PhantomDb.RunStatement"/>
+    <action id="PhantomDb.Grid.SubmitAndCommit" class="dev.phantom.db.core.exec.DbGridSubmitAndCommitAction" icon="AllIcons.Actions.Commit"
+            use-shortcut-of="PhantomDb.Commit"/>
+    <action id="PhantomDb.Grid.SubmitImmediately" class="dev.phantom.db.core.exec.DbGridSubmitImmediatelyAction"/>
+    <action id="PhantomDb.Grid.SelectRow" class="dev.phantom.db.core.exec.DbGridSelectRowAction">
+      <keyboard-shortcut keymap="$default" first-keystroke="shift SPACE"/>
+    </action>
+    <action id="PhantomDb.Grid.SelectColumn" class="dev.phantom.db.core.exec.DbGridSelectColumnAction">
+      <keyboard-shortcut keymap="$default" first-keystroke="control SPACE"/>
+    </action>
+    <action id="PhantomDb.Grid.EditFilterCriteria" class="dev.phantom.db.core.exec.DbGridEditFilterAction">
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt shift F"/>
+    </action>
+    <action id="PhantomDb.Grid.EditOrdering" class="dev.phantom.db.core.exec.DbGridEditOrderingAction"/>
     <!-- Database tree commands, with DataGrip's keys; the tree's own toolbar and popup show them -->
     <action id="PhantomDb.Tree.Add" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.General.Add" use-shortcut-of="NewElement"/>
     <action id="PhantomDb.Tree.Edit" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Edit">

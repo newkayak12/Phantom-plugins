@@ -168,7 +168,13 @@ class DbResultsGridTest : BasePlatformTestCase() {
     viewer.update()
     assertEquals(DbCellView.Kind.JSON, viewer.shown!!.kind)
     assertEquals("{\n  \"a\": 1\n}", viewer.shown!!.text)
-    viewer.applyText("{\"a\":2}")
+    DbGridSettings.submitImmediately = true
+    try {
+      viewer.applyText("{\"a\":2}")
+    }
+    finally {
+      DbGridSettings.submitImmediately = false
+    }
     PlatformTestUtil.waitWithEventsDispatching("not written", {
       (exec(ds, "SELECT doc FROM t").single() as DbOutcome.Rows).rows.single()[0] == "{\"a\":2}"
     }, 20)

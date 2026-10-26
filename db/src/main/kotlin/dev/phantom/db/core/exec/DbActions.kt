@@ -81,6 +81,25 @@ class SqlSelectDataSourceAction : DumbAwareAction() {
 }
 
 /** The schema a `.sql` file or console runs in and resolves unqualified names against. */
+/** Choose Session: which connection the console runs in, when its data source is not in single session mode. */
+class SqlSelectSessionAction : DumbAwareAction() {
+  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
+
+  override fun update(e: AnActionEvent) {
+    val file = (e.getData(CommonDataKeys.PSI_FILE) as? SqlFile)?.virtualFile
+    val project = e.project
+    val ds = if (file != null && project != null) DbConsoles.dataSourceFor(project, file) else null
+    e.presentation.isVisible = ds != null
+    e.presentation.isEnabled = ds != null && !ds.singleSession && !ds.manualCommit
+  }
+
+  override fun actionPerformed(e: AnActionEvent) {
+    val project = e.project ?: return
+    val file = (e.getData(CommonDataKeys.PSI_FILE) as? SqlFile)?.virtualFile ?: return
+    DbRunner.chooseSession(project, file, e.getData(PlatformCoreDataKeys.CONTEXT_COMPONENT))
+  }
+}
+
 class SqlSelectSchemaAction : DumbAwareAction() {
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
@@ -141,6 +160,11 @@ class SqlDataSourceNotificationProvider : EditorNotificationProvider {
         if (selected != null) {
           val schema = DbRunner.schemaText(DbConsoles.schemaFor(project, file) ?: DbSchemaChoice.DEFAULT)
           createActionLabel(PhantomDbBundle.message("db.schema.current", schema)) { DbRunner.chooseSchema(project, file, this) }
+        }
+        if (selected != null && !selected.singleSession && !selected.manualCommit) {
+          val session = DbConsoles.sessionFor(project, file)
+          val name = if (session == file.url) PhantomDbBundle.message("db.session.own") else DbConsoles.sessionName(session)
+          createActionLabel(PhantomDbBundle.message("db.session.current", name)) { DbRunner.chooseSession(project, file, this) }
         }
         if (selected != null && !selected.readOnly) {
           if (selected.manualCommit && pending > 0) {

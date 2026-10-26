@@ -158,7 +158,10 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
     com.intellij.openapi.util.Disposer.register(parent) { sessionListeners.remove(listener) }
   }
 
-  private fun sessionsChanged() = sessionListeners.forEach { it() }
+  private fun sessionsChanged() {
+    sessionListeners.forEach { it() }
+    dev.phantom.db.core.ui.DbServiceView.refresh(project)
+  }
 
   /**
    * Commits or rolls back the console connection's open transaction. Fails when the connection is gone, since its

@@ -70,6 +70,11 @@ class DbFilterBar(private val project: Project, historyKey: String, context: DbF
     }, BorderLayout.EAST)
   }
 
+  /** Edit Filter Criteria (Ctrl+Alt+Shift+F) puts the caret in WHERE, Edit Ordering in ORDER BY. */
+  fun focusWhere() = whereField.focus()
+
+  fun focusOrder() = orderField.focus()
+
   /** Keeps both fields in their history, then applies them. */
   fun apply() {
     whereField.remember()
@@ -117,6 +122,11 @@ class DbFilterBar(private val project: Project, historyKey: String, context: DbF
     var text: String
       get() = editor.text
       set(value) { editor.text = value }
+
+    fun focus() {
+      editor.requestFocusInWindow()
+      editor.editor?.caretModel?.moveToOffset(editor.text.length)
+    }
 
     fun history(): List<String> = PropertiesComponent.getInstance().getList(historyKey).orEmpty()
 

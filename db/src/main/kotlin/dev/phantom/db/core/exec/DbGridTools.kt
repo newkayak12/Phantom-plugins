@@ -113,10 +113,103 @@ class DbGridSetDefaultAction : DbGridSetAction() {
     edits.setDefault(source, rows, columns)
 }
 
-/** In a result grid Set NULL and Set DEFAULT win over IDE actions on the same keys (Inline, Choose Debug Configuration). */
+/** A grid command of DataGrip's, on the grid of the data context. */
+abstract class DbGridAction : DumbAwareAction() {
+  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+  override fun update(e: AnActionEvent) {
+    val grid = e.getData(DatabaseDataKeys.DATA_GRID_KEY)
+    e.presentation.isVisible = grid != null
+    e.presentation.isEnabled = grid != null && isEnabled(grid)
+  }
+
+  override fun actionPerformed(e: AnActionEvent) {
+    perform(e.getData(DatabaseDataKeys.DATA_GRID_KEY) ?: return)
+  }
+
+  protected open fun isEnabled(grid: DataGrid): Boolean = true
+
+  protected abstract fun perform(grid: DataGrid)
+
+  protected fun edits(grid: DataGrid): DbGridEdits? = DbGridSetAction.edits(grid)
+}
+
+/** Submit (Ctrl+Enter): runs the grid's waiting changes. */
+class DbGridSubmitAction : DbGridAction() {
+  override fun isEnabled(grid: DataGrid): Boolean = edits(grid)?.hasPendingChanges() == true
+
+  override fun perform(grid: DataGrid) {
+    edits(grid)?.submit(GridRequestSource(DataGridRequestPlace(grid))) {}
+  }
+}
+
+/** Submit and Commit (Ctrl+Alt+Shift+Enter): the waiting changes, then the data source's transaction when it is manual. */
+class DbGridSubmitAndCommitAction : DbGridAction() {
+  override fun isEnabled(grid: DataGrid): Boolean {
+    val edits = edits(grid) ?: return false
+    return edits.hasPendingChanges() || edits.dataSource.manualCommit
+  }
+
+  override fun perform(grid: DataGrid) {
+    val edits = edits(grid) ?: return
+    val project = grid.project
+    edits.submit(GridRequestSource(DataGridRequestPlace(grid))) { ok ->
+      if (ok && edits.dataSource.manualCommit) DbEndTransactionAction.end(project, edits.dataSource, commit = true)
+    }
+  }
+}
+
+/** Submit Changes Immediately: each edit runs as it is made instead of waiting for Submit. */
+class DbGridSubmitImmediatelyAction : com.intellij.openapi.project.DumbAwareToggleAction() {
+  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+  override fun update(e: AnActionEvent) {
+    super.update(e)
+    e.presentation.isEnabledAndVisible = e.getData(DatabaseDataKeys.DATA_GRID_KEY) != null
+  }
+
+  override fun isSelected(e: AnActionEvent): Boolean = DbGridSettings.submitImmediately
+
+  override fun setSelected(e: AnActionEvent, state: Boolean) {
+    // what waits is written first, so nothing is left behind unseen
+    if (state) e.getData(DatabaseDataKeys.DATA_GRID_KEY)?.let { grid ->
+      DbGridSetAction.edits(grid)?.takeIf { it.hasPendingChanges() }?.submit(GridRequestSource(DataGridRequestPlace(grid))) {}
+    }
+    DbGridSettings.submitImmediately = state
+  }
+}
+
+/** Select Row (Shift+Space) and Select Column (Ctrl+Space), as in DataGrip. */
+class DbGridSelectRowAction : DbGridAction() {
+  override fun perform(grid: DataGrid) = grid.selectionModel.selectWholeRow()
+}
+
+class DbGridSelectColumnAction : DbGridAction() {
+  override fun perform(grid: DataGrid) = grid.selectionModel.selectWholeColumn()
+}
+
+/** Edit Filter Criteria (Ctrl+Alt+Shift+F) and Edit Ordering: the caret into the WHERE or ORDER BY field over the grid. */
+abstract class DbGridFilterAction(private val order: Boolean) : DbGridAction() {
+  override fun isEnabled(grid: DataGrid): Boolean = bar(grid) != null
+
+  override fun perform(grid: DataGrid) {
+    val bar = bar(grid) ?: return
+    if (order) bar.focusOrder() else bar.focusWhere()
+  }
+
+  private fun bar(grid: DataGrid): dev.phantom.db.core.ui.DbFilterBar? =
+    UIUtil.getParentOfType(dev.phantom.db.core.ui.DbTableDataView::class.java, grid.panel.component)?.filter
+    ?: UIUtil.getParentOfType(DbResultPanel::class.java, grid.panel.component)?.filterBar
+}
+
+class DbGridEditFilterAction : DbGridFilterAction(order = false)
+
+class DbGridEditOrderingAction : DbGridFilterAction(order = true)
+
+/** In a result grid its commands win over IDE actions on the same keys (Inline, Run, Code Completion, Commit). */
 class DbGridActionPromoter : ActionPromoter {
   override fun promote(actions: List<AnAction>, context: DataContext): List<AnAction> {
     if (context.getData(DatabaseDataKeys.DATA_GRID_KEY) == null) return emptyList()
-    return actions.filterIsInstance<DbGridSetAction>()
+    return actions.filter { it is DbGridSetAction || it is DbGridAction }
   }
 }

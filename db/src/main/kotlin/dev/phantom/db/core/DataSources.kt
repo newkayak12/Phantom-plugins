@@ -95,6 +95,11 @@ class DbDataSource {
   var singleSession: Boolean = true
   /** The schemas (catalogs in MySQL) the tree, completion and checks load: comma-separated names or globs, `!` excludes. Empty: all. */
   var schemas: String = ""
+  /**
+   * What the editor loads, as DataGrip's introspection levels: 1 names only (no columns or keys for completion and checks),
+   * 2 columns and keys of a table when it is used (the default), 3 the columns of every table of a schema up front.
+   */
+  var introspection: Int = 2
   /** Driver jars chosen by hand. Empty: find the driver in project libraries, then in the Gradle and Maven caches. */
   @XCollection(style = XCollection.Style.v2)
   var driverJars: MutableList<String> = ArrayList()
@@ -134,7 +139,7 @@ class DbDataSource {
   var global: Boolean = false
 
   fun copy(): DbDataSource = DbDataSource().also {
-    it.id = id; it.name = name; it.dbms = dbms; it.url = url; it.user = user; it.readOnly = readOnly; it.manualCommit = manualCommit; it.singleSession = singleSession; it.schemas = schemas
+    it.id = id; it.name = name; it.dbms = dbms; it.url = url; it.user = user; it.readOnly = readOnly; it.manualCommit = manualCommit; it.singleSession = singleSession; it.schemas = schemas; it.introspection = introspection
     it.driverJars = ArrayList(driverJars); it.maxRows = maxRows; it.queryTimeoutSeconds = queryTimeoutSeconds
     it.driverId = driverId; it.properties = LinkedHashMap(properties); it.authKind = authKind
     it.awsProfile = awsProfile; it.awsRegion = awsRegion; it.color = color

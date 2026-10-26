@@ -3,6 +3,8 @@ package dev.phantom.db.core.exec
 
 import com.intellij.database.datagrid.*
 import com.intellij.database.datagrid.mutating.CellMutation
+import com.intellij.database.datagrid.mutating.MutationData
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.database.run.ui.grid.GridMutationModel
 import com.intellij.database.run.ui.grid.GridStorageAndModelUpdater
 import com.intellij.notification.NotificationGroupManager
@@ -15,11 +17,14 @@ import dev.phantom.db.core.DbDataSource
 import dev.phantom.db.core.PhantomDbBundle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.Collections
+import java.util.IdentityHashMap
 
 /**
- * A result grid that writes back to its table once [target] is known: edited cells run an UPDATE, deleted rows a
- * DELETE, each right away by primary key. In a manual-commit data source they wait in Database Changes like any
- * other statement. Until the target is resolved, or when there is none, the grid stays read-only.
+ * A result grid that writes back to its table once [target] is known: edited cells become an UPDATE, deleted rows a
+ * DELETE, by primary key. As in DataGrip they are shown as changes until Submit (Ctrl+Enter), or run right away with
+ * Submit Changes Immediately on. In a manual-commit data source the statements then wait in Database Changes like any
+ * other. Until the target is resolved, or when there is none, the grid stays read-only.
  */
 class DbEditableHookUp(project: Project, private val model: DataGridListModel) : CachedGridDataHookUp(project, model) {
   @Volatile
@@ -39,12 +44,22 @@ class DbEditableHookUp(project: Project, private val model: DataGridListModel) :
   internal fun rowIndex(row: GridRow): Int = model.rows.indexOf(row)
 }
 
+/** Data editor settings, as in DataGrip's Settings | Database | Data Editor. */
+object DbGridSettings {
+  private const val IMMEDIATE = "phantom.db.grid.submitImmediately"
+
+  /** Off (DataGrip's default): edits wait in the grid for Submit. */
+  var submitImmediately: Boolean
+    get() = PropertiesComponent.getInstance().getBoolean(IMMEDIATE, false)
+    set(value) = PropertiesComponent.getInstance().setValue(IMMEDIATE, value, false)
+}
+
 class DbGridEdits(
   private val project: Project,
-  private val dataSource: DbDataSource,
+  val dataSource: DbDataSource,
   val target: DbEditTarget,
   internal val hookUp: DbEditableHookUp,
-) : GridMutator.RowsMutator<GridRow, GridColumn> {
+) : GridMutator.DatabaseMutator<GridRow, GridColumn> {
 
   /** Runs the statement; tests replace it to run without the IDE's connection service. */
   internal var run: suspend (DbStatement) -> DbOutcome = { DbExecutor.execute(project, dataSource, it) }
@@ -52,14 +67,34 @@ class DbGridEdits(
   /** Reads a value back (Set DEFAULT); tests replace it like [run]. */
   internal var read: suspend (DbStatement) -> Any? = { DbExecutor.firstValue(project, dataSource, it) }
 
+  /** Edited cells waiting for Submit: row → column → new value ([DEFAULT] for Set DEFAULT). EDT only. */
+  private val changed = IdentityHashMap<GridRow, LinkedHashMap<Int, Any?>>()
+
+  /** Rows marked deleted, waiting for Submit. EDT only. */
+  private val deleted: MutableSet<GridRow> = Collections.newSetFromMap(IdentityHashMap())
+
+  @Volatile
+  private var failed = false
+
+  /** The value of a cell set to DEFAULT until it is submitted and read back. */
+  object DEFAULT {
+    override fun toString(): String = "DEFAULT"
+  }
+
+  private val immediate: Boolean get() = DbGridSettings.submitImmediately
+
   override fun isUpdateSafe(rowIndices: ModelIndexSet<GridRow>, columnIndices: ModelIndexSet<GridColumn>, newValue: Any?): Boolean =
     columnIndices.asIterable().all { target.isEditable(it.value) }
 
-  override fun hasPendingChanges(): Boolean = false
+  override fun hasPendingChanges(): Boolean = live(changed.keys).isNotEmpty() || live(deleted).isNotEmpty()
 
   override fun hasUnparsedValues(): Boolean = false
 
-  override fun isUpdateImmediately(): Boolean = true
+  override fun hasUnparsedValues(row: ModelIndex<GridRow>): Boolean = false
+
+  override fun isUpdateImmediately(): Boolean = immediate
+
+  override fun isFailed(): Boolean = failed
 
   override fun mutate(source: GridRequestSource, row: ModelIndexSet<GridRow>, column: ModelIndexSet<GridColumn>, newValue: Any?,
                       allowImmediateUpdate: Boolean) {
@@ -73,7 +108,7 @@ class DbGridEdits(
       if (!target.isEditable(m.column.value)) return@mapNotNull null
       Edit(row, m.column.value, m.value)
     }
-    apply(source, edits) { edit -> run(target.update(GridRow.getValues(edit.row), edit.column, edit.value)) to edit.value }
+    if (immediate) apply(source, edits.map { Op.Cell(it) }) else keep(source, edits)
   }
 
   /**
@@ -83,68 +118,169 @@ class DbGridEdits(
   fun setDefault(source: GridRequestSource, rows: ModelIndexSet<GridRow>, columns: ModelIndexSet<GridColumn>) {
     val edits = rows.asIterable().flatMap { r ->
       val row = hookUp.row(r) ?: return@flatMap emptyList()
-      columns.asIterable().filter { target.isEditable(it.value) }.map { c -> Edit(row, c.value, null) }.toList()
+      columns.asIterable().filter { target.isEditable(it.value) }.map { c -> Edit(row, c.value, DEFAULT) }.toList()
     }.toList()
-    apply(source, edits) { edit ->
-      val values = GridRow.getValues(edit.row)
-      val outcome = run(target.updateToDefault(values, edit.column))
-      outcome to if (outcome is DbOutcome.Updated && outcome.count == 1L) read(target.selectValue(values, edit.column)) else null
-    }
+    if (immediate) apply(source, edits.map { Op.Cell(it) }) else keep(source, edits)
   }
 
-  /** Runs each edit's statement in order, stopping at the first that fails; [statement] gives its outcome and the cell's new value. */
-  private fun apply(source: GridRequestSource, edits: List<Edit>, statement: suspend (Edit) -> Pair<DbOutcome, Any?>) {
+  /** Records [edits] as changes shown in the grid; an edit back to the loaded value drops the change. */
+  private fun keep(source: GridRequestSource, edits: List<Edit>) {
     if (edits.isEmpty()) return
-    hookUp.notifyRequestStarted(source)
-    DbConnectionService.getInstance(project).launch {
-      var ok = true
-      for (edit in edits) {
-        val (outcome, value) = statement(edit)
-        val error = problem(outcome)
-        withContext(Dispatchers.EDT) {
-          if (error == null) {
-            edit.row.setValue(edit.column, value)
-            val index = ModelIndex.forRow(hookUp.dataModel, hookUp.rowIndex(edit.row))
-            (hookUp.mutationModel as GridMutationModel).notifyCellsUpdated(
-              ModelIndexSet.forRows(hookUp.dataModel, index.value), ModelIndexSet.forColumns(hookUp.dataModel, edit.column), source.place)
-          }
-          else {
-            ok = false
-            notifyError(error)
-          }
-        }
-        if (error != null) break
+    for (edit in edits) {
+      val loaded = edit.row.getValue(edit.column)
+      if (edit.value !== DEFAULT && edit.value == loaded) {
+        changed[edit.row]?.let { cells -> cells.remove(edit.column); if (cells.isEmpty()) changed.remove(edit.row) }
       }
-      withContext(Dispatchers.EDT) { hookUp.notifyRequestFinished(source, ok) }
+      else changed.getOrPut(edit.row) { LinkedHashMap() }[edit.column] = edit.value
     }
+    edits.groupBy { it.row }.forEach { (row, cells) -> cellsUpdated(row, cells.map { it.column }, source) }
   }
 
   override fun deleteRows(source: GridRequestSource, rows: ModelIndexSet<GridRow>) {
     val selected = rows.asIterable().mapNotNull { hookUp.row(it) }.toList()
     if (selected.isEmpty()) return
+    if (!immediate) {
+      deleted.addAll(selected)
+      selected.forEach { cellsUpdated(it, (0 until hookUp.dataModel.columnCount).toList(), source) }
+      return
+    }
     if (!dataSource.manualCommit) {
       val answer = Messages.showYesNoDialog(project, PhantomDbBundle.message("db.edit.delete.confirm", selected.size, target.displayName),
                                             PhantomDbBundle.message("db.edit.delete.title"), Messages.getWarningIcon())
       if (answer != Messages.YES) return
     }
+    apply(source, selected.map { Op.Delete(it) })
+  }
+
+  /** Submit (Ctrl+Enter): the waiting changes, updates first, then deletions; stops at the first that fails. */
+  override fun submit(source: GridRequestSource, unused: Boolean) {
+    submit(source) {}
+  }
+
+  /** As [submit]; [then] gets whether everything was written (Submit and Commit commits only then). */
+  fun submit(source: GridRequestSource, then: suspend (Boolean) -> Unit) {
+    val ops = live(changed.keys).filter { it !in deleted }.flatMap { row -> changed[row]!!.map { (c, v) -> Op.Cell(Edit(row, c, v)) } } +
+              live(deleted).map { Op.Delete(it) }
+    apply(source, ops, then)
+  }
+
+  /** The statements Submit would run, one per line. */
+  override fun getPendingChanges(): String =
+    (live(changed.keys).filter { it !in deleted }.flatMap { row ->
+      changed[row]!!.map { (c, v) -> statement(Edit(row, c, v)).display }
+    } + live(deleted).map { target.delete(GridRow.getValues(it)).display }).joinToString(";\n", postfix = if (hasPendingChanges()) ";" else "")
+
+  /** Revert Selected (Ctrl+Alt+Z): drops the changes of the selected cells and undeletes the selected rows. */
+  override fun revert(source: GridRequestSource, rows: ModelIndexSet<GridRow>, columns: ModelIndexSet<GridColumn>) {
+    val cols = columns.asIterable().map { it.value }.toSet()
+    for (index in rows.asIterable()) {
+      val row = hookUp.row(index) ?: continue
+      deleted.remove(row)
+      changed[row]?.let { cells -> cells.keys.removeAll(cols); if (cells.isEmpty()) changed.remove(row) }
+      cellsUpdated(row, (0 until hookUp.dataModel.columnCount).toList(), source)
+    }
+  }
+
+  override fun getMutationType(row: ModelIndex<GridRow>): MutationType? {
+    val r = hookUp.row(row) ?: return null
+    return when {
+      r in deleted -> MutationType.DELETE
+      changed.containsKey(r) -> MutationType.MODIFY
+      else -> null
+    }
+  }
+
+  override fun getMutationType(row: ModelIndex<GridRow>, column: ModelIndex<GridColumn>): MutationType? {
+    val r = hookUp.row(row) ?: return null
+    return when {
+      r in deleted -> MutationType.DELETE
+      changed[r]?.containsKey(column.value) == true -> MutationType.MODIFY
+      else -> null
+    }
+  }
+
+  override fun getMutation(row: ModelIndex<GridRow>, column: ModelIndex<GridColumn>): MutationData? {
+    val r = hookUp.row(row) ?: return null
+    val cells = changed[r] ?: return null
+    return if (cells.containsKey(column.value)) MutationData(cells[column.value]) else null
+  }
+
+  override fun hasMutatedRows(rows: ModelIndexSet<GridRow>, columns: ModelIndexSet<GridColumn>): Boolean {
+    val cols = columns.asIterable().map { it.value }.toSet()
+    return rows.asIterable().any { index ->
+      val r = hookUp.row(index) ?: return@any false
+      r in deleted || changed[r]?.keys?.any { it in cols } == true
+    }
+  }
+
+  private fun statement(edit: Edit): DbStatement {
+    val values = GridRow.getValues(edit.row)
+    return if (edit.value === DEFAULT) target.updateToDefault(values, edit.column) else target.update(values, edit.column, edit.value)
+  }
+
+  /** Rows of [rows] still in the grid (a reload replaces them), in grid order. */
+  private fun live(rows: Collection<GridRow>): List<GridRow> =
+    rows.map { it to hookUp.rowIndex(it) }.filter { it.second >= 0 }.sortedBy { it.second }.map { it.first }
+
+  private fun cellsUpdated(row: GridRow, columns: List<Int>, source: GridRequestSource) {
+    val index = hookUp.rowIndex(row)
+    if (index < 0 || columns.isEmpty()) return
+    (hookUp.mutationModel as GridMutationModel).notifyCellsUpdated(
+      ModelIndexSet.forRows(hookUp.dataModel, index), ModelIndexSet.forColumns(hookUp.dataModel, *columns.toIntArray()), source.place)
+  }
+
+  private sealed interface Op {
+    class Cell(val edit: Edit) : Op
+    class Delete(val row: GridRow) : Op
+  }
+
+  /** Runs each operation's statement in order, stopping at the first that fails, and shows what was written. */
+  private fun apply(source: GridRequestSource, ops: List<Op>, then: suspend (Boolean) -> Unit = {}) {
+    if (ops.isEmpty()) {
+      DbConnectionService.getInstance(project).launch { then(true) }
+      return
+    }
     hookUp.notifyRequestStarted(source)
     DbConnectionService.getInstance(project).launch {
       var ok = true
-      for (row in selected) {
-        val error = problem(run(target.delete(GridRow.getValues(row))))
-        withContext(Dispatchers.EDT) {
-          if (error == null) {
-            val index = hookUp.rowIndex(row)
-            if (index >= 0) hookUp.updater.removeRows(index, 1)
+      for (op in ops) {
+        val error: String?
+        var value: Any? = null
+        when (op) {
+          is Op.Cell -> {
+            val outcome = run(statement(op.edit))
+            error = problem(outcome)
+            value = if (op.edit.value !== DEFAULT) op.edit.value
+            else if (error == null) read(target.selectValue(GridRow.getValues(op.edit.row), op.edit.column)) else null
           }
-          else {
+          is Op.Delete -> error = problem(run(target.delete(GridRow.getValues(op.row))))
+        }
+        withContext(Dispatchers.EDT) {
+          if (error != null) {
             ok = false
             notifyError(error)
+            return@withContext
+          }
+          when (op) {
+            is Op.Cell -> {
+              val row = op.edit.row
+              changed[row]?.let { cells -> cells.remove(op.edit.column); if (cells.isEmpty()) changed.remove(row) }
+              row.setValue(op.edit.column, value)
+              cellsUpdated(row, listOf(op.edit.column), source)
+            }
+            is Op.Delete -> {
+              deleted.remove(op.row)
+              changed.remove(op.row)
+              val index = hookUp.rowIndex(op.row)
+              if (index >= 0) hookUp.updater.removeRows(index, 1)
+            }
           }
         }
         if (error != null) break
       }
+      failed = !ok
       withContext(Dispatchers.EDT) { hookUp.notifyRequestFinished(source, ok) }
+      then(ok)
     }
   }
 
@@ -158,9 +294,9 @@ class DbGridEdits(
     DbConsoles.openConsole(project, dataSource, target.insertTemplate(GridRow.getValues(row)))
   }
 
-  override fun isDeletedRow(row: ModelIndex<GridRow>): Boolean = false
+  override fun isDeletedRow(row: ModelIndex<GridRow>): Boolean = hookUp.row(row)?.let { it in deleted } == true
 
-  override fun isDeletedRows(rows: ModelIndexSet<GridRow>): Boolean = false
+  override fun isDeletedRows(rows: ModelIndexSet<GridRow>): Boolean = rows.asIterable().toList().let { list -> list.isNotEmpty() && list.all { isDeletedRow(it) } }
 
   override fun isInsertedRow(row: ModelIndex<GridRow>): Boolean = false
 
@@ -168,9 +304,29 @@ class DbGridEdits(
 
   override fun getLastInsertedRow(): ModelIndex<GridRow> = ModelIndex.forRow(hookUp.dataModel, -1)
 
-  override fun getAffectedRows(): ModelIndexSet<GridRow> = ModelIndexSet.forRows(hookUp.dataModel, *IntArray(0))
+  override fun getAffectedRows(): ModelIndexSet<GridRow> =
+    ModelIndexSet.forRows(hookUp.dataModel, *(live(changed.keys) + live(deleted)).map { hookUp.rowIndex(it) }.distinct().sorted().toIntArray())
 
   override fun getInsertedRows(): JBIterable<ModelIndex<GridRow>> = JBIterable.empty()
+
+  // columns are the table's: not added, removed or renamed from a result
+  override fun deleteColumns(source: GridRequestSource, columns: ModelIndexSet<GridColumn>) = Unit
+
+  override fun insertColumn(source: GridRequestSource, name: String?) = Unit
+
+  override fun cloneColumn(source: GridRequestSource, column: ModelIndex<GridColumn>) = Unit
+
+  override fun renameColumn(source: GridRequestSource, column: ModelIndex<GridColumn>, name: String) = Unit
+
+  override fun getInsertedColumnsCount(): Int = 0
+
+  override fun getInsertedColumns(): JBIterable<ModelIndex<GridColumn>> = JBIterable.empty()
+
+  override fun isInsertedColumn(column: ModelIndex<GridColumn>): Boolean = false
+
+  override fun isDeletedColumn(column: ModelIndex<GridColumn>): Boolean = false
+
+  override fun getInsertedColumn(column: ModelIndex<GridColumn>): GridColumn? = null
 
   /** Null when the statement changed exactly one row. */
   private fun problem(outcome: DbOutcome): String? = when (outcome) {

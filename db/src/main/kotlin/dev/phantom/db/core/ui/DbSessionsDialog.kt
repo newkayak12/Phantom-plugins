@@ -4,7 +4,6 @@ package dev.phantom.db.core.ui
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
-import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.ui.ColoredListCellRenderer
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SimpleTextAttributes
@@ -83,12 +82,7 @@ class DbSessionsDialog(private val project: Project) : DialogWrapper(project) {
       val ds = DbDataSourceService.getInstance(project).find(value.key.dataSourceId)
       icon = ds?.let { PhantomDbIcons.forDataSource(it) }
       append(ds?.name ?: value.key.dataSourceId)
-      val what = when {
-        value.key.purpose == DbConnectionService.Purpose.METADATA -> PhantomDbBundle.message("db.sessions.metadata")
-        value.key.console != null -> VirtualFileManager.getInstance().findFileByUrl(value.key.console!!)?.nameWithoutExtension
-                                     ?: PhantomDbBundle.message("db.sessions.console")
-        else -> PhantomDbBundle.message("db.sessions.shared")
-      }
+      val what = DbServiceView.name(value)
       append("  $what", SimpleTextAttributes.GRAYED_ATTRIBUTES)
       append("  " + PhantomDbBundle.message("db.sessions.since", SimpleDateFormat("HH:mm:ss").format(Date(value.openedAt))), SimpleTextAttributes.GRAYED_ATTRIBUTES)
       if (value.inTransaction) append("  " + PhantomDbBundle.message("db.sessions.transaction"), SimpleTextAttributes.ERROR_ATTRIBUTES)

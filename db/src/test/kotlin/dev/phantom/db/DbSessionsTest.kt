@@ -7,6 +7,7 @@ import dev.phantom.db.core.DbDataSourceService
 import dev.phantom.db.core.DbSchemaScope
 import dev.phantom.db.core.Dbms
 import dev.phantom.db.core.exec.DbConnectionService
+import dev.phantom.db.core.exec.DbConsoles
 import dev.phantom.db.core.exec.DbExecutor
 import dev.phantom.db.core.exec.DbMetadataCache
 import dev.phantom.db.core.exec.DbOutcome
@@ -77,10 +78,58 @@ class DbSessionsTest : BasePlatformTestCase() {
       dialog.close(0)
     }
 
+    val services = dev.phantom.db.core.ui.DbServiceViewContributor()
+    val connected = services.getServices(project).single { it.dataSource.id == separate.id }
+    assertEquals(2, connected.getServices(project).size)
+
     service.close(open.first().key)
     assertEquals(1, service.openSessions().count { it.key.dataSourceId == separate.id })
     service.disconnect(separate.id)
     assertFalse(service.isConnected(separate.id))
+  }
+
+  /** The console session switcher: its own session by default, or the shared one, another console's, a named one. */
+  fun testConsoleChoosesItsSession() {
+    val ds = h2 { singleSession = false }
+    val a = myFixture.configureByText("a.sql", "").virtualFile
+    val b = myFixture.configureByText("b.sql", "").virtualFile
+    fun id(file: com.intellij.openapi.vfs.VirtualFile) = sessionIdIn(ds, DbConsoles.sessionFor(project, file))
+    assertEquals(a.url, DbConsoles.sessionFor(project, a))
+    assertFalse(id(a) == id(b))
+
+    DbConsoles.setSession(project, b, a.url)
+    assertEquals(id(a), id(b))
+    DbConsoles.setSession(project, b, null)
+    assertNull(DbConsoles.sessionFor(project, b))
+    assertEquals(sessionIdIn(ds, null), id(b))
+    DbConsoles.setSession(project, b, DbConsoles.NAMED_SESSION + "1")
+    assertEquals("Session 1", DbConsoles.sessionName(DbConsoles.sessionFor(project, b)))
+    assertFalse(id(a) == id(b))
+    DbConsoles.setSession(project, b, b.url)
+    assertEquals(b.url, DbConsoles.sessionFor(project, b))
+  }
+
+  private fun sessionIdIn(ds: DbDataSource, console: String?): Any? = runBlocking {
+    (DbExecutor.execute(project, ds, listOf("SELECT SESSION_ID()"), console = console).single() as DbOutcome.Rows).rows.single()[0]
+  }
+
+  /** Level 1 looks up no columns for the editor; level 3 loads every table's columns with the names. */
+  fun testIntrospectionLevels() {
+    val names = h2 { introspection = 1 }
+    runBlocking { DbExecutor.execute(project, names, listOf("CREATE TABLE t (id INT)")) }
+    val schema = dev.phantom.db.core.SqlSchema.getInstance(project)
+    val snapshot = runBlocking { schema.load(names) }!!
+    val t = snapshot.tables.single { it.name == "T" }
+    assertNull(schema.columns(names, t))
+    assertNull(schema.columnsNoWait(names, t))
+
+    val full = h2 { introspection = 3 }
+    runBlocking { DbExecutor.execute(project, full, listOf("CREATE TABLE a (id INT)", "CREATE TABLE b (id INT)")) }
+    val tables = runBlocking { schema.load(full) }!!.tables.filter { it.dataSourceId == full.id }
+    assertEquals(2, tables.size)
+    com.intellij.testFramework.PlatformTestUtil.waitWithEventsDispatching("columns not loaded up front", {
+      tables.all { DbMetadataCache.cachedColumns(project, it) != null }
+    }, 20)
   }
 
   fun testSchemaScope() {

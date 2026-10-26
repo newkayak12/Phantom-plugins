@@ -86,7 +86,7 @@ class SqlSchema(private val project: Project) {
   /** The columns of [table], or null when they are not loaded. */
   fun columns(dataSource: DbDataSource, table: DbTableRef, load: Boolean = true): List<DbColumnInfo>? {
     DbMetadataCache.cachedColumns(project, table)?.let { return it }
-    if (!load) return null
+    if (!load || namesOnly(dataSource)) return null
     val job = start("columns:" + table) { DbMetadataCache.getInstance(project).columns(dataSource, table) } ?: return null
     await(job)
     return DbMetadataCache.cachedColumns(project, table)
@@ -95,6 +95,7 @@ class SqlSchema(private val project: Project) {
   /** The columns of [table] if cached; a miss schedules the load and never waits. */
   fun columnsNoWait(dataSource: DbDataSource, table: DbTableRef): List<DbColumnInfo>? {
     DbMetadataCache.cachedColumns(project, table)?.let { return it }
+    if (namesOnly(dataSource)) return null
     start("columns:" + table) { DbMetadataCache.getInstance(project).columns(dataSource, table) }
     return null
   }
@@ -102,7 +103,7 @@ class SqlSchema(private val project: Project) {
   /** Nullability, defaults and auto-increment of [table]'s columns, or null when they are not loaded. */
   fun columnDetails(dataSource: DbDataSource, table: DbTableRef, load: Boolean = true): List<DbColumnDetail>? {
     DbObjectCache.getInstanceIfCreated(project)?.cachedColumnDetails(table)?.let { return it }
-    if (!load) return null
+    if (!load || namesOnly(dataSource)) return null
     val job = start("details:" + table) { DbObjectCache.getInstance(project).columnDetails(dataSource, table) } ?: return null
     await(job)
     return DbObjectCache.getInstanceIfCreated(project)?.cachedColumnDetails(table)
@@ -116,7 +117,7 @@ class SqlSchema(private val project: Project) {
       return (cache.cachedPrimaryKey(table) ?: return null) to indexes
     }
     cached()?.let { return it }
-    if (!load) return null
+    if (!load || namesOnly(dataSource)) return null
     val job = start("indexes:" + table) { DbObjectCache.getInstance(project).indexes(dataSource, table) } ?: return null
     await(job)
     return cached()
@@ -132,6 +133,7 @@ class SqlSchema(private val project: Project) {
       return (cache.cachedForeignKeys(table) ?: return null) to (cache.cachedReferencingKeys(table) ?: return null)
     }
     cached()?.let { return it }
+    if (namesOnly(dataSource)) return null
     start("keys:" + table) {
       val cache = DbObjectCache.getInstance(project)
       cache.foreignKeys(dataSource, table)
@@ -143,9 +145,26 @@ class SqlSchema(private val project: Project) {
   /** Loads the schema list and the [current] (else default) schema's tables now; for tests and callers already in a coroutine. */
   suspend fun load(dataSource: DbDataSource, current: DbSchemaChoice? = null): SqlSchemaSnapshot? {
     val cache = DbMetadataCache.getInstance(project)
-    pick(cache.schemas(dataSource), current)?.let { cache.tables(dataSource, it) }
+    val tables = pick(cache.schemas(dataSource), current)?.let { cache.tables(dataSource, it) }
+    // level 3: every table's columns too, after the names, so completion never waits for them
+    if (dataSource.introspection >= 3 && tables != null) {
+      DbConnectionService.getInstance(project).launch {
+        for (table in tables) {
+          if (DbMetadataCache.cachedColumns(project, table) != null) continue
+          try {
+            cache.columns(dataSource, table)
+          }
+          catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+          }
+        }
+      }
+    }
     return loaded(dataSource, current)
   }
+
+  /** Introspection level 1: names only, no columns or keys looked up for the editor. */
+  private fun namesOnly(dataSource: DbDataSource): Boolean = dataSource.introspection <= 1
 
   private fun loaded(dataSource: DbDataSource, chosen: DbSchemaChoice?): SqlSchemaSnapshot? {
     val cache = DbMetadataCache.getInstanceIfCreated(project) ?: return null

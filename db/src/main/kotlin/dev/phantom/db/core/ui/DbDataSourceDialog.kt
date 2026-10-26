@@ -96,6 +96,10 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
   private val maxRowsField = JBIntSpinner(source.maxRows, 1, 10_000)
   private val timeoutField = JBIntSpinner(source.queryTimeoutSeconds, 0, 3_600)
   internal val schemasField = JBTextField(source.schemas)
+  internal val introspectionCombo = com.intellij.openapi.ui.ComboBox(arrayOf(1, 2, 3)).apply {
+    selectedItem = source.introspection.coerceIn(1, 3)
+    renderer = com.intellij.ui.SimpleListCellRenderer.create("") { PhantomDbBundle.message("db.dialog.introspection.$it") }
+  }
   private val testResult = JBLabel(" ")
   internal val sshBox = JBCheckBox(PhantomDbBundle.message("db.dialog.ssh.use"), source.sshEnabled)
   internal val sshHostField = JBTextField(source.sshHost)
@@ -352,6 +356,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
       row(PhantomDbBundle.message("db.dialog.max.rows")) { cell(maxRowsField) }
       row(PhantomDbBundle.message("db.dialog.timeout")) { cell(timeoutField) }
       row(PhantomDbBundle.message("db.dialog.schemas")) { cell(schemasField).align(AlignX.FILL).comment(PhantomDbBundle.message("db.dialog.schemas.hint")) }
+      row(PhantomDbBundle.message("db.dialog.introspection")) { cell(introspectionCombo) }
     }
     collapsibleGroup(PhantomDbBundle.message("db.dialog.properties")) {
       row { cell(properties.component).align(AlignX.FILL).comment(PhantomDbBundle.message("db.dialog.properties.hint")) }
@@ -400,6 +405,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     maxRows = maxRowsField.number
     queryTimeoutSeconds = timeoutField.number
     schemas = schemasField.text.trim()
+    introspection = introspectionCombo.selectedItem as Int
     sshEnabled = sshBox.isSelected
     sshHost = sshHostField.text.trim()
     sshPort = sshPortField.number

@@ -104,7 +104,68 @@ class DbGridEditTest : BasePlatformTestCase() {
     assertEquals("INSERT INTO `shop`.`item` (`id`, `name`, `price`) VALUES (7, 'pen', 1.5);", target.insertTemplate(arrayOf(7, "pen", 1.5)))
   }
 
-  fun testGridEditsGoToTheTableAndWaitForCommit() {
+  private fun immediately(on: Boolean, body: () -> Unit) {
+    val was = DbGridSettings.submitImmediately
+    DbGridSettings.submitImmediately = on
+    try {
+      body()
+    }
+    finally {
+      DbGridSettings.submitImmediately = was
+    }
+  }
+
+  /** As in DataGrip: edits and deletions are shown as changes and run on Submit, then wait in a manual-commit transaction. */
+  fun testGridEditsWaitForSubmitThenForCommit() = immediately(false) {
+    val ds = h2(manualCommit = true)
+    val other = h2(url = ds.url)
+    exec(ds, "CREATE TABLE t (id INT PRIMARY KEY, name VARCHAR(10))", "INSERT INTO t VALUES (1, 'a'), (2, 'b'), (3, 'c')", "COMMIT")
+    myFixture.configureByText("edit.sql", "SELECT * FROM t ORDER BY id")
+    DbRunner.start(project, myFixture.file.virtualFile, ds, listOf("SELECT * FROM t ORDER BY id"))
+    val panel = { ToolWindowManager.getInstance(project).getToolWindow(DbResultsToolWindow.ID)?.contentManager?.selectedContent?.component as? DbResultPanel }
+    PlatformTestUtil.waitWithEventsDispatching("grid not editable; status: ${panel()?.shownStatus}", { panel()?.shownEditing != null }, 20)
+    val edits = panel()!!.shownEditing!!
+    val model = edits.hookUp.dataModel
+    val shown = edits.hookUp.mutationModel
+    val pending = DbPendingChanges.getInstance(project)
+    fun cell(r: Int, c: Int) = shown.getValueAt(ModelIndex.forRow(model, r), ModelIndex.forColumn(model, c))
+    val source = GridRequestSource(null)
+
+    edits.mutate(source, ModelIndexSet.forRows(model, 0), ModelIndexSet.forColumns(model, 1), "z", true)
+    edits.mutate(source, ModelIndexSet.forRows(model, 2), ModelIndexSet.forColumns(model, 1), "y", true)
+    edits.deleteRows(source, ModelIndexSet.forRows(model, 1))
+    assertTrue(edits.hasPendingChanges())
+    assertEquals("z", cell(0, 1))
+    assertEquals("loaded value stays until Submit", "a", model.getValueAt(ModelIndex.forRow(model, 0), ModelIndex.forColumn(model, 1)))
+    assertEquals(com.intellij.database.datagrid.MutationType.MODIFY, edits.getMutationType(ModelIndex.forRow(model, 0), ModelIndex.forColumn(model, 1)))
+    assertTrue(edits.isDeletedRow(ModelIndex.forRow(model, 1)))
+    assertEquals("""
+      UPDATE "T" SET "NAME" = 'z' WHERE "ID" = 1;
+      UPDATE "T" SET "NAME" = 'y' WHERE "ID" = 3;
+      DELETE FROM "T" WHERE "ID" = 2;
+    """.trimIndent(), edits.pendingChanges)
+    assertEmpty("nothing run before Submit", pending.of(ds.id))
+
+    // Revert Selected drops the third row's change
+    edits.revert(source, ModelIndexSet.forRows(model, 2), ModelIndexSet.forColumns(model, 0, 1))
+    assertEquals("c", cell(2, 1))
+    assertNull(edits.getMutationType(ModelIndex.forRow(model, 2)))
+
+    var submitted: Boolean? = null
+    edits.submit(source) { submitted = it }
+    PlatformTestUtil.waitWithEventsDispatching("not submitted", { submitted != null && model.rowCount == 2 }, 20)
+    assertTrue(submitted!!)
+    assertFalse(edits.hasPendingChanges())
+    assertEquals(listOf("UPDATE \"T\" SET \"NAME\" = 'z' WHERE \"ID\" = 1", "DELETE FROM \"T\" WHERE \"ID\" = 2"), pending.of(ds.id).map { it.sql })
+    assertEquals("z", model.getValueAt(ModelIndex.forRow(model, 0), ModelIndex.forColumn(model, 1)))
+    assertEquals("not committed yet", "a", rows(other, "SELECT name FROM t WHERE id = 1").rows.single()[0])
+
+    runBlocking { pending.commit(ds) }
+    assertEquals(listOf(listOf<Any?>(1, "z"), listOf<Any?>(3, "c")), rows(other, "SELECT * FROM t ORDER BY id").rows.map { it.toList() })
+  }
+
+  /** Submit Changes Immediately: each edit runs as it is made. */
+  fun testGridEditsGoToTheTableAndWaitForCommit() = immediately(true) {
     val ds = h2(manualCommit = true)
     val other = h2(url = ds.url)
     exec(ds, "CREATE TABLE t (id INT PRIMARY KEY, name VARCHAR(10))", "INSERT INTO t VALUES (1, 'a'), (2, 'b')", "COMMIT")
@@ -140,7 +201,7 @@ class DbGridEditTest : BasePlatformTestCase() {
   }
 
   /** Set NULL and Set DEFAULT (Ctrl+Alt+N / D): an UPDATE by key, and the default read back into the cell. */
-  fun testSetNullAndDefault() {
+  fun testSetNullAndDefault() = immediately(true) {
     val ds = h2()
     exec(ds, "CREATE TABLE t (id INT PRIMARY KEY, name VARCHAR(10) DEFAULT 'dflt')", "INSERT INTO t VALUES (1, 'a')")
     myFixture.configureByText("set.sql", "SELECT * FROM t")

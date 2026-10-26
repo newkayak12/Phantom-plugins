@@ -295,7 +295,11 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
     val hookUp = DbEditableHookUp(project, model)
     val tableActions = if (table == null) emptyList() else listOf(DbForeignKeyActions.group(), Separator.getInstance())
     val manager = com.intellij.openapi.actionSystem.ActionManager.getInstance()
-    val setValue = listOf(manager.getAction("PhantomDb.Grid.SetNull"), manager.getAction("PhantomDb.Grid.SetDefault"), Separator.getInstance())
+    val setValue = listOf("PhantomDb.Grid.Submit", "PhantomDb.Grid.SubmitAndCommit", "Console.TableResult.RevertSelected", "PhantomDb.Grid.SubmitImmediately")
+                     .mapNotNull { manager.getAction(it) } + Separator.getInstance() +
+                   listOf(manager.getAction("PhantomDb.Grid.SetNull"), manager.getAction("PhantomDb.Grid.SetDefault"), Separator.getInstance()) +
+                   listOf("PhantomDb.Grid.EditFilterCriteria", "PhantomDb.Grid.EditOrdering", "PhantomDb.Grid.SelectRow", "PhantomDb.Grid.SelectColumn")
+                     .mapNotNull { manager.getAction(it) } + Separator.getInstance()
     val popup = DefaultActionGroup(tableActions + setValue + listOf(DbCopyActions.group(), Separator.getInstance(), GridUtil.getGridPopupActions()))
     val grid = GridUtil.createDataGrid(project, hookUp, popup,
                                        BiConsumer { g, appearance ->
@@ -381,6 +385,34 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
 
   private fun tools(): JComponent {
     val group = DefaultActionGroup(
+      // Submit and Revert for the shown grid: its waiting edits, as on DataGrip's result toolbar
+      object : DumbAwareAction(PhantomDbBundle.message("action.PhantomDb.Grid.Submit.text"), null, AllIcons.Actions.Commit) {
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+        override fun update(e: AnActionEvent) {
+          e.presentation.isVisible = shownEditing != null
+          e.presentation.isEnabled = shownEditing?.hasPendingChanges() == true
+        }
+
+        override fun actionPerformed(e: AnActionEvent) {
+          val grid = shownGrid ?: return
+          shownEditing?.submit(com.intellij.database.datagrid.GridRequestSource(com.intellij.database.run.ui.DataGridRequestPlace(grid))) {}
+        }
+      },
+      object : DumbAwareAction(PhantomDbBundle.message("db.grid.revert"), null, AllIcons.Actions.Rollback) {
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+        override fun update(e: AnActionEvent) {
+          e.presentation.isVisible = shownEditing != null
+          e.presentation.isEnabled = shownEditing?.hasPendingChanges() == true
+        }
+
+        override fun actionPerformed(e: AnActionEvent) {
+          val grid = shownGrid ?: return
+          val edits = shownEditing ?: return
+          edits.revert(com.intellij.database.datagrid.GridRequestSource(com.intellij.database.run.ui.DataGridRequestPlace(grid)), edits.affectedRows,
+                       com.intellij.database.datagrid.ModelIndexSet.forColumns(edits.hookUp.dataModel, *IntArray(edits.hookUp.dataModel.columnCount) { it }))
+        }
+      },
+      Separator.getInstance(),
       object : DumbAwareToggleAction(PhantomDbBundle.message("db.grid.transpose"), null, AllIcons.Actions.SplitVertically) {
         override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
         override fun isSelected(e: AnActionEvent): Boolean = transposed

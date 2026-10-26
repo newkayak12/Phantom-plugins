@@ -45,6 +45,13 @@ object DbConsoles {
   private const val KEY_PREFIX = "phantom.db.dataSource:"
   private const val SCHEMA_PREFIX = "phantom.db.schema:"
   private const val CATALOG_PREFIX = "phantom.db.schemaCatalog:"
+  private const val SESSION_PREFIX = "phantom.db.session:"
+
+  /** The session choice for consoles that use the data source's shared console connection. */
+  const val SHARED_SESSION: String = "shared"
+
+  /** Sessions made with New Session are named `session:1`, `session:2`, … */
+  const val NAMED_SESSION: String = "session:"
 
   /** Where consoles made before 0.13 live. */
   fun legacyRoot(): Path = PathManager.getConfigDir().resolve("phantom-db/consoles")
@@ -98,6 +105,32 @@ object DbConsoles {
     EditorNotifications.getInstance(project).updateNotifications(file)
     // unqualified names now mean another schema's tables
     DaemonCodeAnalyzer.getInstance(project).restart("Phantom SQL schema chosen")
+  }
+
+  /**
+   * The session [file] runs in when its data source is not in single session mode, as DataGrip's console session switcher
+   * picks it: its own (the default), the shared console connection ([SHARED_SESSION]), another console's, or a named one.
+   * The value is the session key's console part; null for the shared one.
+   */
+  fun sessionFor(project: Project, file: VirtualFile): String? =
+    when (val chosen = PropertiesComponent.getInstance(project).getValue(SESSION_PREFIX + file.url)) {
+      null, "" -> file.url
+      SHARED_SESSION -> null
+      else -> chosen
+    }
+
+  /** [session]: a value of [sessionFor], or null for the shared connection. */
+  fun setSession(project: Project, file: VirtualFile, session: String?) {
+    PropertiesComponent.getInstance(project).setValue(SESSION_PREFIX + file.url, if (session == file.url) null else session ?: SHARED_SESSION)
+    EditorNotifications.getInstance(project).updateNotifications(file)
+  }
+
+  /** How a session of [sessionFor] is called: Shared, `Session 2`, or the console's name. */
+  fun sessionName(session: String?): String = when {
+    session == null -> PhantomDbBundle.message("db.session.shared")
+    session.startsWith(NAMED_SESSION) -> PhantomDbBundle.message("db.session.named", session.removePrefix(NAMED_SESSION))
+    else -> com.intellij.openapi.vfs.VirtualFileManager.getInstance().findFileByUrl(session)?.nameWithoutExtension
+            ?: PhantomDbBundle.message("db.sessions.console")
   }
 
   /** The data source's first console, created on first use. */
@@ -263,6 +296,36 @@ object DbRunner {
    * Chooses the schema [file] runs in and resolves names against: "default" first, then the data source's schemas,
    * listed off the EDT.
    */
+  /**
+   * The session switcher of a console whose data source keeps a session per console: this console's own, the shared one,
+   * the open sessions of other consoles, or a new named session.
+   */
+  fun chooseSession(project: Project, file: VirtualFile, owner: Component?) {
+    val dataSource = DbConsoles.dataSourceFor(project, file) ?: return
+    val open = DbConnectionService.getInstance(project).openSessions()
+      .filter { it.key.dataSourceId == dataSource.id && it.key.purpose == DbConnectionService.Purpose.CONSOLE }.map { it.key.console }
+    val named = open.filter { it?.startsWith(DbConsoles.NAMED_SESSION) == true }
+    val next = DbConsoles.NAMED_SESSION + ((named.mapNotNull { it!!.removePrefix(DbConsoles.NAMED_SESSION).toIntOrNull() }.maxOrNull() ?: 0) + 1)
+    val choices = (listOf<String?>(file.url, null) + open + next).distinct()
+    val current = DbConsoles.sessionFor(project, file)
+    val step = object : BaseListPopupStep<String?>(PhantomDbBundle.message("db.session.choose"), choices) {
+      override fun getTextFor(value: String?): String = when (value) {
+        file.url -> PhantomDbBundle.message("db.session.own")
+        next -> PhantomDbBundle.message("db.session.new")
+        else -> DbConsoles.sessionName(value)
+      }
+
+      override fun getIconFor(value: String?): Icon = if (value == next) AllIcons.General.Add else AllIcons.Debugger.Console
+      override fun getDefaultOptionIndex(): Int = choices.indexOf(current).coerceAtLeast(0)
+      override fun onChosen(selectedValue: String?, finalChoice: Boolean): PopupStep<*>? {
+        DbConsoles.setSession(project, file, selectedValue)
+        return FINAL_CHOICE
+      }
+    }
+    val popup = JBPopupFactory.getInstance().createListPopup(step)
+    if (owner != null && owner.isShowing) popup.showInCenterOf(owner) else popup.showCenteredInCurrentWindow(project)
+  }
+
   fun chooseSchema(project: Project, file: VirtualFile, owner: Component?) {
     val dataSource = DbConsoles.dataSourceFor(project, file) ?: return
     DbConnectionService.getInstance(project).launch {
@@ -336,7 +399,7 @@ object DbRunner {
     panel.showRunning(SqlSafety.preview(sql.first()) + if (sql.size > 1) " (+${sql.size - 1})" else "")
     val job = DbConnectionService.getInstance(project).launch {
       try {
-        val outcomes = DbExecutor.execute(project, dataSource, sql, schema = schema, console = file.url)
+        val outcomes = DbExecutor.execute(project, dataSource, sql, schema = schema, console = DbConsoles.sessionFor(project, file))
         withContext(Dispatchers.EDT) { if (present != null) present(panel, outcomes) else panel.showOutcomes(outcomes) }
       }
       catch (e: CancellationException) {

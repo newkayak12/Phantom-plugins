@@ -62,11 +62,15 @@ class DbShortcutTest : BasePlatformTestCase() {
       assertTrue(mac, KeyStroke.getKeyStroke("meta shift L") in shortcuts(mac, "PhantomDb.NewConsole"))
       assertTrue(mac, KeyStroke.getKeyStroke("meta alt shift ENTER") in shortcuts(mac, "PhantomDb.Commit"))
       assertTrue(mac, KeyStroke.getKeyStroke("meta I") in shortcuts(mac, "PhantomDb.Tree.Edit"))
+      assertTrue(mac, KeyStroke.getKeyStroke("meta ENTER") in shortcuts(mac, "PhantomDb.Grid.Submit"))
+      assertTrue(mac, KeyStroke.getKeyStroke("meta alt shift ENTER") in shortcuts(mac, "PhantomDb.Grid.SubmitAndCommit"))
     }
     assertTrue(KeyStroke.getKeyStroke("control shift Q") in shortcuts("\$default", "PhantomDb.NewConsole"))
     for ((id, key) in listOf("PhantomDb.Grid.SetNull" to "control alt N", "PhantomDb.Grid.SetDefault" to "control alt D",
                              "PhantomDb.SelectInTree" to "alt shift B", "PhantomDb.Tree.CopyDdl" to "control shift C",
-                             "PhantomDb.Tree.SqlGenerator" to "control alt G")) {
+                             "PhantomDb.Tree.SqlGenerator" to "control alt G", "PhantomDb.Grid.SelectRow" to "shift SPACE",
+                             "PhantomDb.Grid.SelectColumn" to "control SPACE", "PhantomDb.Grid.EditFilterCriteria" to "control alt shift F",
+                             "PhantomDb.Grid.Submit" to "control ENTER", "PhantomDb.Grid.SubmitAndCommit" to "control alt shift ENTER")) {
       assertTrue(id, KeyStroke.getKeyStroke(key) in shortcuts("\$default", id))
     }
     assertTrue(KeyStroke.getKeyStroke("control alt shift ENTER") in shortcuts("\$default", "PhantomDb.Commit"))
