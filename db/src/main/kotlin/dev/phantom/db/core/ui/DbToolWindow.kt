@@ -259,6 +259,12 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       command("Compare", { (selectedNode() as? DbNode.Schema)?.dataSource?.dialect()?.hasDialect == true }) {
         (selectedNode() as? DbNode.Schema)?.let { DbSchemaCompare.chooseAndCompare(project, DbSchemaSide(it.dataSource, it.ref), tree) }
       },
+      command("Dump", { dumpTarget()?.first?.let { DbDump.supported(it) } == true }) {
+        dumpTarget()?.let { (ds, schema) -> DbDump.run(project, ds, schema, restore = false) }
+      },
+      command("Restore", { dumpTarget()?.first?.let { DbDump.supported(it) && !it.readOnly } == true }) {
+        dumpTarget()?.let { (ds, schema) -> DbDump.run(project, ds, schema, restore = true) }
+      },
       Separator.getInstance(),
       object : ToggleAction(PhantomDbBundle.message("db.action.system.schemas.text"), null, AllIcons.Actions.ToggleVisibility), DumbAware {
         override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
@@ -646,6 +652,13 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
   }
 
   /** The data source of the selected node or one of its parents. */
+  /** What Dump and Restore apply to: a data source (no schema) or a schema node (MySQL: its catalog is the database). */
+  private fun dumpTarget(): Pair<DbDataSource, String?>? = when (val node = selectedNode()) {
+    is DbNode.Source -> node.dataSource to null
+    is DbNode.Schema -> node.dataSource to (if (node.dataSource.dialect().usesCatalogs) node.ref.catalog ?: node.ref.name else node.ref.schema ?: node.ref.name)
+    else -> null
+  }
+
   fun selectedSource(): DbDataSource? = selectedAncestor<DbNode.Source>()?.dataSource
 
   /** The schema of the selected node or one of its parents. */
@@ -845,7 +858,10 @@ class DbTreeAction : DumbAwareAction() {
     val command = command(e)
     e.presentation.isVisible = command != null
     e.presentation.isEnabled = command?.enabled?.invoke() == true
-    if (ActionManager.getInstance().getId(this) == PREFIX + "MakeGlobal") {
+    val id = ActionManager.getInstance().getId(this)
+    // only on a supported database, so the menu and toolbar do not carry them greyed out
+    if (id == PREFIX + "Dump" || id == PREFIX + "Restore") e.presentation.isVisible = e.presentation.isEnabled
+    if (id == PREFIX + "MakeGlobal") {
       val global = panel(e.dataContext)?.selectedSource()?.global == true
       val key = if (global) "db.action.make.project" else "db.action.make.global"
       e.presentation.text = PhantomDbBundle.message("$key.text")

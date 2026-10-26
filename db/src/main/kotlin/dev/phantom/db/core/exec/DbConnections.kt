@@ -28,8 +28,8 @@ import kotlin.time.Duration.Companion.minutes
 
 class DbException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
-/** A column of a result set. */
-data class DbColumn(val name: String, val sqlType: Int, val typeName: String?, val className: String?)
+/** A column of a result set; [precision] and [scale] are the driver's (0 when it gives none). */
+data class DbColumn(val name: String, val sqlType: Int, val typeName: String?, val className: String?, val precision: Int = 0, val scale: Int = 0)
 
 /** What one statement produced. */
 sealed interface DbOutcome {
@@ -717,7 +717,8 @@ object DbExecutor {
     val md = rs.metaData
     val columns = (1..md.columnCount).map { i ->
       DbColumn(md.getColumnLabel(i).ifEmpty { md.getColumnName(i) }, md.getColumnType(i), md.getColumnTypeName(i),
-               runCatching { md.getColumnClassName(i) }.getOrNull())
+               runCatching { md.getColumnClassName(i) }.getOrNull(),
+               runCatching { md.getPrecision(i) }.getOrDefault(0), runCatching { md.getScale(i) }.getOrDefault(0))
     }
     val rows = ArrayList<Array<Any?>>()
     var truncated = false

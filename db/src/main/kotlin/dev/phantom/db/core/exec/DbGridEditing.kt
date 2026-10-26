@@ -9,7 +9,12 @@ import com.intellij.database.run.ui.grid.GridMutationModel
 import com.intellij.database.run.ui.grid.GridStorageAndModelUpdater
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.database.run.ui.DataGridRequestPlace
+import com.intellij.database.run.ui.table.TableResultView
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.EDT
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.util.containers.JBIterable
@@ -197,7 +202,9 @@ class DbGridEdits(
   /** A new row's INSERT: the cells set in it, DEFAULT ones left to the database. */
   private fun insertStatement(row: GridRow): DbStatement = target.insert(insertValues(row))
 
-  private fun insertValues(row: GridRow): Map<Int, Any?> = changed[row].orEmpty().filterValues { it !== DEFAULT }
+  /** The cells to insert; cells still [DbUnsetCells.UNSET] (or set to DEFAULT) are left out, the database fills them. */
+  private fun insertValues(row: GridRow): Map<Int, Any?> =
+    changed[row].orEmpty().filterValues { it !== DEFAULT && it !== DbUnsetCells.UNSET }
 
   /** Revert Selected (Ctrl+Alt+Z): drops the changes of the selected cells and undeletes the selected rows. */
   override fun revert(source: GridRequestSource, rows: ModelIndexSet<GridRow>, columns: ModelIndexSet<GridColumn>) {
@@ -315,8 +322,10 @@ class DbGridEdits(
             }
             is Op.Insert -> {
               inserted.remove(op.row)
-              changed.remove(op.row)?.forEach { (c, v) -> if (v !== DEFAULT) op.row.setValue(c, v) }
+              changed.remove(op.row)?.forEach { (c, v) -> if (v !== DEFAULT && v !== DbUnsetCells.UNSET) op.row.setValue(c, v) }
               stored?.forEachIndexed { i, v -> op.row.setValue(target.editableColumns[i], DbGridTime.toGrid(v)) }
+              // what the row could not be read back for is not "to be defaulted" any more
+              for (c in 0 until hookUp.dataModel.columnCount) if (op.row.getValue(c) === DbUnsetCells.UNSET) op.row.setValue(c, null)
               cellsUpdated(op.row, (0 until hookUp.dataModel.columnCount).toList(), source)
             }
             is Op.Delete -> {
@@ -344,7 +353,21 @@ class DbGridEdits(
       DbConsoles.openConsole(project, dataSource, target.insertTemplate(null))
       return
     }
-    addRows(List(amount.coerceAtLeast(1)) { arrayOfNulls<Any?>(hookUp.dataModel.columnCount) }, copied = false)
+    val first = addRows(List(amount.coerceAtLeast(1)) { Array<Any?>(hookUp.dataModel.columnCount) { DbUnsetCells.UNSET } }, copied = false)
+    startEditing(source, first)
+  }
+
+  /** Selects a cell of the grid and starts editing it; tests replace it to see where. Called on the EDT with model indices. */
+  internal var startEdit: (DataGrid, Int, Int) -> Unit = { grid, row, column ->
+    grid.selectionModel.setSelection(ModelIndex.forRow(grid, row), ModelIndex.forColumn(grid, column))
+    (grid.resultView as? TableResultView)?.editSelectedCell()
+  }
+
+  /** After Add Row: the first editable cell of the new row [row] is selected and edited, once the grid has laid the row out. */
+  private fun startEditing(source: GridRequestSource, row: Int) {
+    val grid = (source.place as? DataGridRequestPlace)?.grid as? DataGrid ?: return
+    val column = (0 until hookUp.dataModel.columnCount).firstOrNull { target.isEditable(it) } ?: return
+    ApplicationManager.getApplication().invokeLater({ if (!Disposer.isDisposed(grid)) startEdit(grid, row, column) }, ModalityState.defaultModalityState())
   }
 
   /** Clone Row: a new row with the values of [toClone], key included, to change before Submit. */
@@ -357,7 +380,8 @@ class DbGridEdits(
     addRows(listOf(GridRow.getValues(row).copyOf()), copied = true)
   }
 
-  private fun addRows(values: List<Array<Any?>>, copied: Boolean) {
+  /** Appends [values] as new rows; the model index of the first. */
+  private fun addRows(values: List<Array<Any?>>, copied: Boolean): Int {
     val start = hookUp.dataModel.rowCount
     val rows = values.mapIndexed { i, v -> com.intellij.database.datagrid.DataConsumer.Row.create(start + i, v) }
     hookUp.updater.addRows(rows)
@@ -366,6 +390,7 @@ class DbGridEdits(
       inserted.add(row)
       if (copied) changed[row] = LinkedHashMap(v.indices.filter { target.isEditable(it) }.associateWith { v[it] })
     }
+    return start
   }
 
   override fun isDeletedRow(row: ModelIndex<GridRow>): Boolean = hookUp.row(row)?.let { it in deleted } == true

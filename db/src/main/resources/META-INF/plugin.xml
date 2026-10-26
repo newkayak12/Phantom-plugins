@@ -34,6 +34,13 @@
   Results grid: WHERE / ORDER BY fields with column completion and history, header clicks sorting a table on the server,
   a Value Viewer (JSON, XML, hex, images), Transpose, selection sum/avg/min/max, pinned result tabs, and Copy/Export as
   TSV, CSV, JSON, SQL INSERT, Markdown or HTML (a whole table streamed to a file).
+  Grid edits wait until Submit: replacing the result (re-running, refreshing, paging, filtering) or closing its tab with
+  unsubmitted changes asks Submit, Discard or Cancel. Add Row selects the new row's first editable cell and starts
+  editing it; cells not yet filled show a grey &lt;default&gt; and take the database's default on Submit. Right-click a
+  .sql file in the project view or on its editor tab for Run 'file.sql', which asks for a data source and runs every
+  statement in a result tab. Dump to File and Restore from File on a data source or schema run mysqldump / mysql
+  (MySQL, MariaDB) or pg_dump / psql (PostgreSQL) in the background, passing the password in the environment, not on the
+  command line; they do not work over an SSH tunnel. TIMESTAMP values in the grid show their fractional seconds.
   ]]></description>
 
   <dependencies>

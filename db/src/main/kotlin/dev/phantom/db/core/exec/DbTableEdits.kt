@@ -176,7 +176,7 @@ class DbEditTarget(
   /** An INSERT with [values] (or NULLs) for the table columns of the result, to finish in a console. */
   fun insertTemplate(values: Array<Any?>?): String {
     val columns = columnSql.indices.filter { isEditable(it) }
-    val literals = columns.map { i -> if (values == null) "NULL" else DbStatement.literal(DbGridTime.fromGrid(values[i]), dbms) }
+    val literals = columns.map { i -> if (values == null) "NULL" else DbStatement.literal(DbUnsetCells.stored(values[i]), dbms) }
     return "INSERT INTO $tableSql (${columns.joinToString { columnSql[it]!! }}) VALUES (${literals.joinToString()});"
   }
 

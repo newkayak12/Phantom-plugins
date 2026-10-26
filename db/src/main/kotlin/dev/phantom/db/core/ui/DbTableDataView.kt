@@ -142,7 +142,9 @@ class DbTableDataView(private val project: Project, dataSource: DbDataSource, va
     load(0)
   }
 
-  fun load(newOffset: Int) {
+  fun load(newOffset: Int) = result.leaveEdits { reload(newOffset) }
+
+  private fun reload(newOffset: Int) {
     job?.cancel()
     val ds = dataSource
     val size = pageSize

@@ -7,7 +7,9 @@ import com.intellij.database.datagrid.color.MutationsColorLayer
 import dev.phantom.db.core.dialect
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.EDT
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
@@ -23,6 +25,8 @@ import com.intellij.ui.components.JBTabbedPane
 import com.intellij.ui.components.JBTextArea
 import com.intellij.ui.content.Content
 import com.intellij.ui.content.ContentFactory
+import com.intellij.ui.content.ContentManagerEvent
+import com.intellij.ui.content.ContentManagerListener
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import dev.phantom.db.core.DbColorService
@@ -60,7 +64,7 @@ import javax.swing.JPanel
  * Value Viewer, Copy As), then the rows in the community data grid. Several statements at once get one tab per result
  * plus an Output tab. A select from one table gets WHERE and ORDER BY fields that run it again filtered.
  */
-class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disposable {
+class DbResultPanel(val project: Project) : JPanel(BorderLayout()), Disposable {
   var job: Job? = null
 
   /** The data source the shown results came from; a single-table result from it can be edited in place. */
@@ -250,10 +254,10 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
     val base = filterBase ?: return
     val bar = filterBar ?: return
     val ds = dataSource ?: return
-    DbTableQuery.problem(bar.where, bar.orderBy)?.let { return showError(it) }
+    DbTableQuery.problem(bar.where, bar.orderBy)?.let { return leaveEdits { showError(it) } }
     val sql = SingleTableSelect.refilter(base, bar.where, bar.orderBy) ?: return
     when (val verdict = SqlSafety.check(ds, listOf(sql))) {
-      is SqlSafety.Verdict.Blocked -> return showError(verdict.message)
+      is SqlSafety.Verdict.Blocked -> return leaveEdits { showError(verdict.message) }
       is SqlSafety.Verdict.Confirm -> if (com.intellij.openapi.ui.Messages.showOkCancelDialog(project, verdict.message, PhantomDbBundle.message("db.safety.title"),
                                                                                            PhantomDbBundle.message("db.safety.run"),
                                                                                            com.intellij.openapi.ui.Messages.getCancelButton(),
@@ -261,17 +265,37 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
       SqlSafety.Verdict.Ok -> {}
     }
     val runIn = schema
-    showRunning(SqlSafety.preview(sql), keepFilter = true)
-    job = DbConnectionService.getInstance(project).launch {
-      try {
-        val outcomes = DbExecutor.execute(project, ds, listOf(sql), schema = runIn)
-        withContext(Dispatchers.EDT) { showOutcomes(outcomes) }
+    leaveEdits {
+      showRunning(SqlSafety.preview(sql), keepFilter = true)
+      job = DbConnectionService.getInstance(project).launch {
+        try {
+          val outcomes = DbExecutor.execute(project, ds, listOf(sql), schema = runIn)
+          withContext(Dispatchers.EDT) { showOutcomes(outcomes) }
+        }
+        catch (e: java.sql.SQLException) {
+          withContext(Dispatchers.EDT) { showError(DbExecutor.message(e)) }
+        }
+        catch (e: DbException) {
+          withContext(Dispatchers.EDT) { showError(e.message.orEmpty()) }
+        }
       }
-      catch (e: java.sql.SQLException) {
-        withContext(Dispatchers.EDT) { showError(DbExecutor.message(e)) }
-      }
-      catch (e: DbException) {
-        withContext(Dispatchers.EDT) { showError(e.message.orEmpty()) }
+    }
+  }
+
+  /**
+   * Runs [then], which replaces the shown result or closes its tab, once the grid's waiting changes are dealt with: at
+   * once without any, else after the user chose Submit (then only if every change was written, on the EDT), Discard, or
+   * Cancel (never).
+   */
+  fun leaveEdits(then: () -> Unit) {
+    val edits = shownEditing
+    if (edits == null || !edits.hasPendingChanges() || project.isDisposed || !project.isOpen) return then()
+    when (DbUnsubmittedChanges.ask(this)) {
+      DbUnsubmittedAnswer.CANCEL -> {}
+      DbUnsubmittedAnswer.DISCARD -> then()
+      DbUnsubmittedAnswer.SUBMIT -> {
+        val source = com.intellij.database.datagrid.GridRequestSource(shownGrid?.let { com.intellij.database.run.ui.DataGridRequestPlace(it) })
+        edits.submit(source) { ok -> if (ok) withContext(Dispatchers.EDT) { then() } }
       }
     }
   }
@@ -308,12 +332,14 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
                                          // the setup the community CSV editor uses: helpers, renderers, formatters, cell editors
                                          GridUtil.configureCsvTable(g, appearance)
                                          GridUtil.configureFullSizeTable(g, appearance)
+                                         DbObjectFormatter.install(g)
+                                       DbUnsetCells.install(g)
                                        })
     Disposer.register(parent, grid)
     if (table != null) DbForeignKeyActions.installShortcut(grid)
     // fill through the updater so the grid gets the column and row events it lays itself out from
     val updater = hookUp.createUpdater()
-    updater.setColumns(rows.columns.mapIndexed { i, c -> DataConsumer.Column(i, c.name, c.sqlType, c.typeName, c.className) })
+    updater.setColumns(rows.columns.mapIndexed { i, c -> DataConsumer.Column(i, c.name, c.sqlType, c.typeName, c.className, c.precision, c.scale, null, null, null) })
     updater.addRows(rows.rows.mapIndexed { i, values -> DataConsumer.Row.create(i, DbGridTime.toGrid(values)) })
     updater.afterLastRowAdded()
     if (transposed) grid.resultView.isTransposed = true
@@ -468,6 +494,7 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
   private fun replace(north: JComponent, center: JComponent?, status: String, disposable: Disposable? = null) {
     shown?.let { Disposer.dispose(it) }
     shown = disposable
+    shownEditing = null
     disposable?.let { Disposer.register(this, it) }
     if (disposable == null) {
       shownRows = null
@@ -504,6 +531,18 @@ class DbResultPanel(private val project: Project) : JPanel(BorderLayout()), Disp
 object DbResultsToolWindow {
   const val ID: String = "Phantom DB Results"
   private const val MAX_TABS = 10
+
+  /**
+   * Hands [then] the tab for [file] once its shown result may be replaced: at once for a new or clean tab, else after
+   * [DbResultPanel.leaveEdits]. The tab is only retitled and selected then, so Cancel leaves it as it was.
+   */
+  fun tabForGuarded(project: Project, file: VirtualFile, dataSource: DbDataSource, sql: String? = null, then: (DbResultPanel) -> Unit) {
+    val key = "${file.url}|${dataSource.id}"
+    val existing = toolWindow(project).contentManager.contents.firstOrNull { !it.isPinned && (it.component as? DbResultPanel)?.tabKey == key }
+      ?.component as? DbResultPanel
+    if (existing == null) then(tabFor(project, file, dataSource, sql))
+    else existing.leaveEdits { then(tabFor(project, file, dataSource, sql)) }
+  }
 
   /** [sql]: what is about to run, for the tab title; without it the tab is named after the console or file. */
   fun tabFor(project: Project, file: VirtualFile, dataSource: DbDataSource, sql: String? = null): DbResultPanel {
@@ -596,7 +635,36 @@ object DbResultsToolWindow {
       stripeTitle = Supplier { PhantomDbBundle.message("db.results.title") }
       canCloseContent = true
       hideOnEmptyContent = false
-    }.also { it.setAdditionalGearActions(tabActions(project)) }
+    }.also {
+      it.setAdditionalGearActions(tabActions(project))
+      it.contentManager.addContentManagerListener(closeGuard(project, it.contentManager))
+    }
+  }
+
+  /** Asks about unsubmitted grid changes before a tab closes: the close is held back, then repeated once they are dealt with. */
+  private fun closeGuard(project: Project, manager: com.intellij.ui.content.ContentManager) = object : ContentManagerListener {
+    private val closing = mutableSetOf<Content>()
+
+    override fun contentRemoveQuery(event: ContentManagerEvent) {
+      val content = event.content
+      if (content in closing || project.isDisposed || !project.isOpen) return
+      val panel = when (val c = content.component) {
+        is DbResultPanel -> c
+        is DbTableDataView -> c.result
+        else -> return
+      }
+      if (panel.shownEditing?.hasPendingChanges() != true) return
+      event.consume()
+      panel.leaveEdits {
+        closing.add(content)
+        try {
+          manager.removeContent(content, true)
+        }
+        finally {
+          closing.remove(content)
+        }
+      }
+    }
   }
 
   private fun tabActions(project: Project) = DefaultActionGroup(
@@ -632,5 +700,23 @@ class DbCancelAction : com.intellij.openapi.project.DumbAwareAction() {
     val project = e.project ?: return
     val file = e.getData(com.intellij.openapi.actionSystem.CommonDataKeys.VIRTUAL_FILE) ?: return
     DbResultsToolWindow.running(project, file).forEach { it.job?.cancel() }
+  }
+}
+
+/** What the user chose for grid changes not yet submitted. */
+enum class DbUnsubmittedAnswer { SUBMIT, DISCARD, CANCEL }
+
+/** The question behind [DbResultPanel.leaveEdits]. */
+object DbUnsubmittedChanges {
+  /** Answers for [panel]'s waiting changes; tests replace it (and put it back), as the dialog cannot show there. */
+  internal var ask: (DbResultPanel) -> DbUnsubmittedAnswer = { panel ->
+    if (ApplicationManager.getApplication().isUnitTestMode) DbUnsubmittedAnswer.DISCARD
+    else when (Messages.showYesNoCancelDialog(panel.project, PhantomDbBundle.message("db.unsubmitted.message"), PhantomDbBundle.message("db.unsubmitted.title"),
+                                              PhantomDbBundle.message("db.unsubmitted.submit"), PhantomDbBundle.message("db.unsubmitted.discard"),
+                                              Messages.getCancelButton(), Messages.getWarningIcon())) {
+      Messages.YES -> DbUnsubmittedAnswer.SUBMIT
+      Messages.NO -> DbUnsubmittedAnswer.DISCARD
+      else -> DbUnsubmittedAnswer.CANCEL
+    }
   }
 }
