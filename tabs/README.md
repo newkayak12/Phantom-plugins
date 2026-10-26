@@ -1,0 +1,16 @@
+# Phantom Tab Groups
+
+`dev.phantom.tabs` · [한국어](./KOR.md)
+
+Editor tab groups, as in a web browser.
+
+- **Groups:** right-click a tab → Add Tab to New Group / Add Tab to Group / Remove from Group. Group members get a faint background in the group's color, and the group's first tab shows its name (`Work · Service.kt`).
+- **Collapse:** right-click a grouped tab → Collapse Group. Only the first tab stays, showing the group's name and size (`▸ Work (3)`); click it, or Expand Group, to open the group again. Collapsing only hides tabs: files stay open and grouped tabs are never closed by the tab limit.
+- **Group menu:** Rename Group…, Color, Ungroup and Close Group in the same tab menu.
+- **Order:** a group's tabs stay together; drag tabs in and out of a group.
+- Groups belong to each editor split and are kept with the project. Nothing changes in the tab bar until you make a group.
+
+Collapsing needs tabs on top, in one scrolling row, not sorted alphabetically; otherwise groups only color and name their tabs.
+
+Until 2026-10-26 this was bundled with Phantom (`phantom-tabs`) and drew a chip in the tab label through Phantom-only
+platform changes. It is a plugin on the public platform API now, so it updates without a new Phantom build.
