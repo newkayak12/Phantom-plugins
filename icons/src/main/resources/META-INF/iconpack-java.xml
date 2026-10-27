@@ -1,0 +1,9 @@
+<!-- Loads only where the Java plugin is installed; without it .java files keep the Java cup from the file icon provider. -->
+<idea-plugin>
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- after the file and folder provider; any provider's answer replaces the class icon PsiClassImpl computes -->
+    <iconProvider implementation="dev.phantom.iconpack.JavaKindIconProvider" order="after phantomIconPack"/>
+    <!-- last: after the Java plugin's patchers, which give the file its class's icon -->
+    <fileIconPatcher implementation="dev.phantom.iconpack.JavaFileLogoPatcher" order="last"/>
+  </extensions>
+</idea-plugin>

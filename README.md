@@ -36,6 +36,7 @@ Public repositories need no token.
 | Phantom Migrations | [migrations](./migrations/README.md) · [한국어](./migrations/KOR.md) | Flyway file names and duplicate versions; Liquibase duplicate changesets and missing includes |
 | Phantom OpenAPI | [openapi](./openapi/README.md) · [한국어](./openapi/KOR.md) | `$ref` navigation, completion and errors in OpenAPI/Swagger specs; spec ↔ handler gutters |
 | Phantom HTTP Client | [http-client](./http-client/README.md) · [한국어](./http-client/KOR.md) | `.http` / `.rest` requests run from the editor: environments, `import` / `run`, checks, response view |
+| Phantom Icon Pack | [icons](./icons/README.md) · [한국어](./icons/KOR.md) | Material file and folder icons; Java cup and Kotlin logo on their files, Java classes by kind |
 | Phantom Tab Groups | [tabs](./tabs/README.md) · [한국어](./tabs/KOR.md) | Editor tab groups as in a browser: name, color, collapse to the first tab, drag in and out, per split |
 | Phantom Workspaces | [workspaces](./workspaces/README.md) · [한국어](./workspaces/KOR.md) | All open projects as tabs of one window: a project tab strip above the editor, project windows stacked at one size and position |
 

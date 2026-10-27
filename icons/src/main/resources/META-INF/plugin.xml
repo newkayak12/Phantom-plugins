@@ -1,0 +1,27 @@
+<idea-plugin>
+  <id>dev.phantom.iconpack</id>
+  <name>Phantom Icon Pack</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>User Interface</category>
+  <description><![CDATA[
+  Colored file and folder icons by name and extension, drawn from the Material Icon Theme by Philipp Kief (MIT).
+  Java files show the Java cup and Kotlin files the Kotlin logo, also where the file is shown as the class it declares
+  (Project view, navigation bar, editor tabs); Java classes show Material icons by kind (class, abstract class,
+  interface, enum, record, annotation, exception). Source, test and resource roots get their own folder colors.
+  Only the icons of files on screen are loaded. Turn the plugin off to get the platform icons back.
+  ]]></description>
+
+  <depends>com.intellij.modules.lang</depends>
+  <depends optional="true" config-file="iconpack-java.xml">com.intellij.java</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <fileIconProvider implementation="dev.phantom.iconpack.MaterialFileIconProvider" order="first"/>
+    <iconProvider id="phantomIconPack" implementation="dev.phantom.iconpack.MaterialPsiIconProvider" order="first"/>
+    <!-- first: before the language navbar extensions return the class icon -->
+    <navbar implementation="dev.phantom.iconpack.LogoFileNavBarIcon" order="first"/>
+    <!-- last: after the Kotlin and Java plugins have set the class icon -->
+    <projectViewNodeDecorator implementation="dev.phantom.iconpack.LogoFileNodeDecorator" order="last"/>
+    <!-- a deleted or not yet fetched file in the VCS views keeps its icon -->
+    <openapi.vcs.changes.ui.filePathIconProvider implementation="dev.phantom.iconpack.MaterialFilePathIconProvider"/>
+  </extensions>
+</idea-plugin>

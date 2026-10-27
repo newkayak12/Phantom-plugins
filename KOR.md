@@ -36,6 +36,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom Migrations | [migrations](./migrations/KOR.md) · [English](./migrations/README.md) | Flyway 파일 이름과 중복 버전, Liquibase 중복 changeset과 없는 include |
 | Phantom OpenAPI | [openapi](./openapi/KOR.md) · [English](./openapi/README.md) | OpenAPI/Swagger 스펙의 `$ref` 이동·자동완성·오류, 스펙 ↔ 핸들러 거터 |
 | Phantom HTTP Client | [http-client](./http-client/KOR.md) · [English](./http-client/README.md) | `.http` / `.rest` 요청을 에디터에서 실행: 환경 변수, `import` / `run`, 검사, 응답 창 |
+| Phantom Icon Pack | [icons](./icons/KOR.md) · [English](./icons/README.md) | Material 파일·폴더 아이콘; Java 파일은 찻잔, Kotlin 파일은 로고, Java 클래스는 종류별 |
 | Phantom Tab Groups | [tabs](./tabs/KOR.md) · [English](./tabs/README.md) | 브라우저처럼 에디터 탭 그룹: 이름, 색, 첫 탭으로 접기, 끌어서 넣고 빼기, 분할마다 |
 | Phantom Workspaces | [workspaces](./workspaces/KOR.md) · [English](./workspaces/README.md) | 열린 프로젝트를 한 창의 탭처럼: 에디터 위 프로젝트 탭 줄, 같은 크기·위치로 겹친 프로젝트 창 |
 

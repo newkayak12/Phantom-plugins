@@ -41,6 +41,7 @@ include("openapi")
 include("http-client")
 include("tabs")
 include("workspaces")
+include("icons")
 
 // Real-IDE probe (see realide-probe/): only with -PrealIde, never part of CI or the marketplace
 if (providers.gradleProperty("realIde").isPresent) {
