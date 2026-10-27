@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.workspaces.core
 
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.ActionUiKind
@@ -17,20 +18,51 @@ import com.intellij.openapi.options.advanced.AdvancedSettingsChangeListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectCloseListener
 import com.intellij.openapi.project.ProjectNameListener
+import com.intellij.openapi.wm.IdeFrame
 import com.intellij.util.SystemProperties
 import com.intellij.util.concurrency.annotations.RequiresEdt
+import java.awt.AWTEvent
+import java.awt.Component
+import java.awt.Toolkit
+import java.awt.event.AWTEventListener
+import java.awt.event.HierarchyEvent
+import javax.swing.JFrame
 
 /**
  * The open project windows: their tab strips and the [WindowStack] that keeps the windows on top of each other.
  * A project window joins when its strip is added to the frame and leaves when the strip is removed. EDT only.
+ *
+ * The platform shows a new project frame at its own saved bounds and adds the strip only after that, once the project
+ * is set. So a project frame about to be shown is put where the stack is when it gets its native window, right before
+ * it is shown ([placeNewFrame]); it joins later, with its strip.
  */
 @Service(Service.Level.APP)
-class ProjectTabsService {
+class ProjectTabsService : Disposable {
   private val stack = WindowStack()
   private val strips = ArrayList<ProjectTabStrip>()
   private val openOrder = ArrayList<Project>()
 
+  // Window.show() makes the frame displayable (addNotify) and only then shows it; the event comes in between
+  private val newFrameListener = AWTEventListener { e ->
+    if (e is HierarchyEvent && e.changeFlags and HierarchyEvent.DISPLAYABILITY_CHANGED.toLong() != 0L) placeNewFrame(e.component)
+  }
+
+  init {
+    Toolkit.getDefaultToolkit().addAWTEventListener(newFrameListener, AWTEvent.HIERARCHY_EVENT_MASK)
+  }
+
+  override fun dispose() {
+    Toolkit.getDefaultToolkit().removeAWTEventListener(newFrameListener)
+  }
+
   val isEnabled: Boolean get() = AdvancedSettings.getBoolean(ProjectTabs.SETTING_ID)
+
+  private fun placeNewFrame(component: Component) {
+    // a project frame, not a detached editor window; not shown yet
+    if (component !is JFrame || component !is IdeFrame || component is IdeFrame.Child) return
+    if (!component.isDisplayable || component.isVisible || !ApplicationManager.getApplication().isDispatchThread) return
+    if (isEnabled) stack.place(FrameWindow(component, null))
+  }
 
   @RequiresEdt
   internal fun attach(strip: ProjectTabStrip) {
@@ -57,9 +89,12 @@ class ProjectTabsService {
   @RequiresEdt
   internal fun windowMoved(window: StackedWindow): Boolean = isEnabled && stack.moved(window)
 
+  /** Pushes the pending move; true when it is still pending (the window in front may be entering full screen). */
   @RequiresEdt
-  internal fun flushMoves() {
-    if (isEnabled) stack.flush()
+  internal fun flushMoves(): Boolean {
+    if (!isEnabled) return false
+    stack.flush()
+    return stack.hasPendingMove
   }
 
   @RequiresEdt

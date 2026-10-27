@@ -3,6 +3,9 @@ package dev.phantom.workspaces.core
 
 import java.awt.Rectangle
 
+/** How long bounds that look like full screen wait for the window to report it (the animation takes about 0.5-1 s). */
+internal const val FULL_SCREEN_SETTLE_MS = 1500L
+
 /**
  * Where a window is. [bounds] are the normal (not maximized, not full screen) bounds; while [maximized] or
  * [fullScreen] they are the bounds to come back to.
@@ -12,6 +15,9 @@ data class WindowState(val bounds: Rectangle, val maximized: Boolean, val fullSc
 interface StackedWindow {
   val state: WindowState
   val isActive: Boolean
+
+  /** The whole screen the window is on (not less the menu bar or Dock), or null when not known. */
+  val screen: Rectangle? get() = null
 
   /** Entering or leaving full screen, which is asynchronous; its bounds mean nothing until it is over. */
   val isInTransition: Boolean get() = false
@@ -32,9 +38,10 @@ interface StackedWindow {
  * Full screen is only ever entered or left by [switchTo]: it is never pushed to the windows behind (on macOS every
  * full-screen window gets its own Space), and a window in full screen is left in it until it is switched to.
  */
-class WindowStack {
+class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
   private val windows = ArrayList<StackedWindow>()
   private var pending = false
+  private var suspectedSince: Long? = null
 
   var shared: WindowState? = null
     private set
@@ -42,11 +49,19 @@ class WindowStack {
   var front: StackedWindow? = null
     private set
 
-  /** A new window; it is moved on top of the others unless [align] is false (the stack is switched off). */
+  /** A move of the window in front is still to be pushed: [flush] again later. */
+  val hasPendingMove: Boolean get() = pending
+
+  /**
+   * A new window; it is moved on top of the others unless [align] is false (the stack is switched off). A window that is
+   * already active when it joins leads from then on: the OS makes a new window key while showing it, before it can join,
+   * so no activation follows. It still goes where the stack is, maximized or not, so one project saved maximized does not
+   * maximize the others. Normally [place] has already put it there before it was shown.
+   */
   fun add(window: StackedWindow, align: Boolean = true) {
     if (contains(window)) return
     windows += window
-    if (front == null) front = window
+    if (front == null || window.isActive) front = window
     val target = shared
     if (target == null) {
       if (!window.isInTransition) shared = window.state
@@ -54,6 +69,20 @@ class WindowStack {
     else if (align) {
       alignBehind(window, target)
     }
+  }
+
+  /**
+   * A window about to be shown that will join: put where the stack is, so it is not first seen somewhere else. A window
+   * restored maximized is left as it is: the platform zooms it only as it shows it and lays out its tool windows only
+   * after that zoom (IdeFrameImpl.isAboutToBeMaximized, ToolWindowPane.setWeight), which never comes if it is
+   * un-maximized before it is shown. It goes where the stack is when it joins ([add]).
+   */
+  fun place(window: StackedWindow) {
+    if (windows.isEmpty() || contains(window)) return
+    flush()
+    val target = shared ?: return
+    if (window.state.maximized) return
+    alignBehind(window, target)
   }
 
   fun remove(window: StackedWindow) {
@@ -76,8 +105,13 @@ class WindowStack {
     if (!pending) return
     val leader = front ?: return
     if (leader.isInTransition) return // stays pending; taken once the window has settled
-    pending = false
     val now = leader.state
+    if (mayBeEnteringFullScreen(leader, now)) {
+      val since = suspectedSince ?: clock().also { suspectedSince = it }
+      if (clock() - since < FULL_SCREEN_SETTLE_MS) return // stays pending, flushed again later
+    }
+    suspectedSince = null
+    pending = false
     val previous = shared
     val next = when {
       previous == null -> now
@@ -116,6 +150,19 @@ class WindowStack {
     front = window
     pending = true
     flush()
+  }
+
+  /**
+   * macOS gives a window going full screen its full-screen bounds (the whole width of the screen, down to its bottom) as
+   * the animation starts, and the platform reports full screen only as it ends (IdeFrame.isInFullScreen), well after the
+   * debounce. Such bounds of a window that is neither maximized nor in full screen are not pushed until it says it is in
+   * full screen or [FULL_SCREEN_SETTLE_MS] has passed (the user made it that big).
+   */
+  private fun mayBeEnteringFullScreen(window: StackedWindow, state: WindowState): Boolean {
+    if (state.fullScreen || state.maximized) return false
+    val screen = window.screen ?: return false
+    val b = state.bounds
+    return b.x <= screen.x && b.x + b.width >= screen.x + screen.width && b.y + b.height >= screen.y + screen.height
   }
 
   private fun contains(window: StackedWindow): Boolean = windows.any { it === window }

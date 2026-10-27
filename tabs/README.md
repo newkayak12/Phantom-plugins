@@ -14,3 +14,7 @@ Collapsing needs tabs on top, in one scrolling row, not sorted alphabetically; o
 
 Until 2026-10-26 this was bundled with Phantom (`phantom-tabs`) and drew a chip in the tab label through Phantom-only
 platform changes. It is a plugin on the public platform API now, so it updates without a new Phantom build.
+
+**0.1.1**, found running it in a real IDE: saved groups come back after a restart even when the project opens before any
+editor event (before, about one restart in 13 showed plain tabs); a group's name and color stay on its own split instead
+of also showing on the same file in another split; recoloring a group repaints its tabs at once.

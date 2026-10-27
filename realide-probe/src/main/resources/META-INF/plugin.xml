@@ -1,0 +1,14 @@
+<idea-plugin>
+  <id>dev.phantom.realide.probe</id>
+  <name>Phantom Real-IDE Probe</name>
+  <vendor>Phantom</vendor>
+  <description>Runs one scripted scenario in a sandbox IDE and writes report.json, PNGs and idea.log. Development only.</description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.platform"/>
+  </dependencies>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <postStartupActivity implementation="dev.phantom.realide.probe.ProbeStartup"/>
+  </extensions>
+</idea-plugin>

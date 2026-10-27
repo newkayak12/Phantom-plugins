@@ -8,12 +8,20 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectNameListener
 import com.intellij.openapi.project.ex.ProjectEx
 import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.wm.IdeFrame
 import com.intellij.openapi.wm.IdeRootPaneNorthExtension
+import com.intellij.openapi.wm.StatusBar
+import com.intellij.ui.BalloonLayout
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import dev.phantom.workspaces.core.ProjectTabStrip
 import dev.phantom.workspaces.core.ProjectTabs
 import dev.phantom.workspaces.core.ProjectTabsService
+import java.awt.GraphicsEnvironment
+import java.awt.Rectangle
+import java.awt.event.HierarchyEvent
+import javax.swing.JComponent
+import javax.swing.JFrame
 
 class WorkspacesInIdeTest : BasePlatformTestCase() {
   private val strips = mutableListOf<ProjectTabStrip>()
@@ -122,6 +130,47 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
     }
     settle()
     assertTrue(first.isVisible)
+  }
+
+  /** A project frame as the platform makes one: an [IdeFrame] that gets its project only after it is shown. */
+  private class ProjectFrame(bounds: Rectangle) : JFrame(), IdeFrame {
+    init {
+      this.bounds = bounds
+    }
+
+    override fun getStatusBar(): StatusBar? = null
+    override fun suggestChildFrameBounds(): Rectangle = bounds
+    override fun getProject(): Project? = null
+    override fun setFrameTitle(title: String) {}
+    override fun getComponent(): JComponent = rootPane
+    override fun getBalloonLayout(): BalloonLayout? = null
+  }
+
+  // W10 (real IDE, S3): the platform shows a new project frame at its own saved bounds and adds the north components
+  // (the strip) only afterwards, so the frame was seen at its saved bounds and then jumped onto the stack
+  fun testANewProjectFrameIsShownWhereTheOtherProjectFramesAre() {
+    if (GraphicsEnvironment.isHeadless()) return // needs a screen, like FrameWindowTest
+    val stacked = Rectangle(100, 100, 800, 600)
+    val first = ProjectFrame(stacked)
+    val newFrame = ProjectFrame(Rectangle(300, 200, 500, 400))
+    try {
+      val strip = extension().createComponent(project, isDocked = false) as ProjectTabStrip
+      strips += strip
+      first.contentPane.add(strip)
+      first.addNotify() // the strip's addNotify joins the stack
+      assertNotNull(strip.window)
+
+      var shownAt: Rectangle? = null
+      newFrame.addHierarchyListener { e ->
+        if (e.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() != 0L && newFrame.isShowing && shownAt == null) shownAt = newFrame.bounds
+      }
+      newFrame.isVisible = true
+      assertEquals(stacked, shownAt)
+    }
+    finally {
+      newFrame.dispose()
+      first.dispose()
+    }
   }
 
   fun testSwitchingToAProjectWithoutAWindowDoesNothing() {

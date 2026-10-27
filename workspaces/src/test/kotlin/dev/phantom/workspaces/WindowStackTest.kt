@@ -6,6 +6,7 @@ import dev.phantom.workspaces.core.WindowStack
 import dev.phantom.workspaces.core.WindowState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.awt.Rectangle
@@ -28,6 +29,7 @@ class WindowStackTest {
   ) : StackedWindow {
     override var isActive: Boolean = false
     override var isInTransition: Boolean = false
+    override val screen: Rectangle get() = this@WindowStackTest.screen
     val applied = mutableListOf<WindowState>()
     private var afterTransition: (() -> Unit)? = null
 
@@ -73,7 +75,8 @@ class WindowStackTest {
     }
   }
 
-  private val stack = WindowStack()
+  private var now = 0L
+  private val stack = WindowStack { now }
 
   private fun window(name: String, bounds: Rectangle = home, maximized: Boolean = false, fullScreen: Boolean = false) =
     FakeWindow(name, bounds, maximized, fullScreen)
@@ -340,6 +343,124 @@ class WindowStackTest {
     b.normal = elsewhere
     stack.activated(b)
     assertEquals(home, b.normal)
+  }
+
+  // W2 (real IDE, S3): macOS makes a new project window key while it is shown, ~100 ms before its strip joins the stack,
+  // so its WINDOW_ACTIVATED reaches no listener of ours; the user then moves the window they have in front
+  @Test
+  fun newWindowActivatedBeforeItJoinedLeadsItsMoves() {
+    val a = window("a")
+    val b = window("b", elsewhere)
+    stackOf(a)
+    a.isActive = false
+    b.isActive = true // activated while shown, before the join
+    stack.add(b)
+    val moved = Rectangle(160, 140, 1000, 700)
+    moveFront(b) { normal = moved }
+    assertEquals(moved, a.normal)
+    assertEquals(moved, stack.shared!!.bounds)
+  }
+
+  // W9 (real IDE, S3): after W2 the user leaves the new window and comes back to it (the OS activates it again)
+  @Test
+  fun comingBackToAMovedNewWindowLeavesItWhereItWasMoved() {
+    val a = window("a")
+    val b = window("b", elsewhere)
+    stackOf(a)
+    a.isActive = false
+    b.isActive = true
+    stack.add(b)
+    val moved = Rectangle(160, 140, 1000, 700)
+    moveFront(b) { normal = moved }
+    stack.activated(b) // the user went to another app and came back to b
+    assertEquals(moved, b.normal)
+    assertEquals(moved, a.normal)
+  }
+
+  // W10 rework (s5 gate-1): a project saved maximized is shown maximized by the platform while the stack is not. The
+  // platform zooms it only as it shows it, so it cannot be put in place before (IdeFrameImpl.isAboutToBeMaximized would
+  // stay set and its tool windows never be laid out). When it joins, active, it leads but goes where the stack is: the
+  // other windows are not maximized because one project was saved maximized
+  @Test
+  fun newWindowShownMaximizedWhileTheStackIsNotJoinsTheWindowedStack() {
+    val a = window("a")
+    val b = window("b", elsewhere, maximized = true)
+    stackOf(a)
+    a.isActive = false
+    b.isActive = true
+    stack.add(b)
+    assertFalse(b.maximized)
+    assertEquals(home, b.normal)
+    assertFalse(a.maximized)
+    assertEquals(home, a.normal)
+    assertEquals(WindowState(home, maximized = false, fullScreen = false), stack.shared)
+    assertSame(b, stack.front)
+  }
+
+  // a window put in place before it was shown (WindowStack.place) and active when it joins stays where it is
+  @Test
+  fun newWindowPlacedBeforeItWasShownIsNotMovedAgainWhenItJoins() {
+    val a = window("a")
+    val b = window("b", elsewhere)
+    stackOf(a)
+    stack.place(b)
+    assertEquals(home, b.normal)
+    val moves = b.applied.size
+    a.isActive = false
+    b.isActive = true
+    stack.add(b)
+    assertEquals(moves, b.applied.size)
+    assertSame(b, stack.front)
+  }
+
+  // the platform's zoom is never undone before the window is shown (see above)
+  @Test
+  fun newWindowRestoredMaximizedIsNotPlacedBeforeItIsShown() {
+    val a = window("a")
+    val b = window("b", elsewhere, maximized = true)
+    stackOf(a)
+    stack.place(b)
+    assertTrue(b.maximized)
+    assertTrue(b.applied.isEmpty())
+  }
+
+  // W13 (real IDE, s5 attempt 2): the user puts the front window in full screen. macOS gives it its full-screen bounds
+  // (the whole width, down to the bottom of the screen) as the animation starts, and the platform says it is in full
+  // screen only when the animation ends, more than the 300 ms debounce later. Pushed as a move, those bounds made macOS
+  // zoom every window behind
+  @Test
+  fun frontWindowEnteringFullScreenIsNotPushedBehindBeforeItSaysSo() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(b, a)
+    val fullScreenBounds = Rectangle(0, 33, 1920, 1047)
+    moveFront(b) { normal = fullScreenBounds } // the debounce fires, the platform still says not in full screen
+    now += 300
+    stack.flush()
+    assertEquals(home, a.normal)
+    assertFalse(a.maximized)
+    assertTrue(stack.hasPendingMove)
+    now += 400
+    b.fullScreen = true // windowEnteredFullScreen
+    stack.flush()
+    assertEquals(home, a.normal)
+    assertFalse(a.fullScreen)
+    assertFalse(stack.hasPendingMove)
+    assertEquals(WindowState(home, maximized = false, fullScreen = true), stack.shared)
+  }
+
+  // a window the user made as big as its screen, which never goes full screen, is followed once it has settled
+  @Test
+  fun frontWindowAsBigAsItsScreenIsFollowedOnceItSettles() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(b, a)
+    val big = Rectangle(0, 33, 1920, 1047)
+    moveFront(b) { normal = big }
+    now += 2000
+    stack.flush()
+    assertEquals(big, a.normal)
+    assertFalse(stack.hasPendingMove)
   }
 
   @Test

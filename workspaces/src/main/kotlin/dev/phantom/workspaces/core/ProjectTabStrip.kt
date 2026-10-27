@@ -51,7 +51,8 @@ class ProjectTabStrip(val project: Project) : JPanel(HorizontalLayout(0)) {
 
   private val service: ProjectTabsService get() = ProjectTabsService.getInstance()
 
-  private val syncTimer = Timer(SYNC_DELAY_MS) { service.flushMoves() }.apply { isRepeats = false }
+  // flushed again while the move stays pending (WindowStack defers bounds that look like full screen)
+  private val syncTimer: Timer = Timer(SYNC_DELAY_MS) { e -> if (service.flushMoves()) (e.source as Timer).restart() }.apply { isRepeats = false }
   private val activationListener = object : WindowAdapter() {
     override fun windowActivated(e: WindowEvent) {
       window?.let { service.windowActivated(it) }
@@ -60,7 +61,7 @@ class ProjectTabStrip(val project: Project) : JPanel(HorizontalLayout(0)) {
     override fun windowDeactivated(e: WindowEvent) {
       if (syncTimer.isRunning) {
         syncTimer.stop()
-        service.flushMoves()
+        if (service.flushMoves()) syncTimer.restart()
       }
     }
   }

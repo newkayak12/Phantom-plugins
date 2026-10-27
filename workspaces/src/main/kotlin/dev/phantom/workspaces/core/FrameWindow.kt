@@ -28,6 +28,8 @@ class FrameWindow(
 
   override val isActive: Boolean get() = frame.isActive
 
+  override val screen: java.awt.Rectangle? get() = frame.graphicsConfiguration?.bounds
+
   override fun apply(state: WindowState) {
     val control = fullScreen
     if (control != null && state.fullScreen != control.isInFullScreen) {
