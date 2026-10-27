@@ -39,11 +39,26 @@ class TabGroupModelTest {
   }
 
   @Test
-  fun `a tab dropped right after a group does not join`() {
-    model.create(listOf("a", "b"), "g", TabGroupColor.BLUE)
-    model.onMoved(listOf("a", "b", "x", "y"), listOf("a", "b", "y", "x"))
+  fun `a tab dropped right after a group joins it, as in Chrome`() {
+    val g = model.create(listOf("a", "b"), "g", TabGroupColor.BLUE)
+    model.onMoved(listOf("a", "b", "x", "y"), listOf("a", "b", "y", "x"), dragged = "y")
+    assertSame(g, model.groupOf("y"))
     assertNull(model.groupOf("x"))
-    assertNull(model.groupOf("y"))
+  }
+
+  @Test
+  fun `a tab dragged next to a group of one tab joins it`() {
+    val g = model.create(listOf("a"), "g", TabGroupColor.BLUE)
+    model.onMoved(listOf("a", "x", "y"), listOf("a", "y", "x"), dragged = "y")
+    assertSame(g, model.groupOf("y"))
+    assertEquals(listOf("a", "y"), g.members)
+  }
+
+  @Test
+  fun `a tab dropped right before a group's chip stays outside`() {
+    model.create(listOf("a", "b"), "g", TabGroupColor.BLUE)
+    model.onMoved(listOf("a", "b", "x"), listOf("x", "a", "b"), dragged = "x")
+    assertNull(model.groupOf("x"))
   }
 
   @Test

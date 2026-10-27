@@ -467,6 +467,20 @@ internal object TabsScenario : ProbeScenario {
       }
     }
 
+    // Chrome: a tab dropped right after a group of one tab joins it
+    ctx.step("drag.intoSingle", mapOf("joined" to true)) {
+      val m = t.menu("b.txt", listOf(NEW_GROUP), answer = "One")
+      ctx.waitUntil(3000) { t.members()["One"]?.size == 1 }
+      val before = ctx.edt { t.order() }
+      // c (right of it) dropped on the right part of b: the tabs left of c do not shift while it is dragged
+      val d = t.drag("c.txt", { r -> r.getValue("b.txt").let { it.x + it.width - it.width / 4 } })
+      ctx.waitUntil(3000) { t.members()["One"]?.contains("c.txt") == true }
+      ctx.edt {
+        mapOf("create" to m, "drag" to d, "orderBefore" to before, "order" to t.order(),
+              "joined" to (t.members()["One"]?.contains("c.txt") == true), "members" to t.members())
+      }
+    }
+
     ctx.step("tablimit", mapOf("groupedTabsClosed" to 0)) {
       val grouped = ctx.edt { t.allMembers().values.flatten() }
       ctx.edt { settings.editorTabLimit = 3 }

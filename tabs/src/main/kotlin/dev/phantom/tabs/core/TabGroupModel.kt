@@ -83,8 +83,9 @@ class TabGroupModel {
   }
 
   /**
-   * A tab was dragged from [before] to [after]. It joins a group when it lands between two of its tabs, stays in its group
-   * while it still touches a tab of it, and leaves it otherwise. [dragged] is the tab the user dragged (the selected one),
+   * A tab was dragged from [before] to [after]. It joins a group when it lands between two of its tabs or right after its
+   * last tab (as in Chrome, so a group of one tab can be dragged into too), stays in its group while it still touches a tab
+   * of it, and leaves it otherwise; right before a group's first tab (its chip) is outside the group. [dragged] is the tab the user dragged (the selected one),
    * which settles swaps of two neighbors, where either tab could have moved.
    *
    * The whole group goes with the tab, as in Chrome, when it was dragged by the group's chip ([byChip]), when the group is
@@ -108,6 +109,7 @@ class TabGroupModel {
     when {
       left != null && left === right -> add(moved, left)
       own != null && (left === own || right === own) -> {}
+      left != null -> add(moved, left)
       else -> remove(moved)
     }
     groupOf(moved)?.members?.sortBy { after.indexOf(it) }
