@@ -229,12 +229,25 @@ class DbResultPanel(val project: Project) : JPanel(BorderLayout()), Disposable {
     val holder = holders.firstOrNull { it.grid === grid } ?: return null
     val dbms = dataSource?.dialect() ?: dev.phantom.db.core.Dbms.MYSQL
     val rows = DbGridSelection.rows(grid, holder.rows.columns, holder.rows.sql)
-    val target = if (format == DbExportFormat.INSERT) insertTarget(holder.rows, dbms) ?: DbExportUi.askTable(project) ?: return null else null
-    return format.render(rows, target, dbms)
+    val target = if (format.needsTable) insertTarget(holder.rows, dbms) ?: DbExportUi.askTable(project) ?: return null else null
+    return format.render(rows, target, dbms, updateKeys(DbGridSelection.columns(grid)))
+  }
+
+  /** What a Data Extractor needs to write [grid]'s rows; null for a grid this panel does not show. */
+  internal fun extractionContext(grid: DataGrid): DbExtractionContext? {
+    val holder = holders.firstOrNull { it.grid === grid } ?: return null
+    val dbms = dataSource?.dialect() ?: dev.phantom.db.core.Dbms.MYSQL
+    return DbExtractionContext(holder.rows.columns, insertTarget(holder.rows, dbms), dbms, shownEditing?.target?.keyColumns.orEmpty())
+  }
+
+  /** The key of the edited table among [columns] (result column indices), empty unless all of it is there. */
+  internal fun updateKeys(columns: List<Int>): List<Int> {
+    val keys = shownEditing?.target?.keyColumns.orEmpty()
+    return if (keys.isNotEmpty() && columns.containsAll(keys)) keys.map(columns::indexOf) else emptyList()
   }
 
   /** Where INSERTs of [rows] go: the edited table, the data view's table or the table of a single-table select. */
-  private fun insertTarget(rows: DbOutcome.Rows, dbms: dev.phantom.db.core.Dbms): String? =
+  internal fun insertTarget(rows: DbOutcome.Rows, dbms: dev.phantom.db.core.Dbms): String? =
     shownEditing?.target?.tableSql ?: table?.let { DbNames.table(dbms, it) } ?: DbExportFormat.tableSql(dbms, SingleTableSelect.parse(rows.sql))
 
   private fun startFilter(rows: DbOutcome.Rows, name: DbTableName) {

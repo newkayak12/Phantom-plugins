@@ -355,6 +355,8 @@ class DbGridEdits(
     }
     val first = addRows(List(amount.coerceAtLeast(1)) { Array<Any?>(hookUp.dataModel.columnCount) { DbUnsetCells.UNSET } }, copied = false)
     startEditing(source, first)
+    // Paste waits for this to fill the rows it added
+    hookUp.notifyRequestFinished(source, true)
   }
 
   /** Selects a cell of the grid and starts editing it; tests replace it to see where. Called on the EDT with model indices. */
@@ -363,11 +365,17 @@ class DbGridEdits(
     (grid.resultView as? TableResultView)?.editSelectedCell()
   }
 
-  /** After Add Row: the first editable cell of the new row [row] is selected and edited, once the grid has laid the row out. */
+  /**
+   * After Add Row: the first editable cell of the new row [row] is selected and edited, once the grid has laid the row
+   * out; not when the row was filled meanwhile (Paste adds rows and fills them).
+   */
   private fun startEditing(source: GridRequestSource, row: Int) {
     val grid = (source.place as? DataGridRequestPlace)?.grid as? DataGrid ?: return
     val column = (0 until hookUp.dataModel.columnCount).firstOrNull { target.isEditable(it) } ?: return
-    ApplicationManager.getApplication().invokeLater({ if (!Disposer.isDisposed(grid)) startEdit(grid, row, column) }, ModalityState.defaultModalityState())
+    val added = hookUp.row(ModelIndex.forRow(hookUp.dataModel, row))
+    ApplicationManager.getApplication().invokeLater({
+      if (!Disposer.isDisposed(grid) && added?.let { changed[it] }.isNullOrEmpty()) startEdit(grid, row, column)
+    }, ModalityState.defaultModalityState())
   }
 
   /** Clone Row: a new row with the values of [toClone], key included, to change before Submit. */
@@ -378,6 +386,7 @@ class DbGridEdits(
       return
     }
     addRows(listOf(GridRow.getValues(row).copyOf()), copied = true)
+    hookUp.notifyRequestFinished(source, true)
   }
 
   /** Appends [values] as new rows; the model index of the first. */

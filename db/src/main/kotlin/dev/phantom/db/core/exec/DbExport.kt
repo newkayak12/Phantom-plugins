@@ -28,21 +28,30 @@ import java.nio.file.Path
 import java.time.temporal.TemporalAccessor
 import java.util.Base64
 
-/** Result rows as text: TSV, CSV (RFC 4180), JSON, SQL INSERT statements, a Markdown table or an HTML table. */
+/**
+ * Result rows as text: TSV, CSV (RFC 4180), JSON, SQL INSERT statements (one per row or one for all), SQL UPDATE
+ * statements, the values on one line as SQL literals (for an IN list), a Markdown, HTML or XML table, or a text table.
+ */
 enum class DbExportFormat(val title: String, val extension: String) {
-  TSV("TSV", "tsv"), CSV("CSV", "csv"), JSON("JSON", "json"), INSERT("SQL INSERT", "sql"), MARKDOWN("Markdown", "md"), HTML("HTML", "html");
+  TSV("TSV", "tsv"), CSV("CSV", "csv"), JSON("JSON", "json"), INSERT("SQL INSERT", "sql"), INSERT_MULTIROW("SQL INSERT Multirow", "sql"),
+  UPDATE("SQL UPDATE", "sql"), ONE_ROW("One-Row", "txt"), MARKDOWN("Markdown", "md"), HTML("HTML", "html"), XML("XML", "xml"),
+  PRETTY("Pretty", "txt");
 
-  /** [table]: the INSERT target as SQL, quoted as needed; `table_name` when unknown. */
-  fun render(rows: DbOutcome.Rows, table: String?, dbms: Dbms): String {
+  /** Whether the text names the table the rows go to (INSERT, UPDATE). */
+  val needsTable: Boolean get() = this == INSERT || this == INSERT_MULTIROW || this == UPDATE
+
+  /** [table]: the INSERT / UPDATE target as SQL, quoted as needed; `table_name` when unknown. [keys]: the columns an UPDATE finds a row by, all when empty. */
+  fun render(rows: DbOutcome.Rows, table: String?, dbms: Dbms, keys: List<Int> = emptyList()): String {
     val out = StringBuilder()
-    val writer = writer(out, rows.columns, table, dbms)
+    val writer = writer(out, rows.columns, table, dbms, keys)
     rows.rows.forEach(writer::row)
     writer.finish()
     return out.toString()
   }
 
-  /** Writes rows one at a time, so a whole table can go to a file without holding it in memory. */
-  fun writer(out: Appendable, columns: List<DbColumn>, table: String?, dbms: Dbms): DbExportWriter = DbExportWriter(this, out, columns, table, dbms)
+  /** Writes rows one at a time, so a whole table can go to a file without holding it in memory (but Pretty, which lines up every row). */
+  fun writer(out: Appendable, columns: List<DbColumn>, table: String?, dbms: Dbms, keys: List<Int> = emptyList()): DbExportWriter =
+    DbExportWriter(this, out, columns, table, dbms, keys)
 
   companion object {
     /** [table] as it was written in a select: quoted parts quoted again, the others as typed (quoted only if they must be). */
@@ -54,20 +63,27 @@ enum class DbExportFormat(val title: String, val extension: String) {
 }
 
 class DbExportWriter internal constructor(private val format: DbExportFormat, private val out: Appendable, private val columns: List<DbColumn>,
-                                          table: String?, private val dbms: Dbms) {
+                                          table: String?, private val dbms: Dbms, keys: List<Int> = emptyList()) {
   var count: Long = 0
     private set
 
   private val target = table ?: "table_name"
   /** The result's column names as the database reported them, quoted where they would read differently unquoted. */
   private val names by lazy { columns.joinToString(", ") { DbNames.identifier(dbms, it.name) } }
+  /** The columns an UPDATE's WHERE matches: the key, else every column. */
+  private val keys = keys.filter { it in columns.indices }.ifEmpty { columns.indices.toList() }
+  /** Pretty's cells, header first, written when every width is known; a column is right aligned while all its values are numbers. */
+  private val pretty = mutableListOf<List<String>>()
+  private val numeric = BooleanArray(columns.size) { true }
 
   init {
     when (format) {
       DbExportFormat.TSV -> header('\t')
       DbExportFormat.CSV -> header(',')
       DbExportFormat.JSON -> out.append("[")
-      DbExportFormat.INSERT -> {}
+      DbExportFormat.INSERT, DbExportFormat.INSERT_MULTIROW, DbExportFormat.UPDATE, DbExportFormat.ONE_ROW -> {}
+      DbExportFormat.XML -> out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<data>\n")
+      DbExportFormat.PRETTY -> pretty.add(columns.map { it.name })
       DbExportFormat.MARKDOWN -> {
         out.append("| ").append(columns.joinToString(" | ") { md(it.name) }).append(" |\n")
         out.append("|").append(columns.joinToString("|") { " --- " }).append("|\n")
@@ -94,6 +110,35 @@ class DbExportWriter internal constructor(private val format: DbExportFormat, pr
       }
       DbExportFormat.INSERT -> out.append("INSERT INTO ").append(target).append(" (").append(names).append(") VALUES (")
         .append(values.joinToString(", ") { DbStatement.literal(it, dbms) }).append(");\n")
+      DbExportFormat.INSERT_MULTIROW -> {
+        if (count == 0L) out.append("INSERT INTO ").append(target).append(" (").append(names).append(")\nVALUES ") else out.append(",\n       ")
+        out.append("(").append(values.joinToString(", ") { DbStatement.literal(it, dbms) }).append(")")
+      }
+      DbExportFormat.UPDATE -> {
+        val set = columns.indices.filter { it !in keys }.ifEmpty { columns.indices.toList() }
+        out.append("UPDATE ").append(target).append(" SET ")
+          .append(set.joinToString(", ") { "${DbNames.identifier(dbms, columns[it].name)} = ${DbStatement.literal(values[it], dbms)}" })
+          .append(" WHERE ")
+          .append(keys.joinToString(" AND ") {
+            DbNames.identifier(dbms, columns[it].name) + if (values[it] == null) " IS NULL" else " = ${DbStatement.literal(values[it], dbms)}"
+          }).append(";\n")
+      }
+      DbExportFormat.ONE_ROW -> values.forEachIndexed { i, v ->
+        if (count > 0 || i > 0) out.append(", ")
+        out.append(DbStatement.literal(v, dbms))
+      }
+      DbExportFormat.XML -> {
+        out.append("  <row>\n")
+        columns.forEachIndexed { i, c ->
+          out.append("    <value column=\"").append(xml(c.name)).append('"')
+          if (values[i] == null) out.append(" null=\"true\"/>\n") else out.append(">").append(xml(cell(values[i]))).append("</value>\n")
+        }
+        out.append("  </row>\n")
+      }
+      DbExportFormat.PRETTY -> {
+        values.forEachIndexed { i, v -> if (v != null && v !is Number) numeric[i] = false }
+        pretty.add(values.map { if (it == null) "NULL" else cell(it).replace("\r\n", " ").replace('\n', ' ').replace('\r', ' ') })
+      }
       DbExportFormat.MARKDOWN -> out.append("| ").append(values.joinToString(" | ") { md(if (it == null) "NULL" else cell(it)) }).append(" |\n")
       DbExportFormat.HTML -> {
         out.append("  <tr>")
@@ -108,8 +153,25 @@ class DbExportWriter internal constructor(private val format: DbExportFormat, pr
     when (format) {
       DbExportFormat.JSON -> out.append(if (count == 0L) "]" else "\n]")
       DbExportFormat.HTML -> out.append("</table>\n")
+      DbExportFormat.INSERT_MULTIROW -> if (count > 0) out.append(";\n")
+      DbExportFormat.XML -> out.append("</data>\n")
+      DbExportFormat.PRETTY -> prettyTable()
       else -> {}
     }
+  }
+
+  /** A text table: `+---+` rules, a header row, then the rows. */
+  private fun prettyTable() {
+    val widths = columns.indices.map { c -> pretty.maxOf { it[c].length } }
+    val rule = widths.joinToString("+", "+", "+\n") { "-".repeat(it + 2) }
+    out.append(rule)
+    pretty.forEachIndexed { r, cells ->
+      out.append(cells.indices.joinToString("|", "|", "|\n") { c ->
+        " " + (if (r > 0 && numeric[c]) cells[c].padStart(widths[c]) else cells[c].padEnd(widths[c])) + " "
+      })
+      if (r == 0) out.append(rule)
+    }
+    out.append(rule)
   }
 
   private fun header(separator: Char) = delimited(columns.map { it.name }, separator)
@@ -129,6 +191,9 @@ class DbExportWriter internal constructor(private val format: DbExportFormat, pr
   }
 
   private fun md(s: String) = s.replace("\\", "\\\\").replace("|", "\\|").replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
+
+  /** XML text or attribute content; characters XML 1.0 cannot hold are dropped. */
+  private fun xml(s: String) = html(s).filter { it == '\t' || it == '\n' || it == '\r' || it >= ' ' }
 
   private fun html(s: String) = s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 
@@ -275,7 +340,7 @@ object DbExportUi {
         when (how) {
           2 -> wholeTable!!(format)
           else -> {
-            val target = if (format == DbExportFormat.INSERT) table ?: askTable(project) ?: return@doFinalStep else table
+            val target = if (format.needsTable) table ?: askTable(project) ?: return@doFinalStep else table
             val text = format.render(rows, target, dbms)
             if (how == 0) CopyPasteManager.getInstance().setContents(StringSelection(text))
             else chooseFile(project, format, SingleTableSelect.parse(rows.sql)?.table ?: "result")?.let { Files.writeString(it, text) }

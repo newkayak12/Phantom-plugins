@@ -44,6 +44,9 @@ object DbGridSelection {
     return rows.flatMap { r -> cols.map { c -> DbUnsetCells.stored(model.getValueAt(r, c)) } }
   }
 
+  /** The result column indices of the selected columns, in the order the grid shows them. */
+  fun columns(grid: DataGrid): List<Int> = indices(grid).second.map { it.value }
+
   private fun indices(grid: DataGrid): Pair<List<ModelIndex<GridRow>>, List<ModelIndex<GridColumn>>> {
     val selection = grid.selectionModel
     val rows = selection.selectedRows.asIterable().filter { it.isValid(grid) }.sortedBy { it.toView(grid).value }

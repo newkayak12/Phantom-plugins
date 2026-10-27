@@ -214,6 +214,56 @@ class DbGridEditTest : BasePlatformTestCase() {
     assertEquals(3, model.rowCount)
   }
 
+  /** The grid's own Clone Row (⌘D) and Paste (⌘V) work on a result's rows, as in DataGrip. */
+  fun testCloneRowAndPasteActions() = immediately(false) {
+    val ds = h2()
+    exec(ds, "CREATE TABLE t (id INT PRIMARY KEY, name VARCHAR(10), qty INT)", "INSERT INTO t VALUES (1, 'a', 1), (2, 'b', 2)")
+    myFixture.configureByText("cp.sql", "SELECT * FROM t ORDER BY id")
+    DbRunner.start(project, myFixture.file.virtualFile, ds, listOf("SELECT * FROM t ORDER BY id"))
+    val panel = { ToolWindowManager.getInstance(project).getToolWindow(DbResultsToolWindow.ID)?.contentManager?.selectedContent?.component as? DbResultPanel }
+    PlatformTestUtil.waitWithEventsDispatching("grid not editable; status: ${panel()?.shownStatus}", { panel()?.shownEditing != null }, 20)
+    val grid = panel()!!.shownGrid!!
+    val edits = panel()!!.shownEditing!!
+    val model = edits.hookUp.dataModel
+    fun run(id: String) {
+      val action = com.intellij.openapi.actionSystem.ActionManager.getInstance().getAction(id)
+      val context = com.intellij.openapi.actionSystem.impl.SimpleDataContext.builder()
+        .add(com.intellij.openapi.actionSystem.CommonDataKeys.PROJECT, project)
+        .add(com.intellij.database.DatabaseDataKeys.DATA_GRID_KEY, grid)
+        .build()
+      val event = com.intellij.testFramework.TestActionEvent.createTestEvent(action, context)
+      com.intellij.openapi.actionSystem.ex.ActionUtil.updateAction(action, event)
+      assertTrue("$id disabled", event.presentation.isEnabled)
+      com.intellij.openapi.actionSystem.ex.ActionUtil.performAction(action, event)
+      PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+    }
+    // as the grid shows it: with the changes not yet submitted
+    val shown = grid.getDataModel(com.intellij.database.run.ui.DataAccessType.DATA_WITH_MUTATIONS)
+    fun row(r: Int) = (0 until shown.columnCount).map { DbUnsetCells.stored(shown.getValueAt(ModelIndex.forRow(grid, r), ModelIndex.forColumn(grid, it))) }
+
+    grid.selectionModel.setSelection(ModelIndex.forRow(grid, 1), ModelIndex.forColumn(grid, 1))
+    run("Console.TableResult.CloneRow")
+    assertEquals(3, model.rowCount)
+    assertEquals(listOf<Any?>(2, "b", 2), row(2))
+
+    // two copied rows pasted over the first cell of the clone and the row below it: the clone takes the first, a new row the second
+    com.intellij.openapi.ide.CopyPasteManager.getInstance().setContents(java.awt.datatransfer.StringSelection("3\tc\t30\n4\td\t40"))
+    grid.selectionModel.setSelection(ModelIndex.forRow(grid, 2), ModelIndex.forColumn(grid, 0))
+    run("\$Paste")
+    PlatformTestUtil.waitWithEventsDispatching({ "not pasted: ${(0 until model.rowCount).map(::row)}" }, { model.rowCount == 4 && row(3)[1] == "d" }, 20)
+    // pasted as text; the database converts it on Submit
+    assertEquals(listOf("3", "c", "30"), row(2).map { it?.toString() })
+    assertEquals(listOf("4", "d", "40"), row(3).map { it?.toString() })
+    println("pasted types: " + row(2).map { it?.javaClass?.simpleName })
+
+    var submitted: Boolean? = null
+    edits.submit(GridRequestSource(null)) { submitted = it }
+    PlatformTestUtil.waitWithEventsDispatching("not submitted", { submitted != null }, 20)
+    assertTrue(submitted!!)
+    assertEquals(listOf(listOf<Any?>(1, "a", 1), listOf<Any?>(2, "b", 2), listOf<Any?>(3, "c", 30), listOf<Any?>(4, "d", 40)),
+                 rows(ds, "SELECT * FROM t ORDER BY id").rows.map { it.toList() })
+  }
+
   /** A new row without its generated key shows the key the database made, so it can be edited again. */
   fun testNewRowShowsItsGeneratedKey() = immediately(false) {
     val ds = h2()
@@ -301,7 +351,7 @@ class DbGridEditTest : BasePlatformTestCase() {
       edits.mutate(GridRequestSource(null), ModelIndexSet.forRows(model, 0), ModelIndexSet.forColumns(model, 2),
                    java.sql.Date(java.time.LocalDate.of(2001, 2, 3).toEpochDay() * 86_400_000L), true)
       PlatformTestUtil.waitWithEventsDispatching("not saved", {
-        shown(2) == "2001-02-03" &&
+        shown(1) == "2026-10-27 08:00:00" && shown(2) == "2001-02-03" &&
         rows(ds, "SELECT CAST(ts AS VARCHAR), CAST(d AS VARCHAR) FROM t").rows.single().toList() == listOf<Any?>("2026-10-27 08:00:00", "2001-02-03")
       }, 20)
       assertEquals("2026-10-27 08:00:00", shown(1))

@@ -149,6 +149,7 @@
     <scratch.rootType implementation="dev.phantom.db.core.exec.DbConsoleRootType"/>
     <searchEverywhereContributor implementation="dev.phantom.db.core.ui.DbSearchEverywhereContributor$Factory"/>
     <database.datagrid.formatterCreatorProvider implementation="dev.phantom.db.core.exec.DbFormatterCreatorProvider" order="first"/>
+    <database.datagrid.extractorsHelper implementation="dev.phantom.db.core.exec.DbExtractorsHelper" order="first"/>
     <notificationGroup id="Phantom Database" displayType="BALLOON" bundle="messages.PhantomDbBundle" key="db.notification.group"/>
   </extensions>
   <actions resource-bundle="messages.PhantomDbBundle">

@@ -120,7 +120,7 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
         // an open transaction keeps the connection: closing it would silently roll the changes back
         val pending = purpose == Purpose.CONSOLE && DbPendingChanges.getInstanceIfCreated(project)?.hasPending(dataSource.id) == true
         if (session.connection != null && !pending) {
-          session.idleClose = cs.launch {
+          session.idleClose = cs.launch(Dispatchers.IO) {
             delay(IDLE)
             session.mutex.withLock { closeQuietly(session) }
           }

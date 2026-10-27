@@ -258,6 +258,33 @@ class DbResultsGridTest : BasePlatformTestCase() {
     assertEquals("b b\r\n2\r\n", copy(DbExportFormat.CSV))
   }
 
+  /** The Copy As formats are in the grid's Data Extractor list, and Copy (⌘C) uses the one chosen there. */
+  fun testCopyUsesTheChosenExtractor() {
+    val panel = DbResultPanel(project)
+    Disposer.register(testRootDisposable, panel)
+    panel.showOutcomes(listOf(sample))
+    val grid = panel.shownGrid!!
+    assertTrue(com.intellij.database.extractors.ExtractorsHelper.getInstance(grid) is DbExtractorsHelper)
+    val factories = com.intellij.database.extractors.DataExtractorFactories.getBuiltInFactories(grid)
+    val names = factories.map { it.name }
+    assertTrue(names.toString(), names.containsAll(listOf("One-Row", "SQL INSERT Multirow", "SQL UPDATE", "Pretty")))
+    grid.selectionModel.setSelection(ModelIndexSet.forRows(grid, 0, 1), ModelIndexSet.forColumns(grid, 0, 1))
+
+    fun copyWith(name: String): String {
+      com.intellij.database.extractors.DataExtractorFactories.setExtractorFactory(grid, factories.single { it.name == name })
+      val action = com.intellij.openapi.actionSystem.ActionManager.getInstance().getAction("Console.TableResult.Copy")
+      val context = com.intellij.openapi.actionSystem.impl.SimpleDataContext.builder()
+        .add(com.intellij.openapi.actionSystem.CommonDataKeys.PROJECT, project)
+        .add(com.intellij.database.DatabaseDataKeys.DATA_GRID_KEY, grid)
+        .build()
+      com.intellij.openapi.actionSystem.ex.ActionUtil.performAction(action, com.intellij.testFramework.TestActionEvent.createTestEvent(action, context))
+      PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+      return com.intellij.openapi.ide.CopyPasteManager.getInstance().getContents(java.awt.datatransfer.DataFlavor.stringFlavor)!!
+    }
+    assertEquals("'x,\"y\"', NULL, 'line1\nline2', 2", copyWith("One-Row"))
+    assertEquals("INSERT INTO T (a, `b b`)\nVALUES ('x,\"y\"', NULL),\n       ('line1\nline2', 2);\n", copyWith("SQL INSERT Multirow"))
+  }
+
   fun testTableExportStreamsEveryRowPageByPage() {
     val ds = h2()
     exec(ds, "CREATE TABLE big (id INT PRIMARY KEY, name VARCHAR(20))", "INSERT INTO big SELECT X, 'n' || X FROM SYSTEM_RANGE(1, 150)")

@@ -40,6 +40,45 @@ class DbExportTest : BasePlatformTestCase() {
     assertTrue(pg[0], pg[0].startsWith("INSERT INTO table_name (id, \"guest name\", paid)"))
   }
 
+  fun testInsertMultirowAndUpdate() {
+    assertEquals("INSERT INTO t (id, `guest name`, paid)\nVALUES (1, 'Kim, \"Sang\"', TRUE),\n       (2, NULL, FALSE),\n       (3, '김\n상현', NULL);\n",
+                 DbExportFormat.INSERT_MULTIROW.render(rows, "t", Dbms.MYSQL))
+    assertEquals("", DbExportFormat.INSERT_MULTIROW.render(DbOutcome.Rows("", rows.columns, emptyList(), false, 0), "t", Dbms.MYSQL))
+    val byKey = DbExportFormat.UPDATE.render(rows, "t", Dbms.MYSQL, keys = listOf(0)).lines()
+    assertEquals("UPDATE t SET `guest name` = 'Kim, \"Sang\"', paid = TRUE WHERE id = 1;", byKey[0])
+    assertEquals("UPDATE t SET `guest name` = NULL, paid = FALSE WHERE id = 2;", byKey[1])
+    // no key: the row is found by every column, NULL ones with IS NULL
+    val noKey = DbExportFormat.UPDATE.render(rows, null, Dbms.POSTGRESQL).lines()
+    assertEquals("UPDATE table_name SET id = 2, \"guest name\" = NULL, paid = FALSE WHERE id = 2 AND \"guest name\" IS NULL AND paid = FALSE;", noKey[1])
+  }
+
+  fun testOneRowXmlAndPretty() {
+    assertEquals("1, 'Kim, \"Sang\"', TRUE, 2, NULL, FALSE, 3, '김\n상현', NULL", DbExportFormat.ONE_ROW.render(rows, null, Dbms.MYSQL))
+    val ids = DbOutcome.Rows("", rows.columns.take(1), listOf(arrayOf(1L), arrayOf(2L)), false, 0)
+    assertEquals("1, 2", DbExportFormat.ONE_ROW.render(ids, null, Dbms.MYSQL))
+    assertEquals("""
+      <?xml version="1.0" encoding="UTF-8"?>
+      <data>
+        <row>
+          <value column="id">2</value>
+          <value column="guest name" null="true"/>
+          <value column="paid">false</value>
+        </row>
+      </data>
+
+    """.trimIndent(), DbExportFormat.XML.render(DbOutcome.Rows("", rows.columns, listOf(rows.rows[1]), false, 0), null, Dbms.MYSQL))
+    assertEquals("""
+      +----+-------------+-------+
+      | id | guest name  | paid  |
+      +----+-------------+-------+
+      |  1 | Kim, "Sang" | true  |
+      |  2 | NULL        | false |
+      |  3 | 김 상현        | NULL  |
+      +----+-------------+-------+
+
+    """.trimIndent(), DbExportFormat.PRETTY.render(rows, null, Dbms.MYSQL))
+  }
+
   fun testMarkdown() {
     assertEquals("| id | guest name | paid |\n| --- | --- | --- |\n| 1 | Kim, \"Sang\" | true |\n| 2 | NULL | false |\n| 3 | 김 상현 | NULL |\n",
                  DbExportFormat.MARKDOWN.render(rows, null, Dbms.MYSQL))
