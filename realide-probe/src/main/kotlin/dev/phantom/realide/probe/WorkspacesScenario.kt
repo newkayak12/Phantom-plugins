@@ -399,6 +399,21 @@ private class WorkspacesRun(val ctx: ProbeContext) {
    * entering, TimedDeadzone.DEFAULT, once the app has a focus owner).
    */
   suspend fun click(c: Component, button: Int) {
+    hover(c)
+    delay(250)
+    press(c, button)
+  }
+
+  /** The pointer enters [c] and moves over its middle (MOUSE_ENTERED, MOUSE_MOVED on the system EventQueue). */
+  suspend fun hover(c: Component) {
+    val p = Point(c.width / 2, c.height / 2)
+    val q = Toolkit.getDefaultToolkit().systemEventQueue
+    fun ev(id: Int) = MouseEvent(c, id, System.currentTimeMillis(), 0, p.x, p.y, 0, false, 0)
+    ctx.edt { q.postEvent(ev(MouseEvent.MOUSE_ENTERED)); q.postEvent(ev(MouseEvent.MOUSE_MOVED)) }
+  }
+
+  /** PRESSED, RELEASED and CLICKED of [button] in the middle of [c], on the system EventQueue. */
+  suspend fun press(c: Component, button: Int) {
     val p = Point(c.width / 2, c.height / 2)
     val mask = when (button) {
       MouseEvent.BUTTON2 -> InputEvent.BUTTON2_DOWN_MASK
@@ -406,9 +421,7 @@ private class WorkspacesRun(val ctx: ProbeContext) {
       else -> InputEvent.BUTTON1_DOWN_MASK
     }
     val q = Toolkit.getDefaultToolkit().systemEventQueue
-    fun ev(id: Int, mods: Int, b: Int = button) = MouseEvent(c, id, System.currentTimeMillis(), mods, p.x, p.y, if (b == 0) 0 else 1, false, b)
-    ctx.edt { q.postEvent(ev(MouseEvent.MOUSE_ENTERED, 0, 0)); q.postEvent(ev(MouseEvent.MOUSE_MOVED, 0, 0)) }
-    delay(250)
+    fun ev(id: Int, mods: Int) = MouseEvent(c, id, System.currentTimeMillis(), mods, p.x, p.y, 1, false, button)
     ctx.edt {
       q.postEvent(ev(MouseEvent.MOUSE_PRESSED, mask))
       q.postEvent(ev(MouseEvent.MOUSE_RELEASED, 0))
@@ -850,22 +863,37 @@ private class WorkspacesRun(val ctx: ProbeContext) {
     var clickZ: Pair<Map<String, Any?>, Map<String, Any?>>? = null
     rec("switch.click", mapOf("activeProject" to "beta", "allFramesEqual" to true)) {
       val from = ctx.edt { byName("delta") ?: gamma ?: alpha }
+      // a user's click makes the app active: the sandbox is made frontmost first (other apps are left running)
+      val foreground = keepFrontmost()
       // the user clicks in the frame they have in front: delta is put in front and key first (not by the plugin)
       val precondition = userFront(from)
+      val tab = ctx.edt { tabIn(from, "beta") } ?: error("no beta tab in ${from.name}'s strip")
+      hover(tab)
+      delay(250)
+      // and again right before the press: another app (Orca, a Slack notification) takes the foreground back within ~0.6 s
+      val foregroundAtInput = keepFrontmost()
       val before = ctx.edt { mapOf("active" to activeProject(), "plugin" to pluginStack()) }
       val zBefore = zOrder()
-      val tab = ctx.edt { tabIn(from, "beta") } ?: error("no beta tab in ${from.name}'s strip")
-      click(tab, MouseEvent.BUTTON1)
+      val atInput = frontmost()
+      val t0 = System.currentTimeMillis()
+      press(tab, MouseEvent.BUTTON1)
+      // the switch's outcome is read once it has settled (or 3 s); what other apps do later is in the timeline
       ctx.waitUntil(3000) { frame(beta)?.isActive == true }
+      val settledMs = System.currentTimeMillis() - t0
+      val active = ctx.edt { activeProject() }
+      val afterInput = frontmost()
+      val timeline = activationTimeline(t0, 3000) { frame(beta)?.isActive == true }
       val s = sample()
       val zAfter = zOrder()
       clickZ = zBefore to zAfter
-      val active = ctx.edt { activeProject() }
-      val env = envFor(active == "beta", beta)
+      val activeAfterSamples = ctx.edt { activeProject() }
+      val env = envFor(active == "beta", beta, from, zBefore["appActive"] as? Boolean)
       ctx.edt {
         val f = final()
         mapOf(
           "activeProject" to active, "allFramesEqual" to allEqual(f), "via" to ProbeInput.VIA_QUEUE, "clickedIn" to from.name,
+          "foreground" to mapOf("keepFrontmost" to foreground, "keepFrontmostAtInput" to foregroundAtInput, "atInput" to atInput, "afterInput" to afterInput, "timeline" to timeline),
+          "settledMs" to settledMs, "activeAfterSamples" to activeAfterSamples,
           "before" to before, "precondition" to precondition, "plugin" to pluginStack(), "zOrderBefore" to zBefore, "zOrderAfter" to zAfter,
           "final" to f, "samples" to s, "env" to env.first, "baseline" to env.second,
         )
@@ -878,6 +906,7 @@ private class WorkspacesRun(val ctx: ProbeContext) {
     rec("switch.click.front", mapOf("frontByZOrder" to "beta", "frontChanged" to true, "allFramesEqual" to true)) {
       val (zb0, za0) = clickZ ?: error("switch.click did not run")
       val from = ctx.edt { byName("delta") ?: gamma ?: alpha }
+      val foreground = keepFrontmost()
       val reset = userFront(from)
       val zb = zOrder()
       if (zb["front"] != from.name) error("precondition: ${from.name} could not be put in front (${reset["via"]})")
@@ -895,7 +924,7 @@ private class WorkspacesRun(val ctx: ProbeContext) {
       ctx.edt {
         val f = final()
         mapOf("frontByZOrder" to za["front"], "frontChanged" to (zb["front"] != za["front"]), "allFramesEqual" to allEqual(f),
-              "clickedIn" to from.name, "via" to ProbeInput.VIA_QUEUE, "zOrderBefore" to zb, "zOrderAfter" to za, "reset" to reset,
+              "clickedIn" to from.name, "via" to ProbeInput.VIA_QUEUE, "zOrderBefore" to zb, "zOrderAfter" to za, "reset" to reset, "keepFrontmost" to foreground,
               "pluginBefore" to pluginBefore, "pluginAfter" to pluginAfter,
               "platformBaseline" to mapOf("call" to "ProjectUtil.focusProjectWindow(beta)", "reset" to reset2, "frontBefore" to zReset["front"], "frontAfter" to zPlatform["front"]),
               "switchClickZOrder" to mapOf("before" to zb0["ordered"], "after" to za0["ordered"], "note" to "switch.click's own click, made while beta was still in front"),
@@ -905,25 +934,35 @@ private class WorkspacesRun(val ctx: ProbeContext) {
 
     var nextZ: Pair<Map<String, Any?>, Map<String, Any?>>? = null
     rec("switch.nextProjectWindow", mapOf("activeProjectChanged" to true, "allFramesEqual" to true)) {
+      val foreground = keepFrontmost()
       val before = ctx.edt { activeProject() }
       val pluginBefore = ctx.edt { pluginStack() }
       val zBefore = zOrder()
+      val atInput = frontmost()
       val performed = ctx.edt {
         val action = ActionManager.getInstance().getAction("NextProjectWindow")
         val root = frame(beta)?.rootPane
         if (action == null || root == null) false else { ActionUtil.invokeAction(action, root, ActionPlaces.MAIN_MENU, null, null); true }
       }
-      ctx.waitUntil(3000) { activeProject() != before }
+      val t0 = System.currentTimeMillis()
+      // settled: another project's frame active (not just none active for a moment), or 3 s
+      ctx.waitUntil(3000) { activeProject().let { it != null && it != before } }
+      val settledMs = System.currentTimeMillis() - t0
+      val after = ctx.edt { activeProject() }
+      val afterInput = frontmost()
+      val timeline = activationTimeline(t0, 3000) { activeProject().let { it != null && it != before } }
       val s = sample()
       val zAfter = zOrder()
       nextZ = zBefore to zAfter
-      val after = ctx.edt { activeProject() }
-      val env = envFor(after != before && after != null, ctx.edt { open().firstOrNull { it.name == zAfter["front"] } ?: alpha })
+      val activeAfterSamples = ctx.edt { activeProject() }
+      val env = envFor(after != before && after != null, ctx.edt { open().firstOrNull { it.name == (after ?: zAfter["front"]) && it.name != before } ?: open().firstOrNull { it.name == zAfter["front"] } ?: alpha },
+                       ctx.edt { open().firstOrNull { it.name == zBefore["front"] } }, zBefore["appActive"] as? Boolean)
       ctx.edt {
         val f = final()
         mapOf(
           "activeProjectChanged" to (after != before && after != null), "allFramesEqual" to allEqual(f), "activeBefore" to before, "activeAfter" to after,
-          "performed" to performed, "pluginBefore" to pluginBefore, "plugin" to pluginStack(), "zOrderBefore" to zBefore, "zOrderAfter" to zAfter,
+          "foreground" to mapOf("keepFrontmost" to foreground, "atInput" to atInput, "afterInput" to afterInput, "timeline" to timeline),
+          "settledMs" to settledMs, "activeAfterSamples" to activeAfterSamples, "performed" to performed, "pluginBefore" to pluginBefore, "plugin" to pluginStack(), "zOrderBefore" to zBefore, "zOrderAfter" to zAfter,
           "final" to f, "samples" to s, "env" to env.first, "baseline" to env.second,
         )
       }
@@ -1162,21 +1201,99 @@ private class WorkspacesRun(val ctx: ProbeContext) {
   }
 
   /**
-   * env for a focus step: none if it worked; otherwise the platform's own call (ProjectUtil.focusProjectWindow, which the
-   * plugin's switch also ends in) is made on the target without the plugin, and only if that also leaves the target
-   * frame inactive is the step env (baseline ok:false).
+   * Polls every 100 ms for up to [ms] (and at least 1.5 s) after an input made at [t0]: ms, NSApp isActive, the frontmost
+   * pid, whether [done] holds and the active project, one entry per change. Ends early once [done] holds and 1.5 s have passed.
    */
-  private suspend fun envFor(worked: Boolean, p: Project): Pair<String?, Map<String, Any?>> {
-    if (worked) return null to mapOf("ok" to true, "via" to "not needed")
-    val err = ctx.edt { try { ProjectUtil.focusProjectWindow(p, true); null } catch (e: Exception) { e.toString() } }
-    ctx.waitUntil(1500) { frame(p)?.isActive == true }
+  suspend fun activationTimeline(t0: Long, ms: Long, done: () -> Boolean): List<List<Any?>> {
+    val out = ArrayList<List<Any?>>()
+    while (true) {
+      val t = System.currentTimeMillis() - t0
+      val fm = frontmost()
+      val d = ctx.edt(done)
+      @Suppress("UNCHECKED_CAST") val pid = (fm["lsappinfo"] as? Map<String, Any?>)?.get("frontPid")
+      val e = listOf(fm["nsAppActive"], pid, d, ctx.edt { activeProject() })
+      if (out.isEmpty() || out.last().drop(1) != e) out += listOf<Any?>(t) + e
+      if ((d && t >= 1500) || t >= ms) return out
+      delay(100)
+    }
+  }
+
+  /** Which app macOS has frontmost now: NSApp isActive and `lsappinfo front`. */
+  suspend fun frontmost(): Map<String, Any?> =
+    if (!ProbeMac.isMac) mapOf("error" to "not macOS")
+    else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+      mapOf("nsAppActive" to ProbeMac.onMain { ProbeMac.appActive() }, "lsappinfo" to ProbeMac.lsappinfoFront())
+    }
+
+  /**
+   * Makes this sandbox the frontmost app before a switch step, so the step runs with the app active as a user's click
+   * makes it: in-process activation, then osascript System Events by pid if that was not enough. Quits nothing.
+   */
+  suspend fun keepFrontmost(): Map<String, Any?> {
+    val before = frontmost()
+    if (!ProbeMac.isMac || before["nsAppActive"] == true) return mapOf("before" to before, "via" to null, "after" to before)
+    val tries = ArrayList<String>()
+    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { ProbeMac.onMain { ProbeMac.activateInProcess() } }
+    tries += "inProcess"
+    suspend fun waitActive() { val end = System.currentTimeMillis() + 1500; while (frontmost()["nsAppActive"] != true && System.currentTimeMillis() < end) delay(100) }
+    waitActive()
+    if (frontmost()["nsAppActive"] != true) {
+      val rc = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        try {
+          val script = "tell application \"System Events\" to set frontmost of (first process whose unix id is ${ProcessHandle.current().pid()}) to true"
+          val pr = ProcessBuilder("osascript", "-e", script).redirectErrorStream(true).start()
+          pr.inputStream.readAllBytes()
+          if (pr.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) pr.exitValue() else null
+        }
+        catch (_: Exception) { null }
+      }
+      tries += "osascript rc=$rc"
+      waitActive()
+    }
+    return mapOf("before" to before, "via" to tries.joinToString(), "after" to frontmost())
+  }
+
+  /**
+   * env for a focus step. None if it worked. Otherwise the baseline is the plugin's own call, ProjectUtil.focusProjectWindow
+   * ([p], false) (FrameWindow.activate), made without the plugin from [from] in front again, toFront only, so the app's
+   * active state is not changed by the reset. The step is env only if the app was inactive at the step and at the baseline
+   * and that baseline also leaves [p] inactive (baseline.ok false): then ok:null. A failure with the app active is the
+   * plugin's (env null, ok:false). The stealing call (focusProjectWindow(p, true)) is recorded after it, as stealingBaseline.
+   */
+  private suspend fun envFor(worked: Boolean, p: Project, from: Project?, appActiveAtStep: Boolean?): Pair<String?, Map<String, Any?>> {
+    if (worked) return null to mapOf("ok" to true, "via" to "not needed", "appActiveAtStep" to appActiveAtStep)
+    val reset = ArrayList<String>()
+    val fromFrame = from?.let { ctx.edt { frame(it) } }
+    if (fromFrame != null) {
+      for (i in 1..4) {
+        ctx.edt { fromFrame.toFront() }
+        delay(700)
+        val front = zOrder()["front"]
+        reset += "toFront#$i->$front"
+        if (front == from.name) break
+      }
+    }
+    // the same app state as at the step: made frontmost again if it was then (nothing else is done if it was not)
+    val reactivated = if (appActiveAtStep == true) keepFrontmost() else null
+    val zReset = zOrder()
+    val appActiveAtBaseline = zReset["appActive"] as? Boolean
+    val t0 = System.currentTimeMillis()
+    val err = ctx.edt { try { ProjectUtil.focusProjectWindow(p, false); null } catch (e: Exception) { e.toString() } }
+    val timeline = activationTimeline(t0, 3000) { frame(p)?.isActive == true }
     val ok = ctx.edt { frame(p)?.isActive == true }
-    val io = kotlinx.coroutines.Dispatchers.IO
-    val mac = if (ProbeMac.isMac) kotlinx.coroutines.withContext(io) { mapOf("nsAppActive" to ProbeMac.onMain { ProbeMac.appActive() }, "lsappinfo" to ProbeMac.lsappinfoFront()) } else emptyMap()
-    return (if (ok) null else "focus-unavailable") to (mapOf(
-      "ok" to ok, "via" to "ProjectUtil.focusProjectWindow(${p.name}, true), plugin not involved", "target" to p.name, "error" to err,
-      "activeAfterBaseline" to ctx.edt { activeProject() }, "zOrderAfterBaseline" to zOrder(),
-    ) + mac)
+    val zAfter = zOrder()
+    val likeForLike = mapOf(
+      "ok" to ok, "via" to "ProjectUtil.focusProjectWindow(${p.name}, false), the plugin's call, plugin not involved", "target" to p.name,
+      "error" to err, "from" to from?.name, "reset" to reset.joinToString(), "frontBefore" to zReset["front"], "frontAfter" to zAfter["front"],
+      "appActiveAtStep" to appActiveAtStep, "appActiveAtBaseline" to appActiveAtBaseline, "appActiveAfter" to zAfter["appActive"],
+      "activeAfterBaseline" to ctx.edt { activeProject() }, "frontmost" to frontmost(), "reactivated" to reactivated, "timeline" to timeline,
+    )
+    val stealErr = ctx.edt { try { ProjectUtil.focusProjectWindow(p, true); null } catch (e: Exception) { e.toString() } }
+    ctx.waitUntil(1500) { frame(p)?.isActive == true }
+    val stealing = mapOf("ok" to ctx.edt { frame(p)?.isActive == true }, "via" to "ProjectUtil.focusProjectWindow(${p.name}, true)",
+                         "error" to stealErr, "zOrderAfter" to zOrder())
+    val env = if (!ok && appActiveAtStep == false && appActiveAtBaseline == false) "app-inactive" else null
+    return env to (likeForLike + ("stealingBaseline" to stealing))
   }
 
   private fun nonuniform(px: Map<String, Any?>): Boolean {
