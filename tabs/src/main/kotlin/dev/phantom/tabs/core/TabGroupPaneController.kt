@@ -12,20 +12,21 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.IdeGlassPaneUtil
 import com.intellij.ui.SimpleColoredComponent
 import com.intellij.ui.SimpleTextAttributes
-import com.intellij.ui.tabs.impl.TabLabel
-import java.awt.Font
-import java.awt.event.MouseAdapter
-import java.awt.event.MouseEvent
 import com.intellij.ui.tabs.JBTabs
 import com.intellij.ui.tabs.JBTabsEx
 import com.intellij.ui.tabs.TabInfo
 import com.intellij.ui.tabs.TabsListener
+import com.intellij.ui.tabs.impl.TabLabel
 import com.intellij.util.ui.JBUI
 import java.awt.Color
 import java.awt.Component
+import java.awt.EventQueue
+import java.awt.Font
 import java.awt.Graphics2D
 import java.awt.Rectangle
 import java.awt.RenderingHints
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import java.awt.geom.RoundRectangle2D
 import java.beans.PropertyChangeListener
 import java.util.Collections
@@ -85,6 +86,7 @@ class TabGroupPaneController(
   private val clickable: MutableSet<Component> = Collections.newSetFromMap(WeakHashMap())
   private var expandedBySelection: TabGroup? = null
   private var pressed: Pair<TabGroup, Boolean>? = null
+  private var movedSincePress = false
 
   /**
    * A click on a group's chip (its name on the first tab) collapses the group, or opens it when collapsed, as in Chrome.
@@ -92,14 +94,16 @@ class TabGroupPaneController(
    */
   private val chipClick = object : MouseAdapter() {
     override fun mousePressed(e: MouseEvent) {
-      val group = chipAt(e)
+      val group = chipAt(e)?.takeIf { SwingUtilities.isLeftMouseButton(e) }
       pressed = group?.let { it to (it.collapsed || expandedBySelection === it) }
+      movedSincePress = false
     }
 
     override fun mouseReleased(e: MouseEvent) {
       val (group, wasCollapsed) = pressed ?: return
-      pressed = null
-      if (!SwingUtilities.isLeftMouseButton(e) || chipAt(e) !== group) return
+      // the tab bar may drop the dragged tab after this listener: the press stays known to tabsMoved until then
+      ApplicationManager.getApplication().invokeLater { pressed = null }
+      if (movedSincePress || !SwingUtilities.isLeftMouseButton(e) || chipAt(e) !== group) return
       ApplicationManager.getApplication().invokeLater({
         if (group !in model.groups) return@invokeLater
         if (!wasCollapsed && !group.collapsed) toggleCollapsed(group)
@@ -135,6 +139,9 @@ class TabGroupPaneController(
       override fun selectionChanged(oldSelection: TabInfo?, newSelection: TabInfo?) {
         if (suppressExpand || refreshing) return
         val group = newSelection?.url?.let(model::groupOf) ?: return
+        // pressed on its chip: the release opens it, a drag moves it closed
+        val event = EventQueue.getCurrentEvent() as? MouseEvent
+        if (event != null && event.id == MouseEvent.MOUSE_PRESSED && chipAt(event) === group) return
         if (group.collapsed) {
           group.collapsed = false
           // a click on the chip selected the tab: it has opened the group, so the click must not close it again
@@ -146,7 +153,9 @@ class TabGroupPaneController(
 
       override fun tabsMoved() {
         pending = null
-        model.onMoved(lastOrder, tabs.tabs.mapNotNull { it.url }, tabs.selectedInfo?.url)
+        val byChip = pressed != null
+        movedSincePress = true
+        model.onMoved(lastOrder, tabs.tabs.mapNotNull { it.url }, tabs.selectedInfo?.url, byChip)
         refresh()
       }
 

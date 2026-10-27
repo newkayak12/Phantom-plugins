@@ -57,12 +57,17 @@ class TabGroupModel {
     return (TabGroupColor.entries.drop(1) + TabGroupColor.GREY).firstOrNull { it !in used } ?: TabGroupColor.BLUE
   }
 
+  /** A group dragged by one tab ([onMoved]): its tabs gather where that tab was dropped, once. */
+  private var lead: String? = null
+
   /**
-   * [current] reordered so that each group's tabs sit together, where the group's first tab is, in the group's own order.
-   * Tabs that are in no group keep their places relative to each other.
+   * [current] reordered so that each group's tabs sit together, where the group's first tab is (or where a group dragged
+   * as a whole was dropped), in the group's own order. Tabs that are in no group keep their places relative to each other.
    */
   fun desiredOrder(current: List<String>): List<String> {
+    val lead = lead.also { lead = null }
     if (myGroups.isEmpty()) return current
+    val leadGroup = lead?.takeIf { it in current }?.let(::groupOf)
     val result = ArrayList<String>(current.size)
     val placed = HashSet<TabGroup>()
     for (url in current) {
@@ -70,7 +75,7 @@ class TabGroupModel {
       if (group == null) {
         result.add(url)
       }
-      else if (placed.add(group)) {
+      else if ((group !== leadGroup || url == lead) && placed.add(group)) {
         group.members.filterTo(result) { it in current }
       }
     }
@@ -81,10 +86,21 @@ class TabGroupModel {
    * A tab was dragged from [before] to [after]. It joins a group when it lands between two of its tabs, stays in its group
    * while it still touches a tab of it, and leaves it otherwise. [dragged] is the tab the user dragged (the selected one),
    * which settles swaps of two neighbors, where either tab could have moved.
+   *
+   * The whole group goes with the tab, as in Chrome, when it was dragged by the group's chip ([byChip]), when the group is
+   * collapsed (only that tab shows) or when it is the group's only tab: it stays in its group as its first tab, and
+   * [desiredOrder] brings the other tabs after it.
    */
-  fun onMoved(before: List<String>, after: List<String>, dragged: String? = null) {
+  fun onMoved(before: List<String>, after: List<String>, dragged: String? = null, byChip: Boolean = false) {
     val moved = dragged?.takeIf { it in before && before.minus(it) == after.minus(it) && before != after }
                 ?: movedElement(before, after) ?: return
+    val group = groupOf(moved)
+    if (group != null && (byChip || group.collapsed || group.members.size == 1)) {
+      group.members.remove(moved)
+      group.members.add(0, moved)
+      lead = moved
+      return
+    }
     val index = after.indexOf(moved)
     val left = after.getOrNull(index - 1)?.let(::groupOf)
     val right = after.getOrNull(index + 1)?.let(::groupOf)

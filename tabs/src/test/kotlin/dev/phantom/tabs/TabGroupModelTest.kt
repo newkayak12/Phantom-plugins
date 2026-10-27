@@ -105,4 +105,36 @@ class TabGroupModelTest {
     model.rename("file:///p/dir", "file:///p/lib")
     assertEquals(listOf("file:///p/a2.kt", "file:///p/lib/b.kt"), g.members)
   }
+
+  @Test
+  fun `dragging the chip moves the whole group`() {
+    val g = model.create(listOf("a", "b"), "g", TabGroupColor.BLUE)
+    model.onMoved(listOf("a", "b", "x", "y"), listOf("b", "x", "y", "a"), dragged = "a", byChip = true)
+    assertSame(g, model.groupOf("a"))
+    assertSame(g, model.groupOf("b"))
+    assertEquals(listOf("x", "y", "a", "b"), model.desiredOrder(listOf("b", "x", "y", "a")))
+  }
+
+  @Test
+  fun `the only tab of a group keeps its group wherever it is dragged`() {
+    val g = model.create(listOf("a"), "g", TabGroupColor.BLUE)
+    model.onMoved(listOf("a", "x", "y"), listOf("x", "y", "a"), dragged = "a")
+    assertSame(g, model.groupOf("a"))
+  }
+
+  @Test
+  fun `a collapsed group moves whole when its tab is dragged`() {
+    val g = model.create(listOf("a", "b"), "g", TabGroupColor.BLUE)
+    g.collapsed = true
+    model.onMoved(listOf("a", "b", "x"), listOf("b", "x", "a"), dragged = "a")
+    assertSame(g, model.groupOf("b"))
+    assertEquals(listOf("x", "a", "b"), model.desiredOrder(listOf("b", "x", "a")))
+  }
+
+  @Test
+  fun `the first tab dragged out by its body still leaves`() {
+    model.create(listOf("a", "b"), "g", TabGroupColor.BLUE)
+    model.onMoved(listOf("a", "b", "x", "y"), listOf("b", "x", "y", "a"), dragged = "a")
+    assertNull(model.groupOf("a"))
+  }
 }
