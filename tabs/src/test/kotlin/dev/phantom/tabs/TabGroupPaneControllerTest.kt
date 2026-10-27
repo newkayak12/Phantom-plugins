@@ -398,7 +398,7 @@ class TabGroupPaneControllerTest : FileEditorManagerTestCase() {
   private fun assertSavedGroupShown() {
     assertTrue(info(b).isHidden)
     assertFalse(info(a).isHidden)
-    assertEquals("\u25B8 Fold (2)", info(a).text)
+    assertEquals("Fold  2", info(a).text)
     assertEquals(TabGroupColor.BLUE.soft, info(a).tabColor)
     assertEquals(TabGroupColor.BLUE.soft, info(b).tabColor)
     assertNull(info(c).tabColor)

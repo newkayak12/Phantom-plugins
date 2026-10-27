@@ -6,7 +6,10 @@ import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import kotlinx.coroutines.delay
+import java.awt.Point
+import java.awt.event.MouseEvent
 import java.nio.file.Files
+import javax.swing.SwingUtilities
 import javax.swing.SwingConstants
 
 private const val NEW_GROUP = "Add Tab to New Group"
@@ -187,10 +190,10 @@ internal object TabsScenario : ProbeScenario {
     }
 
     var orderBeforeCollapse: List<String> = emptyList()
-    ctx.step("group.collapse", mapOf("anchorText" to "▸ Ops (2)", "hidden" to mapOf("b.txt" to true), "anchorVisible" to true)) {
+    ctx.step("group.collapse", mapOf("anchorText" to "Ops  2", "hidden" to mapOf("b.txt" to true), "anchorVisible" to true)) {
       orderBeforeCollapse = ctx.edt { t.order() }
       val m = t.menu("a.txt", listOf("Collapse Group"))
-      ctx.waitUntil(4000) { t.text("a.txt") == "▸ Ops (2)" && t.hidden("b.txt") == true }
+      ctx.waitUntil(4000) { t.text("a.txt") == "Ops  2" && t.hidden("b.txt") == true }
       val png = ctx.edt { ProbeSnapshot.paint(ctx.project, ctx.out, "collapsed.png") }
       m + ctx.edt {
         mapOf(
@@ -215,14 +218,38 @@ internal object TabsScenario : ProbeScenario {
     }
 
     t.select("f.txt")
-    ctx.step("group.toggle.menu", mapOf("anchorTextAfterCollapse" to "▸ Ops (2)", "anchorTextAfterExpand" to "Ops  a.txt")) {
+    ctx.step("group.toggle.menu", mapOf("anchorTextAfterCollapse" to "Ops  2", "anchorTextAfterExpand" to "Ops  a.txt")) {
       val m1 = t.menu("a.txt", listOf("Collapse Group"))
-      ctx.waitUntil(4000) { t.text("a.txt") == "▸ Ops (2)" }
+      ctx.waitUntil(4000) { t.text("a.txt") == "Ops  2" }
       val afterCollapse = ctx.edt { t.text("a.txt") }
       val m2 = t.menu("a.txt", listOf("Expand Group"))
       ctx.waitUntil(4000) { t.text("a.txt") == "Ops  a.txt" }
       val afterExpand = ctx.edt { t.text("a.txt") }
       mapOf("via" to m2["via"], "collapseMenu" to m1, "expandMenu" to m2, "anchorTextAfterCollapse" to afterCollapse, "anchorTextAfterExpand" to afterExpand)
+    }
+
+    // Chrome: a click on the group's chip collapses it, another opens it
+    ctx.step("group.chip.click", mapOf("hiddenAfterFirst" to true, "hiddenAfterSecond" to false, "chipPng" to true)) {
+      suspend fun clickChip(): Boolean {
+        val label = ctx.edt { t.info("a.txt")?.let(t::label) } as? com.intellij.ui.tabs.impl.TabLabel ?: return false
+        return ctx.edt {
+          val text = label.labelComponent as com.intellij.ui.SimpleColoredComponent
+          val x = (0 until text.width).firstOrNull { text.findFragmentAt(it) == 0 } ?: return@edt false
+          val p = SwingUtilities.convertPoint(text, Point(x + 3, text.height / 2), label)
+          ProbePopup.postClick(label, p, t.clickVariant, MouseEvent.BUTTON1)
+          true
+        }
+      }
+      val first = clickChip()
+      ctx.waitUntil(4000) { t.hidden("b.txt") == true }
+      val hiddenAfterFirst = ctx.edt { t.hidden("b.txt") }
+      val png = ctx.edt { ProbeSnapshot.paint(ctx.project, ctx.out, "chip-collapsed.png") }
+      val second = clickChip()
+      ctx.waitUntil(4000) { t.hidden("b.txt") == false }
+      val hiddenAfterSecond = ctx.edt { t.hidden("b.txt") }
+      val png2 = ctx.edt { ProbeSnapshot.paint(ctx.project, ctx.out, "chip-expanded.png") }
+      mapOf("clicked" to listOf(first, second), "hiddenAfterFirst" to hiddenAfterFirst, "hiddenAfterSecond" to hiddenAfterSecond,
+            "chipPng" to (png != null && png2 != null), "texts" to listOf(t.text("a.txt")))
     }
 
     ctx.step("close.member", mapOf("members" to mapOf("Ops" to listOf("a.txt", "c.txt")), "closedOpen" to false)) {
@@ -328,7 +355,7 @@ internal object TabsScenario : ProbeScenario {
       suspend fun collapse(): Map<String, Any?> {
         t.select("f.txt")
         val c = t.menu("a.txt", listOf("Collapse Group"))
-        val ok = ctx.waitUntil(3000) { t.hidden("b.txt") == true && t.text("a.txt") == "▸ Hid (2)" }
+        val ok = ctx.waitUntil(3000) { t.hidden("b.txt") == true && t.text("a.txt") == "Hid  2" }
         return c + mapOf("collapsed" to ok, "tabsCollapsed" to ctx.edt { t.tabs() })
       }
 

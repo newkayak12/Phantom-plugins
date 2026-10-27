@@ -26,3 +26,7 @@ val TabGroupColor.soft: Color
   get() = JBColor(withAlpha(rgb.first, 0x2E), withAlpha(rgb.second, 0x3A))
 
 private fun withAlpha(rgb: Int, alpha: Int): Color = Color((alpha shl 24) or rgb, true)
+
+/** Text on [strong]: white on the saturated light-theme colors, near black on the pastel dark-theme ones. */
+val TabGroupColor.onStrong: Color
+  get() = JBColor(Color.WHITE, Color(0x202124))

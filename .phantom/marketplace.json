@@ -335,7 +335,7 @@
       "name": "Phantom Tab Groups",
       "version": "0.2.0",
       "source": "tabs",
-      "description": "Editor tab groups, as in a web browser: from a tab's context menu put tabs into a named, colored group, collapse the group to its first tab (showing the group's name and size) and expand it again, rename, recolor, ungroup or close the group; drag tabs in and out. A group reads as one piece: a line in the group's color runs under all its tabs, they get a faint background in that color, and the first tab starts with the group's name in that color. Groups belong to each editor split and are kept with the project; collapsing only hides tabs, files stay open and are never closed by the tab limit. Moved out of the Phantom bundle; uses only the public platform API.",
+      "description": "Editor tab groups, as in a web browser: from a tab's context menu put tabs into a named, colored group, collapse the group to its first tab (showing the group's name and size) and expand it again, rename, recolor, ungroup or close the group; drag tabs in and out. A group reads as one piece: a line in the group's color runs under all its tabs, they get a faint background in that color, and the group's name is a chip in that color on its first tab; a click on the chip collapses or opens the group, as in Chrome. Groups belong to each editor split and are kept with the project; collapsing only hides tabs, files stay open and are never closed by the tab limit. Moved out of the Phantom bundle; uses only the public platform API.",
       "vendor": "Phantom",
       "category": "User Interface",
       "since": "262",

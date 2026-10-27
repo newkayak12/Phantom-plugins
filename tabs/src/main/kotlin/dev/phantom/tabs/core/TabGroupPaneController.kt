@@ -10,7 +10,12 @@ import com.intellij.openapi.fileEditor.impl.EditorWindow
 import com.intellij.openapi.ui.AbstractPainter
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.IdeGlassPaneUtil
+import com.intellij.ui.SimpleColoredComponent
 import com.intellij.ui.SimpleTextAttributes
+import com.intellij.ui.tabs.impl.TabLabel
+import java.awt.Font
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
 import com.intellij.ui.tabs.JBTabs
 import com.intellij.ui.tabs.JBTabsEx
 import com.intellij.ui.tabs.TabInfo
@@ -76,7 +81,45 @@ class TabGroupPaneController(
     }
   }
 
-  /** Draws each group's line under its tabs, over the tab bar. */
+  /** Tab labels [chipClick] listens to. */
+  private val clickable: MutableSet<Component> = Collections.newSetFromMap(WeakHashMap())
+  private var expandedBySelection: TabGroup? = null
+  private var pressed: Pair<TabGroup, Boolean>? = null
+
+  /**
+   * A click on a group's chip (its name on the first tab) collapses the group, or opens it when collapsed, as in Chrome.
+   * The tab bar selects the tab on press, which opens a collapsed group; that click then leaves it open.
+   */
+  private val chipClick = object : MouseAdapter() {
+    override fun mousePressed(e: MouseEvent) {
+      val group = chipAt(e)
+      pressed = group?.let { it to (it.collapsed || expandedBySelection === it) }
+    }
+
+    override fun mouseReleased(e: MouseEvent) {
+      val (group, wasCollapsed) = pressed ?: return
+      pressed = null
+      if (!SwingUtilities.isLeftMouseButton(e) || chipAt(e) !== group) return
+      ApplicationManager.getApplication().invokeLater({
+        if (group !in model.groups) return@invokeLater
+        if (!wasCollapsed && !group.collapsed) toggleCollapsed(group)
+        else if (wasCollapsed && group.collapsed) toggleCollapsed(group)
+      }, { window.isDisposed })
+    }
+  }
+
+  /** The group whose chip is under the mouse, if any. */
+  private fun chipAt(e: MouseEvent): TabGroup? {
+    val label = e.component as? TabLabel ?: return null
+    val info = label.info
+    val url = info.url ?: return null
+    if (url !in titles) return null
+    val text = label.labelComponent as? SimpleColoredComponent ?: return null
+    val x = SwingUtilities.convertPoint(label, e.point, text).x
+    return if (text.findFragmentAt(x) == 0) model.groupOf(url) else null
+  }
+
+  /** Draws each group's line under its tabs and its chip on its first tab, over the tab bar. */
   private val linePainter = object : AbstractPainter() {
     override fun needsRepaint(): Boolean = model.groups.isNotEmpty()
     override fun executePaint(component: Component, g: Graphics2D) = paintLines(component, g)
@@ -94,6 +137,9 @@ class TabGroupPaneController(
         val group = newSelection?.url?.let(model::groupOf) ?: return
         if (group.collapsed) {
           group.collapsed = false
+          // a click on the chip selected the tab: it has opened the group, so the click must not close it again
+          expandedBySelection = group
+          ApplicationManager.getApplication().invokeLater { expandedBySelection = null }
           refresh()
         }
       }
@@ -201,7 +247,11 @@ class TabGroupPaneController(
 
   private fun doRefresh() {
     val all = tabs.tabs
-    for (info in all) if (watched.add(info)) info.changeSupport.addPropertyChangeListener(presentationListener)
+    for (info in all) {
+      if (watched.add(info)) info.changeSupport.addPropertyChangeListener(presentationListener)
+      val label = tabs.getTabLabel(info)
+      if (label != null && clickable.add(label)) label.addMouseListener(chipClick)
+    }
     val open = all.mapNotNullTo(HashSet()) { it.url }
     applyPending(open)
     for (group in model.groups.toList()) {
@@ -251,7 +301,8 @@ class TabGroupPaneController(
 
   /**
    * The group's name on its first tab in the group's color and bold, the tab's own title after it as it was: the
-   * provider's plain `Name · Title` becomes `Name  Title`, a collapsed group's `▸ Name (3)` is all in the color.
+   * provider's plain `Name · Title` becomes `Name  Title`, a collapsed group's `▸ Name (3)` becomes `Name  3`. The name is
+   * then drawn over as a chip ([paintChip]).
    */
   private fun styleName(info: TabInfo) {
     val url = info.url ?: return
@@ -260,14 +311,15 @@ class TabGroupPaneController(
     val text = info.coloredText.toString()
     val name = title.name.ifEmpty { if (title.collapsed) PhantomTabsBundle.message("group.unnamed") else return }
     val nameStyle = SimpleTextAttributes(SimpleTextAttributes.STYLE_BOLD, color)
+    val rest = SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, info.defaultForeground)
     val fragments = if (title.collapsed) {
-      if (text != title.text { "" }) return
-      listOf(text to nameStyle)
+      if (text != title.text { "" } && text != "$name  ${title.size}") return
+      // the chip, then how many tabs it holds
+      listOf(name to nameStyle, "  ${title.size}" to rest)
     }
     else {
       val prefix = PhantomTabsBundle.message("tab.title.expanded", name, "")
       if (!text.startsWith(prefix)) return
-      val rest = SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, info.defaultForeground)
       listOf(name to nameStyle, "  " + text.removePrefix(prefix) to rest)
     }
     if (info.coloredText.texts == fragments.map { it.first } && info.coloredText.attributes == fragments.map { it.second }) return
@@ -303,11 +355,45 @@ class TabGroupPaneController(
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         g2.color = group.color.strong
         g2.fill(RoundRectangle2D.Float(line.x.toFloat(), line.y.toFloat(), line.width.toFloat(), line.height.toFloat(), height.toFloat(), height.toFloat()))
+        paintChip(component, g2, group, labels.first())
       }
       finally {
         g2.dispose()
       }
     }
+  }
+
+  /** The group's name on its first tab as a chip: filled with the group's color, the name in a color that reads on it. */
+  private fun paintChip(component: Component, g: Graphics2D, group: TabGroup, label: Component) {
+    val tabLabel = label as? TabLabel ?: return
+    val text = tabLabel.labelComponent as? SimpleColoredComponent ?: return
+    if (tabLabel.info.url !in titles) return
+    val name = tabLabel.info.coloredText.texts.firstOrNull() ?: return
+    // where the first fragment is: the x range findFragmentAt gives it
+    var start = -1
+    var end = -1
+    for (x in 0 until text.width) {
+      if (text.findFragmentAt(x) == 0) {
+        if (start < 0) start = x
+        end = x + 1
+      }
+      else if (start >= 0) break
+    }
+    if (start < 0) return
+    val font = text.font.deriveFont(Font.BOLD)
+    val metrics = text.getFontMetrics(font)
+    val pad = JBUI.scale(5)
+    val chipHeight = metrics.height + JBUI.scale(2)
+    val origin = SwingUtilities.convertPoint(text, start, (text.height - chipHeight) / 2, component)
+    val width = maxOf(end - start, metrics.stringWidth(name))
+    val chip = RoundRectangle2D.Float((origin.x - pad).toFloat(), origin.y.toFloat(), (width + 2 * pad).toFloat(), chipHeight.toFloat(),
+                                      chipHeight.toFloat() / 2, chipHeight.toFloat() / 2)
+    g.color = group.color.strong
+    g.fill(chip)
+    g.color = group.color.onStrong
+    g.font = font
+    g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+    g.drawString(name, origin.x, origin.y + (chipHeight - metrics.height) / 2 + metrics.ascent)
   }
 
   /** The group color of [url] in this pane. */

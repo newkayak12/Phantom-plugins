@@ -53,7 +53,8 @@ class TabGroupModel {
   /** The first palette color no group uses, or [TabGroupColor.GREY] when all are taken. */
   fun nextColor(): TabGroupColor {
     val used = myGroups.mapTo(HashSet()) { it.color }
-    return TabGroupColor.entries.firstOrNull { it !in used } ?: TabGroupColor.GREY
+    // grey last: a new group should stand out in color
+    return (TabGroupColor.entries.drop(1) + TabGroupColor.GREY).firstOrNull { it !in used } ?: TabGroupColor.BLUE
   }
 
   /**

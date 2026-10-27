@@ -80,9 +80,9 @@ class TabGroupModelTest {
 
   @Test
   fun `next color skips used ones`() {
-    assertEquals(TabGroupColor.GREY, model.nextColor())
-    model.create(listOf("a"), "g", TabGroupColor.GREY)
     assertEquals(TabGroupColor.BLUE, model.nextColor())
+    model.create(listOf("a"), "g", TabGroupColor.BLUE)
+    assertEquals(TabGroupColor.RED, model.nextColor())
   }
 
   @Test

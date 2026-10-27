@@ -6,7 +6,7 @@
   <description><![CDATA[
   Editor tab groups, as in a web browser: put tabs into a named, colored group from the tab's context menu, collapse
   the group to its first tab and expand it again, drag tabs in and out. A line in the group's color runs under all its
-  tabs and the first tab shows the group's name in that color;
+  tabs and the group's name is a chip in that color on its first tab: click the chip to collapse or open the group, as in Chrome;
   collapsed, it shows the name and how many tabs the group holds. Groups belong to each editor split and are kept with
   the project. Collapsing only hides tabs; files stay open. Nothing changes in the tab bar until you make a group.
   ]]></description>
