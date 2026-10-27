@@ -27,7 +27,7 @@ class DbExtractionContext(val columns: List<DbColumn>, val table: String?, val d
 class DbExtractorsHelper : BaseExtractorsHelper() {
   override fun isApplicable(grid: CoreGrid<GridRow, GridColumn>?): Boolean = grid != null && context(grid) != null
 
-  override fun getBuiltInFactories(): List<DataExtractorFactory> = DbExportFormat.entries.map(::DbExtractorFactory) + super.getBuiltInFactories()
+  override fun getBuiltInFactories(): List<DataExtractorFactory> = DbExportFormat.entries.filter { it.text }.map(::DbExtractorFactory) + super.getBuiltInFactories()
 
   override fun createExtractorConfig(grid: CoreGrid<GridRow, GridColumn>, formatter: ObjectFormatter): ExtractorConfig =
     DbExtractorConfig(formatter, grid, context(grid))

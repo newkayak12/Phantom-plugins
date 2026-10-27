@@ -31,11 +31,15 @@ import java.util.Base64
 /**
  * Result rows as text: TSV, CSV (RFC 4180), JSON, SQL INSERT statements (one per row or one for all), SQL UPDATE
  * statements, the values on one line as SQL literals (for an IN list), a Markdown, HTML or XML table, or a text table.
+ * Excel is a file only: its text is the worksheet, which [DbXlsx] puts in the workbook.
  */
 enum class DbExportFormat(val title: String, val extension: String) {
   TSV("TSV", "tsv"), CSV("CSV", "csv"), JSON("JSON", "json"), INSERT("SQL INSERT", "sql"), INSERT_MULTIROW("SQL INSERT Multirow", "sql"),
   UPDATE("SQL UPDATE", "sql"), ONE_ROW("One-Row", "txt"), MARKDOWN("Markdown", "md"), HTML("HTML", "html"), XML("XML", "xml"),
-  PRETTY("Pretty", "txt");
+  PRETTY("Pretty", "txt"), XLSX("Excel (xlsx)", "xlsx");
+
+  /** Whether the rows can go to the clipboard as this text (Excel is a file). */
+  val text: Boolean get() = this != XLSX
 
   /** Whether the text names the table the rows go to (INSERT, UPDATE). */
   val needsTable: Boolean get() = this == INSERT || this == INSERT_MULTIROW || this == UPDATE
@@ -84,6 +88,10 @@ class DbExportWriter internal constructor(private val format: DbExportFormat, pr
       DbExportFormat.INSERT, DbExportFormat.INSERT_MULTIROW, DbExportFormat.UPDATE, DbExportFormat.ONE_ROW -> {}
       DbExportFormat.XML -> out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<data>\n")
       DbExportFormat.PRETTY -> pretty.add(columns.map { it.name })
+      DbExportFormat.XLSX -> {
+        out.append("<sheetData>")
+        DbXlsx.row(out, 1, columns.map { it.name }.toTypedArray())
+      }
       DbExportFormat.MARKDOWN -> {
         out.append("| ").append(columns.joinToString(" | ") { md(it.name) }).append(" |\n")
         out.append("|").append(columns.joinToString("|") { " --- " }).append("|\n")
@@ -139,6 +147,7 @@ class DbExportWriter internal constructor(private val format: DbExportFormat, pr
         values.forEachIndexed { i, v -> if (v != null && v !is Number) numeric[i] = false }
         pretty.add(values.map { if (it == null) "NULL" else cell(it).replace("\r\n", " ").replace('\n', ' ').replace('\r', ' ') })
       }
+      DbExportFormat.XLSX -> DbXlsx.row(out, count + 2, values)
       DbExportFormat.MARKDOWN -> out.append("| ").append(values.joinToString(" | ") { md(if (it == null) "NULL" else cell(it)) }).append(" |\n")
       DbExportFormat.HTML -> {
         out.append("  <tr>")
@@ -156,6 +165,7 @@ class DbExportWriter internal constructor(private val format: DbExportFormat, pr
       DbExportFormat.INSERT_MULTIROW -> if (count > 0) out.append(";\n")
       DbExportFormat.XML -> out.append("</data>\n")
       DbExportFormat.PRETTY -> prettyTable()
+      DbExportFormat.XLSX -> out.append("</sheetData>")
       else -> {}
     }
   }
@@ -297,7 +307,7 @@ object DbTableExport {
       override fun run(indicator: ProgressIndicator) {
         val (text, type) = try {
           val count = runBlockingCancellable {
-            Files.newBufferedWriter(path).use { out ->
+            DbXlsx.file(path, format) { out ->
               export(project, dataSource, table, where, orderBy, format, out) { indicator.text2 = PhantomDbBundle.message("db.export.table.rows", it) }
             }
           }
@@ -336,7 +346,7 @@ object DbExportUi {
   /** Copy or save the shown rows in a format the user picks; [table] is the INSERT target, else one is asked for. */
   fun show(project: Project, owner: Component, rows: DbOutcome.Rows, dbms: Dbms, table: String? = DbExportFormat.tableSql(dbms, SingleTableSelect.parse(rows.sql)),
            wholeTable: ((DbExportFormat) -> Unit)? = null) {
-    val items = DbExportFormat.entries.flatMap { listOfNotNull(it to 0, it to 1, if (wholeTable != null) it to 2 else null) }
+    val items = DbExportFormat.entries.flatMap { listOfNotNull(if (it.text) it to 0 else null, it to 1, if (wholeTable != null) it to 2 else null) }
     val step = object : BaseListPopupStep<Pair<DbExportFormat, Int>>(PhantomDbBundle.message("db.export.title", rows.rows.size), items) {
       override fun getTextFor(value: Pair<DbExportFormat, Int>): String = when (value.second) {
         0 -> PhantomDbBundle.message("db.export.copy", value.first.title)
@@ -352,7 +362,7 @@ object DbExportUi {
             val target = if (format.needsTable) table ?: askTable(project) ?: return@doFinalStep else table
             val text = format.render(rows, target, dbms)
             if (how == 0) CopyPasteManager.getInstance().setContents(StringSelection(text))
-            else chooseFile(project, format, SingleTableSelect.parse(rows.sql)?.table ?: "result")?.let { Files.writeString(it, text) }
+            else chooseFile(project, format, SingleTableSelect.parse(rows.sql)?.table ?: "result")?.let { DbXlsx.file(it, format) { out -> out.append(text) } }
           }
         }
       }

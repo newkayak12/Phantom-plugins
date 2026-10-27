@@ -284,6 +284,10 @@
     <action id="PhantomDb.Tree.Select" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Debugger.Console"/>
     <action id="PhantomDb.Tree.ImportCsv" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.ToolbarDecorator.Import"/>
     <action id="PhantomDb.Tree.CopyTable" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Copy"/>
+    <action id="PhantomDb.Tree.FullTextSearch" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Find">
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt shift F"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift F"/>
+    </action>
     <action id="PhantomDb.Tree.Diagram" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.FileTypes.Diagram">
       <keyboard-shortcut keymap="$default" first-keystroke="control alt shift U"/>
       <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift U"/>

@@ -475,7 +475,7 @@ class DbResultPanel(val project: Project) : JPanel(BorderLayout()), Disposable {
       object : DefaultActionGroup(PhantomDbBundle.message("db.copy.as"), true) {
         init {
           templatePresentation.icon = AllIcons.Actions.Copy
-          DbExportFormat.entries.forEach { format ->
+          DbExportFormat.entries.filter { it.text }.forEach { format ->
             add(object : DumbAwareAction(format.title) {
               override fun actionPerformed(e: AnActionEvent) {
                 val grid = shownGrid ?: return

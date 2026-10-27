@@ -59,7 +59,7 @@ object DbGridSelection {
 /** Copy As in the grid's popup: the selection as TSV, CSV, JSON, SQL INSERTs, a Markdown or an HTML table. */
 object DbCopyActions {
   fun group(): ActionGroup = DefaultActionGroup(PhantomDbBundle.message("db.copy.as"), true).apply {
-    DbExportFormat.entries.forEach { add(copy(it)) }
+    DbExportFormat.entries.filter { it.text }.forEach { add(copy(it)) }
   }
 
   private fun copy(format: DbExportFormat): AnAction = object : DumbAwareAction(format.title) {

@@ -79,6 +79,23 @@ class DbExportTest : BasePlatformTestCase() {
     """.trimIndent(), DbExportFormat.PRETTY.render(rows, null, Dbms.MYSQL))
   }
 
+  /** Excel: a workbook whose one sheet has the header and the rows; numbers and booleans typed, NULL an empty cell. */
+  fun testExcelWorkbook() {
+    val file = java.nio.file.Files.createTempFile("export", ".xlsx")
+    DbXlsx.file(file, DbExportFormat.XLSX) { it.append(DbExportFormat.XLSX.render(rows, null, Dbms.MYSQL)) }
+    val parts = java.util.zip.ZipFile(file.toFile()).use { zip -> zip.entries().toList().associate { it.name to zip.getInputStream(it).readBytes().decodeToString() } }
+    assertEquals(setOf("[Content_Types].xml", "_rels/.rels", "xl/workbook.xml", "xl/_rels/workbook.xml.rels", "xl/worksheets/sheet1.xml"), parts.keys)
+    val sheet = parts.getValue("xl/worksheets/sheet1.xml")
+    assertTrue(sheet, sheet.endsWith("</sheetData></worksheet>"))
+    assertTrue(sheet, sheet.contains("""<row r="1"><c r="A1" t="inlineStr"><is><t xml:space="preserve">id</t></is></c>"""))
+    assertTrue(sheet, sheet.contains("""<row r="2"><c r="A2"><v>1</v></c><c r="B2" t="inlineStr"><is><t xml:space="preserve">Kim, "Sang"</t></is></c><c r="C2" t="b"><v>1</v></c></row>"""))
+    assertTrue(sheet, sheet.contains("""<row r="3"><c r="A3"><v>2</v></c><c r="C3" t="b"><v>0</v></c></row>"""))
+    // well formed
+    javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(sheet.byteInputStream())
+    assertEquals(listOf("A", "Z", "AA", "AZ", "BA"), listOf(0, 25, 26, 51, 52).map(DbXlsx::column))
+    assertFalse(DbExportFormat.XLSX.text)
+  }
+
   fun testColumnStatistics() {
     val expected = listOf("qty", "rows      5", "NULL      1 (20.0%)", "distinct  2", "sum       6", "avg       1.5", "min       1", "max       2", "",
                           "most frequent", "  1     2 (40.0%)", "  2     2 (40.0%)", "  NULL  1 (20.0%)", "").joinToString("\n")

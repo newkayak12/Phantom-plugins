@@ -253,6 +253,13 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       command("CopyTable", { (selectedNode() as? DbNode.Table)?.ref?.isView == false }) {
         (selectedNode() as? DbNode.Table)?.let { DbTableCopyUi.chooseAndCopy(project, it.dataSource, it.ref, tree) }
       },
+      command("FullTextSearch", { selectedNode() is DbNode.Source || selectedNode() is DbNode.Schema }) {
+        when (val node = selectedNode()) {
+          is DbNode.Source -> DbFullTextSearchUi.start(project, node.dataSource, null)
+          is DbNode.Schema -> DbFullTextSearchUi.start(project, node.dataSource, node.ref)
+          else -> {}
+        }
+      },
       command("Diagram", { diagramTarget() != null }) {
         diagramTarget()?.let { (ds, schema, tables) -> DbDiagrams.open(project, ds, schema, tables) }
       },

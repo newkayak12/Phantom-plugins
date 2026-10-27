@@ -256,6 +256,27 @@ class DbDataToolsTest : BasePlatformTestCase() {
     assertEquals("GUEST", DbTableCopy.targetName(Dbms.MYSQL, Dbms.H2, "guest"))
   }
 
+  /** Full-text Search: text columns ignoring case, LIKE wildcards in the text taken literally, numbers in numeric columns. */
+  fun testFullTextSearch() {
+    val ds = h2()
+    val made = exec(ds, "CREATE TABLE guest (id INT PRIMARY KEY, name VARCHAR(20), note CLOB, photo BLOB)",
+                    "INSERT INTO guest VALUES (1, 'Kim', NULL, NULL), (2, 'lee', 'met kim twice', NULL), (3, 'park', '50% off', NULL), (42, 'x_y', NULL, NULL)",
+                    "CREATE TABLE room (no INT PRIMARY KEY, label VARCHAR(20))", "INSERT INTO room VALUES (42, 'k'), (7, 'kim''s')",
+                    "CREATE VIEW kims AS SELECT * FROM guest")
+    assertTrue(made.toString(), made.none { it is DbOutcome.Failed })
+    val schema = runBlocking { DbMetadataCache.getInstance(project).schemas(ds) }.filter { it.name == "PUBLIC" }
+    fun search(text: String) = runBlocking { DbFullTextSearch.run(project, ds, schema, text) }.also { assertEquals(it.failed.toString(), 0, it.failed.size) }
+      .hits.associate { it.table.name to it.count }
+    assertEquals(mapOf("GUEST" to 2L, "ROOM" to 1L), search("KIM"))
+    assertEquals(mapOf("GUEST" to 1L), search("50%"))
+    assertEquals(mapOf("GUEST" to 1L), search("x_y"))
+    assertEquals(mapOf("GUEST" to 1L, "ROOM" to 1L), search("42"))
+    assertEquals(emptyMap<String, Long>(), search("nobody"))
+    // the hit's WHERE shows the rows
+    val hit = runBlocking { DbFullTextSearch.run(project, ds, schema, "kim") }.hits.first { it.table.name == "GUEST" }
+    assertEquals(listOf(listOf<Any?>(1), listOf<Any?>(2)), rows(ds, "SELECT id FROM guest WHERE ${hit.where} ORDER BY id"))
+  }
+
   /** Filter by on a cell: conditions from the selected values, added to WHERE with AND and run. */
   fun testFilterByValue() {
     val ds = h2()
