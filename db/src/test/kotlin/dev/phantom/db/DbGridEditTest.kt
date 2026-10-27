@@ -215,6 +215,32 @@ class DbGridEditTest : BasePlatformTestCase() {
   }
 
   /** The grid's own Clone Row (⌘D) and Paste (⌘V) work on a result's rows, as in DataGrip. */
+  /** A join's cells go to the table their column comes from, by that table's key; expressions and keyless tables stay read-only. */
+  fun testJoinResultEditsEachTableByItsKey() {
+    val ds = h2()
+    val made = exec(ds, "CREATE TABLE guest (id INT PRIMARY KEY, name VARCHAR(10))", "CREATE TABLE stay (sid INT PRIMARY KEY, guest_id INT, room VARCHAR(5))",
+                    "CREATE TABLE tag (guest_id INT, label VARCHAR(5))",
+                    "INSERT INTO guest VALUES (1, 'kim'), (2, 'lee')", "INSERT INTO stay VALUES (10, 1, 'a'), (11, 2, 'b')", "INSERT INTO tag VALUES (1, 'vip')")
+    assertTrue(made.toString(), made.none { it is DbOutcome.Failed })
+    val sql = "SELECT s.sid, s.room, g.id, g.name AS guest_name, UPPER(g.name) AS up FROM stay s JOIN guest g ON g.id = s.guest_id ORDER BY s.sid"
+    val target = target(ds, sql) as DbJoinEditTarget
+    assertEquals(listOf(true, true, true, true, false), (0..4).map(target::isEditable))
+    assertFalse(target.rowsEditable)
+    val first = rows(ds, sql).rows[0]
+    for (statement in listOf(target.update(first, 3, "kim2"), target.update(first, 1, "z"))) {
+      val outcome = runBlocking { DbExecutor.execute(project, ds, statement) }
+      assertEquals(statement.display, 1L, (outcome as DbOutcome.Updated).count)
+    }
+    assertEquals(listOf(listOf<Any?>(10, "z", 1, "kim2", "KIM2"), listOf<Any?>(11, "b", 2, "lee", "LEE")), rows(ds, sql).rows.map { it.toList() })
+
+    // without the guest's key its columns are read-only; a table without a key is too
+    val partial = target(ds, "SELECT s.sid, g.name, t.label FROM stay s JOIN guest g ON g.id = s.guest_id JOIN tag t ON t.guest_id = g.id")!!
+    assertEquals(listOf(true, false, false), (0..2).map(partial::isEditable))
+    // grouped or combined rows are no table's rows
+    assertNull(target(ds, "SELECT g.id, g.name, COUNT(*) FROM guest g JOIN stay s ON s.guest_id = g.id GROUP BY g.id, g.name"))
+    assertNull(target(ds, "SELECT g.id, g.name FROM guest g JOIN stay s ON s.guest_id = g.id UNION SELECT 3, 'x'"))
+  }
+
   fun testCloneRowAndPasteActions() = immediately(false) {
     val ds = h2()
     exec(ds, "CREATE TABLE t (id INT PRIMARY KEY, name VARCHAR(10), qty INT)", "INSERT INTO t VALUES (1, 'a', 1), (2, 'b', 2)")

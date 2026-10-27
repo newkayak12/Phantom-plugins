@@ -112,7 +112,7 @@ object SingleTableSelect {
  * Where edits of a result go: its table, which result columns are table columns (by index), and the primary key
  * columns, all of which are in the result. A result without its whole primary key is not editable.
  */
-class DbEditTarget(
+open class DbEditTarget(
   val dbms: Dbms,
   /** Quoted and qualified as needed, ready to put in SQL. */
   val tableSql: String,
@@ -122,19 +122,22 @@ class DbEditTarget(
   val sqlTypes: List<Int>,
   val keyColumns: List<Int>,
 ) {
-  fun isEditable(column: Int): Boolean = columnSql.getOrNull(column) != null
+  open fun isEditable(column: Int): Boolean = columnSql.getOrNull(column) != null
+
+  /** Whether rows can be added and deleted (not in a join, whose rows are no one table's). */
+  open val rowsEditable: Boolean get() = true
 
   /** `UPDATE t SET c = ? WHERE k = ?`, with [newValue] then the key values of [row]. */
-  fun update(row: Array<Any?>, column: Int, newValue: Any?): DbStatement {
+  open fun update(row: Array<Any?>, column: Int, newValue: Any?): DbStatement {
     val params = listOf(param(newValue, column)) + keyParams(row)
     return DbStatement("UPDATE $tableSql SET ${columnSql[column]} = ? WHERE ${keyCondition()}", params, dbms)
   }
 
-  fun updateToDefault(row: Array<Any?>, column: Int): DbStatement =
+  open fun updateToDefault(row: Array<Any?>, column: Int): DbStatement =
     DbStatement("UPDATE $tableSql SET ${columnSql[column]} = DEFAULT WHERE ${keyCondition()}", keyParams(row), dbms)
 
   /** The column's value in the row with [row]'s key, as the database has it now. */
-  fun selectValue(row: Array<Any?>, column: Int): DbStatement =
+  open fun selectValue(row: Array<Any?>, column: Int): DbStatement =
     DbStatement("SELECT ${columnSql[column]} FROM $tableSql WHERE ${keyCondition()}", keyParams(row), dbms)
 
   /**
@@ -188,6 +191,21 @@ class DbEditTarget(
   private fun param(value: Any?, column: Int) = DbParam(DbGridTime.fromGrid(value), sqlTypes[column])
 }
 
+/**
+ * Edits of a join's result: each cell goes to the table its column comes from, by that table's primary key, which must
+ * be in the result too. Columns of a table whose key is not there, and expressions, are read-only; rows cannot be
+ * added or deleted.
+ */
+class DbJoinEditTarget(dbms: Dbms, val parts: List<DbEditTarget>, private val owner: List<Int?>, sqlTypes: List<Int>) :
+  DbEditTarget(dbms, parts.joinToString(", ") { it.tableSql }, parts.joinToString(", ") { it.displayName },
+               owner.mapIndexed { c, p -> p?.let { parts[it].columnSql[c] } }, sqlTypes, emptyList()) {
+  override val rowsEditable: Boolean get() = false
+  override fun isEditable(column: Int): Boolean = owner.getOrNull(column) != null
+  override fun update(row: Array<Any?>, column: Int, newValue: Any?): DbStatement = parts[owner[column]!!].update(row, column, newValue)
+  override fun updateToDefault(row: Array<Any?>, column: Int): DbStatement = parts[owner[column]!!].updateToDefault(row, column)
+  override fun selectValue(row: Array<Any?>, column: Int): DbStatement = parts[owner[column]!!].selectValue(row, column)
+}
+
 data class DbParam(val value: Any?, val sqlType: Int)
 
 /** A prepared statement and its parameters; [display] is the SQL with the values written in, for people to read. */
@@ -225,7 +243,7 @@ object DbEditTargets {
    */
   suspend fun resolve(project: Project, dataSource: DbDataSource, rows: DbOutcome.Rows, schema: DbSchemaChoice? = null): DbEditTarget? {
     if (dataSource.readOnly || !dataSource.dialect().hasDialect) return null
-    val parsed = SingleTableSelect.parse(rows.sql) ?: return null
+    val parsed = SingleTableSelect.parse(rows.sql) ?: return resolveJoin(project, dataSource, rows)
     // the chosen name is the database's own spelling: no case folding
     val name = if (parsed.schema == null && schema != null && !schema.isDefault) parsed.copy(schema = schema.name, schemaQuoted = true) else parsed
     return try {
@@ -257,6 +275,56 @@ object DbEditTargets {
     catch (e: SQLException) {
       null
     }
+  }
+
+  /** A select that may be a join whose cells map onto table rows: no set operation, grouping or DISTINCT. */
+  private val JOIN_BLOCKERS = Regex("""(?i)\b(union|intersect|except|minus|group\s+by|having|distinct|window)\b""")
+
+  /**
+   * The edit target of a join: the tables the driver says the result columns come from, each with its primary key
+   * found in the result; null when no table has its whole key there.
+   */
+  private suspend fun resolveJoin(project: Project, dataSource: DbDataSource, rows: DbOutcome.Rows): DbEditTarget? {
+    val text = SingleTableSelect.stripComments(rows.sql).trim()
+    if (!text.startsWith("select", ignoreCase = true) || JOIN_BLOCKERS.containsMatchIn(text)) return null
+    val origins = rows.columns.map { it.origin }
+    val tables = origins.filterNotNull().map { Triple(it.catalog, it.schema, it.table) }.distinct()
+    if (tables.isEmpty()) return null
+    return try {
+      DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.METADATA) { connection ->
+        withContext(Dispatchers.IO) {
+          val md = connection.metaData
+          val quote = md.identifierQuoteString?.trim().orEmpty()
+          val dbms = dataSource.dialect()
+          val parts = ArrayList<DbEditTarget>()
+          val owner = arrayOfNulls<Int>(rows.columns.size).toMutableList()
+          for ((catalog, schema, table) in tables) {
+            val type = md.getTables(catalog, schema, table, null).use { rs ->
+              generateSequence { if (rs.next()) rs.getString("TABLE_NAME") to rs.getString("TABLE_TYPE") else null }.firstOrNull { it.first == table }?.second
+            } ?: continue
+            if (!type.contains("TABLE", ignoreCase = true)) continue
+            val keys = md.getPrimaryKeys(catalog, schema, table).use { rs -> generateSequence { if (rs.next()) rs.getString("COLUMN_NAME") else null }.toList() }
+            val mine = origins.map { o -> o?.takeIf { it.catalog == catalog && it.schema == schema && it.table == table }?.column }
+            val part = joinPart(dbms, quote, if (dbms.usesCatalogs) catalog else schema, table, keys, mine, rows.columns.map { it.sqlType }) ?: continue
+            mine.forEachIndexed { c, name -> if (name != null) owner[c] = parts.size }
+            parts += part
+          }
+          if (parts.isEmpty()) null else DbJoinEditTarget(dbms, parts, owner, rows.columns.map { it.sqlType })
+        }
+      }
+    }
+    catch (e: SQLException) {
+      null
+    }
+  }
+
+  /** One table of a join: [columns] its column name per result column (null for the others); null when its key is not all there. */
+  internal fun joinPart(dbms: Dbms, quote: String, qualifier: String?, table: String, keys: List<String>, columns: List<String?>, sqlTypes: List<Int>): DbEditTarget? {
+    if (keys.isEmpty()) return null
+    fun q(identifier: String) = if (quote.isEmpty()) identifier else quote + identifier.replace(quote, quote + quote) + quote
+    val keyIndexes = keys.map { k -> columns.indexOf(k).takeIf { it >= 0 } ?: return null }
+    val tableSql = (qualifier?.let { q(it) + "." } ?: "") + q(table)
+    return DbEditTarget(dbms, tableSql, table, columns.map { it?.let(::q) }, sqlTypes, keyIndexes)
   }
 
   /** Pure part of [resolve], for tests. */

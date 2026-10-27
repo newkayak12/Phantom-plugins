@@ -149,6 +149,7 @@ class DbGridEdits(
   }
 
   override fun deleteRows(source: GridRequestSource, rows: ModelIndexSet<GridRow>) {
+    if (!target.rowsEditable) return joinRows()
     val selected = rows.asIterable().mapNotNull { hookUp.row(it) }.toList()
     if (selected.isEmpty()) return
     // a new row not submitted yet just goes away
@@ -350,6 +351,7 @@ class DbGridEdits(
    * defaults). With Submit Changes Immediately on, an INSERT to finish opens in a console instead.
    */
   override fun insertRows(source: GridRequestSource, amount: Int) {
+    if (!target.rowsEditable) return joinRows()
     if (immediate) {
       DbConsoles.openConsole(project, dataSource, target.insertTemplate(null))
       return
@@ -381,6 +383,7 @@ class DbGridEdits(
 
   /** Clone Row: a new row with the values of [toClone], key included, to change before Submit. */
   override fun cloneRow(source: GridRequestSource, toClone: ModelIndex<GridRow>) {
+    if (!target.rowsEditable) return joinRows()
     val row = hookUp.row(toClone) ?: return
     if (immediate) {
       DbConsoles.openConsole(project, dataSource, target.insertTemplate(GridRow.getValues(row)))
@@ -452,6 +455,12 @@ class DbGridEdits(
       else -> PhantomDbBundle.message("db.edit.many.rows", outcome.count, target.displayName)
     }
     is DbOutcome.Rows -> null
+  }
+
+  /** A join's rows are no one table's: they are not added or deleted from the grid. */
+  private fun joinRows() {
+    NotificationGroupManager.getInstance().getNotificationGroup("Phantom Database")
+      .createNotification(PhantomDbBundle.message("db.edit.join.rows", target.displayName), NotificationType.INFORMATION).notify(project)
   }
 
   private fun notifyError(message: String) {

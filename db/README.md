@@ -16,6 +16,7 @@ A JDBC console for MySQL, MariaDB, PostgreSQL, H2, AWS, Oracle, SQL Server and m
 - Vendor icons mark drivers and data sources.
 - **Team sharing**: data sources still store `dbms` for 0.10.0 readers. A driver id unknown on a teammate's IDE falls back by URL prefix, else shows a "not defined" error with **Configure Drivers…**.
 - **Manual commit** (a data source setting): statements run in an open transaction. The **Database Changes** tool window lists what is in it, with **Commit** and **Roll Back**; `COMMIT`/`ROLLBACK` typed in the console work too, and closing the project asks first.
+- **Edit a join's result**: a select joining tables (no UNION, GROUP BY or DISTINCT) is editable where the driver tells which table a column comes from and that table's primary key is in the result too: a changed cell is an `UPDATE` of its own table by its own key (each must change exactly one row). Expressions and columns of a table whose key is not selected stay read-only; rows of a join cannot be added or deleted.
 - **Edit in the grid**: a result from one table that includes its primary key can be edited in place. A changed cell runs an `UPDATE` by key, deleted rows a `DELETE`; Add Row and Clone Row open an `INSERT` in the console to finish. On a manual-commit data source the edits wait in Database Changes.
 - **Compare With…** on a schema: the diff viewer shows tables, columns, keys and indexes of two schemas (any data sources), and opens the SQL that makes the other one match in its console. Drops are written commented out.
 - **Data source colors** (as in DataGrip): pick a color in the data source dialog. Its consoles and `.sql` files get it as editor background and tab color, its rows in the Database tree a tint, its result tabs a stripe. Saving the data source recolors them right away. The color is saved with the data source, so the team shares it.
@@ -51,4 +52,4 @@ A JDBC console for MySQL, MariaDB, PostgreSQL, H2, AWS, Oracle, SQL Server and m
 
 Phantom suggests this plugin when a project depends on the JDBC driver of any preset.
 
-Not yet: editing results of joins or views, comparing views, routines and foreign keys.
+Not yet: editing results of views, adding or deleting rows of a join, comparing views, routines and foreign keys.

@@ -29,7 +29,12 @@ import kotlin.time.Duration.Companion.minutes
 class DbException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
 /** A column of a result set; [precision] and [scale] are the driver's (0 when it gives none). */
-data class DbColumn(val name: String, val sqlType: Int, val typeName: String?, val className: String?, val precision: Int = 0, val scale: Int = 0)
+data class DbColumn(val name: String, val sqlType: Int, val typeName: String?, val className: String?, val precision: Int = 0, val scale: Int = 0,
+                    /** The table column the value comes from, as the driver tells it; null for an expression or when it does not. */
+                    val origin: DbColumnOrigin? = null)
+
+/** A result column's table column: [catalog] and [schema] may be empty when the driver leaves them out. */
+data class DbColumnOrigin(val catalog: String?, val schema: String?, val table: String, val column: String)
 
 /** What one statement produced. */
 sealed interface DbOutcome {
@@ -712,13 +717,24 @@ object DbExecutor {
       updateCount.toLong()
     }
 
+  /**
+   * Where result column [i] comes from. PostgreSQL's driver names the table only through its own getBase… methods
+   * (its getSchemaName is empty and getColumnName is the label); the others answer the standard ones.
+   */
+  private fun origin(md: java.sql.ResultSetMetaData, i: Int): DbColumnOrigin? = runCatching {
+    fun base(name: String): String? = runCatching { md.javaClass.getMethod(name, Int::class.javaPrimitiveType).invoke(md, i) as? String }.getOrNull()
+    val table = (base("getBaseTableName") ?: md.getTableName(i))?.takeIf { it.isNotEmpty() } ?: return@runCatching null
+    val column = (base("getBaseColumnName") ?: md.getColumnName(i))?.takeIf { it.isNotEmpty() } ?: return@runCatching null
+    DbColumnOrigin(md.getCatalogName(i)?.ifEmpty { null }, (base("getBaseSchemaName") ?: md.getSchemaName(i))?.ifEmpty { null }, table, column)
+  }.getOrNull()
+
   private fun read(sql: String, rs: ResultSet, maxRows: Int, elapsedSoFar: Long): DbOutcome.Rows {
     val started = System.nanoTime()
     val md = rs.metaData
     val columns = (1..md.columnCount).map { i ->
       DbColumn(md.getColumnLabel(i).ifEmpty { md.getColumnName(i) }, md.getColumnType(i), md.getColumnTypeName(i),
                runCatching { md.getColumnClassName(i) }.getOrNull(),
-               runCatching { md.getPrecision(i) }.getOrDefault(0), runCatching { md.getScale(i) }.getOrDefault(0))
+               runCatching { md.getPrecision(i) }.getOrDefault(0), runCatching { md.getScale(i) }.getOrDefault(0), origin(md, i))
     }
     val rows = ArrayList<Array<Any?>>()
     var truncated = false
