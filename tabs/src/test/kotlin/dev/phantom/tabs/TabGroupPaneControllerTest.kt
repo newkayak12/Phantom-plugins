@@ -5,7 +5,12 @@ import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
+import com.intellij.openapi.extensions.ExtensionPointName
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.impl.EditorAutoClosingHandler
+import com.intellij.openapi.fileEditor.impl.FileEditorManagerImpl
+import com.intellij.openapi.startup.ProjectActivity
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.fileEditor.impl.EditorTabPresentationUtil
 import com.intellij.openapi.fileEditor.impl.EditorWindow
@@ -15,10 +20,22 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.testFramework.FileEditorManagerTestCase
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.TestActionEvent
+import com.intellij.testFramework.replaceService
 import com.intellij.ui.tabs.TabInfo
 import dev.phantom.tabs.core.TabGroupTitleProvider
 import dev.phantom.tabs.core.TabGroupPaneController
+import dev.phantom.tabs.core.GroupState
+import dev.phantom.tabs.core.PaneState
+import dev.phantom.tabs.core.TabGroupColor
+import dev.phantom.tabs.core.TabGroupsState
 import dev.phantom.tabs.core.TabGroupsService
+import dev.phantom.tabs.core.soft
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.runBlocking
 import javax.swing.SwingConstants
 
 class TabGroupPaneControllerTest : FileEditorManagerTestCase() {
@@ -28,6 +45,8 @@ class TabGroupPaneControllerTest : FileEditorManagerTestCase() {
 
   override fun setUp() {
     super.setUp()
+    // the light project, and with it its services, outlives a test: start each from no groups, as a project does
+    project.replaceService(TabGroupsService::class.java, TabGroupsService(project), testRootDisposable)
     a = myFixture.addFileToProject("a.txt", "a").virtualFile
     b = myFixture.addFileToProject("b.txt", "b").virtualFile
     c = myFixture.addFileToProject("c.txt", "c").virtualFile
@@ -251,6 +270,137 @@ class TabGroupPaneControllerTest : FileEditorManagerTestCase() {
     controller.createGroup(listOf(a))
     assertNotNull(dev.phantom.tabs.core.TabGroupColorProvider().getEditorTabColor(project, a))
     assertNull(dev.phantom.tabs.core.TabGroupColorProvider().getEditorTabColor(project, b))
+  }
+
+  // T1 (real IDE: a group's tabs never got its color): the tab background, as the tab bar paints it, follows the group
+  fun testGroupColorIsSetOnMemberTabs() {
+    val group = controller.createGroup(listOf(a, b))
+    assertEquals(group.color.soft, info(a).tabColor)
+    assertEquals(group.color.soft, info(b).tabColor)
+    assertEquals(EditorTabPresentationUtil.getEditorTabBackgroundColor(project, a), info(a).tabColor)
+    assertNull(info(c).tabColor)
+
+    group.color = TabGroupColor.RED
+    controller.changed(group)
+    assertEquals(TabGroupColor.RED.soft, info(a).tabColor)
+    assertEquals(TabGroupColor.RED.soft, info(b).tabColor)
+
+    controller.ungroup(group)
+    assertNull(info(a).tabColor)
+    assertNull(info(b).tabColor)
+  }
+
+  // T10 (real IDE: a group made in one split named and colored the same file's tab in the other split)
+  fun testGroupInOneSplitLeavesTheSameFileInTheOtherSplitAlone() {
+    val left = window
+    val right = split(left)
+    val file = right.selectedFile!!
+    val name = file.name
+    val service = TabGroupsService.getInstance(project)
+    service.controllerFor(left)
+    val group = service.controllerFor(right).createGroup(listOf(file))
+    group.name = "Side"
+    service.controllerFor(right).changed(group)
+    fun tab(pane: EditorWindow): TabInfo = pane.tabbedPane.tabs.tabs.first { it.`object` == file }
+
+    // what the platform gives every pane's tab of the file: not the group of one pane
+    assertEquals(name, EditorTabPresentationUtil.getEditorTabTitle(project, file))
+    assertNull(EditorTabPresentationUtil.getEditorTabBackgroundColor(project, file))
+    assertEquals(name, tab(left).text)
+    assertNull(tab(left).tabColor)
+    assertEquals("Side \u00B7 $name", tab(right).text)
+    assertEquals(group.color.soft, tab(right).tabColor)
+    // the platform setting the title again (a rename, another file of the same name) does not undo the group's
+    tab(right).setText(name)
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    assertEquals("Side \u00B7 $name", tab(right).text)
+    assertTrue(TabGroupsService.isGroupedAnywhere(file))
+
+    service.controllerFor(right).ungroup(group)
+    assertEquals(name, tab(right).text)
+    assertNull(tab(right).tabColor)
+  }
+
+  // T11 (real IDE: after a restart the groups stayed away until a tab was clicked). The project has just opened: the
+  // service has its saved state and no pane has a controller, and every editor event came before the panes were listed,
+  // so none follows. What the plugin registers to run when a project opens brings the groups back, colored, titled and
+  // collapsed.
+  fun testSavedGroupsComeBackWhenTheProjectOpensWithoutAnEditorEvent() {
+    val service = reopenedService()
+    assertEquals(0, service.controllerCount)
+
+    runOpenProjectActivities()
+
+    assertSavedGroupShown()
+    assertEquals(1, service.state.panes.single().groups.size)
+  }
+
+  // T11: a pane got its controller (through a tab action or an editor event) before the editor manager listed it, so its
+  // index was unknown. Once the pane is listed it gets its saved groups.
+  fun testPaneListedAfterItsControllerWasMadeGetsItsSavedGroups() {
+    val service = reopenedService()
+    val pane = window
+    // an editor manager that does not list the pane yet
+    val scope = CoroutineScope(SupervisorJob())
+    val notListing = Disposer.newDisposable(testRootDisposable, "not listing")
+    val restoring = FileEditorManagerImpl(project, scope)
+    try {
+      project.replaceService(FileEditorManager::class.java, restoring, notListing)
+      assertFalse(restoring.getAllSplitters().any { pane in it.getWindows() })
+      service.controllerFor(pane).refresh()
+      PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+      assertFalse(info(b).isHidden)
+      assertNull(info(a).tabColor)
+    }
+    finally {
+      Disposer.dispose(notListing)
+      Disposer.dispose(restoring)
+      scope.cancel()
+    }
+    assertTrue(manager!!.getAllSplitters().any { pane in it.getWindows() })
+
+    runOpenProjectActivities()
+
+    assertSavedGroupShown()
+  }
+
+  /** The service as when a project with a saved collapsed group "Fold" of a and b has just opened: no controllers yet. */
+  private fun reopenedService(): TabGroupsService {
+    val service = TabGroupsService(project)
+    service.loadState(TabGroupsState().apply {
+      panes.add(PaneState().apply {
+        groups.add(GroupState().apply { name = "Fold"; color = "BLUE"; collapsed = true; urls.addAll(listOf(a.url, b.url)) })
+      })
+    })
+    project.replaceService(TabGroupsService::class.java, service, testRootDisposable)
+    return service
+  }
+
+  /** Runs what this plugin registers as postStartupActivity, as the platform does when a project opens. */
+  private fun runOpenProjectActivities() {
+    val activities = ExtensionPointName<Any>("com.intellij.postStartupActivity").extensionList
+      .filterIsInstance<ProjectActivity>()
+      .filter { it.javaClass.name.startsWith("dev.phantom.tabs.") }
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    try {
+      val run = scope.async { activities.forEach { it.execute(project) } }
+      PlatformTestUtil.waitWithEventsDispatching("open-project activities did not finish", { run.isCompleted }, 10)
+      runBlocking { run.await() }
+      PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    }
+    finally {
+      scope.cancel()
+    }
+  }
+
+  private fun assertSavedGroupShown() {
+    assertTrue(info(b).isHidden)
+    assertFalse(info(a).isHidden)
+    assertEquals("\u25B8 Fold (2)", info(a).text)
+    assertEquals(TabGroupColor.BLUE.soft, info(a).tabColor)
+    assertEquals(TabGroupColor.BLUE.soft, info(b).tabColor)
+    assertNull(info(c).tabColor)
+    assertEquals("c.txt", info(c).text)
   }
 
   private fun split(window: EditorWindow): EditorWindow {

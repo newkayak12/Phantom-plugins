@@ -3,12 +3,18 @@ package dev.phantom.tabs.core
 
 import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.fileEditor.impl.EditorTabPresentationUtil
 import com.intellij.openapi.fileEditor.impl.EditorWindow
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.tabs.JBTabs
 import com.intellij.ui.tabs.JBTabsEx
 import com.intellij.ui.tabs.TabInfo
 import com.intellij.ui.tabs.TabsListener
+import java.awt.Color
+import java.beans.PropertyChangeListener
+import java.util.Collections
+import java.util.WeakHashMap
 import javax.swing.SwingConstants
 
 /** What the first tab of a group shows besides its file name: the group's name, or the whole group when collapsed. */
@@ -22,7 +28,8 @@ class TabGroupPaneController(
   val window: EditorWindow,
   val model: TabGroupModel,
   saved: PaneState? = null,
-  private val onChanged: () -> Unit = {},
+  private val onChanged: (changed: Collection<String>) -> Unit = {},
+  private val isPaneSpecific: (url: String) -> Boolean = { false },
 ) {
   private val tabs: JBTabs
     get() = window.tabbedPane.tabs
@@ -34,6 +41,21 @@ class TabGroupPaneController(
   private var lastOrder: List<String> = emptyList()
   private var suppressExpand = false
   private var refreshing = false
+  private var applying = false
+
+  /** The tabs [presentationListener] watches. */
+  private val watched: MutableSet<TabInfo> = Collections.newSetFromMap(WeakHashMap())
+
+  /**
+   * The platform sets a tab's title and color from the providers, which answer per file and not per pane. For a file
+   * shown differently in another pane they answer nothing, so whatever the platform sets there is put right again.
+   */
+  private val presentationListener = PropertyChangeListener { event ->
+    if (applying || (event.propertyName != TabInfo.TEXT && event.propertyName != TabInfo.TAB_COLOR)) return@PropertyChangeListener
+    val url = (event.source as? TabInfo)?.url ?: return@PropertyChangeListener
+    if (!isPaneSpecific(url)) return@PropertyChangeListener
+    ApplicationManager.getApplication().invokeLater({ applyPresentation(listOf(url)) }, { window.isDisposed })
+  }
 
   /** Saved groups whose files are not all open yet: editors come back one by one after a restart. */
   private var pending: PaneState? = saved?.takeIf { it.groups.isNotEmpty() }
@@ -153,6 +175,7 @@ class TabGroupPaneController(
 
   private fun doRefresh() {
     val all = tabs.tabs
+    for (info in all) if (watched.add(info)) info.changeSupport.addPropertyChangeListener(presentationListener)
     val open = all.mapNotNullTo(HashSet()) { it.url }
     applyPending(open)
     for (group in model.groups.toList()) {
@@ -190,16 +213,46 @@ class TabGroupPaneController(
 
     val newColors = HashMap<String, TabGroupColor>()
     for (group in model.groups) group.members.forEach { newColors[it] = group.color }
-    val changed = (colors.keys + newColors.keys).filter { colors[it] != newColors[it] }
+    val changed = (colors.keys + newColors.keys).filterTo(HashSet()) { colors[it] != newColors[it] }
     colors = newColors
-    onChanged()
-    val renamed = (oldTitles.keys + titles.keys).filter { oldTitles[it] != titles[it] }
-    if (changed.isNotEmpty() || renamed.isNotEmpty()) {
-      val byUrl = all.mapNotNull { info -> (info.`object` as? VirtualFile)?.let { it.url to it } }.toMap()
-      changed.mapNotNull(byUrl::get).forEach(window.manager::updateFileColor)
-      renamed.mapNotNull(byUrl::get).forEach(window.manager::updateFileName)
-    }
+    (oldTitles.keys + titles.keys).filterTo(changed) { oldTitles[it] != titles[it] }
+    // the service updates the tabs of these files in every pane
+    onChanged(changed)
     lastOrder = tabs.tabs.mapNotNull { it.url }
+  }
+
+  /** The group color of [url] in this pane. */
+  fun colorOf(url: String): TabGroupColor? = colors[url]
+
+  /**
+   * Sets the title and background of this pane's tabs of [urls] to what they show here: what the providers give, or, for
+   * a file shown differently in another pane, this pane's group.
+   */
+  fun applyPresentation(urls: Collection<String>) {
+    if (window.isDisposed || applying) return
+    val project = window.manager.project
+    applying = true
+    try {
+      for (info in tabs.tabs) {
+        val file = info.`object` as? VirtualFile ?: continue
+        if (file.url !in urls || !file.isValid) continue
+        val (text, color) = ReadAction.computeBlocking<Pair<String, Color?>, Throwable> {
+          if (isPaneSpecific(file.url)) {
+            val base = TabGroupTitleProvider.baseTitle(project, file)
+            (titles[file.url]?.text { base } ?: base) to
+              (colors[file.url]?.soft ?: EditorTabPresentationUtil.getEditorTabBackgroundColor(project, file))
+          }
+          else {
+            EditorTabPresentationUtil.getEditorTabTitle(project, file) to EditorTabPresentationUtil.getEditorTabBackgroundColor(project, file)
+          }
+        }
+        if (info.text != text) info.setText(text)
+        if (info.tabColor != color) info.setTabColor(color)
+      }
+    }
+    finally {
+      applying = false
+    }
   }
 
   private var unhiddenForClose = false
@@ -246,6 +299,13 @@ class TabGroupPaneController(
   fun afterClose() {
     if (!unhiddenForClose) return
     unhiddenForClose = false
+    refresh()
+  }
+
+  /** Gives a controller made before its pane was known the saved groups of that pane, unless it has groups already. */
+  fun bindSaved(saved: PaneState?) {
+    if (pending != null || model.groups.isNotEmpty()) return
+    pending = saved?.takeIf { it.groups.isNotEmpty() }
     refresh()
   }
 
