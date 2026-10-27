@@ -256,6 +256,38 @@ class DbDataToolsTest : BasePlatformTestCase() {
     assertEquals("GUEST", DbTableCopy.targetName(Dbms.MYSQL, Dbms.H2, "guest"))
   }
 
+  /** Compare Content: rows matched by primary key across data sources; the sync SQL makes the right table equal the left. */
+  fun testCompareContent() {
+    val left = h2()
+    val right = h2()
+    val made = exec(left, "CREATE TABLE guest (id INT PRIMARY KEY, name VARCHAR(20), score DECIMAL(5,2), born DATE)",
+                    "INSERT INTO guest VALUES (1, 'kim', 1.50, DATE '2000-01-01'), (2, 'lee', 2, NULL), (3, 'park', 3, NULL), (5, 'new', NULL, NULL)") +
+               exec(right, "CREATE TABLE guest (id BIGINT PRIMARY KEY, name VARCHAR(30), score DOUBLE PRECISION, born DATE, extra INT)",
+                    "INSERT INTO guest VALUES (1, 'kim', 1.5, DATE '2000-01-01', 9), (2, 'LEE', 2, NULL, 9), (3, 'park', 3, NULL, 9), (4, 'gone', NULL, NULL, 9)")
+    assertTrue(made.toString(), made.none { it is DbOutcome.Failed })
+    val diff = runBlocking { DbDataCompare.run(project, left, table(left, "GUEST"), right, table(right, "GUEST")) }
+    assertTrue(diff.keyed)
+    assertEquals(listOf("ID", "NAME", "SCORE", "BORN"), diff.columns.map { it.first })
+    assertEquals(listOf(listOf<Any?>(5, "new", null, null)), diff.onlyLeft.map { it.toList() })
+    assertEquals(listOf(4L), diff.onlyRight.map { it[0] })
+    assertEquals(listOf("lee" to "LEE"), diff.changed.map { it.first[1] to it.second[1] })
+    // 1.50 (DECIMAL) is 1.5 (DOUBLE), INT 1 is BIGINT 1
+    assertEquals(2L, diff.same)
+
+    val sync = DbDataCompare.sync(diff, Dbms.H2, "guest")
+    assertTrue(sync.toString(), sync.contains("DELETE FROM guest WHERE ID = 4;"))
+    assertTrue(sync.toString(), sync.contains("UPDATE guest SET NAME = 'lee' WHERE ID = 2;"))
+    assertTrue(sync.toString(), sync.contains("INSERT INTO guest (ID, NAME, SCORE, BORN) VALUES (5, 'new', NULL, NULL);"))
+    val ran = exec(right, *sync.map { it.removeSuffix(";") }.toTypedArray())
+    assertTrue(ran.toString(), ran.none { it is DbOutcome.Failed })
+    val again = runBlocking { DbDataCompare.run(project, left, table(left, "GUEST"), right, table(right, "GUEST")) }
+    assertTrue("${again.onlyLeft.size} ${again.onlyRight.size} ${again.changed.size}", again.identical)
+
+    val (l, r) = DbDataCompare.text(diff)
+    assertTrue(l, l.startsWith("ID | NAME | SCORE | BORN\n"))
+    assertTrue(r, r.contains("4 | gone | NULL | NULL"))
+  }
+
   /** Full-text Search: text columns ignoring case, LIKE wildcards in the text taken literally, numbers in numeric columns. */
   fun testFullTextSearch() {
     val ds = h2()

@@ -297,6 +297,7 @@
     </action>
     <action id="PhantomDb.Tree.Entity" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Nodes.Class"/>
     <action id="PhantomDb.Tree.Compare" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Diff" use-shortcut-of="CompareTwoFiles"/>
+    <action id="PhantomDb.Tree.CompareContent" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Diff"/>
     <action id="PhantomDb.Tree.Dump" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Download"/>
     <action id="PhantomDb.Tree.Restore" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Upload"/>
   </actions>

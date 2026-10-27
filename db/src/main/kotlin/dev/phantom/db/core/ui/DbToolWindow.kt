@@ -269,6 +269,10 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       command("Compare", { (selectedNode() as? DbNode.Schema)?.dataSource?.dialect()?.hasDialect == true }) {
         (selectedNode() as? DbNode.Schema)?.let { DbSchemaCompare.chooseAndCompare(project, DbSchemaSide(it.dataSource, it.ref), tree) }
       },
+      command("CompareContent", { compareTables() != null }) {
+        val tables = compareTables() ?: return@command
+        if (tables.size == 2) DbDataCompareUi.compare(project, tables[0], tables[1]) else DbDataCompareUi.chooseAndCompare(project, tables[0], tree)
+      },
       command("Dump", { dumpTarget()?.first?.let { DbDump.supported(it) } == true }) {
         dumpTarget()?.let { (ds, schema) -> DbDump.run(project, ds, schema, restore = false) }
       },
@@ -659,6 +663,13 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
     }
     val schema = nodes.singleOrNull() as? DbNode.Schema ?: return null
     return Triple(schema.dataSource, schema.ref, null)
+  }
+
+  /** Compare Content: one selected table (the other is chosen) or two. */
+  private fun compareTables(): List<DbTableSide>? {
+    val nodes = tree.selectionPaths.orEmpty().mapNotNull { (it.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? DbNode }
+    val tables = nodes.filterIsInstance<DbNode.Table>()
+    return tables.takeIf { it.size == nodes.size && it.size in 1..2 }?.map { DbTableSide(it.dataSource, it.ref) }
   }
 
   /** The data source of the selected node or one of its parents. */

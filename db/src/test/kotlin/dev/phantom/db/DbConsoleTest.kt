@@ -264,15 +264,44 @@ class DbConsoleTest : BasePlatformTestCase() {
       assertEquals(listOf(listOf(1, "a"), listOf(2, "b")), panel()!!.shownRows)
       assertTrue(panel()!!.shownStatus, panel()!!.shownStatus.startsWith("2+ rows"))
 
+      // Run Again (and Auto Refresh) runs the query again in the same tab
+      assertTrue(panel()!!.canRefresh())
+      exec(ds, "UPDATE t SET name = 'q' WHERE id = 1")
+      panel()!!.refresh()
+      PlatformTestUtil.waitWithEventsDispatching("not run again", { panel()?.shownRows == listOf(listOf(1, "q"), listOf(2, "b")) }, 20)
+
       // the same file reuses its tab
       DbRunner.start(project, myFixture.file.virtualFile, ds, listOf("UPDATE t SET name = 'z' WHERE id = 1", "SELECT name FROM t WHERE id = 1"))
       PlatformTestUtil.waitWithEventsDispatching("second run not shown", { panel()?.shownStatus?.startsWith("2 statements") == true }, 20)
       assertEquals(listOf(listOf("z")), panel()!!.shownRows)
+      // a run that wrote something is not run again
+      assertFalse(panel()!!.canRefresh())
       assertEquals(1, toolWindow()!!.contentManager.contentCount)
     }
     finally {
       toolWindow()?.contentManager?.removeAllContents(true)
     }
+  }
+
+  fun testStructureAndQuickDoc() {
+    val file = myFixture.configureByText("s.sql", "-- guests\nSELECT *\n  FROM guest WHERE id = 1;\nINSERT INTO guest VALUES (1);\nCREATE TABLE x (id INT);\n") as SqlFile
+    assertEquals(listOf("SELECT * FROM guest WHERE id = 1", "INSERT INTO guest VALUES (1)", "CREATE TABLE x (id INT)"),
+                 file.statements.map { SqlStructure.title(it.text) })
+    assertNotNull(com.intellij.lang.LanguageStructureViewBuilder.getInstance().getStructureViewBuilder(file))
+
+    val ref = DbTableRef("ds", null, "PUBLIC", "STAY", "TABLE")
+    val guest = DbTableRef("ds", null, "PUBLIC", "GUEST", "TABLE")
+    val columns = listOf(DbColumnInfo("ID", "INTEGER", false, true), DbColumnInfo("GUEST_ID", "INTEGER", true, false))
+    val details = listOf(DbColumnDetail("ID", "INTEGER", false, null, true), DbColumnDetail("GUEST_ID", "INTEGER", true, "0", false))
+    val fk = DbForeignKey("FK_G", ref, listOf("GUEST_ID"), guest, listOf("ID"))
+    val doc = SqlDocumentationProvider.render(ref, null, "local", columns, details, DbPrimaryKey(null, listOf("ID")), listOf(DbIndex("IX_G", listOf("GUEST_ID"), false)), listOf(fk))
+    assertTrue(doc, doc.contains("table <b>PUBLIC.STAY</b>"))
+    assertTrue(doc, doc.contains("<tr><td><code>ID</code></td><td>INTEGER NOT NULL</td><td>PK</td></tr>"))
+    assertTrue(doc, doc.contains("<tr><td><code>GUEST_ID</code></td><td>INTEGER DEFAULT 0</td><td>FK → GUEST.ID</td></tr>"))
+    assertTrue(doc, doc.contains("IX_G (GUEST_ID)"))
+    val columnDoc = SqlDocumentationProvider.render(ref, columns[1], "local", columns, details, DbPrimaryKey(null, listOf("ID")), emptyList(), listOf(fk))
+    assertTrue(columnDoc, columnDoc.contains("<b>STAY.GUEST_ID</b> INTEGER"))
+    assertTrue(columnDoc, columnDoc.contains("NULL<br>DEFAULT 0<br>FK → GUEST.ID"))
   }
 
   fun testManualCommitKeepsChangesUntilCommitted() {
