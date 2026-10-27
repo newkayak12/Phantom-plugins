@@ -232,12 +232,25 @@ object DbTableExport {
    */
   suspend fun export(project: Project, dataSource: DbDataSource, table: DbTableRef, where: String, orderBy: String, format: DbExportFormat,
                      out: Appendable, pageSize: Int = PAGE_SIZE, progress: (Long) -> Unit = {}): Long {
+    val dbms = dataSource.dialect()
+    var writer: DbExportWriter? = null
+    pages(project, dataSource, table, where, orderBy, pageSize) { page ->
+      val w = writer ?: format.writer(out, page.columns, DbNames.table(dbms, table), dbms).also { writer = it }
+      page.rows.forEach(w::row)
+      progress(w.count)
+    }
+    writer!!.finish()
+    return writer!!.count
+  }
+
+  /** The rows of [table] (filtered by [where], in [orderBy]) a page of [pageSize] rows per query, each handed to [onPage]. */
+  suspend fun pages(project: Project, dataSource: DbDataSource, table: DbTableRef, where: String, orderBy: String, pageSize: Int = PAGE_SIZE,
+                    onPage: suspend (DbOutcome.Rows) -> Unit) {
     DbTableQuery.problem(where, orderBy)?.let { throw DbException(it) }
     val dbms = dataSource.dialect()
     val paging = DbPaging.of(dataSource)
     val order = totalOrder(project, dataSource, table, orderBy)
     val paged = dataSource.copy().also { it.maxRows = pageSize }
-    var writer: DbExportWriter? = null
     var offset = 0
     var previousFirst: Array<Any?>? = null
     while (true) {
@@ -254,14 +267,10 @@ object DbTableExport {
         throw DbException(PhantomDbBundle.message("db.export.table.no.paging", table.name))
       }
       previousFirst = first
-      val w = writer ?: format.writer(out, page.columns, DbNames.table(dbms, table), dbms).also { writer = it }
-      page.rows.forEach(w::row)
-      progress(w.count)
+      onPage(page)
       if (page.rows.size < pageSize) break
       offset += pageSize
     }
-    writer!!.finish()
-    return writer!!.count
   }
 
   /** [orderBy] followed by the primary key columns, or all comparable columns when there is no primary key. */

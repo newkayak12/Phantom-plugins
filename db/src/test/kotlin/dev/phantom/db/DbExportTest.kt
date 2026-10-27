@@ -79,6 +79,15 @@ class DbExportTest : BasePlatformTestCase() {
     """.trimIndent(), DbExportFormat.PRETTY.render(rows, null, Dbms.MYSQL))
   }
 
+  fun testColumnStatistics() {
+    val expected = listOf("qty", "rows      5", "NULL      1 (20.0%)", "distinct  2", "sum       6", "avg       1.5", "min       1", "max       2", "",
+                          "most frequent", "  1     2 (40.0%)", "  2     2 (40.0%)", "  NULL  1 (20.0%)", "").joinToString("\n")
+    assertEquals(expected, DbColumnStatistics.text("qty", listOf(1, 2, null, 1, 2)))
+    val names = DbColumnStatistics.text("name", listOf("b", "a", "b"))
+    assertTrue(names, names.contains("min       a\nmax       b\n"))
+    assertTrue(names, names.contains("  b  2 (66.7%)"))
+  }
+
   fun testMarkdown() {
     assertEquals("| id | guest name | paid |\n| --- | --- | --- |\n| 1 | Kim, \"Sang\" | true |\n| 2 | NULL | false |\n| 3 | 김 상현 | NULL |\n",
                  DbExportFormat.MARKDOWN.render(rows, null, Dbms.MYSQL))

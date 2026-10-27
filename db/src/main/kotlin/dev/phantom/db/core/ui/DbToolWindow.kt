@@ -250,6 +250,9 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       }) {
         (selectedNode() as? DbNode.Table)?.let { DbCsvImportDialog.start(project, it.dataSource, it.ref) }
       },
+      command("CopyTable", { (selectedNode() as? DbNode.Table)?.ref?.isView == false }) {
+        (selectedNode() as? DbNode.Table)?.let { DbTableCopyUi.chooseAndCopy(project, it.dataSource, it.ref, tree) }
+      },
       command("Diagram", { diagramTarget() != null }) {
         diagramTarget()?.let { (ds, schema, tables) -> DbDiagrams.open(project, ds, schema, tables) }
       },

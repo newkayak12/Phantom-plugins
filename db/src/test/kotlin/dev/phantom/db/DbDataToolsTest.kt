@@ -220,6 +220,76 @@ class DbDataToolsTest : BasePlatformTestCase() {
     assertEquals(listOf("IDX_PRICE"), runBlocking { objects.indexes(ds, item) }.map { it.name })
   }
 
+  /** Copy Table To: into another data source, creating the table, then into an existing table with fewer columns. */
+  fun testCopyTableToAnotherDataSource() {
+    val source = h2()
+    val target = h2()
+    val made = exec(source, "CREATE TABLE guest (id INT PRIMARY KEY, name VARCHAR(20), born DATE, note VARCHAR(20) DEFAULT 'n')",
+                    "INSERT INTO guest SELECT X, 'g' || X, DATEADD(DAY, X, DATE '2000-01-01'), NULL FROM SYSTEM_RANGE(1, 2500)")
+    assertTrue(made.toString(), made.none { it is DbOutcome.Failed })
+    val schema = runBlocking { DbMetadataCache.getInstance(project).schemas(target) }.first { it.name == "PUBLIC" }
+    val result = runBlocking { DbTableCopy.run(project, source, table(source, "GUEST"), target, schema) }
+    assertEquals(2500L, result.rows)
+    assertTrue(result.created)
+    assertEquals(listOf(listOf<Any?>(2500L, 1, 2500)), rows(target, "SELECT COUNT(*), MIN(id), MAX(id) FROM guest"))
+    assertEquals(listOf(listOf<Any?>("g7", java.sql.Date.valueOf("2000-01-08"), null)), rows(target, "SELECT name, born, note FROM guest WHERE id = 7"))
+    // the primary key came along
+    assertTrue(exec(target, "INSERT INTO guest (id) VALUES (7)").single() is DbOutcome.Failed)
+
+    exec(target, "CREATE TABLE other (NAME VARCHAR(20), id INT, extra INT DEFAULT 5)")
+    exec(source, "CREATE TABLE other (id INT PRIMARY KEY, name VARCHAR(20), gone INT)", "INSERT INTO other VALUES (1, 'a', 9), (2, 'b', 9)")
+    val into = runBlocking { DbTableCopy.run(project, source, table(source, "OTHER"), target, schema) }
+    assertFalse(into.created)
+    assertEquals(listOf(listOf<Any?>("a", 1, 5), listOf<Any?>("b", 2, 5)), rows(target, "SELECT name, id, extra FROM other ORDER BY id"))
+  }
+
+  fun testCopyTableTranslatesTypes() {
+    assertEquals("INTEGER", DbTableCopy.type(Dbms.POSTGRESQL, "INT UNSIGNED"))
+    assertEquals("BOOLEAN", DbTableCopy.type(Dbms.POSTGRESQL, "TINYINT(1)"))
+    assertEquals("TIMESTAMP(3)", DbTableCopy.type(Dbms.POSTGRESQL, "DATETIME(3)"))
+    assertEquals("DATETIME", DbTableCopy.type(Dbms.MYSQL, "timestamp without time zone"))
+    assertEquals("LONGBLOB", DbTableCopy.type(Dbms.MYSQL, "bytea"))
+    assertEquals("TEXT", DbTableCopy.type(Dbms.MYSQL, "character varying"))
+    assertEquals("VARCHAR(20)", DbTableCopy.type(Dbms.POSTGRESQL, "VARCHAR(20)"))
+    assertEquals("DECIMAL(10,2)", DbTableCopy.type(Dbms.H2, "NUMERIC(10,2)"))
+    assertEquals("guest", DbTableCopy.targetName(Dbms.H2, Dbms.POSTGRESQL, "GUEST"))
+    assertEquals("GUEST", DbTableCopy.targetName(Dbms.MYSQL, Dbms.H2, "guest"))
+  }
+
+  /** Filter by on a cell: conditions from the selected values, added to WHERE with AND and run. */
+  fun testFilterByValue() {
+    val ds = h2()
+    exec(ds, "CREATE TABLE guest (id INT PRIMARY KEY, name VARCHAR(20), note VARCHAR(20))",
+         "INSERT INTO guest VALUES (1, 'kim', NULL), (2, 'lee', 'x'), (3, 'kim_2', 'y'), (4, 'park', NULL)")
+    val view = DbTableDataView.open(project, ds, table(ds, "GUEST"))
+    PlatformTestUtil.waitWithEventsDispatching({ "no rows: " + view.result.shownStatus }, { view.result.shownRows?.size == 4 }, 20)
+    val grid = view.result.shownGrid!!
+    fun ids() = view.result.shownRows?.map { it[0] }
+
+    grid.selectionModel.setSelection(com.intellij.database.datagrid.ModelIndex.forRow(grid, 0), com.intellij.database.datagrid.ModelIndex.forColumn(grid, 1))
+    assertEquals(listOf("NAME = 'kim'", "NAME <> 'kim'", "NAME LIKE '%kim%'", "NAME NOT LIKE '%kim%'"), DbFilterByValue.conditions(grid))
+    DbFilterByValue.apply(grid, "NAME LIKE '%kim%'")
+    PlatformTestUtil.waitWithEventsDispatching({ "not filtered: ${ids()}" }, { ids() == listOf(1, 3) }, 20)
+
+    // a second condition is added to the first
+    val g2 = view.result.shownGrid!!
+    g2.selectionModel.setSelection(com.intellij.database.datagrid.ModelIndex.forRow(g2, 0), com.intellij.database.datagrid.ModelIndex.forColumn(g2, 2))
+    assertEquals(listOf("NOTE IS NULL", "NOTE IS NOT NULL"), DbFilterByValue.conditions(g2))
+    DbFilterByValue.apply(g2, "NOTE IS NULL")
+    assertEquals("(NAME LIKE '%kim%') AND (NOTE IS NULL)", view.filter.where)
+    PlatformTestUtil.waitWithEventsDispatching({ "not filtered: ${ids()}" }, { ids() == listOf(1) }, 20)
+
+    // several values of a column: IN
+    view.filter.where = ""
+    view.filter.apply()
+    PlatformTestUtil.waitWithEventsDispatching({ "not reset: ${ids()}" }, { ids()?.size == 4 }, 20)
+    val g3 = view.result.shownGrid!!
+    g3.selectionModel.setSelection(com.intellij.database.datagrid.ModelIndexSet.forRows(g3, 0, 1, 3), com.intellij.database.datagrid.ModelIndexSet.forColumns(g3, 2))
+    assertEquals(listOf("NOTE IN ('x') OR NOTE IS NULL", "NOTE NOT IN ('x') AND NOTE IS NOT NULL"), DbFilterByValue.conditions(g3))
+    DbFilterByValue.apply(g3, DbFilterByValue.conditions(g3)[1])
+    PlatformTestUtil.waitWithEventsDispatching({ "not filtered: ${ids()}" }, { ids() == listOf(3) }, 20)
+  }
+
   fun testTableDataViewPagesFiltersAndFollowsForeignKeys() {
     val ds = h2()
     exec(ds, "CREATE TABLE guest (id INT PRIMARY KEY, name VARCHAR(20))",

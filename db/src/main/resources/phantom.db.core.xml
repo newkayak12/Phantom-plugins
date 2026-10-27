@@ -246,6 +246,7 @@
       <keyboard-shortcut keymap="$default" first-keystroke="control alt shift F"/>
     </action>
     <action id="PhantomDb.Grid.EditOrdering" class="dev.phantom.db.core.exec.DbGridEditOrderingAction"/>
+    <action id="PhantomDb.Grid.ColumnStatistics" class="dev.phantom.db.core.exec.DbGridColumnStatisticsAction"/>
     <!-- Database tree commands, with DataGrip's keys; the tree's own toolbar and popup show them -->
     <action id="PhantomDb.Tree.Add" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.General.Add" use-shortcut-of="NewElement"/>
     <action id="PhantomDb.Tree.Edit" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Edit">
@@ -282,6 +283,7 @@
     <action id="PhantomDb.Tree.Modify" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Edit" use-shortcut-of="ChangeSignature"/>
     <action id="PhantomDb.Tree.Select" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Debugger.Console"/>
     <action id="PhantomDb.Tree.ImportCsv" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.ToolbarDecorator.Import"/>
+    <action id="PhantomDb.Tree.CopyTable" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Copy"/>
     <action id="PhantomDb.Tree.Diagram" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.FileTypes.Diagram">
       <keyboard-shortcut keymap="$default" first-keystroke="control alt shift U"/>
       <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift U"/>

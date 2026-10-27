@@ -22,6 +22,7 @@ import dev.phantom.db.core.DbDataSource
 import dev.phantom.db.core.PhantomDbBundle
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.sql.Types
 import java.util.Collections
 import java.util.IdentityHashMap
 
@@ -117,7 +118,7 @@ class DbGridEdits(
     val edits = mutations.mapNotNull { m ->
       val row = hookUp.row(m.row) ?: return@mapNotNull null
       if (!target.isEditable(m.column.value)) return@mapNotNull null
-      Edit(row, m.column.value, m.value)
+      Edit(row, m.column.value, DbPastedValues.typed(m.value, target.sqlTypes.getOrElse(m.column.value) { Types.OTHER }))
     }
     if (immediate) apply(source, edits.map { Op.Cell(it) }) else keep(source, edits)
   }
@@ -460,4 +461,32 @@ class DbGridEdits(
   }
 
   private class Edit(val row: GridRow, val column: Int, val value: Any?)
+}
+
+/**
+ * Text going into a column of another type (Paste puts the clipboard's text in) is turned into that type's value, in
+ * the grid's form for dates and times, so it shows and is written like a typed value; text that does not parse stays.
+ */
+object DbPastedValues {
+  fun typed(value: Any?, sqlType: Int): Any? {
+    if (value !is String) return value
+    val s = value.trim()
+    return runCatching {
+      when (sqlType) {
+        Types.TINYINT, Types.SMALLINT, Types.INTEGER -> s.toInt()
+        Types.BIGINT -> s.toLong()
+        Types.DECIMAL, Types.NUMERIC -> java.math.BigDecimal(s)
+        Types.REAL, Types.FLOAT, Types.DOUBLE -> s.toDouble()
+        Types.BOOLEAN, Types.BIT -> when (s.lowercase()) {
+          "true", "1", "t", "yes", "y" -> true
+          "false", "0", "f", "no", "n" -> false
+          else -> value
+        }
+        Types.DATE -> DbGridTime.toGrid(java.sql.Date.valueOf(s))
+        Types.TIMESTAMP -> DbGridTime.toGrid(java.sql.Timestamp.valueOf(s.replace('T', ' ')))
+        Types.TIME -> DbGridTime.toGrid(java.sql.Time.valueOf(s))
+        else -> value
+      }
+    }.getOrDefault(value)
+  }
 }

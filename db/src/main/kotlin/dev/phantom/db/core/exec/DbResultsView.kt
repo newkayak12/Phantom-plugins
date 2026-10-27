@@ -337,9 +337,9 @@ class DbResultPanel(val project: Project) : JPanel(BorderLayout()), Disposable {
     val setValue = listOf("PhantomDb.Grid.Submit", "PhantomDb.Grid.SubmitAndCommit", "Console.TableResult.RevertSelected", "PhantomDb.Grid.PreviewChanges", "PhantomDb.Grid.SubmitImmediately")
                      .mapNotNull { manager.getAction(it) } + Separator.getInstance() +
                    listOf(manager.getAction("PhantomDb.Grid.SetNull"), manager.getAction("PhantomDb.Grid.SetDefault"), Separator.getInstance()) +
-                   listOf("PhantomDb.Grid.EditFilterCriteria", "PhantomDb.Grid.EditOrdering", "PhantomDb.Grid.SelectRow", "PhantomDb.Grid.SelectColumn")
+                   listOf("PhantomDb.Grid.EditFilterCriteria", "PhantomDb.Grid.EditOrdering", "PhantomDb.Grid.SelectRow", "PhantomDb.Grid.SelectColumn", "PhantomDb.Grid.ColumnStatistics")
                      .mapNotNull { manager.getAction(it) } + Separator.getInstance()
-    val popup = DefaultActionGroup(tableActions + setValue + listOf(DbCopyActions.group(), Separator.getInstance(), GridUtil.getGridPopupActions()))
+    val popup = DefaultActionGroup(tableActions + setValue + listOf(DbFilterByValue.group(), DbCopyActions.group(), Separator.getInstance(), GridUtil.getGridPopupActions()))
     val grid = GridUtil.createDataGrid(project, hookUp, popup,
                                        BiConsumer { g, appearance ->
                                          // the setup the community CSV editor uses: helpers, renderers, formatters, cell editors

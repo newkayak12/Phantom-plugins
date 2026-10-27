@@ -251,10 +251,17 @@ class DbGridEditTest : BasePlatformTestCase() {
     grid.selectionModel.setSelection(ModelIndex.forRow(grid, 2), ModelIndex.forColumn(grid, 0))
     run("\$Paste")
     PlatformTestUtil.waitWithEventsDispatching({ "not pasted: ${(0 until model.rowCount).map(::row)}" }, { model.rowCount == 4 && row(3)[1] == "d" }, 20)
-    // pasted as text; the database converts it on Submit
-    assertEquals(listOf("3", "c", "30"), row(2).map { it?.toString() })
-    assertEquals(listOf("4", "d", "40"), row(3).map { it?.toString() })
-    println("pasted types: " + row(2).map { it?.javaClass?.simpleName })
+    // the text is turned into the columns' types
+    assertEquals(listOf<Any?>(3, "c", 30), row(2))
+    assertEquals(listOf<Any?>(4, "d", 40), row(3))
+
+    // Compare Cells shows for two cells
+    grid.selectionModel.setSelection(ModelIndexSet.forRows(grid, 0, 1), ModelIndexSet.forColumns(grid, 1))
+    val compare = com.intellij.openapi.actionSystem.ActionManager.getInstance().getAction("Console.TableResult.CompareCells")
+    val compareEvent = com.intellij.testFramework.TestActionEvent.createTestEvent(compare, com.intellij.openapi.actionSystem.impl.SimpleDataContext.builder()
+      .add(com.intellij.openapi.actionSystem.CommonDataKeys.PROJECT, project).add(com.intellij.database.DatabaseDataKeys.DATA_GRID_KEY, grid).build())
+    com.intellij.openapi.actionSystem.ex.ActionUtil.updateAction(compare, compareEvent)
+    assertTrue(compareEvent.presentation.isEnabledAndVisible)
 
     var submitted: Boolean? = null
     edits.submit(GridRequestSource(null)) { submitted = it }
@@ -262,6 +269,17 @@ class DbGridEditTest : BasePlatformTestCase() {
     assertTrue(submitted!!)
     assertEquals(listOf(listOf<Any?>(1, "a", 1), listOf<Any?>(2, "b", 2), listOf<Any?>(3, "c", 30), listOf<Any?>(4, "d", 40)),
                  rows(ds, "SELECT * FROM t ORDER BY id").rows.map { it.toList() })
+  }
+
+  fun testPastedTextTakesTheColumnType() {
+    assertEquals(42, DbPastedValues.typed(" 42 ", java.sql.Types.INTEGER))
+    assertEquals(java.math.BigDecimal("1.50"), DbPastedValues.typed("1.50", java.sql.Types.DECIMAL))
+    assertEquals(true, DbPastedValues.typed("t", java.sql.Types.BOOLEAN))
+    assertEquals("not a number stays", "abc", DbPastedValues.typed("abc", java.sql.Types.INTEGER))
+    assertEquals("12", DbPastedValues.typed("12", java.sql.Types.VARCHAR))
+    assertEquals(java.sql.Timestamp.valueOf("2026-10-27 08:00:00.5"),
+                 DbGridTime.fromGrid(DbPastedValues.typed("2026-10-27T08:00:00.5", java.sql.Types.TIMESTAMP)))
+    assertEquals(java.sql.Date.valueOf("2001-02-03"), DbGridTime.fromGrid(DbPastedValues.typed("2001-02-03", java.sql.Types.DATE)))
   }
 
   /** A new row without its generated key shows the key the database made, so it can be edited again. */
