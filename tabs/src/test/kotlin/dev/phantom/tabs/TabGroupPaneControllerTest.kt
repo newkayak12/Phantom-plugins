@@ -204,6 +204,8 @@ class TabGroupPaneControllerTest : FileEditorManagerTestCase() {
     open(a)
     val d = myFixture.addFileToProject("d.txt", "d").virtualFile
     open(d)
+    // the editor of d may finish opening, and the group be put back together, after the events dispatched so far
+    PlatformTestUtil.waitWithEventsDispatching({ "order ${order()}" }, { order().take(2) == listOf(a, b) && d in order() }, 10)
     assertEquals(listOf(a, b), order().take(2))
     assertNull(controller.model.groupOf(d.url))
   }

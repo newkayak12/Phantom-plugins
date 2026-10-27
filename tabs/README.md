@@ -15,6 +15,8 @@ Collapsing needs tabs on top, in one scrolling row, not sorted alphabetically; o
 Until 2026-10-26 this was bundled with Phantom (`phantom-tabs`) and drew a chip in the tab label through Phantom-only
 platform changes. It is a plugin on the public platform API now, so it updates without a new Phantom build.
 
+**0.2.3**: the same as 0.2.2, whose release build failed on a test that checked the tab order before a new tab had finished opening.
+
 **0.2.2**: dragging no longer breaks groups up. Dragging the chip, a collapsed group or a group's only tab took that tab out of its group; now the whole group moves with it.
 
 **0.2.1**: the group's name is a chip in its color, and a click on the chip collapses or opens the group, as in Chrome. New groups start at blue instead of grey.
