@@ -23,6 +23,8 @@ import com.intellij.ui.SimpleTextAttributes
 import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.replaceService
 import com.intellij.ui.tabs.TabInfo
+import com.intellij.ui.tabs.impl.JBTabsImpl
+import dev.phantom.tabs.core.TabGroup
 import dev.phantom.tabs.core.TabGroupTitleProvider
 import dev.phantom.tabs.core.TabGroupPaneController
 import dev.phantom.tabs.core.GroupState
@@ -418,6 +420,55 @@ class TabGroupPaneControllerTest : FileEditorManagerTestCase() {
   }
 
   private fun newFile(name: String): VirtualFile = myFixture.addFileToProject(name, name).virtualFile
+
+  /** Drags [file]'s tab onto [target]'s place and drops it, as the tab bar does: pressing a tab selects it. */
+  private fun drag(file: VirtualFile, target: VirtualFile) {
+    val tabs = window.tabbedPane.tabs as JBTabsImpl
+    tabs.select(info(file), false)
+    tabs.reallocate(info(file), info(target))
+    tabs.resetTabsCache()
+    tabs.fireTabsMoved()
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+  }
+
+  /** a, b collapsed into a group of their own (b hidden), then c d e x: the order is a c d e x. */
+  private fun collapsedGroupAndMore(): Triple<TabGroup, VirtualFile, VirtualFile> {
+    val d = newFile("d.txt").also(::open)
+    val x = newFile("x.txt").also(::open)
+    val group = controller.createGroup(listOf(a, b))
+    controller.toggleCollapsed(group)
+    assertEquals(listOf(a, c, d, x), order())
+    return Triple(group, d, x)
+  }
+
+  fun testTabDroppedRightAfterCollapsedGroupStaysOutOfIt() {
+    val (group, _, x) = collapsedGroupAndMore()
+    drag(x, c)
+    assertNull(controller.model.groupOf(x.url))
+    assertTrue(group.collapsed)
+    assertEquals(x, window.selectedFile)
+  }
+
+  fun testTabDroppedRightBeforeCollapsedGroupStaysOutOfIt() {
+    val (group, d, x) = collapsedGroupAndMore()
+    drag(x, a)
+    drag(c, a)
+    assertNull(controller.model.groupOf(c.url))
+    assertTrue(group.collapsed)
+    assertEquals(listOf(x, c, a, d), order())
+  }
+
+  fun testCollapsedGroupStaysWhereItIsWhenOtherTabsMove() {
+    val (group, d, x) = collapsedGroupAndMore()
+    val other = controller.createGroup(listOf(c, d))
+    drag(x, a)
+    drag(c, x)
+    assertEquals(listOf(c, x, a, d), order())
+    assertTrue(group.collapsed)
+    assertEquals(listOf(a.url, b.url), group.members)
+    assertNull(controller.model.groupOf(x.url))
+    assertEquals(listOf(d.url), other.members)
+  }
 
   fun testPinningInOneSplitWorksWithGroupsInTheOther() {
     val left = window

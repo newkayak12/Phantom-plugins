@@ -85,7 +85,8 @@ class TabGroupModel {
   /**
    * A tab was dragged from [before] to [after]. It joins a group when it lands between two of its tabs or right after its
    * last tab (as in Chrome, so a group of one tab can be dragged into too), stays in its group while it still touches a tab
-   * of it, and leaves it otherwise; right before a group's first tab (its chip) is outside the group. [dragged] is the tab the user dragged (the selected one),
+   * of it, and leaves it otherwise; right before a group's first tab (its chip) is outside the group, and a collapsed group
+   * takes no tab. [before] and [after] are the tabs shown. [dragged] is the tab the user dragged (the selected one),
    * which settles swaps of two neighbors, where either tab could have moved.
    *
    * The whole group goes with the tab, as in Chrome, when it was dragged by the group's chip ([byChip]), when the group is
@@ -103,8 +104,10 @@ class TabGroupModel {
       return
     }
     val index = after.indexOf(moved)
-    val left = after.getOrNull(index - 1)?.let(::groupOf)
-    val right = after.getOrNull(index + 1)?.let(::groupOf)
+    // a tab dropped beside a collapsed group stays out of it, as in Chrome
+    fun open(url: String?) = url?.let(::groupOf)?.takeIf { !it.collapsed }
+    val left = open(after.getOrNull(index - 1))
+    val right = open(after.getOrNull(index + 1))
     val own = groupOf(moved)
     when {
       left != null && left === right -> add(moved, left)

@@ -70,6 +70,14 @@ class TabGroupModelTest {
   }
 
   @Test
+  fun `a tab dropped right after a collapsed group stays out of it`() {
+    model.create(listOf("a", "b"), "g", TabGroupColor.BLUE).collapsed = true
+    // b is hidden: the tabs shown are a, y, x
+    model.onMoved(listOf("a", "y", "x"), listOf("a", "x", "y"), dragged = "x")
+    assertNull(model.groupOf("x"))
+  }
+
+  @Test
   fun `a member dragged away leaves, the group stays`() {
     val g = model.create(listOf("a", "b"), "g", TabGroupColor.BLUE)
     model.onMoved(listOf("a", "b", "x"), listOf("a", "x", "b"), dragged = "x")

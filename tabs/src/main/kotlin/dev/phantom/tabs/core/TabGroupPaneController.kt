@@ -155,7 +155,7 @@ class TabGroupPaneController(
         pending = null
         val byChip = pressed != null
         movedSincePress = true
-        model.onMoved(lastOrder, tabs.tabs.mapNotNull { it.url }, tabs.selectedInfo?.url, byChip)
+        model.onMoved(lastOrder, visibleOrder(), tabs.selectedInfo?.url, byChip)
         refresh()
       }
 
@@ -267,12 +267,12 @@ class TabGroupPaneController(
       group.members.filter { it !in open }.forEach(model::remove)
     }
     if (model.groups.isEmpty() && titles.isEmpty() && colors.isEmpty()) {
-      lastOrder = all.mapNotNull { it.url }
+      lastOrder = visibleOrder()
       return
     }
 
     val collapsible = collapseSupported()
-    val order = model.desiredOrder(all.mapNotNull { it.url })
+    val order = model.desiredOrder(currentOrder())
     // a group's first tab shows the group; the other tabs of a collapsed group are hidden
     val anchors = model.groups.associateWith { group -> order.first { it in group.members } }
     // the selected tab is never hidden: its collapsed group opens (a tab just added to it, or a group being restored)
@@ -303,9 +303,31 @@ class TabGroupPaneController(
     (oldTitles.keys + titles.keys).filterTo(changed) { oldTitles[it] != titles[it] }
     // the service updates the tabs of these files in every pane
     onChanged(changed)
-    lastOrder = tabs.tabs.mapNotNull { it.url }
+    lastOrder = visibleOrder()
     for (info in tabs.tabs) if (info.url in titles) styleName(info)
     tabs.component.repaint()
+  }
+
+  /** The tabs the tab bar shows, in order: what a drag moves. */
+  private fun visibleOrder(): List<String> = tabs.tabs.filter { !it.isHidden }.mapNotNull { it.url }
+
+  /**
+   * The pane's tabs in order, the hidden tabs of each collapsed group right after its first tab. The tab bar puts a hidden
+   * tab back in its list at the index it had when hidden, which goes stale as tabs move, and the hidden tabs in no fixed
+   * order: there, a tab dropped beside a collapsed group could land between its hidden tabs and join it.
+   */
+  private fun currentOrder(): List<String> {
+    val all = tabs.tabs
+    val hidden = all.filter { it.isHidden }.mapNotNullTo(LinkedHashSet()) { it.url }
+    val result = ArrayList<String>(all.size)
+    for (info in all) {
+      if (info.isHidden) continue
+      val url = info.url ?: continue
+      result.add(url)
+      for (member in model.groupOf(url)?.members.orEmpty()) if (hidden.remove(member)) result.add(member)
+    }
+    result.addAll(hidden)
+    return result
   }
 
   /**
