@@ -25,6 +25,10 @@ interface StackedWindow {
   /** Moves the window to [state]. Maximizing keeps the normal bounds; leaving full screen sets bounds once it is over. */
   fun apply(state: WindowState)
   fun activate()
+
+  /** Whether the window is on screen at all ([WindowStack.single] hides the windows behind). */
+  val isShown: Boolean get() = true
+  fun show(shown: Boolean) {}
 }
 
 /**
@@ -37,6 +41,10 @@ interface StackedWindow {
  *
  * Full screen is only ever entered or left by [switchTo]: it is never pushed to the windows behind (on macOS every
  * full-screen window gets its own Space), and a window in full screen is left in it until it is switched to.
+ *
+ * While [single], only the window in front is shown and the others are hidden, so there is one window on screen (one in
+ * the Dock menu, Mission Control and the window switcher) whose project changes like a tab. Windows are kept in the
+ * order they came to front, so closing the window in front shows the one in front before it.
  */
 class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
   private val windows = ArrayList<StackedWindow>()
@@ -49,6 +57,13 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
   var front: StackedWindow? = null
     private set
 
+  /** Only the window in front is shown. Turning it off shows every window again. */
+  var single: Boolean = false
+    set(value) {
+      field = value
+      if (value) hideBehind() else windows.filter { !it.isShown }.forEach { it.show(true) }
+    }
+
   /** A move of the window in front is still to be pushed: [flush] again later. */
   val hasPendingMove: Boolean get() = pending
 
@@ -56,12 +71,13 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
    * A new window; it is moved on top of the others unless [align] is false (the stack is switched off). A window that is
    * already active when it joins leads from then on: the OS makes a new window key while showing it, before it can join,
    * so no activation follows. It still goes where the stack is, maximized or not, so one project saved maximized does not
-   * maximize the others. Normally [place] has already put it there before it was shown.
+   * maximize the others. Normally [place] has already put it there before it was shown. While [single], a new window on
+   * screen (a project just opened) comes to front even when it is not active yet, and the others are hidden.
    */
   fun add(window: StackedWindow, align: Boolean = true) {
     if (contains(window)) return
     windows += window
-    if (front == null || window.isActive) front = window
+    if (front == null || window.isActive || single && window.isShown) toFront(window)
     val target = shared
     if (target == null) {
       if (!window.isInTransition) shared = window.state
@@ -69,6 +85,7 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
     else if (align) {
       alignBehind(window, target)
     }
+    if (single) hideBehind()
   }
 
   /**
@@ -85,12 +102,16 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
     alignBehind(window, target)
   }
 
-  fun remove(window: StackedWindow) {
+  /**
+   * [window] is gone. Returns the window to show in its place when it was in front while [single] (the one in front
+   * before it), for the caller to [switchTo] once the closing is over; null otherwise.
+   */
+  fun remove(window: StackedWindow): StackedWindow? {
     windows.removeIf { it === window }
-    if (front === window) {
-      front = null
-      pending = false
-    }
+    if (front !== window) return null
+    front = null
+    pending = false
+    return if (single) windows.lastOrNull() else null
   }
 
   /** [window] moved, resized, maximized, or entered or left full screen. True when it leads and [flush] should follow. */
@@ -130,24 +151,34 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
   fun activated(window: StackedWindow) {
     flush()
     if (!contains(window)) return
-    front = window
+    toFront(window)
     val target = shared
     if (target == null) shared = window.state else alignBehind(window, target)
+    if (single) hideBehind()
   }
 
-  /** Puts [window] in place, full screen included, then brings it to front. */
+  /**
+   * Puts [window] in place, full screen included, then brings it to front. A hidden window is put in place while hidden,
+   * shown (full screen is entered only once it is on screen), and the window it replaces is hidden only after that, so
+   * nothing behind shows in between.
+   */
   fun switchTo(window: StackedWindow) {
     flush()
-    if (contains(window)) front = window
+    if (contains(window)) toFront(window)
     val target = shared
+    if (!window.isShown) {
+      if (target != null) alignBehind(window, target)
+      window.show(true)
+    }
     if (target != null && !window.isInTransition && !inPlace(window.state, target)) window.apply(target)
     window.activate()
+    if (single) hideBehind()
   }
 
   /** The stack is switched back on: [window] in front leads as it is now, the others follow. */
   fun lead(window: StackedWindow) {
     if (!contains(window)) return
-    front = window
+    toFront(window)
     pending = true
     flush()
   }
@@ -166,6 +197,19 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
   }
 
   private fun contains(window: StackedWindow): Boolean = windows.any { it === window }
+
+  private fun toFront(window: StackedWindow) {
+    front = window
+    windows.removeIf { it === window }
+    windows += window
+  }
+
+  private fun hideBehind() {
+    val shown = front ?: return
+    for (other in windows) {
+      if (other !== shown && other.isShown) other.show(false)
+    }
+  }
 
   /** Puts a window that is not being switched to in place: never into or out of full screen. */
   private fun alignBehind(window: StackedWindow, target: WindowState) {

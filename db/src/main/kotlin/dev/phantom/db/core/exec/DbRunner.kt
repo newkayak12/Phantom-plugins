@@ -404,6 +404,8 @@ object DbRunner {
   private fun runIn(project: Project, file: VirtualFile, dataSource: DbDataSource, sql: List<String>, panel: DbResultPanel, schema: DbSchemaChoice,
                   present: ((DbResultPanel, List<DbOutcome>) -> Unit)?) {
     panel.showRunning(SqlSafety.preview(sql.first()) + if (sql.size > 1) " (+${sql.size - 1})" else "")
+    // Run Again and Auto Refresh: the same statements (parameters as given) in the same tab
+    panel.rerun = if (present == null) ({ runIn(project, file, dataSource, sql, panel, schema, null) }) else null
     val job = DbConnectionService.getInstance(project).launch {
       try {
         val outcomes = DbExecutor.execute(project, dataSource, sql, schema = schema, console = DbConsoles.sessionFor(project, file))

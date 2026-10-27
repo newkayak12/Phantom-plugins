@@ -349,7 +349,7 @@
     {
       "id": "dev.phantom.workspaces",
       "name": "Phantom Workspaces",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "source": "workspaces",
       "description": "All open projects as tabs of one window: a tab strip above the editor lists every open project (click to switch, middle-click or the close button to close), and project windows share one size, position and maximized state, so switching looks like changing tabs of one window; a project switched to from the strip also takes full screen, never pushed to the windows behind. Next/previous project: Window | Next Project Window. Works on every OS, no native window tabs; off in Settings | Advanced Settings | Phantom Workspaces. Moved out of the Phantom bundle so it updates like any other plugin.",
       "vendor": "Phantom",
@@ -359,7 +359,7 @@
       "depends": [
         "com.intellij.modules.platform"
       ],
-      "download": "workspaces-0.1.1/workspaces-0.1.1.zip",
+      "download": "workspaces-0.2.0/workspaces-0.2.0.zip",
       "detect": []
     }
   ]

@@ -123,6 +123,8 @@
                      enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlNoDataSourceInspection"/>
     <lang.formatter language="SQL" implementationClass="dev.phantom.db.core.SqlFormattingModelBuilder"/>
     <lang.findUsagesProvider language="SQL" implementationClass="dev.phantom.db.core.SqlFindUsagesProvider"/>
+    <lang.documentationProvider language="SQL" implementationClass="dev.phantom.db.core.SqlDocumentationProvider"/>
+    <lang.psiStructureViewFactory language="SQL" implementationClass="dev.phantom.db.core.SqlStructureViewFactory"/>
     <referencesSearch implementation="dev.phantom.db.core.SqlDbReferenceSearcher"/>
     <findUsagesHandlerFactory implementation="dev.phantom.db.core.SqlDbFindUsagesHandlerFactory"/>
     <renamePsiElementProcessor implementation="dev.phantom.db.core.SqlDbRenameProcessor"/>

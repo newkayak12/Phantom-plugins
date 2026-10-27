@@ -115,6 +115,7 @@ class DbTableDataView(private val project: Project, dataSource: DbDataSource, va
       add(pager, BorderLayout.SOUTH)
     }, BorderLayout.NORTH)
     add(result, BorderLayout.CENTER)
+    result.rerun = { reload(offset) }
     ApplicationManager.getApplication().messageBus.connect(this).subscribe(DataGrid.ACTIVE_GRID_CHANGED_TOPIC, object : DataGrid.ActiveGridListener {
       override fun onColumnSortingToggled(grid: DataGrid) {
         if (grid === this@DbTableDataView.grid) sortByHeader(grid)

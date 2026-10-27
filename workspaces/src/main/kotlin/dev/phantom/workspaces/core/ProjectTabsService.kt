@@ -16,6 +16,7 @@ import com.intellij.openapi.components.serviceIfCreated
 import com.intellij.openapi.options.advanced.AdvancedSettings
 import com.intellij.openapi.options.advanced.AdvancedSettingsChangeListener
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.project.ProjectCloseListener
 import com.intellij.openapi.project.ProjectNameListener
 import com.intellij.openapi.wm.IdeFrame
@@ -49,10 +50,13 @@ class ProjectTabsService : Disposable {
 
   init {
     Toolkit.getDefaultToolkit().addAWTEventListener(newFrameListener, AWTEvent.HIERARCHY_EVENT_MASK)
+    stack.single = isEnabled
   }
 
   override fun dispose() {
     Toolkit.getDefaultToolkit().removeAWTEventListener(newFrameListener)
+    // the plugin is unloaded: no window stays hidden
+    stack.single = false
   }
 
   val isEnabled: Boolean get() = AdvancedSettings.getBoolean(ProjectTabs.SETTING_ID)
@@ -76,10 +80,17 @@ class ProjectTabsService : Disposable {
   @RequiresEdt
   internal fun detach(strip: ProjectTabStrip) {
     if (!strips.removeIf { it === strip }) return
-    strip.window?.let(stack::remove)
+    val next = strip.window?.let(stack::remove)
+    // the window in front closed: the one before it comes back in its place, unless the IDE is quitting
+    if (next != null && !ApplicationManager.getApplication().isExitInProgress) {
+      ApplicationManager.getApplication().invokeLater({
+        if (strips.any { it.window === next }) stack.switchTo(next)
+      }, ModalityState.any())
+    }
     refresh()
   }
 
+  /** Also when a hidden project window is shown by someone else than the stack: it comes to front in place. */
   @RequiresEdt
   internal fun windowActivated(window: StackedWindow) {
     if (isEnabled) stack.activated(window)
@@ -99,6 +110,7 @@ class ProjectTabsService : Disposable {
 
   @RequiresEdt
   internal fun settingChanged() {
+    stack.single = isEnabled
     if (isEnabled) {
       val windows = strips.mapNotNull { it.window }
       val leader = windows.firstOrNull { it.isActive } ?: windows.firstOrNull { it === stack.front } ?: windows.firstOrNull()
@@ -113,6 +125,25 @@ class ProjectTabsService : Disposable {
     val window = strips.firstOrNull { it.project === project }?.window ?: return false
     if (isEnabled) stack.switchTo(window) else window.activate()
     return true
+  }
+
+  /** Switches to the open project at [path] (its presentable URL or base path). False when none is open here. */
+  @RequiresEdt
+  fun switchTo(path: String): Boolean {
+    val wanted = FileUtil.toSystemIndependentName(path).trimEnd('/')
+    val project = openOrder.firstOrNull { p ->
+      !p.isDisposed && listOfNotNull(p.presentableUrl, p.basePath).any { FileUtil.toSystemIndependentName(it).trimEnd('/') == wanted }
+    } ?: return false
+    return switchTo(project)
+  }
+
+  /** Switches to the project [offset] tabs away from [project], wrapping around. */
+  @RequiresEdt
+  fun switchBy(project: Project?, offset: Int) {
+    val open = openOrder.filter { p -> !p.isDisposed && strips.any { it.project === p } }
+    if (open.size < 2) return
+    val index = open.indexOfFirst { it === project }.coerceAtLeast(0)
+    switchTo(open[Math.floorMod(index + offset, open.size)])
   }
 
   /** Closes [project] the way File | Close Project does (the welcome screen comes back after the last one). */

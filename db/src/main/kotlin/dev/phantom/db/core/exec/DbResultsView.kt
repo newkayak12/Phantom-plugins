@@ -82,6 +82,34 @@ class DbResultPanel(val project: Project) : JPanel(BorderLayout()), Disposable {
   /** Set by a table's data view: Export then also offers the whole table, written in the background. */
   var exportTable: ((DbExportFormat) -> Unit)? = null
 
+  /** Runs the shown statements again (a console's run, a table's page); null when there is nothing to run again. */
+  var rerun: (() -> Unit)? = null
+
+  /** Whether the shown results came only from queries, so running them again (by hand or every few seconds) writes nothing. */
+  private var queriesOnly = false
+
+  /** Runs the shown query again every this many seconds while the tab is visible and has no waiting edits; 0: off. */
+  var autoRefreshSeconds: Int = 0
+    set(value) {
+      field = value
+      timer?.stop()
+      timer = if (value > 0) javax.swing.Timer(value * 1000) { autoRefresh() }.apply { start() } else null
+    }
+  private var timer: javax.swing.Timer? = null
+
+  fun canRefresh(): Boolean = queriesOnly && (filterBase != null || rerun != null)
+
+  /** Runs the shown query again, with its WHERE / ORDER BY fields when it has them. */
+  fun refresh() {
+    if (!canRefresh()) return
+    if (filterBase != null) refilter() else rerun?.invoke()
+  }
+
+  private fun autoRefresh() {
+    if (!isShowing || job?.isActive == true || shownEditing?.hasPendingChanges() == true) return
+    refresh()
+  }
+
   /** Which console or file this tab shows results for; a new run from it replaces the tab unless it is pinned. */
   internal var tabKey: String? = null
 
@@ -156,6 +184,7 @@ class DbResultPanel(val project: Project) : JPanel(BorderLayout()), Disposable {
   fun showOutcomes(outcomes: List<DbOutcome>) {
     val disposable = Disposer.newDisposable()
     val top = row()
+    queriesOnly = outcomes.isNotEmpty() && outcomes.all { it is DbOutcome.Rows }
     val failed = outcomes.filterIsInstance<DbOutcome.Failed>().firstOrNull()
     val status = if (outcomes.size == 1) summary(outcomes[0]) else PhantomDbBundle.message("db.run.statements", outcomes.size, outcomes.sumOf { it.elapsedMs })
     top.add(JBLabel(status, if (failed != null) AllIcons.General.Error else AllIcons.General.InspectionsOK, JBLabel.LEFT).apply {
@@ -458,6 +487,34 @@ class DbResultPanel(val project: Project) : JPanel(BorderLayout()), Disposable {
         }
       },
       Separator.getInstance(),
+      object : DumbAwareAction(PhantomDbBundle.message("db.refresh.text"), null, AllIcons.Actions.Refresh) {
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+        override fun update(e: AnActionEvent) {
+          e.presentation.isEnabled = canRefresh() && job?.isActive != true
+        }
+
+        override fun actionPerformed(e: AnActionEvent) = refresh()
+      },
+      object : DefaultActionGroup(PhantomDbBundle.message("db.auto.refresh"), true) {
+        init {
+          templatePresentation.icon = AllIcons.Actions.ForceRefresh
+          for (seconds in listOf(0, 5, 10, 30, 60)) {
+            add(object : DumbAwareToggleAction(if (seconds == 0) PhantomDbBundle.message("db.auto.refresh.off") else PhantomDbBundle.message("db.auto.refresh.every", seconds)) {
+              override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+              override fun isSelected(e: AnActionEvent): Boolean = autoRefreshSeconds == seconds
+              override fun setSelected(e: AnActionEvent, state: Boolean) {
+                autoRefreshSeconds = if (state) seconds else 0
+              }
+            })
+          }
+        }
+
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+        override fun update(e: AnActionEvent) {
+          e.presentation.isEnabled = canRefresh() || autoRefreshSeconds > 0
+          e.presentation.text = if (autoRefreshSeconds > 0) PhantomDbBundle.message("db.auto.refresh.on", autoRefreshSeconds) else PhantomDbBundle.message("db.auto.refresh")
+        }
+      },
       object : DumbAwareToggleAction(PhantomDbBundle.message("db.grid.transpose"), null, AllIcons.Actions.SplitVertically) {
         override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
         override fun isSelected(e: AnActionEvent): Boolean = transposed
@@ -529,6 +586,7 @@ class DbResultPanel(val project: Project) : JPanel(BorderLayout()), Disposable {
 
   override fun dispose() {
     job?.cancel()
+    timer?.stop()
   }
 
   private companion object {

@@ -57,4 +57,10 @@ class FrameWindow(
   override fun activate() {
     bringToFront()
   }
+
+  override val isShown: Boolean get() = frame.isVisible
+
+  override fun show(shown: Boolean) {
+    frame.isVisible = shown
+  }
 }

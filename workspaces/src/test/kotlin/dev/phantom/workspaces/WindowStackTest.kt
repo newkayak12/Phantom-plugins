@@ -73,6 +73,13 @@ class WindowStackTest {
     override fun activate() {
       log += "activate $name"
     }
+
+    override var isShown: Boolean = true
+
+    override fun show(shown: Boolean) {
+      log += (if (shown) "show " else "hide ") + name
+      isShown = shown
+    }
   }
 
   private var now = 0L
@@ -471,5 +478,97 @@ class WindowStackTest {
     stack.remove(b)
     moveFront(a) { normal = elsewhere }
     assertEquals(home, b.normal)
+  }
+
+  @Test
+  fun `in single mode a project that opens hides the window that was in front`() {
+    stack.single = true
+    val a = window("a")
+    val b = window("b", elsewhere)
+    stack.add(a)
+    stack.add(b)
+    assertSame(b, stack.front)
+    assertFalse(a.isShown)
+    assertTrue(b.isShown)
+    assertEquals(home, b.normal)
+  }
+
+  @Test
+  fun `in single mode switching shows the window in place before hiding the one it replaces`() {
+    stack.single = true
+    val a = window("a")
+    val b = window("b")
+    stack.add(a)
+    stack.add(b)
+    moveFront(b) { normal = elsewhere }
+    log.clear()
+    stack.switchTo(a)
+    // the hidden window followed the move already, so it is only shown
+    assertEquals(listOf("show a", "activate a", "hide b"), log)
+    assertEquals(elsewhere, a.normal)
+    assertSame(a, stack.front)
+  }
+
+  @Test
+  fun `in single mode a hidden window switched to while the stack is full screen enters it once shown`() {
+    stack.single = true
+    val a = window("a")
+    val b = window("b")
+    stack.add(a)
+    stack.add(b)
+    moveFront(b) { fullScreen = true }
+    log.clear()
+    stack.switchTo(a)
+    assertEquals(listOf("show a", "apply a", "activate a", "hide b"), log)
+    assertTrue(a.isInTransition)
+  }
+
+  @Test
+  fun `in single mode closing the window in front gives back the one in front before it`() {
+    stack.single = true
+    val a = window("a")
+    val b = window("b")
+    val c = window("c")
+    stack.add(a)
+    stack.add(b)
+    stack.add(c)
+    stack.switchTo(b)
+    stack.switchTo(a)
+    assertSame(b, stack.remove(a))
+  }
+
+  @Test
+  fun `in single mode closing a hidden window shows nothing`() {
+    stack.single = true
+    val a = window("a")
+    val b = window("b")
+    stack.add(a)
+    stack.add(b)
+    assertEquals(null, stack.remove(a))
+  }
+
+  @Test
+  fun `turning single mode off shows every window again`() {
+    stack.single = true
+    val a = window("a")
+    val b = window("b")
+    stack.add(a)
+    stack.add(b)
+    stack.single = false
+    assertTrue(a.isShown)
+    assertTrue(b.isShown)
+  }
+
+  @Test
+  fun `a window activated some other way comes to front and hides the others in single mode`() {
+    stack.single = true
+    val a = window("a")
+    val b = window("b")
+    stack.add(a)
+    stack.add(b)
+    a.isShown = true
+    stack.activated(a)
+    assertSame(a, stack.front)
+    assertFalse(b.isShown)
   }
 }

@@ -68,6 +68,9 @@ class ProjectTabStrip(val project: Project) : JPanel(HorizontalLayout(0)) {
   private val moveListener = object : ComponentAdapter() {
     override fun componentMoved(e: ComponentEvent) = moved()
     override fun componentResized(e: ComponentEvent) = moved()
+    override fun componentShown(e: ComponentEvent) {
+      window?.let { service.windowActivated(it) }
+    }
   }
   private val stateListener = WindowStateListener { moved() }
 
