@@ -351,7 +351,7 @@
       "name": "Phantom Workspaces",
       "version": "0.2.0",
       "source": "workspaces",
-      "description": "All open projects as tabs of one window: a tab strip above the editor lists every open project (click to switch, middle-click or the close button to close), and project windows share one size, position and maximized state, so switching looks like changing tabs of one window; a project switched to from the strip also takes full screen, never pushed to the windows behind. Next/previous project: Window | Next Project Window. Works on every OS, no native window tabs; off in Settings | Advanced Settings | Phantom Workspaces. Moved out of the Phantom bundle so it updates like any other plugin.",
+      "description": "All open projects as tabs of one window: a tab strip above the editor lists every open project (click to switch, middle-click or the close button to close), and only the project in front has a window on screen, the others hidden behind it, so there is one window and a project you open comes in as a new tab. Project windows share one size, position and maximized state; a project switched to also takes full screen. Next/previous project: Window | Next Project Window. Works on every OS, no native window tabs; off in Settings | Advanced Settings | Phantom Workspaces. Moved out of the Phantom bundle so it updates like any other plugin.",
       "vendor": "Phantom",
       "category": "User Interface",
       "since": "262",
