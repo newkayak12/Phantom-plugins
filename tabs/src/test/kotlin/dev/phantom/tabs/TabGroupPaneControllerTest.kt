@@ -19,6 +19,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.testFramework.FileEditorManagerTestCase
 import com.intellij.testFramework.PlatformTestUtil
+import com.intellij.ui.SimpleTextAttributes
 import com.intellij.testFramework.TestActionEvent
 import com.intellij.testFramework.replaceService
 import com.intellij.ui.tabs.TabInfo
@@ -30,6 +31,7 @@ import dev.phantom.tabs.core.TabGroupColor
 import dev.phantom.tabs.core.TabGroupsState
 import dev.phantom.tabs.core.TabGroupsService
 import dev.phantom.tabs.core.soft
+import dev.phantom.tabs.core.strong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -308,12 +310,12 @@ class TabGroupPaneControllerTest : FileEditorManagerTestCase() {
     assertNull(EditorTabPresentationUtil.getEditorTabBackgroundColor(project, file))
     assertEquals(name, tab(left).text)
     assertNull(tab(left).tabColor)
-    assertEquals("Side \u00B7 $name", tab(right).text)
+    assertEquals("Side  $name", tab(right).text)
     assertEquals(group.color.soft, tab(right).tabColor)
     // the platform setting the title again (a rename, another file of the same name) does not undo the group's
     tab(right).setText(name)
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
-    assertEquals("Side \u00B7 $name", tab(right).text)
+    assertEquals("Side  $name", tab(right).text)
     assertTrue(TabGroupsService.isGroupedAnywhere(file))
 
     service.controllerFor(right).ungroup(group)
@@ -514,5 +516,20 @@ class TabGroupPaneControllerTest : FileEditorManagerTestCase() {
     action.update(event)
     UISettings.getInstance().openInPreviewTabIfPossible = false
     assertFalse(event.presentation.isEnabledAndVisible)
+  }
+
+  fun testGroupNameIsColoredOnItsFirstTab() {
+    val group = controller.createGroup(listOf(a, b))
+    group.name = "Work"
+    controller.changed(group)
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    val text = info(a).coloredText
+    assertEquals(listOf("Work", "  a.txt"), text.texts)
+    assertEquals(group.color.strong, text.attributes[0].fgColor)
+    assertEquals(SimpleTextAttributes.STYLE_BOLD, text.attributes[0].style)
+    assertEquals("b.txt", info(b).text)
+    controller.ungroup(group)
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    assertEquals(listOf("a.txt"), info(a).coloredText.texts)
   }
 }

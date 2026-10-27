@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.tabs.core
 
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
@@ -27,7 +28,7 @@ import java.util.WeakHashMap
 /** The tab groups of a project: one controller per editor pane, saved in the workspace in the order of the panes. */
 @Service(Service.Level.PROJECT)
 @State(name = "PhantomTabGroups", storages = [Storage(StoragePathMacros.WORKSPACE_FILE)])
-class TabGroupsService(private val project: Project) : PersistentStateComponent<TabGroupsState> {
+class TabGroupsService(private val project: Project) : PersistentStateComponent<TabGroupsState>, Disposable {
   private val controllers = WeakHashMap<EditorWindow, TabGroupPaneController>()
   private var saved = TabGroupsState()
   private val unbound: MutableSet<EditorWindow> = Collections.newSetFromMap(WeakHashMap())
@@ -53,7 +54,7 @@ class TabGroupsService(private val project: Project) : PersistentStateComponent<
     val index = windows().indexOf(window)
     // a pane the editor manager does not list yet (still being restored) gets its saved groups once it does
     if (index < 0) unbound.add(window)
-    TabGroupPaneController(window, TabGroupModel(), saved.panes.getOrNull(index), ::onChanged, ::isPaneSpecific)
+    TabGroupPaneController(window, TabGroupModel(), saved.panes.getOrNull(index), ::onChanged, ::isPaneSpecific, this)
   }
 
   /** A pane's groups changed; [changed] are the files whose group color or group title changed in it. */
@@ -167,6 +168,9 @@ class TabGroupsService(private val project: Project) : PersistentStateComponent<
   private fun windows(): List<EditorWindow> =
     (FileEditorManagerEx.getInstanceEx(project) as? FileEditorManagerImpl)?.getAllSplitters()?.flatMap(::orderedWindows)
     ?: FileEditorManagerEx.getInstanceEx(project).windows.toList()
+
+  /** The parent of what the pane controllers install on their tab bars (the group lines); nothing else to free. */
+  override fun dispose() {}
 
   override fun getState(): TabGroupsState = stateSnapshot ?: saved
 

@@ -150,8 +150,8 @@ internal object TabsScenario : ProbeScenario {
     // members unselected from here on: a tab outside the group is selected
     t.select("f.txt")
 
-    ctx.step("group.title", mapOf("texts" to mapOf("a.txt" to "Work · a.txt", "b.txt" to "b.txt"))) {
-      ctx.waitUntil(4000) { t.text("a.txt") == "Work · a.txt" }
+    ctx.step("group.title", mapOf("texts" to mapOf("a.txt" to "Work  a.txt", "b.txt" to "b.txt"))) {
+      ctx.waitUntil(4000) { t.text("a.txt") == "Work  a.txt" }
       ctx.edt { mapOf("texts" to mapOf("a.txt" to t.text("a.txt"), "b.txt" to t.text("b.txt")), "tabs" to t.tabs()) }
     }
 
@@ -180,9 +180,9 @@ internal object TabsScenario : ProbeScenario {
       }
     }
 
-    ctx.step("group.rename", mapOf("anchorText" to "Ops · a.txt")) {
+    ctx.step("group.rename", mapOf("anchorText" to "Ops  a.txt")) {
       val m = t.menu("a.txt", listOf("Rename Group…"), answer = "Ops")
-      ctx.waitUntil(4000) { t.text("a.txt") == "Ops · a.txt" }
+      ctx.waitUntil(4000) { t.text("a.txt") == "Ops  a.txt" }
       m + ctx.edt { mapOf("anchorText" to t.text("a.txt"), "members" to t.members()) }
     }
 
@@ -201,9 +201,9 @@ internal object TabsScenario : ProbeScenario {
       }
     }
 
-    ctx.step("group.expand.click", mapOf("anchorText" to "Ops · a.txt", "hidden" to mapOf("b.txt" to false), "orderRestored" to true)) {
+    ctx.step("group.expand.click", mapOf("anchorText" to "Ops  a.txt", "hidden" to mapOf("b.txt" to false), "orderRestored" to true)) {
       val clicked = t.leftClick("a.txt")
-      ctx.waitUntil(4000) { t.text("a.txt") == "Ops · a.txt" && t.hidden("b.txt") == false }
+      ctx.waitUntil(4000) { t.text("a.txt") == "Ops  a.txt" && t.hidden("b.txt") == false }
       ctx.edt {
         mapOf(
           "via" to ProbeInput.VIA_QUEUE, "clickVariant" to t.clickVariant, "posted" to clicked,
@@ -215,12 +215,12 @@ internal object TabsScenario : ProbeScenario {
     }
 
     t.select("f.txt")
-    ctx.step("group.toggle.menu", mapOf("anchorTextAfterCollapse" to "▸ Ops (2)", "anchorTextAfterExpand" to "Ops · a.txt")) {
+    ctx.step("group.toggle.menu", mapOf("anchorTextAfterCollapse" to "▸ Ops (2)", "anchorTextAfterExpand" to "Ops  a.txt")) {
       val m1 = t.menu("a.txt", listOf("Collapse Group"))
       ctx.waitUntil(4000) { t.text("a.txt") == "▸ Ops (2)" }
       val afterCollapse = ctx.edt { t.text("a.txt") }
       val m2 = t.menu("a.txt", listOf("Expand Group"))
-      ctx.waitUntil(4000) { t.text("a.txt") == "Ops · a.txt" }
+      ctx.waitUntil(4000) { t.text("a.txt") == "Ops  a.txt" }
       val afterExpand = ctx.edt { t.text("a.txt") }
       mapOf("via" to m2["via"], "collapseMenu" to m1, "expandMenu" to m2, "anchorTextAfterCollapse" to afterCollapse, "anchorTextAfterExpand" to afterExpand)
     }
@@ -314,7 +314,7 @@ internal object TabsScenario : ProbeScenario {
     // T7: a hidden member opened from outside the tab bar (Goto File / Recent Files navigate an OpenFileDescriptor, the
     // Project view double-clicks its node): the group expands, the member is selected and the order comes back
     ctx.step("open.hiddenMember", mapOf(
-      "hidden" to mapOf("b.txt" to false), "selected" to "b.txt", "anchorText" to "Hid · a.txt", "orderRestored" to true,
+      "hidden" to mapOf("b.txt" to false), "selected" to "b.txt", "anchorText" to "Hid  a.txt", "orderRestored" to true,
       "projectViewOk" to true, "openFileOk" to true,
     )) {
       t.open(listOf("a.txt", "b.txt"))
@@ -333,7 +333,7 @@ internal object TabsScenario : ProbeScenario {
       }
 
       suspend fun result(how: String, extra: Map<String, Any?>): Map<String, Any?> {
-        ctx.waitUntil(4000) { t.hidden("b.txt") == false && t.text("a.txt") == "Hid · a.txt" }
+        ctx.waitUntil(4000) { t.hidden("b.txt") == false && t.text("a.txt") == "Hid  a.txt" }
         delay(300)
         return ctx.edt {
           val selected = t.tabs().firstOrNull { it["selected"] == true }?.get("file")
@@ -342,7 +342,7 @@ internal object TabsScenario : ProbeScenario {
             "orderRestored" to (t.order() == orderBefore), "order" to t.order(), "labelShowing" to (t.info("b.txt")?.let(t::label)?.isShowing == true),
             "selectedFileInEditor" to FileEditorManager.getInstance(ctx.project).selectedFiles.firstOrNull()?.name,
           )
-          r + mapOf("how" to how, "ok" to (r["hidden"] == mapOf("b.txt" to false) && selected == "b.txt" && r["anchorText"] == "Hid · a.txt" && r["orderRestored"] == true)) + extra
+          r + mapOf("how" to how, "ok" to (r["hidden"] == mapOf("b.txt" to false) && selected == "b.txt" && r["anchorText"] == "Hid  a.txt" && r["orderRestored"] == true)) + extra
         }
       }
 

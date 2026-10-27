@@ -2,27 +2,39 @@
 package dev.phantom.tabs.core
 
 import com.intellij.ide.ui.UISettings
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.fileEditor.impl.EditorTabPresentationUtil
 import com.intellij.openapi.fileEditor.impl.EditorWindow
+import com.intellij.openapi.ui.AbstractPainter
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.wm.IdeGlassPaneUtil
+import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.tabs.JBTabs
 import com.intellij.ui.tabs.JBTabsEx
 import com.intellij.ui.tabs.TabInfo
 import com.intellij.ui.tabs.TabsListener
+import com.intellij.util.ui.JBUI
 import java.awt.Color
+import java.awt.Component
+import java.awt.Graphics2D
+import java.awt.Rectangle
+import java.awt.RenderingHints
+import java.awt.geom.RoundRectangle2D
 import java.beans.PropertyChangeListener
 import java.util.Collections
 import java.util.WeakHashMap
 import javax.swing.SwingConstants
+import javax.swing.SwingUtilities
 
 /** What the first tab of a group shows besides its file name: the group's name, or the whole group when collapsed. */
 data class GroupTitle(val name: String, val collapsed: Boolean, val size: Int)
 
 /**
- * Shows the groups of one editor pane in its tab bar: colors, the group name on each group's first tab, collapsed groups
- * (only the first tab stays), and groups kept together.
+ * Shows the groups of one editor pane in its tab bar, as one piece each: a line in the group's color under all its tabs,
+ * a faint background in that color, the group's name in that color and bold on its first tab, collapsed groups (only
+ * the first tab stays), and groups kept together.
  */
 class TabGroupPaneController(
   val window: EditorWindow,
@@ -30,6 +42,7 @@ class TabGroupPaneController(
   saved: PaneState? = null,
   private val onChanged: (changed: Collection<String>) -> Unit = {},
   private val isPaneSpecific: (url: String) -> Boolean = { false },
+  parent: Disposable? = null,
 ) {
   private val tabs: JBTabs
     get() = window.tabbedPane.tabs
@@ -52,9 +65,21 @@ class TabGroupPaneController(
    */
   private val presentationListener = PropertyChangeListener { event ->
     if (applying || (event.propertyName != TabInfo.TEXT && event.propertyName != TabInfo.TAB_COLOR)) return@PropertyChangeListener
-    val url = (event.source as? TabInfo)?.url ?: return@PropertyChangeListener
-    if (!isPaneSpecific(url)) return@PropertyChangeListener
-    ApplicationManager.getApplication().invokeLater({ applyPresentation(listOf(url)) }, { window.isDisposed })
+    val info = event.source as? TabInfo ?: return@PropertyChangeListener
+    val url = info.url ?: return@PropertyChangeListener
+    if (isPaneSpecific(url)) {
+      ApplicationManager.getApplication().invokeLater({ applyPresentation(listOf(url)) }, { window.isDisposed })
+    }
+    // the platform sets the provider's title as plain text; the group's name in it is colored again
+    else if (event.propertyName == TabInfo.TEXT && url in titles) {
+      ApplicationManager.getApplication().invokeLater({ styleName(info) }, { window.isDisposed })
+    }
+  }
+
+  /** Draws each group's line under its tabs, over the tab bar. */
+  private val linePainter = object : AbstractPainter() {
+    override fun needsRepaint(): Boolean = model.groups.isNotEmpty()
+    override fun executePaint(component: Component, g: Graphics2D) = paintLines(component, g)
   }
 
   /** Saved groups whose files are not all open yet: editors come back one by one after a restart. */
@@ -62,6 +87,7 @@ class TabGroupPaneController(
   private val restored = HashMap<Int, TabGroup>()
 
   init {
+    if (parent != null) IdeGlassPaneUtil.installPainter(tabs.component, linePainter, parent)
     tabs.addListener(object : TabsListener {
       override fun selectionChanged(oldSelection: TabInfo?, newSelection: TabInfo?) {
         if (suppressExpand || refreshing) return
@@ -219,6 +245,69 @@ class TabGroupPaneController(
     // the service updates the tabs of these files in every pane
     onChanged(changed)
     lastOrder = tabs.tabs.mapNotNull { it.url }
+    for (info in tabs.tabs) if (info.url in titles) styleName(info)
+    tabs.component.repaint()
+  }
+
+  /**
+   * The group's name on its first tab in the group's color and bold, the tab's own title after it as it was: the
+   * provider's plain `Name · Title` becomes `Name  Title`, a collapsed group's `▸ Name (3)` is all in the color.
+   */
+  private fun styleName(info: TabInfo) {
+    val url = info.url ?: return
+    val title = titles[url] ?: return
+    val color = colors[url]?.strong ?: return
+    val text = info.coloredText.toString()
+    val name = title.name.ifEmpty { if (title.collapsed) PhantomTabsBundle.message("group.unnamed") else return }
+    val nameStyle = SimpleTextAttributes(SimpleTextAttributes.STYLE_BOLD, color)
+    val fragments = if (title.collapsed) {
+      if (text != title.text { "" }) return
+      listOf(text to nameStyle)
+    }
+    else {
+      val prefix = PhantomTabsBundle.message("tab.title.expanded", name, "")
+      if (!text.startsWith(prefix)) return
+      val rest = SimpleTextAttributes(SimpleTextAttributes.STYLE_PLAIN, info.defaultForeground)
+      listOf(name to nameStyle, "  " + text.removePrefix(prefix) to rest)
+    }
+    if (info.coloredText.texts == fragments.map { it.first } && info.coloredText.attributes == fragments.map { it.second }) return
+    applying = true
+    try {
+      info.clearText(false)
+      for ((fragment, style) in fragments) info.append(fragment, style)
+    }
+    finally {
+      applying = false
+    }
+  }
+
+  private fun paintLines(component: Component, g: Graphics2D) {
+    if (window.isDisposed || !component.isShowing) return
+    val height = JBUI.scale(3)
+    val inset = JBUI.scale(4)
+    val clip = Rectangle(0, 0, component.width, component.height)
+    for (group in model.groups) {
+      val labels = tabs.tabs
+        .filter { !it.isHidden && it.url in group.members }
+        .mapNotNull { info -> tabs.getTabLabel(info)?.takeIf { it.isShowing && it.width > 0 } }
+      if (labels.isEmpty()) continue
+      val boxes = labels.map { SwingUtilities.convertRectangle(it.parent, it.bounds, component) }
+      // labels in one row: from the left of the first to the right of the last, along their bottom
+      val left = boxes.minOf { it.x } + inset
+      val right = boxes.maxOf { it.x + it.width } - inset
+      val bottom = boxes.maxOf { it.y + it.height }
+      val line = Rectangle(left, bottom - height, right - left, height).intersection(clip)
+      if (line.isEmpty) continue
+      val g2 = g.create() as Graphics2D
+      try {
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+        g2.color = group.color.strong
+        g2.fill(RoundRectangle2D.Float(line.x.toFloat(), line.y.toFloat(), line.width.toFloat(), line.height.toFloat(), height.toFloat(), height.toFloat()))
+      }
+      finally {
+        g2.dispose()
+      }
+    }
   }
 
   /** The group color of [url] in this pane. */
@@ -248,6 +337,7 @@ class TabGroupPaneController(
         }
         if (info.text != text) info.setText(text)
         if (info.tabColor != color) info.setTabColor(color)
+        styleName(info)
       }
     }
     finally {
