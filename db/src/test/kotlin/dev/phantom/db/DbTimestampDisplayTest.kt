@@ -60,7 +60,8 @@ class DbTimestampDisplayTest : BasePlatformTestCase() {
     val ds = DbDataSource().apply {
       this.name = name
       dbms = Dbms.H2
-      url = "jdbc:h2:mem:${name}_${System.nanoTime()};DB_CLOSE_DELAY=-1"
+      // H2 keeps the JVM zone it first saw (UTC on CI, from earlier tests), so the session is given the one set up here
+      url = "jdbc:h2:mem:${name}_${System.nanoTime()};DB_CLOSE_DELAY=-1;TIME ZONE=Asia/Seoul"
       user = "sa"
     }
     DbDataSourceService.getInstance(project).save(ds, CharArray(0))

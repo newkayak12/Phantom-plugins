@@ -277,7 +277,8 @@ class DbGridEditTest : BasePlatformTestCase() {
     val zone = java.util.TimeZone.getDefault()
     java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Asia/Seoul"))
     try {
-      val ds = h2()
+      // H2 keeps the JVM zone it first saw (UTC on CI, from earlier tests), so the session is given this one
+      val ds = h2(url = "jdbc:h2:mem:tz_${System.nanoTime()};DB_CLOSE_DELAY=-1;TIME ZONE=Asia/Seoul")
       exec(ds, "CREATE TABLE t (id INT PRIMARY KEY, ts TIMESTAMP, d DATE, tm TIME)",
            "INSERT INTO t VALUES (1, TIMESTAMP '2026-10-26 09:49:28', DATE '2000-01-15', TIME '13:45:00')")
       myFixture.configureByText("time.sql", "SELECT * FROM t")
