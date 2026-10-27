@@ -311,9 +311,19 @@ class DbDataSourceService : PersistentStateComponent<DbDataSourceService.State>,
 /**
  * Secrets, read from the password safe once per IDE run and then kept in memory, so the OS keychain is asked once, not at
  * every connection. A password saved "until restart" is only here; one saved "never" is not kept at all.
+ *
+ * All of them are kept in one password safe entry ([BUNDLE]): macOS asks for each keychain item an app reads that it did
+ * not write in this signed build, and an ad-hoc signed IDE is a new build after each update, so one item per data source
+ * meant one dialog per data source. An item of the old kind ("Phantom DB — <id>") is moved into the bundle when read.
  */
 object DbSecrets {
   private val cache = ConcurrentHashMap<String, String>()
+
+  /** The one entry with every secret, by the service name each had as its own entry. */
+  private val BUNDLE = CredentialAttributes(generateServiceName("Phantom DB", "secrets"))
+
+  /** The bundle as read; null until first needed. Guarded by this object. */
+  private var bundle: MutableMap<String, String>? = null
 
   fun password(id: String): String? = get(DbDataSourceService.credentials(id))
 
@@ -323,7 +333,7 @@ object DbSecrets {
     when (dataSource.credentialStorage) {
       DbPasswordStorage.FOREVER -> if (password != null) set(attributes, dataSource.user, password)
       DbPasswordStorage.UNTIL_RESTART -> {
-        PasswordSafe.instance.set(attributes, null)
+        forget(attributes)
         if (password != null) {
           if (password.isEmpty()) cache.remove(attributes.serviceName) else cache[attributes.serviceName] = String(password)
         }
@@ -334,21 +344,60 @@ object DbSecrets {
 
   fun get(attributes: CredentialAttributes): String? {
     cache[attributes.serviceName]?.let { return it }
-    val value = PasswordSafe.instance.getPassword(attributes) ?: return null
+    val value = synchronized(this) {
+      loaded()[attributes.serviceName] ?: PasswordSafe.instance.getPassword(attributes)?.also { legacy ->
+        loaded()[attributes.serviceName] = legacy
+        save()
+        PasswordSafe.instance.set(attributes, null)
+      }
+    } ?: return null
     cache[attributes.serviceName] = value
     return value
   }
 
   /** A `null` or empty [secret] removes it. */
-  fun set(attributes: CredentialAttributes, user: String, secret: CharArray?) {
+  fun set(attributes: CredentialAttributes, @Suppress("UNUSED_PARAMETER") user: String, secret: CharArray?) {
     if (secret == null || secret.isEmpty()) {
       cache.remove(attributes.serviceName)
-      PasswordSafe.instance.set(attributes, null)
+      forget(attributes)
     }
     else {
       cache[attributes.serviceName] = String(secret)
-      PasswordSafe.instance.set(attributes, Credentials(user, secret))
+      synchronized(this) {
+        if (loaded().put(attributes.serviceName, String(secret)) != String(secret)) save()
+      }
     }
+  }
+
+  /** Takes the secret out of the bundle and drops an old-kind entry of it, if there is one. */
+  private fun forget(attributes: CredentialAttributes) {
+    synchronized(this) {
+      if (loaded().remove(attributes.serviceName) != null) save()
+    }
+    PasswordSafe.instance.set(attributes, null)
+  }
+
+  private fun loaded(): MutableMap<String, String> = bundle ?: decode(PasswordSafe.instance.getPassword(BUNDLE)).also { bundle = it }
+
+  private fun save() {
+    val map = bundle ?: return
+    PasswordSafe.instance.set(BUNDLE, if (map.isEmpty()) null else Credentials("Phantom DB", encode(map)))
+  }
+
+  internal fun encode(map: Map<String, String>): String =
+    java.io.StringWriter().also { out -> java.util.Properties().apply { putAll(map) }.store(out, null) }.toString()
+
+  internal fun decode(text: String?): MutableMap<String, String> {
+    if (text.isNullOrEmpty()) return HashMap()
+    val properties = java.util.Properties().apply { load(java.io.StringReader(text)) }
+    return properties.stringPropertyNames().associateWithTo(HashMap()) { properties.getProperty(it) }
+  }
+
+  /** Forgets what was read, as a new IDE run would; for tests. */
+  @org.jetbrains.annotations.TestOnly
+  internal fun reset() {
+    cache.clear()
+    synchronized(this) { bundle = null }
   }
 }
 

@@ -281,6 +281,30 @@ class DbConnectionToolsTest : BasePlatformTestCase() {
     assertNull(service.sshSecret(ds))
   }
 
+  /** Every secret is in one password safe entry (one keychain dialog, not one per data source); an old entry moves into it. */
+  fun testSecretsShareOneEntry() {
+    val safe = com.intellij.ide.passwordSafe.PasswordSafe.instance
+    val old = DbDataSourceService.credentials("legacy-${System.nanoTime()}")
+    safe.set(old, com.intellij.credentialStore.Credentials("u", "old=pass: #1"))
+    dev.phantom.db.core.DbSecrets.reset()
+    assertEquals("old=pass: #1", dev.phantom.db.core.DbSecrets.get(old))
+    assertNull(safe.getPassword(old))
+    dev.phantom.db.core.DbSecrets.reset()
+    assertEquals("old=pass: #1", dev.phantom.db.core.DbSecrets.get(old))
+
+    val other = DbDataSourceService.credentials("new-${System.nanoTime()}")
+    dev.phantom.db.core.DbSecrets.set(other, "u", "second".toCharArray())
+    assertNull(safe.getPassword(other))
+    dev.phantom.db.core.DbSecrets.reset()
+    assertEquals("second", dev.phantom.db.core.DbSecrets.get(other))
+
+    dev.phantom.db.core.DbSecrets.set(old, "u", null)
+    dev.phantom.db.core.DbSecrets.set(other, "u", null)
+    dev.phantom.db.core.DbSecrets.reset()
+    assertNull(dev.phantom.db.core.DbSecrets.get(old))
+    assertNull(dev.phantom.db.core.DbSecrets.get(other))
+  }
+
   /** The bundled sshj loads and reports a server that does not answer as a tunnel failure. */
   fun testSshjFailsCleanly() {
     // the content module that depends on the sshj library module is loaded: its file type is registered
