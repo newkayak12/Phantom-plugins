@@ -1,0 +1,45 @@
+<idea-plugin>
+  <id>dev.phantom.ai</id>
+  <name>AI Integrations</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Tools</category>
+  <description><![CDATA[
+  Claude Code and Codex agents next to your projects: a project-group sidebar of repositories, worktrees and agent
+  sessions, agent terminals in their own tool window, a workspace board, an agent dashboard and usage in the status bar.
+  Needs Phantom Workspaces.
+  ]]></description>
+
+  <depends>com.intellij.modules.platform</depends>
+  <depends>dev.phantom.workspaces</depends>
+  <depends>org.jetbrains.plugins.terminal</depends>
+  <depends>Git4Idea</depends>
+  <depends>org.jetbrains.plugins.github</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- ===== core (U1) ===== -->
+    <toolWindow id="AI Integrations" anchor="right" icon="AllIcons.Toolwindows.ToolWindowMessages"
+                factoryClass="dev.phantom.ai.core.AiToolWindowFactory"/>
+    <!-- ===== U3 accounts: applicationConfigurable (append here) ===== -->
+    <applicationConfigurable parentId="tools" instance="dev.phantom.ai.accounts.AccountsConfigurable"
+                             id="dev.phantom.ai.accounts" displayName="AI Integrations"/>
+    <!-- ===== U7 usage: statusBarWidgetFactory (append here) ===== -->
+    <statusBarWidgetFactory id="dev.phantom.ai.usage" implementation="dev.phantom.ai.usage.UsageStatusBarWidgetFactory"/>
+    <notificationGroup id="AI Integrations" displayType="BALLOON"/>
+    <!-- ===== other extensions (append here) ===== -->
+  </extensions>
+  <actions>
+    <!-- ===== U4/U5/U6 actions (append here) ===== -->
+    <action id="dev.phantom.ai.NewClaudeSession" class="dev.phantom.ai.terminal.NewClaudeSessionAction"
+            text="New Claude Session"/>
+    <action id="dev.phantom.ai.NewCodexSession" class="dev.phantom.ai.terminal.NewCodexSessionAction"
+            text="New Codex Session"/>
+    <action id="dev.phantom.ai.ResumeSession" class="dev.phantom.ai.terminal.ResumeSessionAction"
+            text="Resume Session"/>
+    <action id="dev.phantom.ai.OpenAgentDashboard" class="dev.phantom.ai.dashboard.OpenAgentDashboardAction"
+            text="Open Agent Dashboard"/>
+  </actions>
+  <applicationListeners>
+    <!-- ===== U2 hooks startup etc. (append here) ===== -->
+    <listener class="dev.phantom.ai.hooks.HookStartup" topic="com.intellij.ide.AppLifecycleListener"/>
+  </applicationListeners>
+</idea-plugin>

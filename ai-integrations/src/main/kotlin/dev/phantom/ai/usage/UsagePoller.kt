@@ -1,0 +1,97 @@
+// Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
+package dev.phantom.ai.usage
+
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.diagnostic.logger
+import com.intellij.util.concurrency.AppExecutorUtil
+import dev.phantom.ai.accounts.AccountsService
+import dev.phantom.ai.core.AgentKind
+import dev.phantom.ai.core.bestEffort
+import dev.phantom.ai.hooks.HookInstallService
+import dev.phantom.ai.hooks.HookServer
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
+
+data class UsageSnapshot(val claude: ClaudeUsage?, val codex: CodexUsage?)
+
+/** Where usage comes from for the active account dirs ([claudeDir] null = System default). Injected in tests. */
+interface UsageSources {
+  fun claude(claudeDir: String?): ClaudeUsage?
+  fun codex(codexHome: String?): CodexUsage?
+}
+
+class RealUsageSources(
+  private val credentials: ClaudeCredentials = ClaudeCredentials(),
+  private val claudeClient: ClaudeUsageClient = ClaudeUsageClient(),
+  private val codexClient: CodexUsageClient = CodexUsageClient(),
+) : UsageSources {
+  override fun claude(claudeDir: String?): ClaudeUsage? = credentials.readToken(claudeDir)?.let { claudeClient.fetch(it) }
+  override fun codex(codexHome: String?): CodexUsage? = codexClient.fetch(codexHome)
+}
+
+/**
+ * Polls Claude and Codex usage of the active accounts off the EDT, and takes the Claude statusLine payloads too
+ * (newest wins). [start] does nothing in unit-test mode, so tests never poll real dirs; they call [pollOnce].
+ */
+@Service(Service.Level.APP)
+class UsagePoller(
+  private val sources: UsageSources = RealUsageSources(),
+  private val claudeDir: () -> String? = { AccountsService.getInstance().active(AgentKind.CLAUDE)?.dir },
+  private val codexHome: () -> String? = {
+    AccountsService.getInstance().active(AgentKind.CODEX)?.dir ?: HookInstallService.getInstance().systemDir(AgentKind.CODEX).toString()
+  },
+  private val now: () -> Long = System::currentTimeMillis,
+  private val periodSeconds: Long = 60,
+) {
+  @Volatile private var statusLine: ClaudeUsage? = null
+  @Volatile private var claudePoll: ClaudeUsage? = null
+  @Volatile private var codex: CodexUsage? = null
+  @Volatile var snapshot: UsageSnapshot = UsageSnapshot(null, null)
+    private set
+  val listeners = CopyOnWriteArrayList<() -> Unit>()
+  private var task: ScheduledFuture<*>? = null
+  private var registered = false
+
+  /** Starts the timer and the statusLine listener once; no-op in unit-test mode. */
+  @Synchronized
+  fun start() {
+    if (task != null || ApplicationManager.getApplication()?.isUnitTestMode != false) return
+    if (!registered) {
+      registered = true
+      HookServer.getInstance().statuslineListeners.add { _, body -> onStatusLine(body) }
+    }
+    task = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({ pollOnce() }, 0, periodSeconds, TimeUnit.SECONDS)
+  }
+
+  @Synchronized
+  fun stop() {
+    task?.cancel(false)
+    task = null
+  }
+
+  /** A /statusline/claude body. */
+  fun onStatusLine(body: String) {
+    val u = StatusLineUsage.parse(body, now()) ?: return
+    statusLine = u
+    publish()
+  }
+
+  /** One poll of both sources for the active accounts; a failed source becomes null (shown as an em dash). */
+  fun pollOnce() {
+    claudePoll = bestEffort { sources.claude(claudeDir()) }.onFailure { LOG.debug("claude usage failed", it) }.getOrNull()
+    codex = bestEffort { sources.codex(codexHome()) }.onFailure { LOG.debug("codex usage failed", it) }.getOrNull()
+    publish()
+  }
+
+  private fun publish() {
+    snapshot = UsageSnapshot(StatusLineUsage.merge(statusLine, claudePoll), codex)
+    listeners.forEach { l -> bestEffort { l() } }
+  }
+
+  companion object {
+    private val LOG = logger<UsagePoller>()
+    fun getInstance(): UsagePoller = ApplicationManager.getApplication().getService(UsagePoller::class.java)
+  }
+}

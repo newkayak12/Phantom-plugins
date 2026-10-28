@@ -347,6 +347,26 @@
       "detect": []
     },
     {
+      "id": "dev.phantom.ai",
+      "name": "AI Integrations",
+      "version": "0.1.0",
+      "source": "ai-integrations",
+      "description": "Claude Code and Codex next to your projects: a sidebar of project groups, repositories, worktrees and agent sessions, agent terminals in their own tool window, a workspace board, an agent dashboard and usage in the status bar. Needs Phantom Workspaces.",
+      "vendor": "Phantom",
+      "category": "Tools",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.platform",
+        "dev.phantom.workspaces",
+        "org.jetbrains.plugins.terminal",
+        "Git4Idea",
+        "org.jetbrains.plugins.github"
+      ],
+      "download": "ai-integrations-0.1.0/ai-integrations-0.1.0.zip",
+      "detect": []
+    },
+    {
       "id": "dev.phantom.tabs",
       "name": "Phantom Tab Groups",
       "version": "0.2.7",
