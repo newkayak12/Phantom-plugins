@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.FileEditorManagerKeys
 import com.intellij.openapi.fileEditor.impl.EditorAutoClosingHandler
 import com.intellij.openapi.fileEditor.impl.FileEditorManagerImpl
 import com.intellij.openapi.startup.ProjectActivity
@@ -468,6 +469,53 @@ class TabGroupPaneControllerTest : FileEditorManagerTestCase() {
     assertEquals(listOf(a.url, b.url), group.members)
     assertNull(controller.model.groupOf(x.url))
     assertEquals(listOf(d.url), other.members)
+  }
+
+  /**
+   * Drags [file]'s tab out of [from]'s tab bar and drops it at [index] of [into]'s tabs, as the platform does: the tab is
+   * hidden while dragged, then closed to be reopened and opened again where it was dropped.
+   */
+  private fun dragOut(file: VirtualFile, index: Int, from: EditorWindow = window, into: EditorWindow = from) {
+    from.tabbedPane.tabs.tabs.first { it.`object` == file }.isHidden = true
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    file.putUserData(FileEditorManagerKeys.CLOSING_TO_REOPEN, true)
+    manager!!.closeFile(file, from)
+    file.putUserData(FileEditorManagerKeys.CLOSING_TO_REOPEN, null)
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    manager!!.openFile(file, into, FileEditorOpenOptions(index = index, requestFocus = true))
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+  }
+
+  fun testTabDraggedOutOfTheBarStaysHiddenWhileDragged() {
+    controller.createGroup(listOf(a, b))
+    info(b).isHidden = true
+    controller.refresh()
+    assertTrue(info(b).isHidden)
+  }
+
+  fun testGroupOfOneDraggedOutAndDroppedBackKeepsItsGroup() {
+    val group = controller.createGroup(listOf(c))
+    dragOut(c, 0)
+    assertTrue(group in controller.model.groups)
+    assertEquals(listOf(c.url), group.members)
+    assertEquals(listOf(c, a, b), order())
+  }
+
+  fun testCollapsedGroupDraggedOutAndDroppedBackMovesWhole() {
+    val (group, d, x) = collapsedGroupAndMore()
+    dragOut(a, window.tabbedPane.tabs.tabCount - 1)
+    assertTrue(group in controller.model.groups)
+    assertEquals(listOf(a.url, b.url), group.members)
+    assertTrue(group.collapsed)
+    assertEquals(listOf(c, d, x, a), order())
+  }
+
+  fun testTabDraggedOutToAnotherSplitLeavesItsGroup() {
+    val left = window
+    val group = controller.createGroup(listOf(a, b))
+    val right = split(left)
+    dragOut(a, 0, from = left, into = right)
+    assertEquals(listOf(b.url), group.members)
   }
 
   fun testPinningInOneSplitWorksWithGroupsInTheOther() {

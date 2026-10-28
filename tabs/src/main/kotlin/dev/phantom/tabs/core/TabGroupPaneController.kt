@@ -5,6 +5,7 @@ import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.fileEditor.FileEditorManagerKeys
 import com.intellij.openapi.fileEditor.impl.EditorTabPresentationUtil
 import com.intellij.openapi.fileEditor.impl.EditorWindow
 import com.intellij.openapi.ui.AbstractPainter
@@ -87,6 +88,20 @@ class TabGroupPaneController(
   private var expandedBySelection: TabGroup? = null
   private var pressed: Pair<TabGroup, Boolean>? = null
   private var movedSincePress = false
+  /** The tabs shown when a tab was last pressed: where a tab dragged out of the tab bar came from. */
+  private var orderAtPress: List<String> = emptyList()
+
+  /** Tabs this pane hid: the other tabs of collapsed groups. The platform hides a tab while it is dragged out of the bar. */
+  private val hiddenHere = HashSet<String>()
+
+  /**
+   * Grouped tabs dragged out of the tab bar and dropped: the platform closes such a tab and opens it again where it was
+   * dropped, after the event. Until then the tab keeps its group; dropped back into this pane it was moved, as by a drag
+   * along the bar, and dropped elsewhere it leaves the group.
+   */
+  private val reopening = HashMap<String, Reopening>()
+
+  private class Reopening(val file: VirtualFile, val before: List<String>, val byChip: Boolean, val openElsewhere: Set<EditorWindow>)
 
   /**
    * A click on a group's chip (its name on the first tab) collapses the group, or opens it when collapsed, as in Chrome.
@@ -97,6 +112,7 @@ class TabGroupPaneController(
       val group = chipAt(e)?.takeIf { SwingUtilities.isLeftMouseButton(e) }
       pressed = group?.let { it to (it.collapsed || expandedBySelection === it) }
       movedSincePress = false
+      if (SwingUtilities.isLeftMouseButton(e)) orderAtPress = visibleOrder()
     }
 
     override fun mouseReleased(e: MouseEvent) {
@@ -138,6 +154,8 @@ class TabGroupPaneController(
     tabs.addListener(object : TabsListener {
       override fun selectionChanged(oldSelection: TabInfo?, newSelection: TabInfo?) {
         if (suppressExpand || refreshing) return
+        // a tab dropped back after a drag out of the bar is selected before it counts as moved: it keeps its group closed
+        if (newSelection?.url in reopening) return
         val group = newSelection?.url?.let(model::groupOf) ?: return
         // pressed on its chip: the release opens it, a drag moves it closed
         val event = EventQueue.getCurrentEvent() as? MouseEvent
@@ -160,8 +178,16 @@ class TabGroupPaneController(
       }
 
       override fun tabRemoved(tabToRemove: TabInfo) {
-        val url = tabToRemove.url ?: return
+        val file = tabToRemove.`object` as? VirtualFile ?: return
+        val url = file.url
+        hiddenHere.remove(url)
         if (model.groupOf(url) == null) return
+        if (file.getUserData(FileEditorManagerKeys.CLOSING_TO_REOPEN) == true) {
+          val before = orderAtPress.takeIf { url in it } ?: lastOrder
+          val elsewhere = window.manager.windows.filterTo(HashSet()) { it !== window && it.isFileOpen(file) }
+          reopening[url] = Reopening(file, before, pressed != null, elsewhere)
+          return
+        }
         // the tab is being taken apart: leave its TabInfo alone
         model.remove(url)
         ApplicationManager.getApplication().invokeLater({ refresh() }, { window.isDisposed })
@@ -263,8 +289,9 @@ class TabGroupPaneController(
     }
     val open = all.mapNotNullTo(HashSet()) { it.url }
     applyPending(open)
+    resolveReopened(open)
     for (group in model.groups.toList()) {
-      group.members.filter { it !in open }.forEach(model::remove)
+      group.members.filter { it !in open && it !in reopening }.forEach(model::remove)
     }
     if (model.groups.isEmpty() && titles.isEmpty() && colors.isEmpty()) {
       lastOrder = visibleOrder()
@@ -274,7 +301,8 @@ class TabGroupPaneController(
     val collapsible = collapseSupported()
     val order = model.desiredOrder(currentOrder())
     // a group's first tab shows the group; the other tabs of a collapsed group are hidden
-    val anchors = model.groups.associateWith { group -> order.first { it in group.members } }
+    // a group whose only open tab is being dropped has no tab yet
+    val anchors = model.groups.mapNotNull { group -> order.firstOrNull { it in group.members }?.let { group to it } }.toMap()
     // the selected tab is never hidden: its collapsed group opens (a tab just added to it, or a group being restored)
     val selectedGroup = tabs.selectedInfo?.url?.let(model::groupOf)
     if (selectedGroup != null && selectedGroup.collapsed && anchors[selectedGroup] != tabs.selectedInfo?.url) {
@@ -285,8 +313,10 @@ class TabGroupPaneController(
       val url = info.url ?: continue
       val group = model.groupOf(url)
       val hidden = collapsible && group != null && group.collapsed && anchors[group] != url
-      // TabInfo fires a change, and JBTabs relayouts, even when the value does not change
-      if (info.isHidden != hidden) info.isHidden = hidden
+      // TabInfo fires a change, and JBTabs relayouts, even when the value does not change; a tab hidden by the platform
+      // (dragged out of the bar) is left hidden
+      if (info.isHidden != hidden && (hidden || url in hiddenHere)) info.isHidden = hidden
+      if (hidden) hiddenHere.add(url) else hiddenHere.remove(url)
     }
     // hidden tabs come back at stale places, so sort after hiding and showing
     if (collapsible) {
@@ -306,6 +336,22 @@ class TabGroupPaneController(
     lastOrder = visibleOrder()
     for (info in tabs.tabs) if (info.url in titles) styleName(info)
     tabs.component.repaint()
+  }
+
+  /** Tabs dragged out of the bar ([reopening]) that are open again: here they moved, in another pane they left the group. */
+  private fun resolveReopened(open: Set<String>) {
+    for ((url, reopened) in reopening.toList()) {
+      if (url in open) {
+        reopening.remove(url)
+        // the tabs shown in both: meanwhile another tab of a collapsed group may show in place of the dragged one
+        val after = visibleOrder()
+        model.onMoved(reopened.before.filter { it in after }, after.filter { it in reopened.before }, url, reopened.byChip)
+      }
+      else if (window.manager.windows.any { it !== window && it !in reopened.openElsewhere && it.isFileOpen(reopened.file) }) {
+        reopening.remove(url)
+        model.remove(url)
+      }
+    }
   }
 
   /** The tabs the tab bar shows, in order: what a drag moves. */
@@ -496,6 +542,7 @@ class TabGroupPaneController(
     refreshing = true
     try {
       tabs.tabs.filter { it.isHidden }.forEach { it.isHidden = false }
+      hiddenHere.clear()
     }
     finally {
       refreshing = false

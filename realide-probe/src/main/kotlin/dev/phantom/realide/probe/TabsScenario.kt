@@ -481,6 +481,19 @@ internal object TabsScenario : ProbeScenario {
       }
     }
 
+    // a hand drifting off the bar: the tab bar closes the tab and opens it again where it is dropped; a group of one keeps it
+    ctx.step("drag.outOfBarAndBack", mapOf("kept" to true)) {
+      val m = t.menu("a.txt", listOf(NEW_GROUP), answer = "Solo")
+      ctx.waitUntil(3000) { t.members()["Solo"]?.size == 1 }
+      val before = ctx.edt { t.order() }
+      val d = t.drag("a.txt", { r -> r.values.minOf { it.x } + 4 }, outOfBar = true)
+      ctx.waitUntil(3000) { t.order() != before }
+      ctx.edt {
+        mapOf("create" to m, "drag" to d, "orderBefore" to before, "order" to t.order(),
+              "kept" to (t.members()["Solo"] == listOf("a.txt")), "members" to t.members())
+      }
+    }
+
     ctx.step("tablimit", mapOf("groupedTabsClosed" to 0)) {
       val grouped = ctx.edt { t.allMembers().values.flatten() }
       ctx.edt { settings.editorTabLimit = 3 }

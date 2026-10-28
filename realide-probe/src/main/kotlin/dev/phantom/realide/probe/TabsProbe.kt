@@ -173,9 +173,11 @@ internal class TabsProbe(val ctx: ProbeContext) {
 
   /**
    * Drags tab [name] by its label to [targetX] in the tab bar's coordinates (the x of the gap it should land in), posting
-   * press, drags and release through the system event queue with small pauses, as a hand does.
+   * press, drags and release through the system event queue with small pauses, as a hand does. [outOfBar] takes the pointer
+   * down out of the tab bar on the way, which makes the tab bar hand the tab to a drag session (closed and opened again
+   * where it is dropped), as a hand drifting off the bar does.
    */
-  suspend fun drag(name: String, targetX: (Map<String, java.awt.Rectangle>) -> Int, pane: Int = 0): Map<String, Any?> {
+  suspend fun drag(name: String, targetX: (Map<String, java.awt.Rectangle>) -> Int, pane: Int = 0, outOfBar: Boolean = false): Map<String, Any?> {
     val label = ctx.edt { info(name, pane)?.let(::label) } ?: return mapOf("label" to false)
     // screen points, fixed: a pointer does not move with the label it drags (the label itself does move)
     val (from, to, bar) = ctx.edt {
@@ -194,11 +196,15 @@ internal class TabsProbe(val ctx: ProbeContext) {
     val down = java.awt.event.InputEvent.BUTTON1_DOWN_MASK
     ctx.edt { q.postEvent(e(MouseEvent.MOUSE_PRESSED, from, down, MouseEvent.BUTTON1)) }
     delay(80)
+    val off = 150
+    val waypoints = if (outOfBar) listOf(from, Point(from.x, from.y + off), Point(to.x, to.y + off), to) else listOf(from, to)
     val steps = 12
-    for (i in 1..steps) {
-      val p = Point(from.x + (to.x - from.x) * i / steps, from.y + (to.y - from.y) * i / steps)
-      ctx.edt { q.postEvent(e(MouseEvent.MOUSE_DRAGGED, p, down, MouseEvent.NOBUTTON)) }
-      delay(40)
+    for ((a, b) in waypoints.zipWithNext()) {
+      for (i in 1..steps) {
+        val p = Point(a.x + (b.x - a.x) * i / steps, a.y + (b.y - a.y) * i / steps)
+        ctx.edt { q.postEvent(e(MouseEvent.MOUSE_DRAGGED, p, down, MouseEvent.NOBUTTON)) }
+        delay(40)
+      }
     }
     delay(150)
     ctx.edt { q.postEvent(e(MouseEvent.MOUSE_RELEASED, to, 0, MouseEvent.BUTTON1)) }
