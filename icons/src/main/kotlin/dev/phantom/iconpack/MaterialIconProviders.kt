@@ -27,17 +27,22 @@ internal class MaterialPsiIconProvider : IconProvider(), DumbAware {
   }
 }
 
-/** Files that show their language's logo (Kotlin's, Java's cup) even where they are shown as the class they declare. */
+/** Files that show as the class they declare, which this pack draws instead of the language plugin. */
 internal val LOGO_EXTENSIONS: Set<String> = setOf("kt", "java")
 
-/** [file]'s logo; a Java file's cup in the color of its class's kind, where the Java plugin makes [psi] a Java file. */
-private fun logo(file: VirtualFile, psi: PsiFile?): Icon? =
-  // JavaKindIcons needs the Java plugin's classes: only reached when it is there
-  if (psi != null && psi.language.id == "JAVA") JavaKindIcons.icon(JavaKindIcons.fileIconName(psi)) else MaterialIcons.forFile(file)
+/**
+ * [file]'s icon where it shows as its class: its class's kind (a Java file; a Kotlin file of one class), else its
+ * language's logo. The kind classes need the Java or Kotlin plugin: only reached when [psi] is of its language.
+ */
+private fun logo(file: VirtualFile, psi: PsiFile?): Icon? = when (psi?.language?.id) {
+  "JAVA" -> JavaKindIcons.icon(JavaKindIcons.fileIconName(psi))
+  "kotlin" -> KotlinKindIcons.fileIconName(psi)?.let(KotlinKindIcons::icon)
+  else -> null
+} ?: MaterialIcons.forFile(file)
 
 /**
- * A Kotlin or Java file with one class shows as that class in the Project view, which takes the class icon; give it the
- * file's logo there. Only the Project view: completion and the structure view keep class/interface/object icons.
+ * A Kotlin or Java file with one class shows as that class in the Project view, which takes the language plugin's class
+ * icon; give it this pack's ([logo]) there, without the marks a class icon carries, as in editor tabs.
  */
 internal class LogoFileNodeDecorator : com.intellij.ide.projectView.ProjectViewNodeDecorator {
   override fun decorate(node: com.intellij.ide.projectView.ProjectViewNode<*>, data: com.intellij.ide.projectView.PresentationData) {
@@ -53,7 +58,7 @@ internal class LogoFileNodeDecorator : com.intellij.ide.projectView.ProjectViewN
 
 /**
  * The navigation bar shows a Kotlin or Java file with one class as that class and asks the navbar extensions for its
- * icon before the PSI icon; give it the file's logo there too, like the Project view. Only the file-level element: the
+ * icon before the PSI icon; give it this pack's ([logo]) there too, like the Project view. Only the file-level element: the
  * methods and nested classes after it keep their own icons.
  */
 class LogoFileNavBarIcon : com.intellij.ide.navigationToolbar.AbstractNavBarModelExtension() {

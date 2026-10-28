@@ -49,22 +49,22 @@ object JavaKindIcons {
   }
 
   /**
-   * The icon id for a Java file: the Java cup in the color of its class's kind (the class named as the file, else the
-   * first), or the plain cup for a file without a class.
+   * The icon id for a Java file: the kind of its class (the class named as the file, else the first), or the Java cup
+   * for a file without a class.
    */
   fun fileIconName(file: PsiFile): String {
     val classes = (file as? PsiJavaFile)?.classes ?: return "java-file"
     val main = classes.firstOrNull { it.name == file.virtualFile?.nameWithoutExtension } ?: classes.firstOrNull()
-    return main?.let(::iconName)?.let { "java-file-" + it.removePrefix("java-") } ?: "java-file"
+    return main?.let(::iconName) ?: "java-file"
   }
 }
 
 /**
- * A `.java` file shows the Java cup, as a Kotlin file shows the Kotlin logo, in the color of its class's kind: in editor
- * tabs, Recent Files, Search Everywhere and other file lists, where the Java plugin's patcher would put the icon of the
- * class the file declares. The classes themselves keep their kind icons.
+ * A `.java` file shows its class's kind icon in editor tabs, Recent Files, Search Everywhere and other file lists, as
+ * in the Project view: the plain kind, where the Java plugin's patcher would put the class icon with its marks. A file
+ * without a class shows the Java cup.
  */
-internal class JavaFileLogoPatcher : FileIconPatcher {
+internal class JavaFileKindPatcher : FileIconPatcher {
   override fun patchIcon(icon: Icon, file: VirtualFile, flags: Int, project: Project?): Icon {
     if (file.isDirectory || file.extension != "java") return icon
     val name = project?.takeIf { !it.isDisposed && file.isValid }?.let {

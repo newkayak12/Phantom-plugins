@@ -1,0 +1,10 @@
+<!-- Loads only where the Kotlin plugin is installed; without it .kt files show the Kotlin logo from the file icon provider. -->
+<idea-plugin>
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- first: before the Kotlin plugin's provider (FirKotlinIconProvider has no id); it answers classes and objects only,
+         so its place next to the file and folder provider does not matter -->
+    <iconProvider implementation="dev.phantom.iconpack.KotlinKindIconProvider" order="first"/>
+    <!-- last: after the Kotlin plugin's patchers -->
+    <fileIconPatcher implementation="dev.phantom.iconpack.KotlinFileKindPatcher" order="last"/>
+  </extensions>
+</idea-plugin>

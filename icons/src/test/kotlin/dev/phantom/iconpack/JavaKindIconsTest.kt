@@ -22,7 +22,7 @@ class JavaKindIconsTest : LightJavaCodeInsightFixtureTestCase() {
 
   companion object {
     init {
-      System.setProperty("idea.load.plugins.id", "dev.phantom.iconpack,com.intellij.java")
+      System.setProperty("idea.load.plugins.id", "dev.phantom.iconpack,com.intellij.java,org.jetbrains.kotlin")
       // as in the IDE: real icons (not 1-px stand-ins) and the icon manager that adds the static/final marks;
       // before any test, so the mark layers Java registers on first use land in the real manager
       IconLoader.activate()
@@ -79,9 +79,39 @@ class JavaKindIconsTest : LightJavaCodeInsightFixtureTestCase() {
 
   fun testFileTakesTheKindOfTheClassNamedAsTheFile() {
     val file = myFixture.configureByText("Repo.java", "enum Helper { A }\ninterface Repo {}") as PsiJavaFile
-    assertEquals("java-file-interface", JavaKindIcons.fileIconName(file))
-    // the navigation bar shows the file as its class, with the file's cup
-    assertSame(JavaKindIcons.icon("java-file-interface"), LogoFileNavBarIcon().getIcon(file.classes.last()))
+    assertEquals("java-interface", JavaKindIcons.fileIconName(file))
+    // the navigation bar shows the file as its class, with its kind
+    assertSame(JavaKindIcons.icon("java-interface"), LogoFileNavBarIcon().getIcon(file.classes.last()))
+  }
+
+  fun testKotlinKindsAndFiles() {
+    fun kind(fileName: String, text: String): String? {
+      val file = myFixture.configureByText(fileName, text)
+      val declaration = (file as org.jetbrains.kotlin.psi.KtFile).declarations.first()
+      val name = KotlinKindIcons.iconName(declaration)
+      // the class and a file of that one class show the kind, in the structure view and as a file
+      if (name != null) {
+        assertTrue("$name in class icon", KotlinKindIcons.icon(name) in leaves(declaration.getIcon(0)))
+        assertEquals(fileName, name, KotlinKindIcons.fileIconName(file))
+        assertTrue("$name in file icon", KotlinKindIcons.icon(name) in leaves(file.getIcon(0)))
+      }
+      return name
+    }
+    assertEquals("kotlin-class", kind("User.kt", "class User"))
+    assertEquals("kotlin-abstract", kind("Shape.kt", "abstract class Shape"))
+    assertEquals("kotlin-abstract", kind("Result.kt", "sealed class Result"))
+    assertEquals("kotlin-interface", kind("Repo.kt", "interface Repo"))
+    assertEquals("kotlin-enum", kind("Color.kt", "enum class Color { RED }"))
+    assertEquals("kotlin-annotation", kind("Marker.kt", "annotation class Marker"))
+    assertEquals("kotlin-data", kind("Point.kt", "data class Point(val x: Int)"))
+    assertEquals("kotlin-object", kind("Registry.kt", "object Registry"))
+    // more than one declaration: the Kotlin logo stays
+    val mixed = myFixture.configureByText("Utils.kt", "class A\nfun b() {}")
+    assertNull(KotlinKindIcons.fileIconName(mixed))
+    assertSame(MaterialIcons.forFile(mixed.virtualFile), LogoFileNavBarIcon().getIcon(mixed))
+    for (name in listOf("class", "abstract", "interface", "enum", "annotation", "data", "object")) {
+      assertEquals(name, 16, KotlinKindIcons.icon("kotlin-$name").iconWidth)
+    }
   }
 
   fun testProviderComesRightAfterTheMaterialProvider() {
@@ -92,13 +122,10 @@ class JavaKindIconsTest : LightJavaCodeInsightFixtureTestCase() {
   }
 
   fun testEveryKindIconLoadsAtSixteenPixels() {
-    for (name in KINDS + KINDS.map { it.replace("java-", "java-file-") } + "java-file") assertEquals(name, 16, JavaKindIcons.icon(name).iconWidth)
+    for (name in KINDS + "java-file") assertEquals(name, 16, JavaKindIcons.icon(name).iconWidth)
   }
 
-  /**
-   * The class icon (structure view) shows the kind; the file icon (editor tabs) shows the Java cup, as a Kotlin file its
-   * logo, in the kind's color.
-   */
+  /** The class icon (structure view) and the file icon (editor tabs) both show the kind. */
   private fun assertKind(expected: String, fileName: String, text: String) {
     val file = myFixture.configureByText(fileName, text) as PsiJavaFile
     val aClass = file.classes.single()
@@ -106,11 +133,9 @@ class JavaKindIconsTest : LightJavaCodeInsightFixtureTestCase() {
     val icon = JavaKindIcons.icon(expected)
     val classLeaves = leaves(aClass.getIcon(0))
     assertTrue("$expected in $classLeaves", icon in classLeaves)
-    val cup = expected.replace("java-", "java-file-")
-    assertEquals(fileName, cup, JavaKindIcons.fileIconName(file))
+    assertEquals(fileName, expected, JavaKindIcons.fileIconName(file))
     val fileLeaves = leaves(file.getIcon(0))
-    assertTrue("$cup in $fileLeaves", JavaKindIcons.icon(cup) in fileLeaves)
-    assertFalse("$expected in $fileLeaves", icon in fileLeaves)
+    assertTrue("$expected in $fileLeaves", icon in fileLeaves)
   }
 
   /** The tests run on the EDT, where element icons come deferred (the file icon patcher defers the class icon again). */

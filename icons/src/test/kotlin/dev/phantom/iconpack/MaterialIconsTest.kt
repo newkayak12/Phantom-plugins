@@ -12,7 +12,7 @@ import com.intellij.ui.IconManager
 class MaterialIconsTest : BasePlatformTestCase() {
   companion object {
     init {
-      System.setProperty("idea.load.plugins.id", "dev.phantom.iconpack,com.intellij.java")
+      System.setProperty("idea.load.plugins.id", "dev.phantom.iconpack,com.intellij.java,org.jetbrains.kotlin")
       // as in the IDE: real icons (not 1-px stand-ins) and the icon manager that adds the static/final marks;
       // before any test, so the mark layers Java registers on first use land in the real manager
       IconLoader.activate()

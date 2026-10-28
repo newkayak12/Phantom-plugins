@@ -333,7 +333,7 @@
     {
       "id": "dev.phantom.iconpack",
       "name": "Phantom Icon Pack",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "source": "icons",
       "description": "Colored file and folder icons by name and extension from the Material Icon Theme (Philipp Kief, MIT). Java files show the Java cup and Kotlin files the Kotlin logo, also where a file shows as its class (Project view, navigation bar, editor tabs); Java classes show Material icons by kind. Source, test and resource roots get their own folder colors. Moved out of the Phantom bundle (Phantom File Icons, dev.phantom.icons): turn that one off if your Phantom still bundles it.",
       "vendor": "Phantom",
@@ -343,7 +343,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "icons-0.3.1/icons-0.3.1.zip",
+      "download": "icons-0.3.2/icons-0.3.2.zip",
       "detect": []
     },
     {
