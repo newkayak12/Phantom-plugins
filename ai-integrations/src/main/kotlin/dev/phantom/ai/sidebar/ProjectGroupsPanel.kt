@@ -102,7 +102,7 @@ class ProjectGroupsPanel(
 
   /** Drag a group or repo onto a group (nest / move into it), onto a repo (a repo goes before it), or onto blank space (root). */
   private fun installDnd() {
-    tree.dragEnabled = true
+    tree.dragEnabled = !java.awt.GraphicsEnvironment.isHeadless() // setDragEnabled throws HeadlessException on CI
     tree.dropMode = javax.swing.DropMode.ON
     tree.transferHandler = object : javax.swing.TransferHandler() {
       override fun getSourceActions(c: javax.swing.JComponent) = MOVE
