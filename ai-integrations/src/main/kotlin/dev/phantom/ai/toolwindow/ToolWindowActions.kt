@@ -46,6 +46,18 @@ class FloatDockAction(private val toolWindow: ToolWindow) : AnAction(), DumbAwar
   }
 }
 
+/** Reads the worktrees again (one added or removed outside Phantom); sessions and names refresh on their own. */
+class RefreshTreeAction(private val panel: AgentToolWindowPanel) : AnAction(), DumbAware {
+  override fun getActionUpdateThread() = ActionUpdateThread.EDT
+
+  override fun update(e: AnActionEvent) {
+    e.presentation.text = PhantomAiBundle.message("sidebar.refresh")
+    e.presentation.icon = AllIcons.Actions.Refresh
+  }
+
+  override fun actionPerformed(e: AnActionEvent) = panel.tree.refresh()
+}
+
 /** Opens the settings page of the plugin (accounts). */
 class SettingsAction(private val project: Project) : AnAction(), DumbAware {
   override fun getActionUpdateThread() = ActionUpdateThread.EDT
@@ -61,8 +73,8 @@ class SettingsAction(private val project: Project) : AnAction(), DumbAware {
 }
 
 object ToolWindowActions {
-  /** Title actions in the order: tree toggle, Float/Dock, Settings. */
+  /** Title actions in the order: Refresh, tree toggle, Float/Dock, Settings. */
   fun install(toolWindow: ToolWindow, project: Project, panel: AgentToolWindowPanel) {
-    toolWindow.setTitleActions(listOf(ToggleTreeAction(panel), FloatDockAction(toolWindow), SettingsAction(project)))
+    toolWindow.setTitleActions(listOf(RefreshTreeAction(panel), ToggleTreeAction(panel), FloatDockAction(toolWindow), SettingsAction(project)))
   }
 }

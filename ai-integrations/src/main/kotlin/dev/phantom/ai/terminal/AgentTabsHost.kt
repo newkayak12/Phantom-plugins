@@ -16,6 +16,7 @@ class AgentTab(
   val preferredFocus: JComponent? = null,
   val io: TerminalIo? = null,
   val disposable: Disposable,
+  val icon: javax.swing.Icon? = null,
 )
 
 fun interface AgentTabsListener {

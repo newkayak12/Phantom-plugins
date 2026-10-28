@@ -16,7 +16,7 @@ class StartedTerminal(val component: JComponent, val preferredFocus: JComponent?
 
 /**
  * The seam to the bundled terminal plugin, so headless tests can fake it. [start] creates a shell in [cwd] with
- * [env] added to the environment, runs [command] in it, and ties the terminal to [parent]. It does not add it to any
+ * [env] added to the environment, running [command], and ties the terminal to [parent]. It does not add it to any
  * tool window: that is the caller's job (an [AgentTabsHost] tab, never the Terminal tool window).
  */
 fun interface TerminalStarter {
@@ -26,23 +26,17 @@ fun interface TerminalStarter {
 /** Real terminal: LocalTerminalDirectRunner of the bundled terminal plugin. Call on the EDT. */
 class LocalTerminalStarter(private val project: Project) : TerminalStarter {
   override fun start(parent: Disposable, cwd: String, env: Map<String, String>, command: String): StartedTerminal {
-    val options = ShellStartupOptions.Builder().workingDirectory(cwd).envVariables(env).build()
-    val widget = LocalTerminalDirectRunner.createTerminalRunner(project).startShellTerminalWidget(parent, options, true)
-    // in tmux when installed (mouse mode, panes); the session ends with the tab
-    // in tmux (mouse mode, panes), installed with Homebrew first where it is missing; the session ends with the tab
+    // in tmux (mouse mode, panes) where installed; the session ends with the tab
     val name = "phantom-" + UUID.randomUUID().toString().take(8)
     val tmux = Tmux.binary()
-    val brew = if (tmux == null) Tmux.brew() else null
-    val line = when {
-      tmux != null -> Tmux.wrap(tmux, name, cwd, env, command)
-      brew != null -> Tmux.installThenWrap(brew, name, cwd, env, command)
-      else -> command
+    if (tmux == null) Tmux.brew()?.let(Tmux::installInBackground)
+    val line = if (tmux != null) Tmux.wrap(tmux, name, cwd, env, command) else Tmux.plain(command)
+    if (tmux != null) {
+      Disposer.register(parent) { ApplicationManager.getApplication().executeOnPooledThread { Tmux.kill(tmux, name) } }
     }
-    val installed = tmux ?: brew?.let { java.io.File(it).resolveSibling("tmux").path }
-    if (installed != null) {
-      Disposer.register(parent) { ApplicationManager.getApplication().executeOnPooledThread { Tmux.kill(installed, name) } }
-    }
-    widget.sendCommandToExecute(line)
+    // the agent is the shell's argument, not typed at its prompt: no command line (or hook token) is echoed on screen
+    val options = ShellStartupOptions.Builder().workingDirectory(cwd).envVariables(env).shellCommand(Tmux.shellCommand(line)).build()
+    val widget = LocalTerminalDirectRunner.createTerminalRunner(project).startShellTerminalWidget(parent, options, true)
     // files dropped on the terminal are typed as paths (images as attachments), as in the Terminal tool window
     val jediTerm = ShellTerminalWidget.asShellJediTermWidget(widget)
     if (jediTerm != null) TerminalDrop.install(jediTerm.terminalPanel, parent) { jediTerm.terminalStarter?.sendString(it, true) }

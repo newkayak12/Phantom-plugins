@@ -14,9 +14,12 @@ object SplitLayout {
   const val KEY_V = "PhantomAi.split.v"
   const val KEY_TREE_HIDDEN = "PhantomAi.tree.hidden"
 
-  /** Side by side when the window is wide enough, else stacked. */
-  fun orientation(width: Int, height: Int): SplitOrientation =
-    if (width >= maxOf(600.0, 0.8 * height)) SplitOrientation.HORIZONTAL else SplitOrientation.VERTICAL
+  /** Docked (or sliding): always side by side (mockup B). Floating or windowed: side by side when wide enough, else stacked (D). */
+  fun orientation(type: ToolWindowType, width: Int, height: Int): SplitOrientation = when {
+    type != ToolWindowType.FLOATING && type != ToolWindowType.WINDOWED -> SplitOrientation.HORIZONTAL
+    width >= maxOf(600.0, 0.8 * height) -> SplitOrientation.HORIZONTAL
+    else -> SplitOrientation.VERTICAL
+  }
 
   /**
    * Whether + Claude, + Codex, Board and Dashboard sit in one full-width row above the split: when floating or windowed, or

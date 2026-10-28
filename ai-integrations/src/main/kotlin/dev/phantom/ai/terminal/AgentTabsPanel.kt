@@ -69,7 +69,7 @@ class AgentTabsPanel(
   }
 
   private fun label(tab: AgentTab, selected: Boolean): JComponent {
-    val title = JBLabel(tab.title).apply { name = "agent.tab.${tab.id}" }
+    val title = JBLabel(tab.title, tab.icon, javax.swing.SwingConstants.LEFT).apply { name = "agent.tab.${tab.id}" }
     val close = JBLabel("×").apply {
       name = "agent.tab.close.${tab.id}"
       foreground = JBColor.GRAY

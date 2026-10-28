@@ -147,7 +147,7 @@ class AgentTerminalService(private val project: Project) {
     SessionStore.getInstance().put(AgentSession(tabId, worktree, kind, sessionId = sessionId, accountId = account?.id))
     sessionId?.let { AiState.getInstance().rememberSession(worktree, kind, it, null, account?.id) }
     val shown = try {
-      show(title, worktree, env, command, tabId)
+      show(title, worktree, env, command, tabId, dev.phantom.ai.core.AgentIcons.of(kind))
     } catch (e: Exception) {
       try {
         rethrowIfCancellation(e)
@@ -162,7 +162,7 @@ class AgentTerminalService(private val project: Project) {
     return tabId.takeIf { shown }
   }
 
-  private fun show(title: String, cwd: String, env: Map<String, String>, command: String, tabId: String?): Boolean {
+  private fun show(title: String, cwd: String, env: Map<String, String>, command: String, tabId: String?, icon: javax.swing.Icon? = null): Boolean {
     val tw = toolWindow(create = true)
     val disposable = Disposer.newDisposable("AI agent terminal $title")
     val started = try {
@@ -180,7 +180,7 @@ class AgentTerminalService(private val project: Project) {
         SessionStore.getInstance().remove(it)
       }
     }
-    host.add(AgentTab(id, title, started.component, started.preferredFocus, started.io, disposable))
+    host.add(AgentTab(id, title, started.component, started.preferredFocus, started.io, disposable, icon))
     tw?.activate(null)
     return true
   }

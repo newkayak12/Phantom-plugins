@@ -32,7 +32,7 @@ import javax.swing.JPanel
 
 /**
  * The one panel of the tool window (mockups B and D): the worktree tree column and the agent terminal tabs, side by side
- * when wide and stacked when narrow. Docked, + Claude / + Codex head the tree column and Board / Dashboard end it; floating,
+ * when docked; floating or windowed, side by side when wide and stacked when narrow. Docked, + Claude / + Codex head the tree column and Board / Dashboard end it; floating,
  * windowed, or with the tree hidden, one full-width row above the split holds all four. The tree can be folded away.
  */
 class AgentToolWindowPanel(
@@ -57,10 +57,11 @@ class AgentToolWindowPanel(
   private var orientation: SplitOrientation? = null
 
   private val claudeButton = button("toolwindow.new.claude", "btn.claude") { newSession(AgentKind.CLAUDE) }.apply {
+    icon = dev.phantom.ai.core.AgentIcons.CLAUDE
     putClientProperty("JButton.buttonType", "default")
     putClientProperty("DefaultButton", true)
   }
-  private val codexButton = button("toolwindow.new.codex", "btn.codex") { newSession(AgentKind.CODEX) }
+  private val codexButton = button("toolwindow.new.codex", "btn.codex") { newSession(AgentKind.CODEX) }.apply { icon = dev.phantom.ai.core.AgentIcons.CODEX }
   private val boardButton = button("toolwindow.board", "btn.board") { openAction(BOARD_ACTION) }
   private val dashboardButton = button("toolwindow.dashboard", "btn.dashboard") { openAction(DASHBOARD_ACTION) }
 
@@ -95,7 +96,8 @@ class AgentToolWindowPanel(
 
   /** Places the buttons, the tree column and the split for the current tool window type and size. */
   fun relayout() {
-    val inHeader = SplitLayout.buttonsInHeader(typeOf(), fold.hidden)
+    val type = typeOf()
+    val inHeader = SplitLayout.buttonsInHeader(type, fold.hidden)
     topRow.removeAll()
     treeHeader.removeAll()
     treeFooter.removeAll()
@@ -109,7 +111,7 @@ class AgentToolWindowPanel(
     treeHeader.isVisible = !inHeader
     treeFooter.isVisible = !inHeader
     treeColumn.isVisible = !fold.hidden
-    val wanted = SplitLayout.orientation(width, height)
+    val wanted = SplitLayout.orientation(type, width, height)
     if (splitter == null || orientation != wanted) rebuildSplitter(wanted)
     revalidate()
     repaint()

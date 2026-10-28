@@ -80,6 +80,8 @@ class WorktreeTreePanel(
   }
   private val scroll = ScrollPaneFactory.createScrollPane(tree)
   private val refreshQueued = AtomicBoolean()
+  // the elapsed times move on while shown
+  private val ticker = javax.swing.Timer(30_000) { if (isShowing) refresh() }
   private var repoOfWorktree: Map<String, RepoNode> = emptyMap()
   private val known = HashSet<String>() // rows seen before: a new row opens, an old one keeps what the user chose
 
@@ -87,9 +89,6 @@ class WorktreeTreePanel(
     tree.isRootVisible = false
     tree.showsRootHandles = true
     tree.cellRenderer = Renderer()
-    val bar = JPanel(FlowLayout(FlowLayout.LEFT, 4, 2))
-    bar.add(javax.swing.JButton(PhantomAiBundle.message("sidebar.refresh")).apply { addActionListener { refresh() } })
-    add(bar, BorderLayout.NORTH)
     add(center, BorderLayout.CENTER)
     center.add(scroll, BorderLayout.CENTER)
     tree.addMouseListener(object : PopupHandler() {
@@ -115,9 +114,10 @@ class WorktreeTreePanel(
     ApplicationManager.getApplication().messageBus.connect(this)
       .subscribe(AiState.TOPIC, dev.phantom.ai.core.AiStateListener { refresh() })
     refresh()
+    ticker.start()
   }
 
-  override fun dispose() = Unit
+  override fun dispose() = ticker.stop()
 
   @TestOnly internal fun treeForTest(): JTree = tree
 
@@ -302,7 +302,7 @@ class WorktreeTreePanel(
     }
   }
 
-  /** One row: [dot] title [branch] [#N pill] [chip] [elapsed]. */
+  /** One row: [dot] title [branch] [#N pill] [agent mark] [elapsed]. */
   private class Renderer : JPanel(FlowLayout(FlowLayout.LEFT, 4, 1)), TreeCellRenderer {
     private val icon = JBLabel()
     private val title = JBLabel()
@@ -346,7 +346,8 @@ class WorktreeTreePanel(
         is SessionRow -> {
           title.text = o.title
           icon.icon = Dot(SidebarColors.dot(o.statusKey))
-          chip.text = o.agentIconKey
+          chip.icon = dev.phantom.ai.core.AgentIcons.of(o.session.kind)
+          chip.toolTipText = o.session.kind.displayName
           chip.isVisible = true
           o.elapsed?.let { elapsed.text = it; elapsed.isVisible = true }
         }

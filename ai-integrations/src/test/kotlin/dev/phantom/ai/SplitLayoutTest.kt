@@ -10,7 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SplitLayoutTest {
-  private fun o(w: Int, h: Int) = SplitLayout.orientation(w, h)
+  private fun o(w: Int, h: Int) = SplitLayout.orientation(ToolWindowType.FLOATING, w, h)
 
   @Test fun wideWindowIsHorizontal() = assertEquals(SplitOrientation.HORIZONTAL, o(1200, 500))
 
@@ -21,6 +21,12 @@ class SplitLayoutTest {
   @Test fun tallWindowIsVerticalEvenWhenWiderThan600() = assertEquals(SplitOrientation.VERTICAL, o(900, 1200))
 
   @Test fun width080OfHeightIsHorizontal() = assertEquals(SplitOrientation.HORIZONTAL, o(960, 1200))
+
+  @Test fun dockedOrSlidingIsAlwaysSideBySide() {
+    assertEquals(SplitOrientation.HORIZONTAL, SplitLayout.orientation(ToolWindowType.DOCKED, 400, 1200))
+    assertEquals(SplitOrientation.HORIZONTAL, SplitLayout.orientation(ToolWindowType.SLIDING, 0, 0))
+    assertEquals(SplitOrientation.VERTICAL, SplitLayout.orientation(ToolWindowType.WINDOWED, 400, 1200))
+  }
 
   @Test fun notYetLaidOutIsVertical() = assertEquals(SplitOrientation.VERTICAL, o(0, 0))
 

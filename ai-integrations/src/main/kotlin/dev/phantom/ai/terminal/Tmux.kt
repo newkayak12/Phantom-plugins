@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit
 /**
  * Agents run inside tmux when it is installed: tmux's mouse mode (click, scroll, select) and its panes, which Claude's
  * agent teams split into. Phantom keeps its own server (`-L phantom`), apart from the user's sessions. Without tmux the
- * command runs in the plain shell as before.
+ * command runs in the plain shell, and tmux is installed in the background for the next terminal.
  */
 object Tmux {
   const val SOCKET = "phantom"
@@ -28,14 +28,31 @@ object Tmux {
     return listOf("/opt/homebrew/bin/brew", "/usr/local/bin/brew").firstOrNull { File(it).canExecute() }
   }
 
+  private val installing = java.util.concurrent.atomic.AtomicBoolean()
+
   /**
-   * Without tmux: installs it with [brew] in the terminal itself, where the user sees it, then runs [command] in tmux
-   * ([wrap]); if the install fails, [command] runs in the plain shell.
+   * Without tmux: installs it with [brew] once per IDE run, off screen, so the next agent terminal gets it; this one runs
+   * in the plain shell. Best effort.
    */
-  fun installThenWrap(brew: String, name: String, cwd: String, env: Map<String, String>, command: String): String {
-    val tmux = File(brew).resolveSibling("tmux").path
-    return "${quote(brew)} install tmux && ${wrap(tmux, name, cwd, env, command)} || $command"
+  fun installInBackground(brew: String) {
+    if (!installing.compareAndSet(false, true)) return
+    Thread({
+      runCatching {
+        ProcessBuilder(brew, "install", "tmux").redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.DISCARD)
+          .apply { environment()["HOMEBREW_NO_AUTO_UPDATE"] = "1" }
+          .start().apply { outputStream.close(); waitFor(10, TimeUnit.MINUTES) }
+      }
+    }, "Phantom AI tmux install").apply { isDaemon = true }.start()
   }
+
+  /** [command] in the plain shell; when the agent exits a login shell stays, as in tmux. */
+  fun plain(command: String): String = "$command; exec \"\${SHELL:-/bin/zsh}\" -l"
+
+  /**
+   * The process the terminal starts: the user's shell running [line] (-l -i: the profile and rc files set PATH, node
+   * managers and the like). The line is the process's argument, never typed into a prompt, so it does not show on screen.
+   */
+  fun shellCommand(line: String): List<String> = listOf(System.getenv("SHELL")?.ifBlank { null } ?: "/bin/zsh", "-l", "-i", "-c", line)
 
   /**
    * The shell command that runs [command] in a new tmux session [name] in [cwd], with [env] set in it (a running tmux
@@ -43,7 +60,7 @@ object Tmux {
    * keeps a login shell, as the plain terminal does.
    */
   fun wrap(tmux: String, name: String, cwd: String, env: Map<String, String>, command: String): String {
-    val inner = "$command; exec \"\${SHELL:-/bin/zsh}\" -l"
+    val inner = plain(command)
     val args = buildList {
       add(tmux); add("-L"); add(SOCKET); add("new-session"); add("-s"); add(name); add("-c"); add(cwd)
       env.toSortedMap().forEach { (k, v) -> add("-e"); add("$k=$v") }

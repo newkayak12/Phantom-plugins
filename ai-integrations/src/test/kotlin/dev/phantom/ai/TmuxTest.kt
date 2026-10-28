@@ -16,12 +16,11 @@ class TmuxTest {
     )
   }
 
-  @Test fun installsWithBrewThenWrapsElsePlainCommand() {
-    val line = Tmux.installThenWrap("/opt/homebrew/bin/brew", "phantom-1", "/r", emptyMap(), "claude")
-    assertEquals(
-      "'/opt/homebrew/bin/brew' install tmux && exec '/opt/homebrew/bin/tmux' '-L' 'phantom' 'new-session' '-s' 'phantom-1' '-c' '/r' " +
-        "'claude; exec \"\${SHELL:-/bin/zsh}\" -l' ';' 'set-option' '-t' 'phantom-1' 'mouse' 'on' ';' 'set-option' '-t' 'phantom-1' 'status' 'off' || claude",
-      line,
-    )
+  @Test fun plainCommandKeepsALoginShellAfterTheAgent() =
+    assertEquals("claude; exec \"\${SHELL:-/bin/zsh}\" -l", Tmux.plain("claude"))
+
+  @Test fun theLineIsTheShellsArgumentNotTypedAtItsPrompt() {
+    val cmd = Tmux.shellCommand("claude '--x'")
+    assertEquals(listOf("-l", "-i", "-c", "claude '--x'"), cmd.drop(1))
   }
 }

@@ -113,7 +113,8 @@ class AgentToolWindowInIdeTest {
     assertSame(p.treeHeaderForTest(), p.buttonForTest("btn.claude").parent)
   }
 
-  @Test fun splitReorientsWithSize() {
+  @Test fun floatingSplitReorientsWithSize() {
+    type = ToolWindowType.FLOATING
     val p = panel()
     p.setSize(1200, 500)
     p.relayout()
@@ -121,6 +122,14 @@ class AgentToolWindowInIdeTest {
     p.setSize(400, 800)
     p.relayout()
     assertTrue(p.splitterForTest()!!.isVertical)
+  }
+
+  @Test fun dockedNarrowStaysSideBySide() {
+    type = ToolWindowType.DOCKED
+    val p = panel()
+    p.setSize(400, 800)
+    p.relayout()
+    assertFalse(p.splitterForTest()!!.isVertical)
   }
 
   @Test fun buttonsStartAgentsAndRunActions() {
