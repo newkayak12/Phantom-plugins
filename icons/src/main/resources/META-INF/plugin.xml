@@ -5,8 +5,9 @@
   <category>User Interface</category>
   <description><![CDATA[
   Colored file and folder icons by name and extension, drawn from the Material Icon Theme by Philipp Kief (MIT).
-  Java and Kotlin classes show Material icons by kind, told apart by shape: class, abstract class, interface, enum,
-  annotation, record or data class, exception, object; Kotlin's carry the Kotlin mark. A Java file, and a Kotlin file of
+  Java classes show a cup by kind (full, half-full or empty for a class, an abstract class or an interface; dots, lines
+  or ! for an enum, a record or an exception; @ for an annotation). Kotlin classes show Material icons told apart by
+  shape, with the Kotlin mark: class, abstract class, interface, enum, annotation, data class, object. A Java file, and a Kotlin file of
   one class, shows its class's kind also as a file (Project view, navigation bar, editor tabs); other Kotlin files show
   the Kotlin logo, a Java file without a class the Java cup. Source, test and resource roots get their own folder colors.
   Only the icons of files on screen are loaded. Turn the plugin off to get the platform icons back.
