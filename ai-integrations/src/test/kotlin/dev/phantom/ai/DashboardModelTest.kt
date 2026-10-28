@@ -4,8 +4,6 @@ package dev.phantom.ai
 import dev.phantom.ai.core.AgentKind
 import dev.phantom.ai.core.AgentSession
 import dev.phantom.ai.core.AgentStatus
-import dev.phantom.ai.core.GroupTree
-import dev.phantom.ai.core.Repo
 import dev.phantom.ai.core.Subagent
 import dev.phantom.ai.dashboard.DashboardColumn
 import dev.phantom.ai.dashboard.DashboardModel
@@ -27,7 +25,7 @@ class DashboardModelTest : TestCase() {
       else -> listOf(Worktree("/r/lib", "main", true))
     }
   }
-  private val tree = GroupTree.normalize(emptyList(), listOf(Repo("/r/app", null, 0), Repo("/r/lib", null, 1)))
+  private val roots = listOf("/r/app", "/r/lib")
   private val noPr = PrTitles { _, _ -> null }
 
   private val sessions = listOf(
@@ -39,7 +37,7 @@ class DashboardModelTest : TestCase() {
   )
 
   private fun model(pr: PrTitles = noPr, q: DashboardQuery = DashboardQuery(), list: List<AgentSession> = sessions) =
-    DashboardModel.of(SidebarModel.build(tree, source, list, emptyList(), pr, { null }, 100_000), q)
+    DashboardModel.of(listOf(SidebarModel.build(roots, source, list, emptyList(), pr, { null }, 100_000)), q)
 
   fun testColumnsCountsAndNewestFirst() {
     val m = model()
@@ -89,6 +87,14 @@ class DashboardModelTest : TestCase() {
     assertEquals("feat/x", cards.first { it.tabId == "a" }.branch)
     assertNull(cards.first { it.tabId == "c" }.prNumber)
     assertNull(model().columns.flatMap { it.cards }.first { it.tabId == "a" }.prNumber)
+  }
+
+  fun testModelsOfSeveralProjectsAreMerged() {
+    val a = SidebarModel.build(listOf("/r/app"), source, sessions, emptyList(), noPr, { null }, 100_000)
+    val b = SidebarModel.build(listOf("/r/lib"), source, sessions, emptyList(), noPr, { null }, 100_000)
+    val m = DashboardModel.of(listOf(a, b))
+    assertEquals(5, m.total)
+    assertEquals(listOf("app" to "/r/app", "lib" to "/r/lib"), m.projects)
   }
 
   fun testSavedSessionsAreNotCards() {

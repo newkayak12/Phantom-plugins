@@ -348,10 +348,10 @@
     },
     {
       "id": "dev.phantom.ai",
-      "name": "AI Integrations",
-      "version": "0.1.0",
+      "name": "Phantom AI Integration",
+      "version": "0.2.0",
       "source": "ai-integrations",
-      "description": "Claude Code and Codex next to your projects: a sidebar of project groups, repositories, worktrees and agent sessions, agent terminals in their own tool window, a workspace board, an agent dashboard and usage in the status bar. Needs Phantom Workspaces.",
+      "description": "Claude Code and Codex next to your projects (0.2.0): a tree of the current project's worktrees and agent sessions beside the agent terminals in one tool window, a board editor tab, an agent dashboard, usage in the status bar and opt-in remote control from another device's browser. Needs Phantom Workspaces.",
       "vendor": "Phantom",
       "category": "Tools",
       "since": "262",
@@ -363,7 +363,7 @@
         "Git4Idea",
         "org.jetbrains.plugins.github"
       ],
-      "download": "ai-integrations-0.1.0/ai-integrations-0.1.0.zip",
+      "download": "ai-integrations-0.2.0/ai-integrations-0.2.0.zip",
       "detect": []
     },
     {

@@ -39,7 +39,7 @@ class SidebarActionsInIdeTest : BasePlatformTestCase() {
     try {
       AiState.getInstance().setActiveAccount(AgentKind.CLAUDE, null)
       AiState.getInstance().setActiveAccount(AgentKind.CODEX, null)
-      ToolWindowManager.getInstance(project).getToolWindow("AI Integrations")?.contentManager?.removeAllContents(true)
+      dev.phantom.ai.terminal.AgentTabsHost.getInstance(project).let { h -> h.tabs().forEach { h.close(it.id) } }
       SessionStore.getInstance().all().forEach { SessionStore.getInstance().remove(it.tabId) }
     } finally {
       super.tearDown()

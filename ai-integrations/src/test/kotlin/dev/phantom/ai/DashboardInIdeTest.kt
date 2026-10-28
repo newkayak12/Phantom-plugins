@@ -9,9 +9,6 @@ import dev.phantom.ai.core.AgentKind
 import dev.phantom.ai.core.AgentStatus
 import dev.phantom.ai.core.AiState
 import dev.phantom.ai.core.AiStateData
-import dev.phantom.ai.core.Group
-import dev.phantom.ai.core.GroupTree
-import dev.phantom.ai.core.Repo
 import dev.phantom.ai.core.SessionStore
 import dev.phantom.ai.dashboard.AgentDashboardFrame
 import dev.phantom.ai.dashboard.AgentDashboardPanel
@@ -20,6 +17,7 @@ import dev.phantom.ai.hooks.HookIngest
 import dev.phantom.ai.hooks.SubagentEvent
 import dev.phantom.ai.sidebar.PrInfo
 import dev.phantom.ai.sidebar.PrTitles
+import dev.phantom.ai.sidebar.ProjectRepos
 import dev.phantom.ai.sidebar.Worktree
 import dev.phantom.ai.terminal.AgentTerminalService
 import dev.phantom.ai.terminal.StartedTerminal
@@ -34,14 +32,13 @@ class DashboardInIdeTest : BasePlatformTestCase() {
   override fun setUp() {
     super.setUp()
     AiState.getInstance().loadState(AiStateData())
-    AiState.getInstance().setTree(GroupTree(emptyList<Group>(), listOf(Repo(repo, null, 0))))
     service = AgentTerminalService.getInstance(project)
     service.replaceStarter(TerminalStarter { _: Disposable, _, _, _ -> StartedTerminal(JPanel()) })
   }
 
   override fun tearDown() {
     try {
-      ToolWindowManager.getInstance(project).getToolWindow("AI Integrations")?.contentManager?.removeAllContents(true)
+      dev.phantom.ai.terminal.AgentTabsHost.getInstance(project).let { h -> h.tabs().forEach { h.close(it.id) } }
       SessionStore.getInstance().all().forEach { SessionStore.getInstance().remove(it.tabId) }
       AiState.getInstance().loadState(AiStateData())
     } finally {
@@ -54,7 +51,7 @@ class DashboardInIdeTest : BasePlatformTestCase() {
       override fun titleFor(repoPath: String, branch: String): String? = "Add login"
       override fun infoFor(repoPath: String, branch: String) = PrInfo(7, "Add login")
     }
-    val p = AgentDashboardPanel(project, { listOf(Worktree(repo, "main", true)) }, prs)
+    val p = AgentDashboardPanel(project, { listOf(Worktree(repo, "main", true)) }, prs, { ProjectRepos { listOf(repo) } })
     Disposer.register(testRootDisposable, p)
     p.show(p.buildSidebar())
     return p
@@ -74,16 +71,16 @@ class DashboardInIdeTest : BasePlatformTestCase() {
     val b = service.launch(repo, AgentKind.CODEX)!!   // b is the selected tab now
     SessionStore.getInstance().update(a) { it.copy(status = AgentStatus.DONE, unread = true, lastPrompt = "hello", lastAnswer = "world") }
     val p = panel()
-    val tw = ToolWindowManager.getInstance(project).getToolWindow("AI Integrations")!!
-    val selectedBefore = tw.contentManager.selectedContent
-    assertEquals(tw.contentManager.contents.size, 2)
+    val host = dev.phantom.ai.terminal.AgentTabsHost.getInstance(project)
+    val selectedBefore = host.selected()
+    assertEquals(2, host.tabs().size)
     val card = all(p, JPanel::class.java).first { it.name == "card:$a" }
     card.mouseListeners.forEach { l ->
       l.mouseClicked(java.awt.event.MouseEvent(card, java.awt.event.MouseEvent.MOUSE_CLICKED, 0, 0, 1, 1, 1, false))
     }
-    val selected = tw.contentManager.selectedContent
+    val selected = host.selected()
     assertNotSame(selectedBefore, selected)
-    assertEquals(tw.contentManager.contents[0], selected)
+    assertEquals(host.tabs()[0], selected)
     assertFalse(SessionStore.getInstance().get(a)!!.unread)
     assertNotNull(SessionStore.getInstance().get(b))
   }

@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.ai.hooks
 
+import dev.phantom.ai.core.bestEffort
 import dev.phantom.ai.core.rethrowIfCancellation
 import com.intellij.ide.AppLifecycleListener
 import com.intellij.openapi.application.ApplicationManager
@@ -59,5 +60,6 @@ class HookStartup : AppLifecycleListener {
     val app = ApplicationManager.getApplication()
     if (app.isUnitTestMode) return
     app.executeOnPooledThread { HookInstallService.getInstance().installAll() }
+    bestEffort { dev.phantom.ai.remote.RemoteControlServer.getInstance().applySettings() }
   }
 }

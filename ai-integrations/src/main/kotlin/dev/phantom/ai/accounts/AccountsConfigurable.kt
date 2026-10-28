@@ -14,7 +14,7 @@ import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
 
-/** Settings | Tools | AI Integrations: per provider a System default row, one row per account, the active one selected. */
+/** Settings | Tools | Phantom AI Integration: per provider a System default row, one row per account, the active one selected. */
 class AccountsConfigurable(private val service: AccountsService = AccountsService.getInstance()) : Configurable {
   private val chosen = mutableMapOf<AgentKind, String?>()
   private var root: JPanel? = null

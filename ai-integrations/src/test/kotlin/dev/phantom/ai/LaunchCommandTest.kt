@@ -74,7 +74,7 @@ class LaunchCommandTest {
     }
     // no property of AiState, its state classes and the account classes is named like an off-switch
     val classes = listOf(AiState::class.java, AiStateData::class.java, AgentAccount::class.java) +
-      listOf("AccountEntry", "ActiveAccountEntry", "SessionEntry", "WorktreeEntry", "GroupEntry", "RepoEntry").map { Class.forName("dev.phantom.ai.core.$it") }
+      listOf("AccountEntry", "ActiveAccountEntry", "SessionEntry", "WorktreeEntry").map { Class.forName("dev.phantom.ai.core.$it") }
     for (c in classes) {
       for (f in c.declaredFields) assertFalse("${c.simpleName}.${f.name}", bad.containsMatchIn(f.name))
       for (m in c.declaredMethods.filter { Modifier.isPublic(it.modifiers) && (it.name.startsWith("get") || it.name.startsWith("is")) })

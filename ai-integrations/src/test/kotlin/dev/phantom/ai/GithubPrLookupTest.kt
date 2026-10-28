@@ -1,14 +1,10 @@
 // Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.ai
 
-import dev.phantom.ai.core.Group
-import dev.phantom.ai.core.GroupTree
-import dev.phantom.ai.core.Repo
 import dev.phantom.ai.sidebar.CachedPrTitles
 import dev.phantom.ai.sidebar.GithubPrTitles
 import dev.phantom.ai.sidebar.GithubRemote
 import dev.phantom.ai.sidebar.GithubRepoRef
-import dev.phantom.ai.sidebar.GroupEdits
 import dev.phantom.ai.sidebar.PrFetcher
 import dev.phantom.ai.sidebar.PrInfo
 import dev.phantom.ai.sidebar.PullsResponse
@@ -109,38 +105,5 @@ class GithubPrLookupTest {
     assertEquals(PrInfo(9, "Nine"), c.infoFor("/r", "b"))
     assertEquals("Nine", c.titleFor("/r", "b"))
     assertEquals(1, calls)
-  }
-
-  @Test
-  fun `drop nests groups and moves repos`() {
-    val t = GroupTree.normalize(
-      listOf(Group("a", "a", null, 0), Group("b", "b", null, 1)),
-      listOf(Repo("/r1", null, 0), Repo("/r2", "a", 0), Repo("/r3", "a", 1)),
-    )
-    assertEquals("a", GroupEdits.drop(t, "group:b", "group:a").groups.first { it.id == "b" }.parentId)
-    assertNull(GroupEdits.drop(GroupEdits.drop(t, "group:b", "group:a"), "group:b", null).groups.first { it.id == "b" }.parentId)
-    assertEquals("b", GroupEdits.drop(t, "repo:/r1", "group:b").repos.first { it.path == "/r1" }.groupId)
-    val re = GroupEdits.drop(t, "repo:/r3", "repo:/r2")
-    assertEquals(listOf("/r3", "/r2"), re.reposOf("a").map { it.path })
-    val cross = GroupEdits.drop(t, "repo:/r1", "repo:/r3")
-    assertEquals(listOf("/r2", "/r1", "/r3"), cross.reposOf("a").map { it.path })
-  }
-
-  @Test
-  fun `dropping a group into its own descendant is refused`() {
-    val t = GroupTree.normalize(
-      listOf(Group("a", "a", null, 0), Group("b", "b", "a", 0), Group("c", "c", "b", 0), Group("d", "d", null, 1)),
-      listOf(Repo("/r1", "c", 0)),
-    )
-    assertFalse(GroupEdits.canDrop(t, "group:a", "group:c"))
-    assertFalse(GroupEdits.canDrop(t, "group:a", "group:a"))
-    assertFalse(GroupEdits.canDrop(t, "group:a", "repo:/r1"))
-    assertTrue(GroupEdits.canDrop(t, "group:c", "group:d"))
-    assertTrue(GroupEdits.canDrop(t, "group:a", null))
-    val after = GroupEdits.drop(t, "group:a", "group:c")
-    assertEquals(null, after.groups.first { it.id == "a" }.parentId)
-    assertEquals("a", after.groups.first { it.id == "b" }.parentId)
-    assertEquals("b", after.groups.first { it.id == "c" }.parentId)
-    assertEquals("a", GroupEdits.drop(t, "group:d", "group:a").groups.first { it.id == "d" }.parentId)
   }
 }

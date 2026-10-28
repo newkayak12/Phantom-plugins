@@ -9,11 +9,9 @@ import dev.phantom.ai.board.WorkspaceBoardPanel
 import dev.phantom.ai.core.AiState
 import dev.phantom.ai.core.AiStateData
 import dev.phantom.ai.core.AiToolWindowFactory
-import dev.phantom.ai.core.Group
-import dev.phantom.ai.core.GroupTree
-import dev.phantom.ai.core.Repo
 import dev.phantom.ai.sidebar.PrInfo
 import dev.phantom.ai.sidebar.PrTitles
+import dev.phantom.ai.sidebar.ProjectRepos
 import dev.phantom.ai.sidebar.Worktree
 
 class BoardInIdeTest : BasePlatformTestCase() {
@@ -34,22 +32,23 @@ class BoardInIdeTest : BasePlatformTestCase() {
   }
 
   private fun panel(): WorkspaceBoardPanel {
-    AiState.getInstance().setTree(GroupTree(emptyList<Group>(), listOf(Repo(repo, null, 0))))
     val prs = object : PrTitles {
       override fun titleFor(repoPath: String, branch: String): String? = "Add login"
       override fun infoFor(repoPath: String, branch: String) = PrInfo(7, "Add login")
     }
-    val p = WorkspaceBoardPanel(project, { listOf(Worktree(repo, "main", true), Worktree(wt, "feature", false)) }, prs)
+    val p = WorkspaceBoardPanel(project, { listOf(Worktree(repo, "main", true), Worktree(wt, "feature", false)) }, prs, ProjectRepos { listOf(repo) })
     Disposer.register(testRootDisposable, p)
     p.showCards(p.buildCards())
     return p
   }
 
-  fun testBoardTabExistsInTheToolWindow() {
-    val tw = ToolWindowManager.getInstance(project).registerToolWindow(RegisterToolWindowTask.notClosable("AI Integrations-test"))
+  fun testToolWindowHasOnePanelContentAndNoBoardTab() {
+    val tw = ToolWindowManager.getInstance(project).registerToolWindow(RegisterToolWindowTask.notClosable("Phantom AI Integration-test"))
     AiToolWindowFactory().createToolWindowContent(project, tw)
-    val titles = tw.contentManager.contents.map { it.displayName }
-    assertTrue(titles.toString(), "Board" in titles)
+    val contents = tw.contentManager.contents
+    assertEquals(1, contents.size)
+    assertFalse(contents.single().isCloseable)
+    assertTrue(contents.single().component is dev.phantom.ai.toolwindow.AgentToolWindowPanel)
   }
 
   fun testCardsShowPrTitleBranchAndGoToFirstColumn() {
@@ -65,10 +64,37 @@ class BoardInIdeTest : BasePlatformTestCase() {
     assertEquals("Done", AiState.getInstance().findWorktree(wt)?.column)
     assertEquals(listOf(wt), p.currentLayout().cardsOf("Done"))
     // a fresh panel reads the stored placement back
-    val again = WorkspaceBoardPanel(project, { listOf(Worktree(repo, "main", true), Worktree(wt, "feature", false)) }, PrTitles { _, _ -> null })
+    val again = WorkspaceBoardPanel(project, { listOf(Worktree(repo, "main", true), Worktree(wt, "feature", false)) }, PrTitles { _, _ -> null }, ProjectRepos { listOf(repo) })
     Disposer.register(testRootDisposable, again)
     again.showCards(again.buildCards())
     assertEquals(listOf(wt), again.currentLayout().cardsOf("Done"))
+  }
+
+  fun testBoardFileIsOneReadOnlyFilePerProjectAndProviderAcceptsOnlyIt() {
+    val f = dev.phantom.ai.board.BoardVirtualFile.of(project)
+    assertSame(f, dev.phantom.ai.board.BoardVirtualFile.of(project))
+    assertFalse(f.isWritable)
+    val provider = dev.phantom.ai.board.BoardFileEditorProvider()
+    assertTrue(provider.accept(project, f))
+    assertFalse(provider.accept(project, com.intellij.testFramework.LightVirtualFile("x.txt")))
+    assertEquals(com.intellij.openapi.fileEditor.FileEditorPolicy.HIDE_DEFAULT_EDITOR, provider.policy)
+  }
+
+  fun testEditorWrapsPanelAndDisposesIt() {
+    val f = dev.phantom.ai.board.BoardVirtualFile.of(project)
+    val e = dev.phantom.ai.board.BoardFileEditorProvider().createEditor(project, f) as dev.phantom.ai.board.BoardFileEditor
+    assertTrue(e.component is WorkspaceBoardPanel)
+    Disposer.dispose(e)
+  }
+
+  fun testOpenBoardActionOpensTheBoardEditor() {
+    val action = com.intellij.openapi.actionSystem.ActionManager.getInstance().getAction("dev.phantom.ai.OpenBoard")
+    assertNotNull(action)
+    assertTrue(action is dev.phantom.ai.board.OpenBoardAction)
+    val mgr = com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project)
+    mgr.openFile(dev.phantom.ai.board.BoardVirtualFile.of(project), true)
+    assertTrue(mgr.isFileOpen(dev.phantom.ai.board.BoardVirtualFile.of(project)))
+    mgr.closeFile(dev.phantom.ai.board.BoardVirtualFile.of(project))
   }
 
   private fun <T : java.awt.Component> collect(c: java.awt.Component, type: Class<T>): List<T> {

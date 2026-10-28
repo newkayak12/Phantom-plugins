@@ -17,7 +17,7 @@ class AiPluginInIdeTest : BasePlatformTestCase() {
 
   // the headless test tool window manager does not instantiate plugin.xml tool windows, so read the registration itself
   fun testToolWindowIsRegisteredOnTheRight() {
-    val ep = ToolWindowEP.EP_NAME.extensionList.singleOrNull { it.id == "AI Integrations" }
+    val ep = ToolWindowEP.EP_NAME.extensionList.singleOrNull { it.id == "Phantom AI Integration" }
     assertNotNull(ep)
     assertEquals("right", ep!!.anchor)
     assertEquals(dev.phantom.ai.core.AiToolWindowFactory::class.java.name, ep.factoryClass)

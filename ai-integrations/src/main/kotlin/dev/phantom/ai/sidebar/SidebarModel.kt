@@ -4,19 +4,21 @@ package dev.phantom.ai.sidebar
 import dev.phantom.ai.core.bestEffort
 import dev.phantom.ai.core.AgentKind
 import dev.phantom.ai.core.AgentSession
-import dev.phantom.ai.core.Group
-import dev.phantom.ai.core.GroupTree
-import dev.phantom.ai.core.Repo
 import dev.phantom.ai.core.SessionEntry
 
 data class WorktreeNode(val path: String, val title: String, val branch: String?, val isMain: Boolean, val sessions: List<SessionRow>, val prNumber: Int? = null)
 
-data class RepoNode(val repo: Repo, val name: String, val worktrees: List<WorktreeNode>)
+data class RepoNode(val path: String, val name: String, val worktrees: List<WorktreeNode>)
 
-data class GroupNode(val group: Group, val groups: List<GroupNode>, val repos: List<RepoNode>)
+/**
+ * The sidebar tree of the current project: its repositories, each with worktrees and their sessions. With exactly one
+ * repository the view shows its worktrees as top-level rows; with several, a repository row sits above each. Pure.
+ */
+data class SidebarModel(val repos: List<RepoNode>) {
+  /** True when the worktrees are the top-level rows (one repository). */
+  val flat: Boolean get() = repos.size == 1
 
-/** The sidebar tree: nested groups (with their repos), then the ungrouped repos. Pure; no IDE access. */
-data class SidebarModel(val groups: List<GroupNode>, val ungrouped: List<RepoNode>) {
+
   companion object {
     /** A remembered session of AiState that has no live tab; its tab id is "saved:<session id>". */
     fun saved(e: SessionEntry): AgentSession? {
@@ -30,7 +32,7 @@ data class SidebarModel(val groups: List<GroupNode>, val ungrouped: List<RepoNod
     }
 
     fun build(
-      tree: GroupTree,
+      repoRoots: List<String>,
       worktrees: WorktreeSource,
       sessions: List<AgentSession>,
       saved: List<AgentSession>,
@@ -41,13 +43,13 @@ data class SidebarModel(val groups: List<GroupNode>, val ungrouped: List<RepoNod
       val liveIds = sessions.mapNotNull { it.sessionId }.toSet()
       val all = sessions + saved.filter { it.sessionId !in liveIds }
       val byWorktree = all.groupBy { norm(it.worktree) }
-      fun repoNode(r: Repo): RepoNode {
-        val trees = worktrees.list(r.path).ifEmpty { listOf(Worktree(r.path, null, true)) }
+      fun repoNode(path: String): RepoNode {
+        val trees = worktrees.list(path).ifEmpty { listOf(Worktree(path, null, true)) }
         return RepoNode(
-          r,
-          norm(r.path).substringAfterLast('/'),
+          path,
+          norm(path).substringAfterLast('/'),
           trees.map { w ->
-            val pr = w.branch?.let { prTitles.infoFor(r.path, it) }
+            val pr = w.branch?.let { prTitles.infoFor(path, it) }
             WorktreeNode(
               w.path,
               WorktreeTitle.resolve(userName(w.path), pr?.title, w.branch, w.path),
@@ -59,9 +61,7 @@ data class SidebarModel(val groups: List<GroupNode>, val ungrouped: List<RepoNod
           },
         )
       }
-      fun groupNode(g: Group): GroupNode =
-        GroupNode(g, tree.childrenOf(g.id).map(::groupNode), tree.reposOf(g.id).map(::repoNode))
-      return SidebarModel(tree.childrenOf(null).map(::groupNode), tree.reposOf(null).map(::repoNode))
+      return SidebarModel(repoRoots.distinct().map(::repoNode))
     }
 
     private fun norm(p: String) = p.replace('\\', '/').trimEnd('/')

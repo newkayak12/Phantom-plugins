@@ -8,7 +8,7 @@ import com.intellij.openapi.project.Project
 
 /** Logs a failure and tells the user; the balloon is best-effort (no application in plain unit tests). */
 object AiNotify {
-  const val GROUP = "AI Integrations"
+  const val GROUP = "Phantom AI Integration"
 
   fun error(log: Logger, project: Project?, message: String, cause: Throwable?) {
     log.warn(message, cause)

@@ -6,6 +6,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
 import com.intellij.ui.JBColor
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.SearchTextField
@@ -19,7 +20,9 @@ import dev.phantom.ai.core.SessionListener
 import dev.phantom.ai.core.SessionStore
 import dev.phantom.ai.sidebar.CachedPrTitles
 import dev.phantom.ai.sidebar.GitWorktreeSource
+import dev.phantom.ai.sidebar.GitProjectRepos
 import dev.phantom.ai.sidebar.GithubPrTitles
+import dev.phantom.ai.sidebar.ProjectRepos
 import dev.phantom.ai.sidebar.PrTitles
 import dev.phantom.ai.sidebar.SidebarModel
 import dev.phantom.ai.sidebar.WorktreeSource
@@ -47,13 +50,15 @@ import javax.swing.event.DocumentListener
 
 /**
  * The content of the Agent Dashboard window: total count, search and filters on top, then the columns Needs attention /
- * Working / Done. A card click focuses that session's terminal tab (which clears unread). Data comes from the same
- * [SidebarModel] as the Projects tab; git and PR lookups run off the EDT.
+ * Working / Done. A card click focuses that session's terminal tab (which clears unread). Data comes from one
+ * [SidebarModel] per open project (the sidebar's model); git and PR lookups run off the EDT.
  */
 class AgentDashboardPanel(
   private val project: Project,
   private val worktrees: WorktreeSource = GitWorktreeSource(project),
   private val prTitles: PrTitles = CachedPrTitles(GithubPrTitles()),
+  /** The repositories of an open project; one model is built per open project. */
+  private val reposOf: (Project) -> ProjectRepos = { GitProjectRepos(it) },
 ) : JPanel(BorderLayout()), Disposable {
   private val totalLabel = JBLabel().apply { name = "dashboard.total" }
   private val search = SearchTextField(false).apply { textEditor.emptyText.text = PhantomAiBundle.message("dashboard.search") }
@@ -62,7 +67,7 @@ class AgentDashboardPanel(
   private val columnsPanel = JPanel(GridLayout(1, 3, 8, 0))
   private val refreshQueued = AtomicBoolean()
   private val expanded = HashSet<String>()
-  @Volatile private var sidebar: SidebarModel? = null
+  @Volatile private var sidebar: List<SidebarModel>? = null
   private var model: DashboardModel = DashboardModel(emptyList(), emptyList())
   private var updatingFilters = false
 
@@ -86,6 +91,7 @@ class AgentDashboardPanel(
     })
     ApplicationManager.getApplication().messageBus.connect(this)
       .subscribe(SessionStore.TOPIC, SessionListener { _, _ -> refresh() })
+    ApplicationManager.getApplication().messageBus.connect(this).subscribe(AiState.TOPIC, dev.phantom.ai.core.AiStateListener { refresh() })
     refresh()
   }
 
@@ -98,14 +104,17 @@ class AgentDashboardPanel(
     search.text = text
   }
 
-  /** Builds the sidebar model: git and the PR lookup run here, so call off the EDT. */
-  fun buildSidebar(): SidebarModel {
+  /** Builds one sidebar model per open project: git and the PR lookup run here, so call off the EDT. */
+  fun buildSidebar(): List<SidebarModel> {
     val state = AiState.getInstance()
-    return SidebarModel.build(
-      state.tree(), worktrees, SessionStore.getInstance().all(),
-      state.state.sessions.mapNotNull(SidebarModel::saved), prTitles,
-      { state.findWorktree(it)?.userName }, System.currentTimeMillis(),
-    )
+    val open = ProjectManager.getInstance().openProjects.filter { !it.isDisposed }
+    return open.map { p ->
+      SidebarModel.build(
+        reposOf(p).roots(), worktrees, SessionStore.getInstance().all(),
+        state.state.sessions.mapNotNull(SidebarModel::saved), prTitles,
+        { state.findWorktree(it)?.userName }, System.currentTimeMillis(),
+      )
+    }
   }
 
   fun refresh() {
@@ -118,7 +127,7 @@ class AgentDashboardPanel(
   }
 
   /** Shows [built] under the current search and filters (EDT). */
-  fun show(built: SidebarModel) {
+  fun show(built: List<SidebarModel>) {
     sidebar = built
     val keep = (projectFilter.selectedItem as? ProjectItem)?.path
     val projects = DashboardModel.of(built).projects

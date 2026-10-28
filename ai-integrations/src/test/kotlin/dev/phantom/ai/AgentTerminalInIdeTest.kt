@@ -39,14 +39,14 @@ class AgentTerminalInIdeTest : BasePlatformTestCase() {
     try {
       AiState.getInstance().setActiveAccount(AgentKind.CLAUDE, null)
       AiState.getInstance().setActiveAccount(AgentKind.CODEX, null)
-      toolWindow()?.contentManager?.removeAllContents(true)
+      dev.phantom.ai.terminal.AgentTabsHost.getInstance(project).let { h -> h.tabs().forEach { h.close(it.id) } }
       SessionStore.getInstance().all().forEach { SessionStore.getInstance().remove(it.tabId) }
     } finally {
       super.tearDown()
     }
   }
 
-  private fun toolWindow() = ToolWindowManager.getInstance(project).getToolWindow("AI Integrations")
+  private fun toolWindow() = ToolWindowManager.getInstance(project).getToolWindow("Phantom AI Integration")
 
   fun testLaunchLandsInAiToolWindowWithEnvAndCommand() {
     val projectsBefore = ProjectManager.getInstance().openProjects.size
@@ -58,8 +58,8 @@ class AgentTerminalInIdeTest : BasePlatformTestCase() {
     assertNotNull(s.env[HookEnv.PORT])
     assertNotNull(s.env[HookEnv.TOKEN])
     assertFalse("System default sets no account var", s.env.containsKey("CLAUDE_CONFIG_DIR"))
-    val tw = toolWindow()!!
-    assertEquals(listOf("claude · feat"), tw.contentManager.contents.map { it.displayName })
+    assertNotNull(toolWindow())
+    assertEquals(listOf("claude · feat"), dev.phantom.ai.terminal.AgentTabsHost.getInstance(project).tabs().map { it.title })
     assertNull("never the Terminal tool window", ToolWindowManager.getInstance(project).getToolWindow("Terminal")?.contentManager?.contents?.firstOrNull())
     assertEquals(tab, SessionStore.getInstance().forWorktree("/w/repo/feat").single().tabId)
     assertEquals(projectsBefore, ProjectManager.getInstance().openProjects.size)
@@ -117,16 +117,14 @@ class AgentTerminalInIdeTest : BasePlatformTestCase() {
     service.launch("/w/r/b", AgentKind.CLAUDE)!!
     SessionStore.getInstance().update(a) { it.copy(unread = true) }
     assertTrue(service.focus(a))
-    val tw = toolWindow()!!
-    assertEquals("claude · a", tw.contentManager.selectedContent!!.displayName)
+    assertEquals("claude · a", dev.phantom.ai.terminal.AgentTabsHost.getInstance(project).selected()!!.title)
     assertFalse(SessionStore.getInstance().get(a)!!.unread)
     assertFalse(service.focus("nope"))
   }
 
   fun testClosingTabRemovesSession() {
     val a = service.launch("/w/r/c", AgentKind.CLAUDE)!!
-    val tw = toolWindow()!!
-    tw.contentManager.removeContent(tw.contentManager.contents.single(), true)
+    dev.phantom.ai.terminal.AgentTabsHost.getInstance(project).close(dev.phantom.ai.terminal.AgentTabsHost.getInstance(project).tabs().single().id)
     assertNull(SessionStore.getInstance().get(a))
   }
 
@@ -141,7 +139,7 @@ class AgentTerminalInIdeTest : BasePlatformTestCase() {
       assertEquals(LaunchCommand.login(AgentKind.CODEX), started[1].command)
       assertEquals(codex.dir, started[1].env["CODEX_HOME"])
       assertFalse(started[0].env.containsKey(HookEnv.TAB_ID))
-      assertEquals(2, toolWindow()!!.contentManager.contents.size)
+      assertEquals(2, dev.phantom.ai.terminal.AgentTabsHost.getInstance(project).tabs().size)
     } finally {
       svc.remove(AgentKind.CLAUDE, claude.id)
       svc.remove(AgentKind.CODEX, codex.id)

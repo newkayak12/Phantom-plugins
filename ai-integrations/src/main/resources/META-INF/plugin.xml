@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.ai</id>
-  <name>AI Integrations</name>
+  <name>Phantom AI Integration</name>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Tools</category>
   <description><![CDATA[
@@ -17,14 +17,17 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <!-- ===== core (U1) ===== -->
-    <toolWindow id="AI Integrations" anchor="right" icon="AllIcons.Toolwindows.ToolWindowMessages"
+    <toolWindow id="Phantom AI Integration" anchor="right" icon="AllIcons.Toolwindows.ToolWindowMessages"
                 factoryClass="dev.phantom.ai.core.AiToolWindowFactory"/>
     <!-- ===== U3 accounts: applicationConfigurable (append here) ===== -->
     <applicationConfigurable parentId="tools" instance="dev.phantom.ai.accounts.AccountsConfigurable"
-                             id="dev.phantom.ai.accounts" displayName="AI Integrations"/>
+                             id="dev.phantom.ai.accounts" displayName="Phantom AI Integration"/>
+    <applicationConfigurable parentId="dev.phantom.ai.accounts" instance="dev.phantom.ai.remote.RemoteControlConfigurable"
+                             id="dev.phantom.ai.remote" displayName="Remote Control"/>
     <!-- ===== U7 usage: statusBarWidgetFactory (append here) ===== -->
     <statusBarWidgetFactory id="dev.phantom.ai.usage" implementation="dev.phantom.ai.usage.UsageStatusBarWidgetFactory"/>
-    <notificationGroup id="AI Integrations" displayType="BALLOON"/>
+    <fileEditorProvider implementation="dev.phantom.ai.board.BoardFileEditorProvider"/>
+    <notificationGroup id="Phantom AI Integration" displayType="BALLOON"/>
     <!-- ===== other extensions (append here) ===== -->
   </extensions>
   <actions>
@@ -37,6 +40,8 @@
             text="Resume Session"/>
     <action id="dev.phantom.ai.OpenAgentDashboard" class="dev.phantom.ai.dashboard.OpenAgentDashboardAction"
             text="Open Agent Dashboard"/>
+    <action id="dev.phantom.ai.OpenBoard" class="dev.phantom.ai.board.OpenBoardAction"
+            text="Open Board"/>
   </actions>
   <applicationListeners>
     <!-- ===== U2 hooks startup etc. (append here) ===== -->

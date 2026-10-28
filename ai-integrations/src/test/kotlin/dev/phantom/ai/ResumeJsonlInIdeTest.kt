@@ -43,7 +43,7 @@ class ResumeJsonlInIdeTest : BasePlatformTestCase() {
 
   override fun tearDown() {
     try {
-      ToolWindowManager.getInstance(project).getToolWindow("AI Integrations")?.contentManager?.removeAllContents(true)
+      dev.phantom.ai.terminal.AgentTabsHost.getInstance(project).let { h -> h.tabs().forEach { h.close(it.id) } }
       SessionStore.getInstance().all().forEach { SessionStore.getInstance().remove(it.tabId) }
       AiState.getInstance().state.sessions.removeAll { it.worktree == worktree }
       claudeDir.toFile().deleteRecursively()
@@ -63,8 +63,7 @@ class ResumeJsonlInIdeTest : BasePlatformTestCase() {
 
   /** Closes the only open tab (each test step closes its tab before the next launch). */
   private fun closeOnlyTab() {
-    val cm = ToolWindowManager.getInstance(project).getToolWindow("AI Integrations")!!.contentManager
-    cm.removeContent(cm.contents.single(), true)
+    dev.phantom.ai.terminal.AgentTabsHost.getInstance(project).close(dev.phantom.ai.terminal.AgentTabsHost.getInstance(project).tabs().single().id)
   }
 
   fun testTwoHooklessTabsGetTwoDifferentResumeIds() {
@@ -102,10 +101,8 @@ class ResumeJsonlInIdeTest : BasePlatformTestCase() {
       assertEquals(idA, SessionStore.getInstance().get(tabA)!!.sessionId)
       assertEquals(idB, SessionStore.getInstance().get(tabB)!!.sessionId)
     }
-    val cm = ToolWindowManager.getInstance(project).getToolWindow("AI Integrations")!!.contentManager
-    val byTab = mapOf(tabA to cm.contents[0], tabB to cm.contents[1])
     val order = if (closeFirstIsA) listOf(tabA, tabB) else listOf(tabB, tabA)
-    order.forEach { cm.removeContent(byTab.getValue(it), true) }
+    order.forEach { dev.phantom.ai.terminal.AgentTabsHost.getInstance(project).close(it) }
 
     assertEquals(setOf(idA, idB), AiState.getInstance().sessionsOf(worktree).mapNotNull { it.sessionId }.toSet())
     commands.clear()

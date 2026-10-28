@@ -7,22 +7,9 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.SimplePersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
+import com.intellij.util.messages.Topic
 
 // ===== persisted records (U1: ALL fields are defined here; later units only read and write them) =====
-
-class GroupEntry : BaseState() {
-  var id by string()
-  var name by string()
-  var parentId by string()
-  var order by property(0)
-  var collapsed by property(false)
-}
-
-class RepoEntry : BaseState() {
-  var path by string()
-  var groupId by string()
-  var order by property(0)
-}
 
 /** Board placement and user name of a worktree, keyed by its path. */
 class WorktreeEntry : BaseState() {
@@ -57,8 +44,6 @@ class ActiveAccountEntry : BaseState() {
 }
 
 class AiStateData : BaseState() {
-  var groups by list<GroupEntry>()
-  var repos by list<RepoEntry>()
   var worktrees by list<WorktreeEntry>()
   var boardColumns by list<String>()
   var sessions by list<SessionEntry>()
@@ -67,23 +52,18 @@ class AiStateData : BaseState() {
   // There is no option to skip or not skip agent permissions: the launch commands always skip them.
 }
 
+/** Board placements or worktree names changed; every window's panels refresh. */
+fun interface AiStateListener {
+  fun changed()
+}
+
 @Service(Service.Level.APP)
 @State(name = "PhantomAiIntegrations", storages = [Storage("phantom-ai.xml")])
 class AiState : SimplePersistentStateComponent<AiStateData>(AiStateData()) {
 
-  // ===== groups and repos (U1) =====
-  fun tree(): GroupTree = GroupTree.normalize(
-    state.groups.map { Group(it.id.orEmpty(), it.name.orEmpty(), it.parentId, it.order, it.collapsed) },
-    state.repos.map { Repo(it.path.orEmpty(), it.groupId, it.order) },
-  )
-
-  fun setTree(tree: GroupTree) {
-    state.groups = tree.groups.map { g ->
-      GroupEntry().apply { id = g.id; name = g.name; parentId = g.parentId; order = g.order; collapsed = g.collapsed }
-    }.toMutableList()
-    state.repos = tree.repos.map { r ->
-      RepoEntry().apply { path = r.path; groupId = r.groupId; order = r.order }
-    }.toMutableList()
+  /** Tells the panels of every window that the shared state changed, as it is one for the whole IDE. */
+  fun changed() {
+    ApplicationManager.getApplication().messageBus.syncPublisher(TOPIC).changed()
   }
 
   // ===== board (U1; U6 uses) =====
@@ -92,6 +72,7 @@ class AiState : SimplePersistentStateComponent<AiStateData>(AiStateData()) {
   /** Stores the board position of each card (worktree path): column and index. */
   fun placeCards(placements: List<dev.phantom.ai.board.CardPlacement>) {
     placements.forEach { p -> worktree(p.card).apply { column = p.column; order = p.order } }
+    changed()
   }
 
   /** Read-only: the entry of [path] or null; does not create one. */
@@ -140,6 +121,7 @@ class AiState : SimplePersistentStateComponent<AiStateData>(AiStateData()) {
   }
 
   companion object {
+    val TOPIC: Topic<AiStateListener> = Topic.create("Phantom AI state", AiStateListener::class.java)
     val DEFAULT_COLUMNS = listOf("Todo", "In progress", "In review", "Done")
 
     fun getInstance(): AiState = ApplicationManager.getApplication().getService(AiState::class.java)

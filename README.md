@@ -39,7 +39,7 @@ Public repositories need no token.
 | Phantom Icon Pack | [icons](./icons/README.md) · [한국어](./icons/KOR.md) | Material file and folder icons; Java cup and Kotlin logo on their files, Java classes by kind |
 | Phantom Tab Groups | [tabs](./tabs/README.md) · [한국어](./tabs/KOR.md) | Editor tab groups as in a browser: name, color, collapse to the first tab, drag in and out, per split |
 | Phantom Workspaces | [workspaces](./workspaces/README.md) · [한국어](./workspaces/KOR.md) | All open projects as tabs of one window: a project tab strip above the editor, project windows stacked at one size and position |
-| AI Integrations | [ai-integrations](./ai-integrations/README.md) · [한국어](./ai-integrations/KOR.md) | Claude Code and Codex next to your projects: project-group sidebar, agent terminals, workspace board, dashboard, usage |
+| Phantom AI Integration | [ai-integrations](./ai-integrations/README.md) · [한국어](./ai-integrations/KOR.md) | Claude Code and Codex next to your projects: worktree and session tree with agent terminals in one tool window, board editor tab, dashboard, usage, and remote control from another device's browser |
 
 ## Repository format
 

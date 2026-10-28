@@ -6,13 +6,10 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
-import com.intellij.openapi.util.Key
 import com.intellij.openapi.wm.RegisterToolWindowTask
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowManager
-import com.intellij.ui.content.Content
-import com.intellij.ui.content.ContentFactory
 import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import dev.phantom.ai.accounts.AccountsService
@@ -34,21 +31,22 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /**
- * Agent terminals as closable content tabs of the "AI Integrations" tool window (never the Terminal tool window).
+ * Agent terminals as closable tabs of the "Phantom AI Integration" panel ([AgentTabsHost]; never the Terminal tool window).
  * Starting an agent only opens a terminal: no project, no window. All entry points run on the EDT.
  */
 @Service(Service.Level.PROJECT)
 class AgentTerminalService(private val project: Project) {
+  private val host get() = AgentTabsHost.getInstance(project)
   @Volatile private var starter: TerminalStarter = LocalTerminalStarter(project)
 
   @TestOnly fun replaceStarter(next: TerminalStarter) {
     starter = next
   }
 
-  /** Starts a new agent in [worktreePath]; returns the tab id, or null if nothing was started. */
+  /** Starts a new agent in [worktreePath], the tab titled by [label], else the worktree's branch, else its folder; returns the tab id, or null. */
   @RequiresEdt
-  fun launch(worktreePath: String, kind: AgentKind): String? =
-    open(worktreePath, kind, LaunchCommand.launch(kind), sessionId = null, account = AccountsService.getInstance().active(kind))
+  fun launch(worktreePath: String, kind: AgentKind, label: String? = null): String? =
+    open(worktreePath, kind, LaunchCommand.launch(kind), sessionId = null, account = AccountsService.getInstance().active(kind), label = label)
 
   /**
    * Starts the agent resuming [session] (hook session_id, else Claude's earliest-created .jsonl no other session owns); null and nothing run when
@@ -65,16 +63,14 @@ class AgentTerminalService(private val project: Project) {
 
   /** Whether Resume can do anything for [session]; the UI disables the action otherwise. */
   fun canResume(session: AgentSession): Boolean =
-    tabs().containsKey(session.tabId) ||
+    host.get(session.tabId) != null ||
       fallbackTarget(session, accountOf(session)) != null
 
   /** Selects the tab of [tabId], activates the tool window and clears unread; false if there is no such tab. */
   @RequiresEdt
   fun focus(tabId: String): Boolean {
-    val tw = toolWindow(create = false) ?: return false
-    val content = tw.contentManager.contents.firstOrNull { it.getUserData(TAB_ID) == tabId } ?: return false
-    tw.contentManager.setSelectedContent(content)
-    tw.activate(null)
+    if (!host.select(tabId)) return false
+    toolWindow(create = false)?.activate(null)
     SessionStore.getInstance().update(tabId) { it.copy(unread = false) }
     return true
   }
@@ -143,10 +139,10 @@ class AgentTerminalService(private val project: Project) {
   private fun accountOf(session: AgentSession): AgentAccount? =
     session.accountId?.let { id -> AccountsService.getInstance().accounts(session.kind).firstOrNull { it.id == id } }
 
-  private fun open(worktree: String, kind: AgentKind, command: String, sessionId: String?, account: AgentAccount?): String? {
+  private fun open(worktree: String, kind: AgentKind, command: String, sessionId: String?, account: AgentAccount?, label: String? = null): String? {
     val tabId = UUID.randomUUID().toString()
     val env = LaunchCommand.env(kind, account, HookEnv.forTab(worktree, tabId))
-    val title = PhantomAiBundle.message("terminal.tab", kind.command, Path.of(worktree).fileName?.toString() ?: worktree)
+    val title = PhantomAiBundle.message("terminal.tab", kind.command, label ?: branchOf(worktree) ?: Path.of(worktree).fileName?.toString() ?: worktree)
     // registered before the shell starts, so an early hook event finds its session
     SessionStore.getInstance().put(AgentSession(tabId, worktree, kind, sessionId = sessionId, accountId = account?.id))
     sessionId?.let { AiState.getInstance().rememberSession(worktree, kind, it, null, account?.id) }
@@ -167,7 +163,7 @@ class AgentTerminalService(private val project: Project) {
   }
 
   private fun show(title: String, cwd: String, env: Map<String, String>, command: String, tabId: String?): Boolean {
-    val tw = toolWindow(create = true) ?: return false
+    val tw = toolWindow(create = true)
     val disposable = Disposer.newDisposable("AI agent terminal $title")
     val started = try {
       starter.start(disposable, cwd, env, command)
@@ -175,29 +171,31 @@ class AgentTerminalService(private val project: Project) {
       Disposer.dispose(disposable)
       throw e
     }
-    val content = ContentFactory.getInstance().createContent(started.component, title, false)
-    content.isCloseable = true
-    content.preferredFocusableComponent = started.preferredFocus
-    content.setDisposer(disposable)
+    val id = tabId ?: UUID.randomUUID().toString()
     tabId?.let {
-      content.putUserData(TAB_ID, it)
-      // closing the tab (or the project) disposes the content's disposer: the session goes with it
+      // closing the tab (or the project) disposes it: the session goes with it
       if (SessionStore.getInstance().get(it)?.sessionId == null) pollBinding(it, disposable)
       Disposer.register(disposable) {
         bindOnClose(it)
         SessionStore.getInstance().remove(it)
       }
     }
-    tw.contentManager.addContent(content)
-    tw.contentManager.setSelectedContent(content)
-    tw.activate(null)
+    host.add(AgentTab(id, title, started.component, started.preferredFocus, started.io, disposable))
+    tw?.activate(null)
     return true
   }
 
-  private fun tabs(): Map<String, Content> {
-    val tw = toolWindow(create = false) ?: return emptyMap()
-    return tw.contentManager.contents.mapNotNull { c -> c.getUserData(TAB_ID)?.let { it to c } }.toMap()
-  }
+  /** The branch checked out in [worktree] read off its HEAD file (a worktree's .git is a file pointing at its git dir); null if detached or not git. */
+  private fun branchOf(worktree: String): String? = bestEffort {
+    val dot = Path.of(worktree).resolve(".git")
+    val gitDir = when {
+      java.nio.file.Files.isDirectory(dot) -> dot
+      java.nio.file.Files.isRegularFile(dot) ->
+        java.nio.file.Files.readString(dot).trim().removePrefix("gitdir:").trim().let { dot.parent.resolve(it).normalize() }
+      else -> return@bestEffort null
+    }
+    java.nio.file.Files.readString(gitDir.resolve("HEAD")).trim().takeIf { it.startsWith("ref: refs/heads/") }?.removePrefix("ref: refs/heads/")
+  }.getOrNull()
 
   private fun toolWindow(create: Boolean): ToolWindow? {
     val manager = ToolWindowManager.getInstance(project)
@@ -214,8 +212,7 @@ class AgentTerminalService(private val project: Project) {
   companion object {
     private val LOG = logger<AgentTerminalService>()
     private const val POLL_MS = 3_000L
-    const val TOOL_WINDOW_ID = "AI Integrations"
-    private val TAB_ID = Key.create<String>("phantom.ai.tabId")
+    const val TOOL_WINDOW_ID = "Phantom AI Integration"
 
     fun getInstance(project: Project): AgentTerminalService = project.getService(AgentTerminalService::class.java)
   }

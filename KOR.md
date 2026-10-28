@@ -39,7 +39,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom Icon Pack | [icons](./icons/KOR.md) · [English](./icons/README.md) | Material 파일·폴더 아이콘; Java 파일은 찻잔, Kotlin 파일은 로고, Java 클래스는 종류별 |
 | Phantom Tab Groups | [tabs](./tabs/KOR.md) · [English](./tabs/README.md) | 브라우저처럼 에디터 탭 그룹: 이름, 색, 첫 탭으로 접기, 끌어서 넣고 빼기, 분할마다 |
 | Phantom Workspaces | [workspaces](./workspaces/KOR.md) · [English](./workspaces/README.md) | 열린 프로젝트를 한 창의 탭처럼: 에디터 위 프로젝트 탭 줄, 같은 크기·위치로 겹친 프로젝트 창 |
-| AI Integrations | [ai-integrations](./ai-integrations/KOR.md) · [English](./ai-integrations/README.md) | 프로젝트 옆의 Claude Code와 Codex: 프로젝트 그룹 사이드바, 에이전트 터미널, 워크스페이스 보드, 대시보드, 사용량 |
+| Phantom AI Integration | [ai-integrations](./ai-integrations/KOR.md) · [English](./ai-integrations/README.md) | 프로젝트 옆의 Claude Code와 Codex: 한 도구 창의 worktree·세션 트리와 에이전트 터미널, 보드 에디터 탭, 대시보드, 사용량, 다른 기기 브라우저에서의 원격 제어 |
 
 ## 저장소 형식
 

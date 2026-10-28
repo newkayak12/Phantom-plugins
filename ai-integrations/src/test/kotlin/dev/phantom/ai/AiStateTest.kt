@@ -6,9 +6,6 @@ import dev.phantom.ai.core.AccountEntry
 import dev.phantom.ai.core.AgentKind
 import dev.phantom.ai.core.AiState
 import dev.phantom.ai.core.AiStateData
-import dev.phantom.ai.core.Group
-import dev.phantom.ai.core.GroupTree
-import dev.phantom.ai.core.Repo
 import dev.phantom.ai.sidebar.SessionRow
 import dev.phantom.ai.sidebar.SidebarModel
 import org.junit.Assert.assertEquals
@@ -19,7 +16,6 @@ class AiStateTest {
   @Test
   fun `state round trips through xml`() {
     val a = AiState()
-    a.setTree(GroupTree.normalize(listOf(Group("g1", "One", null, 0, true), Group("g2", "Two", "g1", 0)), listOf(Repo("/r", "g2", 0))))
     a.worktree("/r/wt").apply { column = "Done"; order = 2; userName = "mine" }
     a.rememberSession("/r/wt", AgentKind.CLAUDE, "abc", "hello")
     a.state.accounts.add(AccountEntry().apply { provider = "CLAUDE"; id = "w"; label = "Work"; dir = "/d" })
@@ -30,11 +26,6 @@ class AiStateTest {
     val b = AiState()
     b.loadState(XmlSerializer.deserialize(xml, AiStateData::class.java))
 
-    val t = b.tree()
-    assertEquals(listOf("g1", "g2"), t.groups.map { it.id })
-    assertEquals(true, t.groups.first().collapsed)
-    assertEquals("g1", t.groups.last().parentId)
-    assertEquals("g2", t.repos.single().groupId)
     assertEquals("Done", b.worktree("/r/wt").column)
     assertEquals("mine", b.worktree("/r/wt").userName)
     assertEquals("hello", b.sessionsOf("/r/wt").single().firstPrompt)

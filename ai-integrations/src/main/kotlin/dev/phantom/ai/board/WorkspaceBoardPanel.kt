@@ -16,6 +16,8 @@ import dev.phantom.ai.core.SessionStore
 import dev.phantom.ai.sidebar.CachedPrTitles
 import dev.phantom.ai.sidebar.GitWorktreeSource
 import dev.phantom.ai.sidebar.GithubPrTitles
+import dev.phantom.ai.sidebar.GitProjectRepos
+import dev.phantom.ai.sidebar.ProjectRepos
 import dev.phantom.ai.sidebar.PrTitles
 import dev.phantom.ai.sidebar.SidebarModel
 import dev.phantom.ai.sidebar.WorktreeSource
@@ -38,13 +40,14 @@ import javax.swing.SwingUtilities
 data class BoardCard(val path: String, val title: String, val branch: String?, val prNumber: Int?, val statuses: List<String>)
 
 /**
- * The "Board" tab: a worktree card per worktree of the Projects tab's repositories, in status columns. A card is
+ * The "Board" tab: a worktree card per worktree of this project's repositories, in status columns. A card is
  * dragged with the mouse; the move goes through [BoardLayout] and is stored in [AiState].
  */
 class WorkspaceBoardPanel(
   private val project: Project,
   private val worktrees: WorktreeSource = GitWorktreeSource(project),
   private val prTitles: PrTitles = CachedPrTitles(GithubPrTitles()),
+  private val repos: ProjectRepos = GitProjectRepos(project),
 ) : JPanel(BorderLayout()), Disposable {
   private val columnsPanel = JPanel(GridLayout(1, 0, 8, 0))
   private val columnPanels = LinkedHashMap<String, JPanel>()
@@ -58,6 +61,7 @@ class WorkspaceBoardPanel(
     add(ScrollPaneFactory.createScrollPane(columnsPanel), BorderLayout.CENTER)
     ApplicationManager.getApplication().messageBus.connect(this)
       .subscribe(SessionStore.TOPIC, SessionListener { _, _ -> refresh() })
+    ApplicationManager.getApplication().messageBus.connect(this).subscribe(AiState.TOPIC, dev.phantom.ai.core.AiStateListener { refresh() })
     refresh()
   }
 
@@ -70,18 +74,14 @@ class WorkspaceBoardPanel(
   fun buildCards(): List<BoardCard> {
     val state = AiState.getInstance()
     val model = SidebarModel.build(
-      state.tree(), worktrees, SessionStore.getInstance().all(),
+      repos.roots(), worktrees, SessionStore.getInstance().all(),
       state.state.sessions.mapNotNull(SidebarModel::saved), prTitles,
       { state.findWorktree(it)?.userName }, System.currentTimeMillis(),
     )
-    val repos = model.groups.flatMap(::reposOf) + model.ungrouped
-    return repos.flatMap { it.worktrees }.distinctBy { it.path }.map { w ->
+    return model.repos.flatMap { it.worktrees }.distinctBy { it.path }.map { w ->
       BoardCard(w.path, w.title, w.branch, w.prNumber, w.sessions.map { it.statusKey })
     }
   }
-
-  private fun reposOf(g: dev.phantom.ai.sidebar.GroupNode): List<dev.phantom.ai.sidebar.RepoNode> =
-    g.repos + g.groups.flatMap(::reposOf)
 
   fun refresh() {
     if (!refreshQueued.compareAndSet(false, true)) return

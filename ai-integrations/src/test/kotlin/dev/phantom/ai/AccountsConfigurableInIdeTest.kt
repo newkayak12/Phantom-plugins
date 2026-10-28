@@ -27,7 +27,7 @@ class AccountsConfigurableInIdeTest : BasePlatformTestCase() {
     val ep = com.intellij.openapi.options.Configurable.APPLICATION_CONFIGURABLE.extensionList
       .single { it.instanceClass == AccountsConfigurable::class.java.name }
     assertEquals("tools", ep.parentId)
-    assertEquals("AI Integrations", ep.displayName)
+    assertEquals("Phantom AI Integration", ep.displayName)
   }
 
   fun testSectionsHaveSystemDefaultRowAddButtonAndSelection() {

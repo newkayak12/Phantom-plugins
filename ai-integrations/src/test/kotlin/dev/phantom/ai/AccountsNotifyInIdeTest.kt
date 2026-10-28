@@ -13,7 +13,7 @@ import dev.phantom.ai.core.AiState
 import java.nio.file.Files
 
 /**
- * A failed hook install on account add reaches the real notification bus (the registered "AI Integrations" group).
+ * A failed hook install on account add reaches the real notification bus (the registered "Phantom AI Integration" group).
  * The login terminal is a recording fake: this test never starts a real claude/codex CLI or a login flow.
  */
 class AccountsNotifyInIdeTest : BasePlatformTestCase() {
@@ -24,7 +24,7 @@ class AccountsNotifyInIdeTest : BasePlatformTestCase() {
     val connection = ApplicationManager.getApplication().messageBus.connect(testRootDisposable)
     connection.subscribe(Notifications.TOPIC, object : Notifications {
       override fun notify(notification: Notification) {
-        if (notification.groupId == "AI Integrations") seen.add(notification)
+        if (notification.groupId == "Phantom AI Integration") seen.add(notification)
       }
     })
     try {
@@ -37,7 +37,7 @@ class AccountsNotifyInIdeTest : BasePlatformTestCase() {
       val account = service.add(AgentKind.CLAUDE)
       assertEquals(1, seen.size)
       val n = seen.single()
-      assertEquals("AI Integrations", n.groupId)
+      assertEquals("Phantom AI Integration", n.groupId)
       assertEquals(NotificationType.ERROR, n.type)
       assertTrue(n.content, n.content.contains(AgentKind.CLAUDE.displayName) && n.content.contains(account.dir))
       assertEquals(1, logins.size)
