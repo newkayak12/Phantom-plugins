@@ -483,6 +483,8 @@ class TabGroupPaneControllerTest : FileEditorManagerTestCase() {
     file.putUserData(FileEditorManagerKeys.CLOSING_TO_REOPEN, null)
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
     manager!!.openFile(file, into, FileEditorOpenOptions(index = index, requestFocus = true))
+    // the editor finishes opening, and the platform tells the listeners it opened, after the events dispatched so far
+    PlatformTestUtil.waitWithEventsDispatching("$file not open again", { into.composites().all { it.isAvailable() } && into.isFileOpen(file) }, 10)
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
   }
 

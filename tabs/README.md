@@ -15,6 +15,8 @@ Collapsing needs tabs on top, in one scrolling row, not sorted alphabetically; o
 Until 2026-10-26 this was bundled with Phantom (`phantom-tabs`) and drew a chip in the tab label through Phantom-only
 platform changes. It is a plugin on the public platform API now, so it updates without a new Phantom build.
 
+**0.2.7**: the same as 0.2.6, whose release build failed on a test that checked the tab order before a tab dropped back on the bar had finished opening again.
+
 **0.2.6**: a tab dragged off the tab bar and dropped back on it keeps its group. Past a few pixels off the bar the platform takes the tab out (closes it) and opens it again where it is dropped; the closing took it out of its group, so a group's chip dragged a little low left its first tab outside the group, and a group of one tab was gone. Now such a drop counts as a move along the bar: the chip, a collapsed group or a group of one takes the whole group, as in Chrome. Dropped in another split or window, the tab leaves the group as before. The tab no longer shows in its place while it is being dragged off the bar.
 
 **0.2.5**: dragging beside a collapsed group no longer breaks groups up. A tab dropped right after a collapsed group, or among the tabs it hides, went into that group (and the group opened), out of the group it was in; and the collapsed group could jump to another place as other tabs moved. Now a collapsed group takes no tab, as in Chrome, and stays where its chip is.
