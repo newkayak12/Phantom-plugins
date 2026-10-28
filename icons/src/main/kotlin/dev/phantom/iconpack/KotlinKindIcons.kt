@@ -23,8 +23,8 @@ import org.jetbrains.kotlin.psi.KtObjectDeclaration
 import javax.swing.Icon
 
 /**
- * Which icon a Kotlin class gets: a Material shape by kind (circle, dashed circle, rounded square, hexagon, @, card,
- * diamond) with the Kotlin mark in the corner. Kinds are told apart by syntax only, so they show in dumb mode too.
+ * Which icon a Kotlin class gets: the Kotlin logo by kind, as the Java kinds are cups ([JavaKindIcons]); annotations keep
+ * the @ with the Kotlin mark in the corner. Kinds are told apart by syntax only, so they show in dumb mode too.
  */
 object KotlinKindIcons {
   /** The icon for an id from [iconName]; the same directory as the Java kinds, without loading their Java-only code. */
