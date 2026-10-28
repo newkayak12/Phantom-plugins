@@ -77,6 +77,13 @@ class JavaKindIconsTest : LightJavaCodeInsightFixtureTestCase() {
     assertTrue("java cup in $leaves", JavaKindIcons.icon("java-file") in leaves)
   }
 
+  fun testFileTakesTheKindOfTheClassNamedAsTheFile() {
+    val file = myFixture.configureByText("Repo.java", "enum Helper { A }\ninterface Repo {}") as PsiJavaFile
+    assertEquals("java-file-interface", JavaKindIcons.fileIconName(file))
+    // the navigation bar shows the file as its class, with the file's cup
+    assertSame(JavaKindIcons.icon("java-file-interface"), LogoFileNavBarIcon().getIcon(file.classes.last()))
+  }
+
   fun testProviderComesRightAfterTheMaterialProvider() {
     val names = IconProvider.EXTENSION_POINT_NAME.extensionList.map { it.javaClass.simpleName }
     val material = names.indexOf("MaterialPsiIconProvider")
@@ -85,10 +92,13 @@ class JavaKindIconsTest : LightJavaCodeInsightFixtureTestCase() {
   }
 
   fun testEveryKindIconLoadsAtSixteenPixels() {
-    for (name in KINDS + "java-file") assertEquals(name, 16, JavaKindIcons.icon(name).iconWidth)
+    for (name in KINDS + KINDS.map { it.replace("java-", "java-file-") } + "java-file") assertEquals(name, 16, JavaKindIcons.icon(name).iconWidth)
   }
 
-  /** The class icon (structure view) shows the kind; the file icon (editor tabs) shows the Java cup, as a Kotlin file its logo. */
+  /**
+   * The class icon (structure view) shows the kind; the file icon (editor tabs) shows the Java cup, as a Kotlin file its
+   * logo, in the kind's color.
+   */
   private fun assertKind(expected: String, fileName: String, text: String) {
     val file = myFixture.configureByText(fileName, text) as PsiJavaFile
     val aClass = file.classes.single()
@@ -96,8 +106,10 @@ class JavaKindIconsTest : LightJavaCodeInsightFixtureTestCase() {
     val icon = JavaKindIcons.icon(expected)
     val classLeaves = leaves(aClass.getIcon(0))
     assertTrue("$expected in $classLeaves", icon in classLeaves)
+    val cup = expected.replace("java-", "java-file-")
+    assertEquals(fileName, cup, JavaKindIcons.fileIconName(file))
     val fileLeaves = leaves(file.getIcon(0))
-    assertTrue("java cup in $fileLeaves", JavaKindIcons.icon("java-file") in fileLeaves)
+    assertTrue("$cup in $fileLeaves", JavaKindIcons.icon(cup) in fileLeaves)
     assertFalse("$expected in $fileLeaves", icon in fileLeaves)
   }
 
