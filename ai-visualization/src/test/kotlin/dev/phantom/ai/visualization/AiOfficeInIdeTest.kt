@@ -70,7 +70,7 @@ class AiOfficeInIdeTest : BasePlatformTestCase() {
       fun combos(c: java.awt.Component): List<JComboBox<*>> =
         (if (c is JComboBox<*>) listOf(c) else emptyList()) + ((c as? Container)?.components?.flatMap { combos(it) } ?: emptyList())
       val combo = combos(configurable.createComponent()).single()
-      assertEquals(listOf("A", "B", "C"), (0 until combo.itemCount).map { (combo.getItemAt(it) as dev.phantom.ai.visualization.theme.Theme).id })
+      assertEquals(listOf("A", "B", "C", "D"), (0 until combo.itemCount).map { (combo.getItemAt(it) as dev.phantom.ai.visualization.theme.Theme).id })
       combo.selectedIndex = 1
       assertTrue(configurable.isModified)
       configurable.apply()
