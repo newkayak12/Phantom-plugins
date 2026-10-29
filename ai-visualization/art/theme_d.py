@@ -2,7 +2,7 @@
 
 Imports the shared helpers of pix.py / sprites.py and changes none of them, so the sheets of A, B and C stay byte-identical.
 Desks are toilet + sink units, chairs are mop buckets, people are janitors in coveralls and rubber gloves, drawn front-facing
-in every state: WORKING mops the floor (4 frames, the mop swings left and right with suds), WAITING holds a plunger up high,
+in every state at twice the scene's density with people_hd.py's figures and faces (also imported, also unchanged): WORKING mops the floor (4 frames, the mop swings left and right with suds), WAITING raises an open hand holding a plunger,
 DONE gives a thumbs-up among sparkles, IDLE dozes leaning on the mop (2 frames, a snot bubble swells and shrinks).
 
 Run from ai-visualization/art:  PHANTOM_AIVIZ_OUT="$OUT" "$VENV/bin/python" theme_d.py   (writes OUT/d/ and OUT/D-restroom.png)
@@ -33,21 +33,6 @@ D = dict(
     plate=C('#ffd23a'), plate_frame=C('#2b2b2b'), post=C('#3a3a3a'),
     pot=C('#f2f4f6'), leaf=[C('#2a5f36'), C('#43914a'), C('#76c35f')],
 )
-
-# janitors: coverall, gloves, boots, skin, hair, headwear
-PEOPLE_D = [
-    dict(uni=C('#3d63b0'), glove=C('#ffd02e'), boot=C('#2d3140'), skin=C('#f1c39b'), hair=C('#5b3a26'), hat='cap', hat_c=C('#2c4a8a'), style='short'),
-    dict(uni=C('#2f9a7e'), glove=C('#ff8fb1'), boot=C('#2a2f2c'), skin=C('#f7d6b8'), hair=C('#e8a93d'), hat='bandana', hat_c=C('#e2463f'), style='long'),
-    dict(uni=C('#e07a2e'), glove=C('#ffd02e'), boot=C('#2b2522'), skin=C('#8d5a3b'), hair=C('#1e1a22'), hat=None, hat_c=None, style='short'),
-    dict(uni=C('#5f6f86'), glove=C('#4fb4ff'), boot=C('#25262c'), skin=C('#c88d63'), hair=C('#2a2636'), hat=None, hat_c=None, style='bun'),
-    dict(uni=C('#8a4fa8'), glove=C('#ffd02e'), boot=C('#2a2430'), skin=C('#e0ad85'), hair=C('#7a2f1e'), hat='cap', hat_c=C('#f2f2f2'), style='short'),
-    dict(uni=C('#3ba3d9'), glove=C('#7ed957'), boot=C('#23303a'), skin=C('#f3cfae'), hair=C('#b9bcc4'), hat='bandana', hat_c=C('#2f6fd0'), style='short'),
-]
-STATES = ('working', 'waiting', 'done', 'idle')
-PHASES = dict(working=4, waiting=2, done=2, idle=2)  # distinct frames per state; the theme maps phase -> phase % n
-SEAT_Z = 7  # OfficeLayout.SEAT_Z: the layout lifts working/idle people this high (onto the chair seat)
-DROP = 0  # how far below their anchor working/idle janitors' boots are; 0: they stand at the toilet, SEAT_Z up the screen
-
 
 # ---------------------------------------------------------------- floor + walls
 def floor_tile(var=0):
@@ -468,296 +453,421 @@ def nameplate(w):
     return s
 
 
-# ---------------------------------------------------------------- people
-EYE = C('#2a2238')
-FW, FH, CX, FY = 48, 60, 24, 52  # person canvas, body centre column, bottom row of the boots
+# ---------------------------------------------------------------- people (people_hd.py's look, dressed as janitors)
+# Drawn at people_hd.DETAIL x the scene's density (ThemeD.personDetail), with people_hd's figure, faces, hair and hands; the anchor
+# is the boots for every state. Only the clothes (coveralls, rubber boots and gloves, caps and bandanas) and the props are new here.
+import people_hd as HD
+from people_hd import ramp, SKIN, INKW, LIFT, EYE, MOUTH, WHITE, hand, head_front, hair_back_layer, looks
+
+DETAIL = HD.DETAIL
+
+# janitors: skin, hair (style), coverall (shirt = pants), rubber gloves, boots (shoe), headwear
+PEOPLE_D = [
+    dict(name='dohyun', skin='light', hair='#5c3a25', style='short', shirt='#3d6fc0', glove='#ffd02e', shoe='#2d3140',
+         hat='cap', hat_c='#26407a'),
+    dict(name='yuna', skin='pale', hair='#e0a848', style='long', shirt='#2f9a7e', glove='#ff8fb1', shoe='#2a2f2c',
+         hat='bandana', hat_c='#e2463f'),
+    dict(name='kwame', skin='dark', hair='#1f1a20', style='curly', shirt='#e07a2e', glove='#ffd02e', shoe='#2b2522'),
+    dict(name='mira', skin='medium', hair='#2c2028', style='bun', shirt='#5f6f86', glove='#4fb4ff', shoe='#25262c'),
+    dict(name='finn', skin='tan', hair='#8a3a2a', style='messy', shirt='#8a4fa8', glove='#ffd02e', shoe='#2a2430',
+         glasses='#2a2228'),
+    dict(name='sumi', skin='pale', hair='#2a2230', style='ponytail', shirt='#3ba3d9', glove='#7ed957', shoe='#23303a',
+         hat='bandana', hat_c='#2f6fd0'),
+    dict(name='arjun', skin='brown', hair='#231c24', style='short', shirt='#7a8a3a', glove='#ff9a3a', shoe='#2a2020',
+         hat='cap', hat_c='#f5c518', beard=True),
+    dict(name='hana', skin='light', hair='#d4683a', style='bob', shirt='#33447a', glove='#ffd02e', shoe='#2a2630',
+         hat='bandana', hat_c='#f07aa8', freckles=True),
+]
+for _P in PEOPLE_D:
+    _P['pants'] = _P['shirt']
+    _P['top'] = 'coverall'
+
+STATES = ('working', 'waiting', 'done', 'idle')
+PHASES = dict(working=4, waiting=2, done=2, idle=2)  # distinct frames per state; the theme maps phase -> phase % n
+SEAT_Z = 7  # OfficeLayout.SEAT_Z: the layout lifts working/idle people this high; they still stand, at the toilet
+
+WOOD = ramp('#b77a42')
+RUBBER = ramp('#e0393e')
+TORSO = [(-12, -58), (12, -58), (14, -52), (12, -33), (-12, -33), (-14, -52)]
 
 
-class Fig:
-    """Layers of one janitor frame, drawn relative to (CX, FY): x right, y up negative."""
-
-    def __init__(s):
-        s.layers = []
-        s.new()
-
-    def new(s):
-        s.cur = Spr(FW, FH)
-        s.layers.append(s.cur)
-        return s
-
-    def R(s, x0, y0, x1, y1, c):
-        s.cur.rect(CX + min(x0, x1), FY + min(y0, y1), CX + max(x0, x1), FY + max(y0, y1), c)
-
-    def P(s, x, y, c):
-        s.cur.put(CX + x, FY + y, c)
-
-    def line(s, x0, y0, x1, y1, c, w=1):
-        n = int(max(abs(x1 - x0), abs(y1 - y0)) * 2) + 1
-        for i in range(n + 1):
-            t = i / n
-            x, y = round(x0 + (x1 - x0) * t), round(y0 + (y1 - y0) * t)
-            s.R(x, y, x + w - 1, y, c)
-
-    def flatten(s):
-        """Composite the layers; each layer gets a dark ring where it lies over the layers below, so arms read over the body."""
-        out = Spr(FW, FH)
-        for L in s.layers:
-            src = L.img.load()
-            base = out.img.load()
-            for y in range(FH):
-                for x in range(FW):
-                    if src[x, y][3] != 0 or base[x, y][3] == 0:
-                        continue
-                    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                        nx, ny = x + dx, y + dy
-                        if 0 <= nx < FW and 0 <= ny < FH and src[nx, ny][3] > 0:
-                            base[x, y] = dk(base[x, y], .45)
-                            break
-            out.img.alpha_composite(L.img)
-            out._load()
-        return out
+def legs(f, P):
+    """people_hd's short legs in coverall trousers tucked into rubber boots."""
+    sk, hair, top, pants, boot, *_ = looks(P)
+    t = -31 + LIFT
+    f.paint(f.mask(('r', (-11, t - 5, 11, t + 2))), pants, 'pants')
+    f.paint(f.mask(('p', [(-11, t), (-1, t), (-2, -7), (-10, -7)])), pants, 'legL', shade='r')
+    f.paint(f.mask(('p', [(1, t), (11, t), (10, -7), (2, -7)])), pants, 'legR', shade='r')
+    for x0, g in ((-11, 'bootL'), (2, 'bootR')):
+        f.paint(f.mask(('r', (x0, -16, x0 + 9, -6))), boot, g, shade='r')
+        f.hl(x0, x0 + 9, -16, boot['hi'])
+    f.paint(f.mask(('e', (-13, -10, -1, 1))), boot, 'bootL')
+    f.paint(f.mask(('e', (1, -10, 13, 1))), boot, 'bootR')
+    for x in range(-14, 15):
+        f.col.pop((x, 1), None)
+    f.hl(-10, -5, -8, boot['hi']); f.hl(4, 9, -8, boot['hi'])
 
 
-def body(f, P, lean=0, arms='down'):
-    """Boots, legs, coverall torso (shifted [lean] px), the arms that hang (per [arms])."""
-    u, ud, uh = P['uni'], dk(P['uni'], .25), lt(P['uni'], .2)
-    b = P['boot']
-    f.R(-3, -6, -1, -2, u); f.R(-1, -6, -1, -2, ud)
-    f.R(1, -6, 3, -2, u); f.R(3, -6, 3, -2, ud)
-    f.R(-4, -1, -1, 0, b); f.R(1, -1, 4, 0, b)
-    f.R(-3, -1, -2, -1, lt(b, .3)); f.R(2, -1, 3, -1, lt(b, .3))
-    L = lean
-    f.R(-4 + L, -15, 4 + L, -7, u); f.R(4 + L, -15, 4 + L, -7, ud); f.R(-4 + L, -15, 4 + L, -15, uh)
-    f.R(-4 + L, -7, 4 + L, -7, dk(u, .45)); f.P(0 + L, -7, C('#e8c25a'))  # belt + buckle
-    f.R(0 + L, -14, 0 + L, -8, dk(u, .14))  # zipper
-    f.R(-3 + L, -12, -2 + L, -11, ud); f.R(-3 + L, -12, -2 + L, -12, dk(u, .35))  # chest pocket
-    f.R(2 + L, -12, 3 + L, -12, C('#f4f4f4'))  # name patch
-    f.R(-4 + L, -10, 4 + L, -10, lt(u, .45))  # reflective stripe
-    f.R(-1 + L, -15, 1 + L, -15, P['skin']); f.P(L, -14, P['skin'])  # collar opening
-    f.P(-2 + L, -15, lt(u, .5)); f.P(2 + L, -15, lt(u, .5))
-    if 'L' in arms:
-        f.R(-6 + L, -15, -5 + L, -9, u); f.R(-5 + L, -14, -5 + L, -9, ud); f.R(-6 + L, -8, -5 + L, -7, P['glove'])
-    if 'R' in arms:
-        f.R(5 + L, -15, 6 + L, -9, u); f.R(6 + L, -14, 6 + L, -9, ud); f.R(5 + L, -8, 6 + L, -7, P['glove'])
+def coverall(f, P, sleeves):
+    """The coverall's upper half (front): zip, a chest pocket with a pen, a name patch, a reflective band, a belt; then sleeves."""
+    sk, hair, top, *_ = looks(P)
+    body = f.mask(('p', TORSO))
+    f.paint(body, top, 'shirt')
+    L = f.lift
+
+    def inb(x, y):
+        return (x, y + L) in body
+    for x in range(-14, 15):
+        if inb(x, -41):
+            f.px(x, -41, C('#f4f1cf')); f.px(x, -40, C('#c9c8a8'))
+    f.hl(-12, 12, -35, top['dp'])
+    f.vl(0, -56, -36, top['ln'])
+    f.px(0, -54, C('#dfe4ea')); f.px(0, -53, C('#9aa3ae'))
+    f.paint(f.mask(('r', (-10, -50, -4, -45))), top, 'pocket', shade='rb', hl=False)
+    f.vl(-6, -53, -50, C('#e04848')); f.px(-6, -53, C('#f6f6f2'))
+    f.paint(f.mask(('r', (3, -51, 9, -48))), ramp('#f6f6f2'), 'patch', shade='rb', hl=False)
+    f.hl(4, 7, -50, C('#7a8494'))
+    f.paint(f.mask(('r', (-2, -36, 2, -33))), ramp('#d9b24a'), 'buckle', shade='rb', hl=False)
+    for sx in (-1, 1):
+        for i in range(5):
+            f.px(sx * (10 - i // 2), -52 + i * 2, top['sh'])
+    for m in sleeves:
+        f.paint(m, top, 'sleeve')
+    f.paint(f.mask(('p', [(-8, -59), (-1, -59), (-3, -53)])), ramp(HD.lt(top['b'], .1)), 'collar', hl=False)
+    f.paint(f.mask(('p', [(1, -59), (8, -59), (3, -53)])), top, 'collar', hl=False)
 
 
-def head(f, P, expr, dx=0, dy=0):
-    """A's front head (11 rows) moved by (dx, dy), with headwear and an expression."""
-    h_, hd, hh = P['hair'], dk(P['hair'], .3), lt(P['hair'], .3)
-    sk, sd = P['skin'], dk(P['skin'], .18)
-    blush = mix(sk, C('#ff7a8a'), .35)
-
-    def R(x0, y0, x1, y1, c):
-        f.R(x0 - 9 + dx, y0 - 28 + dy, x1 - 9 + dx, y1 - 28 + dy, c)
-
-    def Pt(x, y, c):
-        f.P(x - 9 + dx, y - 28 + dy, c)
-    R(8, 12, 10, 12, sd)
-    R(6, 2, 12, 2, h_); R(5, 3, 13, 3, h_); R(4, 4, 14, 5, h_)
-    R(5, 6, 13, 10, sk); R(6, 11, 12, 11, sk); R(13, 6, 13, 11, sd); R(12, 11, 12, 11, sd)
-    R(4, 6, 4, 8, h_); R(14, 6, 14, 8, hd); Pt(4, 9, sk); Pt(14, 9, sd)
-    R(5, 6, 6, 6, h_); R(9, 6, 10, 6, h_); R(12, 6, 13, 6, hd); Pt(5, 7, h_)
-    R(7, 3, 9, 3, hh); Pt(6, 4, hh); R(12, 4, 14, 5, hd)
-    if P['style'] == 'long':
-        R(3, 5, 4, 14, h_); R(14, 5, 15, 14, hd); R(3, 14, 4, 15, hd)
-    if P['style'] == 'bun':
-        R(7, 0, 11, 1, h_); Pt(8, 0, hh); R(10, 1, 11, 1, hd)
-    hat, hc = P['hat'], P['hat_c']
-    if hat == 'cap':
-        R(6, 1, 12, 1, hc); R(5, 2, 13, 4, hc); R(4, 5, 14, 5, dk(hc, .35)); R(3, 5, 4, 5, dk(hc, .35))
-        R(7, 2, 9, 2, lt(hc, .3)); Pt(9, 3, C('#f5c518') if hc != C('#f5c518') else C('#2b2b2b'))
-    elif hat == 'bandana':
-        R(6, 2, 12, 2, hc); R(5, 3, 13, 5, hc); Pt(7, 3, lt(hc, .6)); Pt(11, 4, lt(hc, .6)); Pt(9, 5, lt(hc, .6))
-        R(14, 4, 15, 5, dk(hc, .2)); Pt(16, 6, dk(hc, .2))
-    if expr == 'happy':
-        for ex in (6, 10):
-            Pt(ex, 9, EYE); Pt(ex + 1, 8, EYE); Pt(ex + 2, 9, EYE)
-        R(8, 11, 10, 11, dk(sk, .5)); Pt(7, 10, dk(sk, .35)); Pt(11, 10, dk(sk, .35))
-    elif expr == 'open':
-        R(7, 8, 7, 9, EYE); R(11, 8, 11, 9, EYE); Pt(7, 8, C('#ffffff')); Pt(11, 8, C('#ffffff'))
-        R(6, 7, 7, 7, hd) if hat else None; R(11, 7, 12, 7, hd) if hat else None
-        R(9, 10, 9, 11, C('#7a2a2a'))
-    elif expr == 'sleep':
-        R(6, 9, 7, 9, EYE); R(10, 9, 11, 9, EYE)
-        Pt(9, 11, dk(sk, .4))
-    else:  # focused
-        R(7, 8, 7, 9, EYE); R(11, 8, 11, 9, EYE)
-        R(8, 11, 9, 11, dk(sk, .45))
-    Pt(6, 10, blush); Pt(12, 10, blush)
+def glove(f, P, x, y, group='hand', thumb=-1, cuff=True):
+    """A rubber-gloved hand centred near (x, y), with its gauntlet cuff above it."""
+    gl = ramp(P['glove'])
+    if cuff:
+        f.paint(f.mask(('e', (x - 4, y - 7, x + 4, y - 1))), gl, group + 'c', hl=False)
+        f.hl(x - 3, x + 3, y - 2, gl['sh'])
+    hand(f, gl, x - 3, y - 3, x + 3, y + 3, group, thumb=thumb)
 
 
-def mop_head(f, x, y=0):
-    """Mop head on the floor centred at x: clamp, then wet white strands."""
-    f.R(x - 1, y - 3, x + 1, y - 3, C('#4a5361'))
-    for i, xx in enumerate(range(x - 4, x + 5)):
-        bottom = y + (1 if (i * 7 + x) % 3 == 0 else 0)
-        f.R(xx, y - 2, xx, bottom, C('#f4f6f8') if i % 2 == 0 else C('#c9d6de'))
-    f.R(x - 3, y - 2, x + 3, y - 2, C('#ffffff'))
+def hat(f, P, cx, cy):
+    if not P.get('hat'):
+        return
+    hc = ramp(P['hat_c'])
+    L = f.lift
+    if P['hat'] == 'cap':
+        crown = {p for p in f.mask(('e', (cx - 15, cy - 19, cx + 15, cy + 3))) if p[1] - L <= cy - 8}
+        f.paint(crown, hc, 'hat')
+        f.vl(cx - 1, cy - 17, cy - 10, hc['sh'])
+        f.paint(f.mask(('e', (cx - 7, cy - 16, cx - 2, cy - 11))), ramp('#fbfbf6'), 'logo', shade='', hl=False)
+        f.px(cx - 5, cy - 14, hc['b']); f.px(cx - 4, cy - 13, hc['b'])
+        brim = {p for p in f.mask(('e', (cx - 20, cy - 12, cx + 11, cy - 3))) if p[1] - L >= cy - 8}
+        f.paint(brim, ramp(hc['sh']), 'brim', shade='b', hl=False)
+        f.hl(cx - 16, cx + 6, cy - 8, hc['hi'])
+    else:
+        band = {p for p in f.mask(('e', (cx - 15, cy - 18, cx + 15, cy + 4))) if p[1] - L <= cy - 7}
+        f.paint(band, hc, 'hat')
+        for dx, dy in ((-9, -12), (-3, -15), (3, -11), (9, -14), (-6, -8), (6, -8), (-1, -9), (11, -9)):
+            if (cx + dx, cy + dy + L) in band:
+                f.px(cx + dx, cy + dy, WHITE); f.px(cx + dx + 1, cy + dy, HD.lt(hc['b'], .55))
+        f.paint(f.mask(('p', [(cx + 13, cy - 9), (cx + 21, cy - 5), (cx + 18, cy - 1)])), hc, 'tail1')
+        f.paint(f.mask(('p', [(cx + 13, cy - 8), (cx + 18, cy + 2), (cx + 14, cy + 3)])), ramp(hc['sh']), 'tail2')
+        f.paint(f.mask(('e', (cx + 10, cy - 12, cx + 16, cy - 6))), hc, 'knot')
 
 
-def suds(sp, pts):
-    """Soap bubbles (no ink outline): white with a light blue rim."""
-    for x, y, r in pts:
-        cx, cy = CX + x, FY + y
-        k = int(r) + 1
-        for yy in range(cy - k, cy + k + 1):
-            for xx in range(cx - k, cx + k + 1):
-                d = math.hypot(xx - cx, yy - cy)
-                if d <= r - 0.3:
-                    sp.put(xx, yy, C('#ffffff') if (xx - cx) + (yy - cy) < 0 else C('#e3f4fb'))
-                elif d <= r + 0.7:
-                    sp.put(xx, yy, C('#58b9d6'))
+def head(f, P, expr, hx=0, hy=-74):
+    """people_hd's front head and hair, with the headwear; 'sleep' closes the eyes and rounds the mouth."""
+    head_front(f, P, 'open' if expr == 'sleep' else expr, hy=hy, hx=hx)
+    if expr == 'sleep':
+        sk = SKIN[P['skin']]
+        ey = hy + 1
+        for x0 in (hx - 8, hx + 2):
+            for y in range(ey - 1, ey + 4):
+                for x in range(x0, x0 + 3):
+                    f.px(x, y, sk['b'])
+            f.px(x0 - 1, ey + 1, EYE); f.hl(x0, x0 + 2, ey + 2, EYE); f.px(x0 + 3, ey + 1, EYE)
+        my = ey + 8
+        f.px(hx - 5, my - 1, sk['b']); f.hl(hx - 4, hx - 1, my, sk['b']); f.px(hx, my - 1, sk['b'])
+        f.hl(hx - 3, hx - 2, my, MOUTH); f.hl(hx - 3, hx - 2, my + 1, C('#5a2228'))
+    hat(f, P, hx, hy)
 
 
-def streak(sp, x0, x1):
-    """A wet streak on the floor from x0 to x1 (translucent)."""
-    for x in range(min(x0, x1) - 2, max(x0, x1) + 3):
-        for y in (-1, 0, 1, 2):
-            if y == 2 and (x % 3):
-                continue
-            sp.put(CX + x, FY + y, C('#62c3e3', 150))
+def disc(fx, x, y, r, fill, rim, shine=None):
+    """A bubble (no ink outline) into the effects dict [fx]."""
+    k = int(r) + 2
+    for yy in range(y - k, y + k + 1):
+        for xx in range(x - k, x + k + 1):
+            d = math.hypot(xx - x, yy - y)
+            if d <= r - 0.4:
+                fx[(xx, yy)] = shine if shine and (xx - x) + (yy - y) < -r * .6 else fill
+            elif d <= r + 0.6:
+                fx[(xx, yy)] = rim
 
 
-def sparkle(sp, x, y, big):
-    """A four-point star: white core, yellow arms, an amber rim so it shows on white tiles."""
-    cx, cy = CX + x, FY + y
-    r = 3 if big else 2
+def sparkle(fx, x, y, r):
+    """A four-point star with an amber rim, so it shows on white tiles."""
     pts = {(0, 0): 'c'}
     for k in range(1, r + 1):
+        w = 1 if k < r - 1 else 0
         for dx, dy in ((k, 0), (-k, 0), (0, k), (0, -k)):
             pts[(dx, dy)] = 'a' if k < r else 't'
-    if big:
-        for dx, dy in ((1, 1), (-1, 1), (1, -1), (-1, -1)):
-            pts[(dx, dy)] = 'a'
-    for (dx, dy), k in pts.items():
+            if w:
+                for ox, oy in (((0, 1), (0, -1)) if dy == 0 else ((1, 0), (-1, 0))):
+                    if k == 1:
+                        pts.setdefault((dx + ox, dy + oy), 'a')
+    for (dx, dy) in list(pts):
         for ox, oy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
             if (dx + ox, dy + oy) not in pts:
-                sp.put(cx + dx + ox, cy + dy + oy, C('#d08a10'))
+                fx[(x + dx + ox, y + dy + oy)] = C('#d08a10')
     for (dx, dy), k in pts.items():
-        sp.put(cx + dx, cy + dy, C('#ffffff') if k == 'c' else C('#ffe14d') if k == 'a' else C('#fff6b0'))
+        fx[(x + dx, y + dy)] = WHITE if k == 'c' else C('#ffe14d') if k == 'a' else C('#fff6b0')
+
+
+def mop_head(f, x, y=1):
+    """A wet string mop on the floor centred at x: a grey clamp, white strands with blue-grey creases."""
+    f.lift = 0
+    f.paint(f.mask(('r', (x - 5, y - 13, x + 5, y - 10))), ramp('#8a94a4'), 'clamp')
+    strands = {p for p in f.mask(('e', (x - 11, y - 12, x + 11, y + 2))) if p[1] >= y - 10}
+    f.paint(strands, ramp('#eef3f6'), 'mop')
+    for xx in range(x - 8, x + 9, 3):
+        f.vl(xx, y - 8, y, C('#b4c6d4'))
+    for xx in range(x - 10, x + 11):
+        if (xx, y) in strands:
+            f.px(xx, y, C('#9cc9df'))
+
+
+def handle(f, x0, y0, x1, y1):
+    f.lift = 0
+    f.paint(f.mask(('l', [(x0, y0), (x1, y1)], 3)), WOOD, 'handle', shade='r', hl=False)
+
+
+def finish(f, over=None, under=None):
+    """people_hd's Fig.finish plus effects without an outline: [over] on top of the figure, [under] only where it is empty."""
+    over, under = over or {}, under or {}
+    col = dict(f.col)
+    for (x, y), c in f.col.items():
+        g = f.grp.get((x, y))
+        if g is None:
+            continue
+        o = f.order[(x, y)]
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            q = (x + dx, y + dy)
+            if q in f.col and f.grp.get(q) not in (None, g) and f.order[q] < o:
+                col[(x, y)] = HD.LINES.get(c, HD.wdk(c, .55))
+                break
+    out = dict(col)
+    for (x, y) in col:
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            if (x + dx, y + dy) not in col:
+                out[(x + dx, y + dy)] = INKW
+    for p, c in under.items():
+        out.setdefault(p, c)
+    out.update(over)
+    xs = [p[0] for p in out]
+    ys = [p[1] for p in out]
+    x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+    x0 -= x0 % 2
+    y0 -= y0 % 2
+    w, h = x1 - x0 + 1, y1 - y0 + 1
+    sp = Spr(w + w % 2, h + h % 2, -x0, -y0)
+    for (x, y), c in out.items():
+        sp.put(x - x0, y - y0, c)
+    return sp
 
 
 def person(P, state, ph):
-    f = Fig()
-    fx = []  # effects drawn after the ink outline: (fn, args)
-    under = []
+    """One janitor frame, front 3/4, the anchor at the boots."""
+    f = HD.Fig()
+    over, under = {}, {}
+    legs(f, P)
+    sk, hair, top, *_ = looks(P)
+    shoulders = lambda: [f.mask(('e', (-16, -60, -6, -48))), f.mask(('e', (6, -60, 16, -48)))]
     if state == 'working':
-        mx = (-12, -3, 12, 3)[ph]
+        # mopping: the mop sweeps left, centre, right, centre; the handle crosses the body
+        mx = (-14, -4, 14, 4)[ph]
         side = -1 if mx < 0 else 1
-        lean = side if abs(mx) > 6 else 0
-        body(f, P, lean, arms='')
-        head(f, P, 'focused', dx=lean)
-        f.new()
-        tx, ty = (-side * 6, -20) if abs(mx) > 6 else (-side * 6, -21)
-        f.line(tx, ty, mx, -2, C('#b0753f'))
-        f.new()
-        uh = (tx + (mx - tx) * 0.12, ty + (-2 - ty) * 0.12)
-        lh = (tx + (mx - tx) * 0.45, ty + (-2 - ty) * 0.45)
-        u = P['uni']
-        # arm to the upper hand from the shoulder on the handle's side, the other to the lower hand
-        sh_u, sh_l = (side * -5 + lean, -14), (side * 5 + lean, -14)
-        f.line(sh_u[0], sh_u[1], round(uh[0]), round(uh[1]) + 1, u, 2)
-        f.line(sh_l[0], sh_l[1], round(lh[0]), round(lh[1]) + 1, u, 2)
-        f.new()
-        for hx, hy in (uh, lh):
-            f.R(round(hx) - 1, round(hy) - 1, round(hx) + 1, round(hy) + 1, P['glove'])
-            f.P(round(hx) - 1, round(hy) - 1, lt(P['glove'], .4))
-        f.new()
+        bob = ph % 2
+        tx, ty = -side * 15, -58
+        bx, by = mx + side * 2, -10
         mop_head(f, mx)
-        under.append((streak, (0, mx)))
-        trail = -side * (6 if abs(mx) > 6 else 3)
-        fx.append((suds, ([(mx + trail, -1, 2.5), (mx + trail // 2, -6 - ph % 2, 1.5),
-                           (mx + trail * 2, 0, 1.5)],)))
+        f.lift = LIFT
+        hair_back_layer(f, P, side * 2, -74 + bob)
+        coverall(f, P, shoulders())
+        head(f, P, 'open', hx=side * 2, hy=-74 + bob)
+        handle(f, tx, ty, bx, by)
+        at = lambda t: (round(tx + (bx - tx) * t), round(ty + (by - ty) * t))
+        uh, lh = at(.12), at(.5)
+        f.paint(f.mask(('l', [(-side * 12, -48), uh], 7)), top, 'sleeveU')
+        f.paint(f.mask(('l', [(side * 12, -48), (side * 13, -38), lh], 7)), top, 'sleeveL')
+        glove(f, P, uh[0], uh[1], 'handU', thumb=side, cuff=False)
+        glove(f, P, lh[0], lh[1], 'handL', thumb=side, cuff=False)
+        for x in range(min(0, mx) - 4, max(0, mx) + 5):
+            for y in (-1, 0, 1, 2):
+                if not (y == 2 and x % 3):
+                    under[(x, y)] = C('#62c3e3', 140)
+        trail = -side * 9
+        for x, y, r in ((mx + trail, -2, 4), (mx + trail // 2, -12 - 2 * bob, 2.5), (mx + trail * 2, 0, 2.5),
+                        (mx - trail // 3, -15 + bob, 2)):
+            disc(over, x, y, r, C('#e9f7fc'), C('#58b9d6'), WHITE)
     elif state == 'waiting':
+        # an open hand raised high, calling; the other hand holds a plunger standing beside the boots
         w = ph % 2
-        body(f, P, 0, arms='L')
-        head(f, P, 'open')
-        f.new()
-        u, ud = P['uni'], dk(P['uni'], .25)
-        f.R(5, -15, 6, -14, u); f.R(6, -17, 7, -16, u)
-        f.R(7, -27, 8, -18, u); f.R(8, -27, 8, -18, ud)
-        f.R(7 + w, -29, 8 + w, -28, u)
-        f.new()
-        g = P['glove']
-        f.R(6 + w, -32, 9 + w, -30, g); f.R(6 + w, -32, 9 + w, -32, lt(g, .4)); f.P(9 + w, -31, dk(g, .2))
-        f.new()
-        f.R(7 + 2 * w, -38, 8 + 2 * w, -33, C('#b0753f')); f.R(8 + 2 * w, -38, 8 + 2 * w, -33, C('#8a5a2e'))
-        f.new()
-        rx = 7 + 3 * w
-        red, rd, rh = C('#e0393e'), C('#a5252a'), C('#ff8a80')
-        f.R(rx - 1, -44, rx + 2, -44, red); f.R(rx - 3, -43, rx + 4, -42, red); f.R(rx - 4, -41, rx + 5, -40, red)
-        f.R(rx - 4, -39, rx + 5, -39, rd); f.R(rx - 2, -43, rx - 1, -42, rh); f.P(rx, -44, rh)
-        f.R(rx + 3, -41, rx + 5, -40, rd)
-        fx.append((lambda sp, w=w: [sp.put(CX + x, FY + y, C('#7fd0ff')) for x, y in ((-7 - w, -24), (-7 - w, -23), (-8 - w, -22))], ()))
+        f.paint(f.mask(('e', (-27, -13, -7, 0))), RUBBER, 'cupback')
+        f.lift = LIFT
+        hair_back_layer(f, P, 0, -74)
+        sleeves = [f.mask(('l', [(-12, -54), (-15, -44), (-16, -38)], 7)),
+                   f.mask(('l', [(12, -54), (19, -64), (20 + w, -76)], 7))]
+        coverall(f, P, shoulders() + sleeves)
+        f.lift = 0
+        f.paint(f.mask(('r', (-18, -50, -16, -8))), WOOD, 'handle', shade='r', hl=False)
+        f.paint({p for p in f.mask(('e', (-27, -16, -7, 0))) if p[1] <= -4}, RUBBER, 'cup')
+        f.paint(f.mask(('r', (-28, -5, -6, -2))), ramp(RUBBER['sh']), 'cuprim', hl=False)
+        f.lift = LIFT
+        glove(f, P, -16, -36, 'handP', thumb=1)
+        gl = ramp(P['glove'])
+        hx, hy = 20 + w, -82
+        f.paint(f.mask(('e', (hx - 4, hy + 4, hx + 4, hy + 10))), gl, 'gcuff', hl=False)
+        f.paint(f.mask(('e', (hx - 5, hy - 2, hx + 5, hy + 7))), gl, 'hand', hl=False)
+        for fx_, ln in ((-4, 5), (-1, 7), (2, 7), (5, 5)):
+            f.paint(f.mask(('r', (hx + fx_, hy - ln, hx + fx_ + 1, hy))), gl, 'hand', shade='', hl=False)
+            f.px(hx + fx_ + 1, hy - ln + 1, gl['sh'])
+        f.paint(f.mask(('l', [(hx - 5, hy + 3), (hx - 9, hy - 2)], 3)), gl, 'hand', shade='', hl=False)
+        f.hl(hx - 3, hx + 3, hy + 5, gl['sh'])
+        head(f, P, 'calling' if w == 0 else 'open')
+        for i, (x, y) in enumerate(((31 + w, -78), (33 + w, -72), (30 + w, -66))):
+            for k in range(3):
+                over[(x + k, y - i + k // 2)] = C('#e5484d')
     elif state == 'done':
-        body(f, P, 0, arms='L')
+        # thumbs-up, the other fist on the hip, among sparkles
+        f.lift = LIFT
+        hair_back_layer(f, P, 0, -74)
+        sleeves = [f.mask(('l', [(-12, -54), (-19, -45), (-14, -38)], 7)),
+                   f.mask(('l', [(12, -54), (23, -46), (21, -57)], 7))]
+        coverall(f, P, shoulders() + sleeves)
+        glove(f, P, -13, -37, 'handH', thumb=1)
+        gl = ramp(P['glove'])
+        f.paint(f.mask(('e', (16, -60, 26, -53))), gl, 'gcuff', hl=False)
+        f.paint(f.mask(('e', (15, -67, 26, -58))), gl, 'fist')
+        for y in (-64, -62, -60):
+            f.hl(17, 20, y, gl['sh'])
+        f.paint(f.mask(('e', (20, -75, 25, -64))), gl, 'thumb', hl=True)
         head(f, P, 'happy')
-        f.new()
-        u, ud = P['uni'], dk(P['uni'], .25)
-        f.R(5, -15, 9, -14, u); f.R(5, -14, 9, -14, ud)
-        f.R(8, -20, 9, -16, u); f.R(9, -20, 9, -16, ud)
-        f.new()
-        g, gd = P['glove'], dk(P['glove'], .25)
-        f.R(7, -23, 10, -21, g); f.R(7, -21, 10, -21, gd); f.P(10, -22, gd)
-        f.R(8, -27, 9, -24, g); f.R(8, -27, 8, -26, lt(g, .5))
         big = ph % 2 == 0
-        fx.append((sparkle, (-11, -26, big)))
-        fx.append((sparkle, (15, -31, not big)))
-        fx.append((sparkle, (-12, -9, not big)))
-        fx.append((sparkle, (14, -6, big)))
-    else:  # idle: leaning on the mop, dozing
+        for (x, y), b in (((-24, -82), big), ((31, -84), not big), ((-25, -46), not big), ((28, -34), big)):
+            sparkle(over, x, y, 5 if b else 3)
+    else:
+        # dozing standing up, hands stacked on the mop handle, the cheek against them; a snot bubble swells and shrinks
         b = ph % 2
-        body(f, P, -1, arms='R')
-        f.new()
-        f.line(-9, -22, -9, -3, C('#b0753f'))
-        f.new()
-        mop_head(f, -9)
-        f.new()
-        u = P['uni']
-        f.R(-6, -15, -5, -13, u); f.R(-7, -18, -6, -16, u)
-        f.new()
-        g = P['glove']
-        f.R(-11, -24, -7, -20, g); f.R(-11, -22, -7, -22, dk(g, .25)); f.R(-11, -24, -8, -24, lt(g, .4))
-        f.new()
-        head(f, P, 'sleep', dx=-2, dy=1 + b)
-        r = 1 + b
-        fx.append((lambda sp, r=r, b=b: [sp.put(xx, yy, C('#bfe8ff', 220) if math.hypot(xx - (CX - 3 + r), yy - (FY - 17 + b)) < r - 0.2
-                                          else C('#4aa8d8')) for yy in range(FY - 17 + b - r - 1, FY - 17 + b + r + 2)
-                                          for xx in range(CX - 3, CX - 3 + 2 * r + 2)
-                                          if math.hypot(xx - (CX - 3 + r), yy - (FY - 17 + b)) < r + 0.6], ()))
-    s = f.flatten()
-    outline_out(s, INK)
-    for fn, args in fx:
-        fn(s, *args)
-    if under:
-        floor_ = Spr(FW, FH)
-        for fn, args in under:
-            fn(floor_, *args)
-        floor_.img.alpha_composite(s.img)
-        floor_.em = s.em
-        floor_._load()
-        s = floor_
-    s.ax, s.ay = CX, FY + 1 - (DROP if state in ('working', 'idle') else 0)
-    return s
+        mop_head(f, -19)
+        handle(f, -20, -60, -20, -10)
+        f.lift = LIFT
+        hx, hy = -3, -72 + b
+        hair_back_layer(f, P, hx, hy)
+        sleeves = [f.mask(('l', [(-12, -54), (-17, -48), (-20, -58)], 7)),
+                   f.mask(('l', [(12, -54), (10, -46), (-14, -56)], 7))]
+        coverall(f, P, shoulders() + sleeves)
+        glove(f, P, -21, -64, 'handA', thumb=1, cuff=False)
+        glove(f, P, -18, -58, 'handB', thumb=-1, cuff=False)
+        head(f, P, 'sleep', hx=hx, hy=hy)
+        r = 2.5 + 2 * b
+        disc(over, hx - 7 - int(r), hy + LIFT + 8, r, C('#d6f0ff', 230), C('#4aa8d8'), WHITE)
+        for i, (x, y) in enumerate(((14, -92), (19, -99))):
+            n = 4 + i * 2 + b
+            for k in range(n):
+                over[(x + k, y)] = C('#6a7f99'); over[(x + k, y + n - 1)] = C('#6a7f99')
+                over[(x + n - 1 - k, y + k)] = C('#6a7f99')
+    return finish(f, over, under)
 
 
 def person_frames():
-    """Every janitor frame; all phases of one look and state share a size and an anchor (cropped to their union)."""
+    """Every janitor frame; all phases of one look and state share a size and an anchor (the union of their boxes)."""
     out = {}
     for vi, P in enumerate(PEOPLE_D):
         for st in STATES:
             fr = [person(P, st, ph) for ph in range(PHASES[st])]
-            bb = None
-            for sp in fr:
-                b = sp.img.getbbox()
-                bb = b if bb is None else (min(bb[0], b[0]), min(bb[1], b[1]), max(bb[2], b[2]), max(bb[3], b[3]))
+            x0 = min(-sp.ax for sp in fr); y0 = min(-sp.ay for sp in fr)
+            x1 = max(sp.w - sp.ax for sp in fr); y1 = max(sp.h - sp.ay for sp in fr)
             for ph, sp in enumerate(fr):
-                n = Spr(bb[2] - bb[0], bb[3] - bb[1], sp.ax - bb[0], sp.ay - bb[1])
-                n.img = sp.img.crop(bb)
-                n.em = sp.em.crop(bb)
+                n = Spr(x1 - x0, y1 - y0, -x0, -y0)
+                n.img.alpha_composite(sp.img, (-x0 - sp.ax, -y0 - sp.ay))
                 n._load()
                 out[f'person{vi}_{st}_{ph}_d'] = n
     return out
+
+
+def native(sp):
+    """A person frame at the scene's density (for the mockup)."""
+    n = Spr(sp.w // DETAIL, sp.h // DETAIL, sp.ax // DETAIL, sp.ay // DETAIL)
+    n.img = sp.img.resize((n.w, n.h), Image.NEAREST)
+    n.em = Image.new('L', (n.w, n.h), 0)
+    n._load()
+    return n
+
+
+def lineup(path, scale=4):
+    """Every janitor x state x phase at [scale] / DETAIL, on the floor tiles."""
+    fr = person_frames()
+    cols = [(st, ph) for st in STATES for ph in range(PHASES[st])]
+    cw, ch = 40 * scale, 56 * scale
+    img = Image.new('RGBA', (cw * len(cols) + 20, ch * len(PEOPLE_D) + 20), (236, 243, 243, 255))
+    d = ImageDraw.Draw(img)
+    for yy in range(0, img.height, 8 * scale):
+        d.line([(0, yy), (img.width, yy)], fill=(196, 214, 216, 255))
+    for r in range(len(PEOPLE_D)):
+        for c, (st, ph) in enumerate(cols):
+            sp = fr[f'person{r}_{st}_{ph}_d']
+            big = sp.img.resize((sp.w * scale // DETAIL, sp.h * scale // DETAIL), Image.NEAREST)
+            x = 10 + c * cw + cw // 2 - sp.ax * scale // DETAIL
+            y = 10 + r * ch + ch - 6 * scale - sp.ay * scale // DETAIL
+            img.alpha_composite(big, (x, max(0, y)))
+    img.convert('RGB').save(path)
+
+
+# ---------------------------------------------------------------- pets (decor, at the scene's density, shaded like the people)
+def cat():
+    """An orange tabby sitting front 3/4, tail curled round its paws, eyes shut in a smile; the anchor is under its paws."""
+    f = HD.Fig()
+    fur, wh = ramp('#f2a65a'), ramp('#fbf4ea')
+    f.paint(f.mask(('l', [(4, -1), (8, -1), (9, -5)], 3)), fur, 'tail')
+    f.paint(f.mask(('e', (-5, -10, 6, 0))), fur, 'body')
+    f.paint(f.mask(('e', (-3, -8, 2, -1))), wh, 'body', shade='', hl=False)
+    for x in (-3, 0):
+        f.paint(f.mask(('r', (x, -1, x + 1, 0))), wh, 'paw', shade='', hl=False)
+    f.vl(4, -8, -6, fur['dp']); f.vl(3, -5, -3, fur['dp'])
+    f.px(9, -5, wh['b']); f.px(9, -6, wh['b'])
+    f.paint(f.mask(('p', [(-6, -14), (-5, -20), (-2, -16)])), fur, 'ear')
+    f.paint(f.mask(('p', [(1, -16), (4, -20), (4, -13)])), fur, 'ear')
+    f.px(-5, -17, C('#f2a0a8')); f.px(3, -17, C('#f2a0a8'))
+    f.paint(f.mask(('e', (-7, -17, 5, -7))), fur, 'head')
+    f.paint(f.mask(('e', (-4, -12, 2, -8))), wh, 'head', shade='', hl=False)
+    for x, y in ((-2, -16), (0, -16), (-1, -15), (-6, -12), (4, -12)):
+        f.px(x, y, fur['dp'])
+    f.px(-4, -12, EYE); f.px(-5, -13, EYE); f.px(-3, -13, EYE)
+    f.px(1, -12, EYE); f.px(0, -13, EYE); f.px(2, -13, EYE)
+    f.px(-1, -11, C('#e0707a'))
+    f.px(-6, -10, mix(fur['b'], C('#ff6f7d'), .4)); f.px(4, -10, mix(fur['b'], C('#ff6f7d'), .4))
+    return finish(f)
+
+
+def dog():
+    """A corgi lying on the floor facing left, a blue bandana on, a sponge in its mouth; the anchor is under its chest."""
+    f = HD.Fig()
+    fur, wh, bd = ramp('#e3994a'), ramp('#fbf4ea'), ramp('#3a7ad8')
+    f.paint(f.mask(('e', (8, -9, 13, -4))), wh, 'tail')
+    f.paint(f.mask(('e', (-6, -8, 11, 0))), fur, 'body')
+    f.paint(f.mask(('e', (-5, -4, 6, 0))), wh, 'body', shade='', hl=False)
+    f.paint(f.mask(('e', (5, -3, 11, 0))), fur, 'leg')
+    f.paint(f.mask(('e', (-13, -2, -6, 0))), wh, 'paw', hl=False)
+    f.paint(f.mask(('p', [(-13, -12), (-13, -19), (-9, -13)])), fur, 'ear')
+    f.paint(f.mask(('p', [(-8, -13), (-5, -19), (-4, -11)])), fur, 'ear')
+    f.px(-12, -15, C('#f2a0a8')); f.px(-6, -15, C('#f2a0a8'))
+    f.paint(f.mask(('e', (-15, -14, -3, -4))), fur, 'head')
+    f.paint(f.mask(('e', (-17, -9, -10, -4))), wh, 'head', shade='', hl=False)
+    f.vl(-9, -13, -10, wh['b'])
+    f.px(-17, -8, EYE); f.px(-16, -8, EYE)
+    f.px(-12, -10, EYE); f.px(-7, -10, EYE); f.px(-12, -11, WHITE)
+    f.px(-11, -7, mix(fur['b'], C('#ff6f7d'), .45))
+    f.paint(f.mask(('p', [(-6, -6), (-1, -6), (-3, -2)])), bd, 'bandana', hl=False)
+    f.px(-4, -5, WHITE)
+    f.paint(f.mask(('r', (-21, -7, -16, -4))), ramp('#ffd84a'), 'sponge')
+    f.hl(-21, -16, -7, C('#3fae5a'))
+    return finish(f)
 
 
 # ---------------------------------------------------------------- sheet
@@ -787,6 +897,8 @@ def build_all():
     d['bin_d'] = bin_()
     d['cart_d'] = cart()
     d['plant_big_d'] = SP.plant_big(SP.B)
+    d['cat_d'] = cat()
+    d['dog_d'] = dog()
     d.update(person_frames())
     for st in STATES:
         d[f'bubble_{st}'] = SP.bubble(st)
@@ -847,7 +959,7 @@ def mockup(fr, phase=0, path=None):
                 if (a2, s2) != (ai, si):
                     continue
                 n = PHASES[state]
-                sp = fr[f'person{var}_{state}_{phase % n}_d']
+                sp = native(fr[f'person{var}_{state}_{phase % n}_d'])
                 if state in ('working', 'idle'):
                     add(5, cu + cv + 0.1, sp, cu, cv, SEAT_Z)
                     X, Y = proj(cu, cv, SEAT_Z)
@@ -885,6 +997,8 @@ DECOR = [  # frame, u, v, z, layer, key
     ('plant_big_d', 7, 89, 0, 5, 96.0),
     ('bin_d', 5, 68, 0, 5, 73.0),
     ('cart_d', 91, 90, 0, 5, 181.0),
+    ('dog_d', 92, 18, 0, 5, 110.0),
+    ('cat_d', 80, 93, 0, 5, 173.0),
 ]
 
 
@@ -892,5 +1006,6 @@ if __name__ == '__main__':
     import sys
     fr = build_sheet_d()
     print(len(fr), 'frames (theme D sheet, d/)')
+    lineup('/tmp/viz-port-d-lineup.png' if 'lineup' in sys.argv[1:] else f'{OUT}/D-lineup.png')
     for ph in range(4 if 'all' in sys.argv[1:] else 1):
         print('wrote', mockup(fr, ph, f'{OUT}/D-restroom-{ph}.png' if ph else None))
