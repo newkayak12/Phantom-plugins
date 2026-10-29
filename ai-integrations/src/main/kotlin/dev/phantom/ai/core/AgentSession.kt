@@ -1,8 +1,8 @@
 // Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.ai.core
 
-/** A subagent the session started; [running] until its stop event. */
-data class Subagent(val id: String, val name: String, val running: Boolean = true)
+/** A subagent the session started; [running] until its stop event. [activity] is what its last tool call does (see AgentSession). */
+data class Subagent(val id: String, val name: String, val running: Boolean = true, val activity: String? = null)
 
 /** One agent terminal tab. [tabId] is the key; a worktree may have many sessions. */
 data class AgentSession(
@@ -20,4 +20,6 @@ data class AgentSession(
   /** Id of the account the session ran under; null = System default. Resume uses this one, not the active account. */
   val accountId: String? = null,
   val subagents: List<Subagent> = emptyList(),
+  /** What the agent does now, from its hooks ("Edit Foo.kt", "답 기다림"); null when it has stopped or not started. */
+  val activity: String? = null,
 )

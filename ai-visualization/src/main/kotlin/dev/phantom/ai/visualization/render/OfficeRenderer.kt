@@ -64,18 +64,20 @@ object Fonts {
 /** Where a name plate's board goes in scene pixels and how wide it is once stretched to its label. */
 data class PlateGeo(val boardX: Int, val boardY: Int, val width: Int, val boardHeight: Int)
 
-/** A tag as drawn: its rectangle in screen pixels and the text it shows. */
-data class TagDraw(val tabId: String, val rect: Rect, val text: String, val state: VizState)
+/** A tag as drawn: its rectangle in screen pixels and the text it shows; [subagentId] names the subordinate it labels, if any. */
+data class TagDraw(val tabId: String, val rect: Rect, val text: String, val state: VizState, val subagentId: String? = null)
 
 /**
- * What a paint put on screen, for hit-testing and the probe: the people at their animated positions and the tags; the helpers and
- * their tags (a helper tag's [TagDraw.tabId] is its parent's, a "+N" tag included).
+ * What a paint put on screen, for hit-testing and the probe: the people at their animated positions and the tags; the subordinates
+ * (helpers) and their name tags (a helper tag's [TagDraw.tabId] is its parent's, a "+N" tag included); the activity labels above
+ * every person and subordinate.
  */
 class PaintResult(
   val people: List<PlacedPerson>,
   val tags: List<TagDraw>,
   val helpers: List<PlacedHelper> = emptyList(),
   val helperTags: List<TagDraw> = emptyList(),
+  val activities: List<TagDraw> = emptyList(),
 )
 
 /** A person as drawn: [screen] is the sprite rectangle in screen pixels at the current animation phase. */
@@ -143,7 +145,8 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
 
   private fun plateFont(zoom: Int) = Fonts.font(((zoom * 4 + 1).coerceIn(9, 14)).toFloat())
   private fun tagFont() = Fonts.font(11f)
-  private fun helperTagFont() = Fonts.font(9.5f)
+  private fun helperTagFont() = Fonts.font(10f)
+  private fun activityFont() = Fonts.font(11.5f, bold = true)
 
   fun ellipsize(s: String, max: Int) = if (s.length <= max) s else s.take(max - 1) + "\u2026"
 
@@ -274,8 +277,8 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
       PlacedPerson(p, pn, bn, Rect(ox + (r.x + po.dx) * zoom, oy + (r.y + po.dy) * zoom, r.w * zoom, r.h * zoom))
     }
     val helpers = placedHelpers(scene, zoom, ox, oy, phase)
-    val (tags, helperTags) = drawTags(g, scene, zoom, ox, oy)
-    return PaintResult(placed, tags, helpers, helperTags)
+    val tags = drawTags(g, scene, zoom, ox, oy)
+    return PaintResult(placed, tags.sessions, helpers, tags.helpers, tags.activities)
   }
 
   /** The helpers of [scene] at their animated positions in screen pixels. */
@@ -300,31 +303,57 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
     return out
   }
 
-  /** One tag to draw: [parent] gives the dot color, [small] for a helper's tag (and its "+N"). */
-  private class TagSpec(val parent: PersonPlacement, val text: String, val small: Boolean)
+  private enum class TagKind { SESSION, HELPER, ACTIVITY }
 
-  /** The session tags, then the helper tags in the same layout pass so neither covers the other. */
-  private fun drawTags(g: Graphics2D, scene: Scene, zoom: Int, ox: Int, oy: Int): Pair<List<TagDraw>, List<TagDraw>> {
+  /**
+   * One tag to draw: [state] gives the dot (or, for an activity label, the fill) color; [subagentId] names a subordinate's tag, whose
+   * activity label starts with its [name] in the first [nameWidth] pixels.
+   */
+  private class TagSpec(
+    val parent: PersonPlacement, val text: String, val kind: TagKind, val state: VizState, val subagentId: String? = null,
+    val name: String? = null, val nameWidth: Int = 0,
+  )
+
+  private class Tags(val sessions: List<TagDraw>, val helpers: List<TagDraw>, val activities: List<TagDraw>)
+
+  /** The text of an activity label: what the hooks reported, else what the state says. */
+  fun activityText(activity: String?, state: VizState): String = ellipsize(activity?.takeIf { it.isNotBlank() } ?: DEFAULT_ACTIVITY.getValue(state), 28)
+
+  /**
+   * Every tag in one layout pass so none covers another: below each person its session tag ("\ud300\uc7a5 \u00b7 " first when it leads
+   * subordinates); above each head (over the bubble) an activity label, a subordinate's led by its name; a "+N" beside the last
+   * subordinate drawn.
+   */
+  private fun drawTags(g: Graphics2D, scene: Scene, zoom: Int, ox: Int, oy: Int): Tags {
     val big = g.getFontMetrics(tagFont())
     val small = g.getFontMetrics(helperTagFont())
+    val act = g.getFontMetrics(activityFont())
     val dot = 7
     val smallDot = 5
     val specs = HashMap<String, TagSpec>()
     val requests = ArrayList<TagRequest>()
+    fun activity(id: String, parent: PersonPlacement, text: String, state: VizState, x: Int, headY: Int, name: String? = null, subagentId: String? = null) {
+      val nameW = name?.let { small.stringWidth(it) + 12 } ?: 0
+      val w = nameW + act.stringWidth(text) + 14
+      val h = act.height + 4
+      requests += TagRequest(id, ox + x * zoom - w / 2, oy + headY * zoom - h - ACTIVITY_DY, w, h, up = true)
+      specs[id] = TagSpec(parent, text, TagKind.ACTIVITY, state, subagentId, name, nameW)
+    }
     for (p in scene.people) {
       val s = p.person.session
-      val text = ellipsize("${s.agent.name.lowercase()} \u00b7 ${s.title}", 30)
+      val lead = if (p.person.helperCount > 0) "\ud300\uc7a5 \u00b7 " else ""
+      val text = ellipsize("$lead${s.agent.name.lowercase()} \u00b7 ${s.title}", 34)
       val w = big.stringWidth(text) + dot + 16
       requests += TagRequest(p.tabId, ox + p.x * zoom - w / 2, oy + p.y * zoom + p.tagDy, w, big.height + 4)
-      specs[p.tabId] = TagSpec(p, text, small = false)
+      specs[p.tabId] = TagSpec(p, text, TagKind.SESSION, p.state)
+      // above the bubble, which bobs up to 2 pixels
+      activity("${p.tabId}/act", p, activityText(s.activity, p.state), p.state, p.x, p.bubbleBounds.y - 2)
     }
     val lastHelper = HashMap<String, HelperPlacement>()
     for (h in scene.helpers) {
-      val text = ellipsize(h.helper.name, 18)
-      val w = small.stringWidth(text) + smallDot + 10
-      // above the head: below it are the parent's tag and the name plates
-      requests += TagRequest(h.key, ox + h.x * zoom - w / 2, oy + h.bounds.y * zoom - small.height - 2 - HELPER_TAG_DY, w, small.height + 2, up = true)
-      specs[h.key] = TagSpec(h.parent, text, small = true)
+      // one label above the head, its name and what it does side by side, so the two never drift apart
+      val name = ellipsize(h.helper.name, 18)
+      activity(h.key, h.parent, activityText(h.helper.activity, VizState.WORKING), VizState.WORKING, h.x, h.bounds.y - 1, name, h.helper.id)
       lastHelper[h.tabId] = h
     }
     val byTab = scene.people.associateBy { it.tabId }
@@ -332,32 +361,76 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
       val p = byTab[tab] ?: continue
       val text = "+$n"
       val w = small.stringWidth(text) + smallDot + 10
-      // next to the last helper drawn, else beside the person
-      val (ax, ay) = lastHelper[tab]?.let { it.x + 5 to it.bounds.y } ?: (p.x + 8 to p.y)
+      // next to the last subordinate drawn, else beside the person
+      val (ax, ay) = lastHelper[tab]?.let { it.bounds.x + it.bounds.w + 2 to it.bounds.y + it.bounds.h / 2 } ?: (p.x + 8 to p.y)
       requests += TagRequest("$tab/+", ox + ax * zoom, oy + ay * zoom - small.height - 2 - HELPER_TAG_DY, w, small.height + 2, up = true)
-      specs["$tab/+"] = TagSpec(p, text, small = true)
+      specs["$tab/+"] = TagSpec(p, text, TagKind.HELPER, p.state)
     }
-    // helper tags stack upwards, clear of every helper, so none hides a helper
+    // no tag hides a subordinate; an activity label may stray over another head rather than climb away from its own
     val helperRects = scene.helpers.map { h -> h.bounds.let { TagRect("helper", ox + it.x * zoom, oy + (it.y - 1) * zoom, it.w * zoom, (it.h + 1) * zoom) } }
-    val rects = TagLayout.layout(requests, obstacles = tagObstacles(scene, zoom, ox, oy), upObstacles = helperRects)
-    val out = ArrayList<TagDraw>()
-    val helperOut = ArrayList<TagDraw>()
+    val rects = TagLayout.layout(requests, obstacles = tagObstacles(scene, zoom, ox, oy) + helperRects)
+    // a label pushed up by others keeps a thin line down to the head it belongs to
+    val wanted = requests.associateBy { it.id }
     for (r in rects) {
       val spec = specs.getValue(r.id)
-      val d = if (spec.small) smallDot else dot
-      val fm = if (spec.small) small else big
-      val inset = if (spec.small) 4 else 6
+      val want = wanted.getValue(r.id)
+      if (spec.kind != TagKind.ACTIVITY || r.y == want.y) continue
+      g.color = palette.stateColor(spec.state)
+      val cx = r.x + spec.nameWidth + (r.w - spec.nameWidth) / 2
+      g.fillRect(cx - 1, r.y + r.h, 2, want.y + want.h + ACTIVITY_DY - r.y - r.h)
+    }
+    val out = ArrayList<TagDraw>()
+    val helperOut = ArrayList<TagDraw>()
+    val activityOut = ArrayList<TagDraw>()
+    for (r in rects) {
+      val spec = specs.getValue(r.id)
+      val draw = TagDraw(spec.parent.tabId, Rect(r.x, r.y, r.w, r.h), spec.text, spec.state, spec.subagentId)
+      when (spec.kind) {
+        TagKind.ACTIVITY -> {
+          activityLabel(g, act, small, r, spec)
+          val n = spec.nameWidth
+          activityOut += draw.copy(rect = Rect(r.x + n, r.y, r.w - n, r.h))
+          if (spec.name != null) helperOut += TagDraw(spec.parent.tabId, Rect(r.x, r.y, n, r.h), spec.name, spec.state, spec.subagentId)
+          continue
+        }
+        TagKind.HELPER -> helperOut += draw
+        TagKind.SESSION -> out += draw
+      }
+      val isSmall = spec.kind == TagKind.HELPER
+      val d = if (isSmall) smallDot else dot
+      val fm = if (isSmall) small else big
+      val inset = if (isSmall) 4 else 6
       g.font = fm.font
       g.color = palette.tagBackground
       g.fillRoundRect(r.x, r.y, r.w, r.h, r.h, r.h)
-      g.color = palette.stateColor(spec.parent.state)
+      g.color = palette.stateColor(spec.state)
       g.fillOval(r.x + inset, r.y + (r.h - d) / 2, d, d)
       g.color = palette.tagText
-      g.drawString(spec.text, (r.x + inset + d + if (spec.small) 3 else 4).toFloat(), (r.y + (r.h + fm.ascent - fm.descent) / 2).toFloat())
-      val draw = TagDraw(spec.parent.tabId, Rect(r.x, r.y, r.w, r.h), spec.text, spec.parent.state)
-      if (spec.small) helperOut += draw else out += draw
+      g.drawString(spec.text, (r.x + inset + d + if (isSmall) 3 else 4).toFloat(), (r.y + (r.h + fm.ascent - fm.descent) / 2).toFloat())
     }
-    return out to helperOut
+    return Tags(out, helperOut, activityOut)
+  }
+
+  /**
+   * A pill in the state's color with a dark rim, its text black or white, whichever reads better on that color; a subordinate's
+   * name goes first on the dark rim color, in the tag text color.
+   */
+  private fun activityLabel(g: Graphics2D, fm: java.awt.FontMetrics, nameFm: java.awt.FontMetrics, r: TagRect, spec: TagSpec) {
+    val fill = palette.stateColor(spec.state)
+    g.color = palette.tagBackground
+    g.fillRoundRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2, r.h + 2, r.h + 2)
+    val n = spec.nameWidth
+    if (spec.name != null) {
+      g.color = palette.tagText
+      g.font = nameFm.font
+      g.drawString(spec.name, (r.x + 7).toFloat(), (r.y + (r.h + nameFm.ascent - nameFm.descent) / 2).toFloat())
+    }
+    g.color = fill
+    g.fillRoundRect(r.x + n, r.y, r.w - n, r.h, r.h, r.h)
+    val luma = 0.299 * fill.red + 0.587 * fill.green + 0.114 * fill.blue
+    g.color = if (luma > 150) Color(20, 20, 24) else Color.WHITE
+    g.font = fm.font
+    g.drawString(spec.text, (r.x + n + (r.w - n - fm.stringWidth(spec.text)) / 2).toFloat(), (r.y + (r.h + fm.ascent - fm.descent) / 2).toFloat())
   }
 
   /** The canvas background: a flat color with a dot grid. */
@@ -515,14 +588,27 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
     val s = p.person.session
     val n = p.person.helperCount
     val helpers = if (n == 0) "" else " \u00b7 $n helper${if (n == 1) "" else "s"}"
-    return "${s.title} \u00b7 ${s.agent.name.lowercase()} \u00b7 ${Elapsed.format(s.startedAt, now)}$helpers"
+    val activity = s.activity?.let { " \u00b7 $it" } ?: ""
+    return "${s.title} \u00b7 ${s.agent.name.lowercase()} \u00b7 ${Elapsed.format(s.startedAt, now)}$helpers$activity"
   }
 
-  /** A helper's tooltip: the subagent's name and its parent's title. */
-  fun tooltip(h: HelperPlacement): String = "${h.helper.name} \u00b7 helper of ${h.parent.person.session.title}"
+  /** A subordinate's tooltip: the subagent's name, its parent's title and what it does. */
+  fun tooltip(h: HelperPlacement): String =
+    "${h.helper.name} \u00b7 helper of ${h.parent.person.session.title}" + (h.helper.activity?.let { " \u00b7 $it" } ?: "")
 
   companion object {
-    /** A helper's tag ends this many screen pixels (not scaled) above its head. */
+    /** A "+N" tag ends this many screen pixels (not scaled) above where it is anchored. */
     const val HELPER_TAG_DY = 2
+
+    /** An activity label ends this many screen pixels (not scaled) above the bubble (or a subordinate's head). */
+    const val ACTIVITY_DY = 3
+
+    /** What an activity label says when the hooks reported nothing. */
+    val DEFAULT_ACTIVITY = mapOf(
+      VizState.WORKING to "작업 중",
+      VizState.WAITING to "응답 필요",
+      VizState.DONE to "완료",
+      VizState.IDLE to "대기",
+    )
   }
 }

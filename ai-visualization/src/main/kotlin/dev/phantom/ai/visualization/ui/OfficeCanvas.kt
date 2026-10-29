@@ -152,8 +152,15 @@ class OfficeCanvas(
 
   // ---- view
 
-  /** Largest integer zoom whose room fits the canvas, 1..[MAX_ZOOM]. */
-  fun fitZoom(): Int = min(MAX_ZOOM, max(1, min(width / CONTENT_W, height / CONTENT_H)))
+  /**
+   * Largest integer zoom at which the scene's desk areas ([Scene.focus]) fit the canvas, 1..[MAX_ZOOM]. A zoom that crops at most
+   * [FIT_SLACK] of them still counts: that only cuts into the margin around the areas, and makes the people a step bigger.
+   */
+  fun fitZoom(): Int {
+    val f = scene.focus
+    val fit = kotlin.math.min(width.toDouble() / f.w, height.toDouble() / f.h) * (1 + FIT_SLACK)
+    return min(MAX_ZOOM, max(1, fit.toInt()))
+  }
 
   private fun fit() {
     if (!userZoomed) zoom = fitZoom()
@@ -165,8 +172,11 @@ class OfficeCanvas(
     refreshPeople()
   }
 
-  private fun originX() = (width - scene.width * zoom) / 2 + panX
-  private fun originY() = (height - scene.height * zoom) / 2 + panY
+  /** The origin at zoom [z] before panning: the centre of the scene's focus at the centre of the canvas. */
+  private fun baseX(z: Int) = width / 2 - (scene.focus.x * 2 + scene.focus.w) * z / 2
+  private fun baseY(z: Int) = height / 2 - (scene.focus.y * 2 + scene.focus.h) * z / 2
+  private fun originX() = baseX(zoom) + panX
+  private fun originY() = baseY(zoom) + panY
 
   fun panTo(x: Int, y: Int) {
     val lx = scene.width * zoom
@@ -185,8 +195,8 @@ class OfficeCanvas(
     val sy = (cy - originY()).toDouble() / zoom
     zoom = nz
     userZoomed = true
-    panX = (cx - sx * nz - (width - scene.width * nz) / 2.0).toInt()
-    panY = (cy - sy * nz - (height - scene.height * nz) / 2.0).toInt()
+    panX = (cx - sx * nz - baseX(nz)).toInt()
+    panY = (cy - sy * nz - baseY(nz)).toInt()
     refreshPeople()
     repaint()
   }
@@ -321,8 +331,9 @@ class OfficeCanvas(
 
   companion object {
     const val MAX_ZOOM = 6
-    private const val CONTENT_W = 420
-    private const val CONTENT_H = 280
+
+    /** How much of the focus a fitted zoom may crop (shared by both sides), as a fraction of it. */
+    const val FIT_SLACK = 0.12
 
     /** Client property holding the visible people: a read-only list of maps with tabId, status, personFrame, bubbleFrame, screen (java.awt.Rectangle). */
     const val PEOPLE_PROPERTY = "phantom.aiviz.people"
