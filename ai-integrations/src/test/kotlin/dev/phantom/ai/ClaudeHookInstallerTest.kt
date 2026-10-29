@@ -77,6 +77,8 @@ class ClaudeHookInstallerTest : TestCase() {
     assertEquals(first, Files.readString(file))
     val moved = HookScripts.write(root.resolve("other"))
     ClaudeHookInstaller.install(cfg, moved)
+    val stop = json().getAsJsonObject("hooks").getAsJsonArray("Stop")
+    assertEquals(1, stop.size()); assertTrue(stop.toString().contains(moved.claudeHook.toString()))
     assertEquals(HookScripts.command(moved.claudeStatusline) + " 'echo '\\''it'\\'''\\''s'\\'''",
       json().getAsJsonObject("statusLine")["command"].asString)
   }

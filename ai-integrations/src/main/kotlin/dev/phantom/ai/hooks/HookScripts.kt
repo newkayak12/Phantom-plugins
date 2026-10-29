@@ -2,6 +2,8 @@
 package dev.phantom.ai.hooks
 
 import com.intellij.openapi.application.PathManager
+import dev.phantom.ai.core.AgentKind
+import dev.phantom.ai.core.SystemDirs
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -15,9 +17,14 @@ data class ScriptPaths(val claudeHook: Path, val codexHook: Path, val claudeStat
  * In the templates the section sign stands for a dollar sign, so Kotlin does not interpolate the shell variables.
  */
 object HookScripts {
-  const val DIR_NAME = "phantom-ai"
-
-  fun defaultDir(): Path = PathManager.getSystemDir().resolve(DIR_NAME)
+  /**
+   * The global settings.json and hooks.json of the agents point here, also for agents started outside Phantom, so the
+   * scripts live under the user's home rather than the IDE's system dir, where clearing caches would break every session.
+   * A sandbox (-Dphantom.ai.claudeDir / codexDir) keeps them in the IDE's system dir and leaves the home alone.
+   */
+  fun defaultDir(): Path =
+    if (AgentKind.entries.any { SystemDirs.redirect(it) != null }) PathManager.getSystemDir().resolve("phantom-ai")
+    else Path.of(System.getProperty("user.home"), ".phantom", "ai")
 
   private fun sh(template: String) = template.trimStart().replace('§', '$')
     .replace("@PORT", HookEnv.PORT).replace("@TOKEN_HEADER", HookEnv.TOKEN_HEADER)
