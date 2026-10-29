@@ -392,7 +392,7 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
       requests += TagRequest(p.tabId, ox + p.x * zoom - w / 2, oy + p.y * zoom + p.tagDy, w, big.height + 4)
       specs[p.tabId] = TagSpec(p, text, TagKind.SESSION, p.state)
       // above the bubble, which bobs up to 2 pixels
-      activity("${p.tabId}/act", p, activityText(s.activity, p.state), p.state, p.x, p.bubbleBounds.y - 2)
+      activity("${p.tabId}/act", p, activityText(s.activity, p.state), p.state, p.x + theme.bubbleAnchorDx(p.facing) - theme.bubbleAnchorDx, p.bubbleBounds.y - 2)
     }
     val lastHelper = HashMap<String, HelperPlacement>()
     for (h in scene.helpers) {

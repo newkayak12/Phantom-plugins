@@ -2,11 +2,12 @@
 
 Same grid and footprints as theme A (16-unit tiles, 2:1 iso, desk 20x10, seat at z 7), so the layout does not change.
 A desk is a sawhorse workbench (rw) or a brick wall going up (lw); a chair is an upturned bucket (rw) or a cinder block (lw);
-people are a crew in hard hats and hi-vis vests with a real animation per state:
-  working  seated, seen from behind, swinging a hammer (sparks) or tapping a brick down with a trowel (mortar dust), 4 phases
-  waiting  standing, an arm straight up waving a red flag, mouth open, 4 phases
-  done     standing, thumbs up, a clipboard of green ticks in the other hand, 4 phases (the thumb bobs, a sparkle)
-  idle     sitting turned round on the seat, arms crossed, hard hat tipped over the face, legs out (1 frame)
+people are a crew in hard hats and hi-vis vests, drawn at twice the density in people_hd.py's style (see the people section),
+with a real animation per state:
+  working  seated, seen from behind, swinging a hammer (sparks) or setting a brick with a trowel (mortar dust), 4 phases
+  waiting  standing, an open hand up, waving a red flag, calling, 4 phases
+  done     standing, thumbs up, a clipboard of green ticks at the chest, a sparkle, 4 phases
+  idle     sitting turned round on the seat, arms crossed, hard hat tipped over the face, boots on the floor (1 frame)
 Run from ai-visualization/art:  PHANTOM_AIVIZ_OUT="$OUT" "$VENV/bin/python" theme_f.py [mockup]
 """
 import math
@@ -15,6 +16,8 @@ import sys
 from PIL import Image, ImageDraw, ImageFont
 from pix import C, dk, lt, mix, E, H, Spr, part, outline, outline_out, box, obox, M, INK
 import sprites as SP
+import people_hd as PH
+from people_hd import Fig, ramp, looks, head_front, head_back, hair_back_layer, hand, cuff, legs_front, flip, LIFT, SIT, WHITE, MOUTH
 
 OUT = SP.OUT
 SEG, W_H = SP.SEG, SP.W_H
@@ -45,6 +48,16 @@ def HM(*a):
         x = (x * 0x45d9f3b) & 0xffffffff
     x ^= x >> 16
     return x / 4294967296.0
+
+
+def thick(put, x0, y0, x1, y1, c, w=2):
+    n = int(max(abs(x1 - x0), abs(y1 - y0)) * 2) + 1
+    for i in range(n + 1):
+        t = i / n
+        x, y = x0 + (x1 - x0) * t, y0 + (y1 - y0) * t
+        for dx in range(w):
+            for dy in range(w):
+                put(int(math.floor(x)) + dx, int(math.floor(y)) + dy, c)
 
 
 STATES = ('working', 'waiting', 'done', 'idle')
@@ -701,246 +714,423 @@ def worklight():
     return s.crop()
 
 
-# ---------------------------------------------------------------- people
+# ---------------------------------------------------------------- people: a building crew at twice the density (Theme.personDetail)
+# Drawn the way people_hd.py draws the office people (its figure, heads, faces, hands and shading are imported, not copied), so
+# the crew has their warm shading, faces, hair and proportions; dressed as builders: a hard hat, a hi-vis vest with reflective
+# stripes over a work shirt, a belt with a tool pouch, work boots. Every size and anchor is even (a frame covers whole native
+# pixels). Frames: crew<v>_<state>_<phase>_f (idle has phase 0 only) and, for a desk along v, crew<v>_working_<phase>_lw_f.
+
+DETAIL = PH.DETAIL
 
 CREW = [
-    dict(hat=C('#f5c518'), vest=C('#ff7a1a'), shirt=C('#3f6fb5'), skin=C('#f1c39b'), hair=C('#5b3a26'), pants=C('#34405e'),
-         boot=C('#7a4a26'), style='short', tool='hammer'),
-    dict(hat=C('#f4f4ee'), vest=C('#c8f03c'), shirt=C('#6b7280'), skin=C('#8d5a3b'), hair=C('#1f1a1c'), pants=C('#3b3f47'),
-         boot=C('#5a3a22'), style='short', tool='trowel'),
-    dict(hat=C('#f28c28'), vest=C('#c8f03c'), shirt=C('#2f3b55'), skin=C('#d9a273'), hair=C('#26201f'), pants=C('#5b4b3a'),
-         boot=C('#3a2a22'), style='long', tool='hammer'),
-    dict(hat=C('#f5c518'), vest=C('#c8f03c'), shirt=C('#b8423a'), skin=C('#f6d2b5'), hair=C('#c2662e'), pants=C('#41506e'),
-         boot=C('#7a4a26'), style='beard', tool='trowel'),
-    dict(hat=C('#f4f4ee'), vest=C('#ff7a1a'), shirt=C('#e9e6dd'), skin=C('#5e3a28'), hair=C('#a8a8ae'), pants=C('#2e3446'),
-         boot=C('#4a3426'), style='short', tool='hammer'),
-    dict(hat=C('#f28c28'), vest=C('#ff7a1a'), shirt=C('#3e7d4f'), skin=C('#e8b48c'), hair=C('#7a3b22'), pants=C('#4a4038'),
-         boot=C('#5a3a22'), style='long', tool='trowel'),
+    dict(name='dongsu', skin='light', hair='#4a3022', style='short', shirt='#3f6fb5', pants='#34405e', shoe='#8a5a2e',
+         hat='#f5c518', hivis='#ff7a1a', tool='hammer'),
+    dict(name='ama', skin='dark', hair='#1f1a20', style='curly', shirt='#6b7280', pants='#3b3f47', shoe='#6a4426',
+         hat='#f4f4ee', hivis='#c8f03c', tool='trowel'),
+    dict(name='yuna', skin='medium', hair='#2c2028', style='ponytail', shirt='#2f3b55', pants='#5b4b3a', shoe='#7a4a26',
+         hat='#f28c28', hivis='#c8f03c', tool='hammer'),
+    dict(name='ivan', skin='pale', hair='#c2662e', style='short', shirt='#b8423a', pants='#41506e', shoe='#8a5a2e',
+         hat='#f5c518', hivis='#c8f03c', tool='trowel', beard=True),
+    dict(name='bongsu', skin='brown', hair='#a8a8ae', style='short', shirt='#e9e6dd', pants='#2e3446', shoe='#5a3a22',
+         hat='#f4f4ee', hivis='#ff7a1a', tool='hammer', glasses='#2a2228'),
+    dict(name='mei', skin='light', hair='#7a3b22', style='bob', shirt='#3e7d4f', pants='#4a4038', shoe='#6a4426',
+         hat='#f28c28', hivis='#ff7a1a', tool='trowel', freckles=True),
+    dict(name='leo', skin='tan', hair='#2a2230', style='messy', shirt='#d9a23a', pants='#33374d', shoe='#7a4a26',
+         hat='#f5c518', hivis='#ff7a1a', tool='hammer'),
+    dict(name='nari', skin='pale', hair='#f0c060', style='long', shirt='#4a7fd0', pants='#43405a', shoe='#8a5a2e',
+         hat='#f4f4ee', hivis='#c8f03c', tool='trowel'),
+    dict(name='omar', skin='medium', hair='#231c24', style='short', shirt='#5d6470', pants='#2f3240', shoe='#5a3a22',
+         hat='#f28c28', hivis='#c8f03c', tool='hammer', beard=True),
+    dict(name='suji', skin='tan', hair='#2c2028', style='twintail', shirt='#c0504a', pants='#3a3548', shoe='#7a4a26',
+         hat='#f5c518', hivis='#ff7a1a', tool='trowel', glasses='#7a3a2a'),
 ]
-EYE = C('#2a2238')
-REFLECT = C('#e3e9ee')
+REFLECT = ramp('#e3e9ee')
+BELT = C('#4a3220')
+BUCKLE = C('#d9c27a')
+LEATHER = ramp('#8a5a2e')
+WOOD = ramp('#a8743e')
+STEEL = ramp('#8d96a0')
+FLAG = ramp('#e5302a')
+GREEN = C('#2f9e4f')
 SPARK = [C('#fff6b0'), C('#ffd23a'), C('#ff9a2e')]
-DUST = [C('#e8e0cf'), C('#cfc5b2')]
-
-CW, CH, AX, AY = 48, 60, 24, 50  # person canvas: anchor (feet / seat point) at (AX, AY)
-
-
-def thick(put, x0, y0, x1, y1, c, w=2):
-    n = int(max(abs(x1 - x0), abs(y1 - y0)) * 2) + 1
-    for i in range(n + 1):
-        t = i / n
-        x, y = x0 + (x1 - x0) * t, y0 + (y1 - y0) * t
-        for dx in range(w):
-            for dy in range(w):
-                put(int(math.floor(x)) + dx, int(math.floor(y)) + dy, c)
+DUST = [C('#efe8d8'), C('#d6ccb8'), C('#bfb39c')]
+SEAT_HD = 7 * DETAIL  # the seat's height (OfficeLayout.SEAT_Z) at this density: the floor under a seated person
 
 
-def person(P, pose, phase=0):
-    s = Spr(CW, CH, AX, AY)
-    hat, hat_dk, hat_lt = P['hat'], dk(P['hat'], .25), lt(P['hat'], .45)
-    vs, vd, vl = P['vest'], dk(P['vest'], .22), lt(P['vest'], .2)
-    sh, shd = P['shirt'], dk(P['shirt'], .25)
-    sk, sd = P['skin'], dk(P['skin'], .18)
-    hr, hrd = P['hair'], dk(P['hair'], .3)
-    pa, pad = P['pants'], dk(P['pants'], .3)
-    bt = P['boot']
-    seated = pose in ('working', 'idle')
-    ox = AX - 9
-    oy = AY - 29 + (7 if seated else 0)
+def hat_front(f, P, cx, cy, tip=0):
+    """A hard hat on a front 3/4 head (centre cx, cy): a dome with a ridge and a shine, the peak a little to the left (where the
+    face looks). [tip] pulls it down over the face."""
+    sk = PH.SKIN[P['skin']]
+    R = ramp(P['hat'])
+    dome = {p for p in f.mask(('e', (cx - 15, cy - 23 + tip, cx + 14, cy + 3 + tip))) if p[1] - f.lift <= cy - 6 + tip}
+    f.paint(dome, R, 'hat', shade='rb')
+    f.vl(cx - 1, cy - 21 + tip, cy - 7 + tip, R['hi'])
+    f.vl(cx + 1, cy - 21 + tip, cy - 7 + tip, R['sh'])
+    f.hl(cx - 9, cx - 6, cy - 17 + tip, WHITE)
+    f.px(cx - 10, cy - 16 + tip, R['hi'])
+    brim = f.mask(('e', (cx - 19, cy - 9 + tip, cx + 16, cy - 3 + tip)))
+    f.paint(brim, R, 'brim', shade='b')
+    for (x, y) in brim:  # the brim's shadow on the face and hair
+        q = (x, y + 1)
+        if q not in brim and q in f.col and f.col[q] in (sk['b'], sk['hi']):
+            f.col[q] = sk['sh']
 
-    def R(x0, y0, x1, y1, c):
-        s.rect(x0 + ox, y0 + oy, x1 + ox, y1 + oy, c)
 
-    def Pt(x, y, c):
-        s.put(int(x) + ox, int(y) + oy, c)
+def hat_back(f, P, cx, cy):
+    """A hard hat on a head seen from behind: the dome, the ridge and a short brim all round."""
+    R = ramp(P['hat'])
+    dome = {p for p in f.mask(('e', (cx - 14, cy - 22, cx + 14, cy + 4))) if p[1] - f.lift <= cy - 5}
+    f.paint(dome, R, 'hat', shade='rb')
+    f.vl(cx - 1, cy - 20, cy - 6, R['hi'])
+    f.vl(cx + 1, cy - 20, cy - 6, R['sh'])
+    f.hl(cx - 8, cx - 5, cy - 16, WHITE)
+    f.paint(f.mask(('e', (cx - 17, cy - 8, cx + 17, cy - 2))), R, 'brim', shade='b')
 
-    def front_head(dy=0, tipped=False):
-        if not tipped:
-            R(5, 6 + dy, 13, 10 + dy, sk); R(6, 11 + dy, 12, 11 + dy, sk); R(13, 6 + dy, 13, 11 + dy, sd)
-            R(4, 6 + dy, 4, 8 + dy, hr); R(14, 6 + dy, 14, 8 + dy, hrd)
-            R(5, 6 + dy, 13, 6 + dy, dk(sk, .28))  # shade of the brim
-            if P['style'] == 'long':
-                R(3, 6 + dy, 4, 13 + dy, hr); R(14, 6 + dy, 15, 13 + dy, hrd)
-            if P['style'] == 'beard':
-                R(5, 9 + dy, 13, 11 + dy, hr); R(6, 12 + dy, 12, 12 + dy, hrd)
-        # the hard hat: dome, ridge, brim
-        R(6, 1 + dy, 12, 1 + dy, hat); R(5, 2 + dy, 13, 4 + dy, hat); R(3, 5 + dy, 15, 5 + dy, hat)
-        R(12, 2 + dy, 13, 4 + dy, hat_dk); R(3, 5 + dy, 15, 5 + dy, hat); R(13, 5 + dy, 15, 5 + dy, hat_dk)
-        R(9, 1 + dy, 9, 4 + dy, lt(hat, .2)); R(6, 2 + dy, 7, 3 + dy, hat_lt)
 
-    def legs_standing():
-        R(6, 22, 8, 25, pa); R(8, 22, 8, 25, pad); R(10, 22, 12, 25, pa); R(12, 22, 12, 25, pad)
-        R(5, 26, 8, 28, bt); R(10, 26, 13, 28, bt); R(5, 28, 8, 28, dk(bt, .4)); R(10, 28, 13, 28, dk(bt, .4))
-        R(6, 26, 7, 26, lt(bt, .3)); R(11, 26, 12, 26, lt(bt, .3))
+def boots(f, P):
+    """legs_front's shoes as work boots: a dark sole, a lighter toe cap, laces."""
+    sole = ramp(P['shoe'])['ln']
+    for x in range(-14, 15):
+        for y in (0, -1):
+            if (x, y) in f.col and (f.grp.get((x, y)) or '').startswith('shoe'):
+                f.col[(x, y)] = sole
+    for x0 in (-9, 4):
+        f.px(x0, -6, C('#e9dcb8')); f.px(x0 + 2, -6, C('#e9dcb8'))
 
-    def vest_front(y0=13, y1=20):
-        R(5, y0, 13, y1, vs); R(13, y0, 13, y1, vd); R(5, y0, 13, y0, vl)
-        R(8, y0, 10, y0, sh); Pt(9, y0 + 1, sh)  # collar
-        R(6, y0, 6, y0 + 4, REFLECT); R(12, y0, 12, y0 + 4, dk(REFLECT, .12))  # reflective braces
-        R(5, y0 + 5, 13, y0 + 5, REFLECT); R(13, y0 + 5, 13, y0 + 5, dk(REFLECT, .15))
-        R(9, y0 + 2, 9, y1, vd)  # zip
 
-    def belt(y=21):
-        R(5, y, 13, y, C('#4a3220')); Pt(9, y, C('#d9c27a'))
+def vest_front(f, P, poly, sleeves):
+    """The upper body from the front: a work shirt, a hi-vis vest open in a V at the neck with a reflective band and braces, a
+    belt with a buckle and a tool pouch; then [sleeves] (shirt) over it. Standing coordinates (the torso from y -58 to -33)."""
+    sk, hair, top, pants, *_ = looks(P)
+    hv = ramp(P['hivis'])
+    body = f.mask(('p', poly))
+    f.paint(body, top, 'shirt')
+    vest = {p for p in body if not (p[1] - f.lift < -46 and abs(p[0] + 0.5) < 1 + (-(p[1] - f.lift) - 46) * 0.6)}
+    f.paint(vest, hv, 'vest')
+    for (x, y) in vest:
+        yy = y - f.lift
+        if -45 <= yy <= -43 or (yy < -45 and abs(x + 0.5) in (6.5, 7.5)):
+            f.col[(x, y)] = REFLECT['sh'] if (yy == -43 or x > 9) else REFLECT['b']
+    f.vl(0, -46, -36, hv['dp'])  # zip
+    f.hl(-10, -5, -40, hv['sh'])  # pocket
+    f.vl(-10, -40, -37, hv['sh'])
+    for i in range(3):  # the shirt's collar in the V
+        f.px(-2 - i, -57 + i, top['hi']); f.px(1 + i, -57 + i, top['b'])
+    for sx in (-1, 1):  # folds under the arms
+        for i in range(4):
+            f.px(sx * (10 - i // 2), -52 + i * 2, hv['sh'])
+    f.hl(-11, 11, -34, BELT); f.hl(-11, 11, -33, PH.wdk(BELT, .4))
+    f.hl(-2, 1, -34, BUCKLE); f.px(-2, -33, BUCKLE); f.px(1, -33, BUCKLE)
+    f.paint(f.mask(('r', (7, -35, 13, -28))), LEATHER, 'pouch')
+    f.hl(7, 13, -35, LEATHER['dp'])
+    f.vl(12, -40, -36, WOOD['b'])  # a hammer handle in the pouch
+    for m in sleeves:
+        f.paint(m, top, 'sleeve')
 
-    if pose in ('waiting', 'done'):
-        legs_standing()
-        belt()
-        vest_front()
-        R(12, 20, 13, 23, C('#8a5a2e'))  # tool pouch
-        # left arm (viewer's left) hangs or holds the clipboard
-        if pose == 'waiting':
-            R(3, 13, 4, 19, sh); R(4, 14, 4, 19, shd); R(3, 20, 4, 20, sk)
-        else:
-            R(3, 13, 4, 16, sh); R(4, 14, 4, 16, shd)
-            # clipboard of ticks held at the chest
-            R(1, 14, 7, 22, C('#8a5a2e')); R(2, 15, 6, 21, C('#fbfaf6')); R(3, 14, 5, 14, C('#c9ced6'))
-            for k, yy in enumerate((16, 18, 20)):
-                Pt(2, yy, F['green']); Pt(3, yy + 1, F['green']); Pt(4, yy, F['green'])
-                R(5, yy, 6, yy, C('#9aa3b5')) if k < 2 else None
-            R(2, 17, 3, 18, sk) if False else None
-            R(7, 17, 8, 18, sk)  # fingers round the board edge
-        front_head()
-        if pose == 'waiting':
-            # shouting: brows up, mouth open
-            R(7, 8, 7, 9, EYE); R(11, 8, 11, 9, EYE); Pt(7, 8, C('#ffffff')); Pt(11, 8, C('#ffffff'))
-            R(6, 7, 7, 7, hrd); R(11, 7, 12, 7, hrd)
-            R(8, 10, 10, 11, C('#7a2230')); Pt(9, 10, C('#c0505a'))
-            # right arm straight up, the fist above the hat, and the flag
-            sw = (-1, 0, 1, 0)[phase % 4]
-            R(14, 12, 15, 14, sh); R(15, 6, 16, 11, sh); R(16, 6, 16, 11, shd)
-            R(15 + (sw > 0), 2, 16 + (sw > 0), 5, sk); R(16 + (sw > 0), 3, 16 + (sw > 0), 5, sd)
-            ang = math.radians((-22, 0, 22, 0)[phase % 4])
-            hx, hy = 16.0 + (sw > 0), 6.0
-            L = 15
-            tx, ty = hx + math.sin(ang) * L, hy - math.cos(ang) * L
-            n = 40
-            for i in range(n + 1):
-                t = i / n
-                Pt(round(hx + (tx - hx) * t), round(hy + (ty - hy) * t), C('#6b5a48'))
-            Pt(round(tx), round(ty) - 1, C('#d9c27a'))  # finial
-            cloth = C('#e5302a')
-            for i in range(9):  # the red cloth, rippling away from the pole
-                wave = math.sin(i * 0.8 - phase * math.pi / 2) * (0.6 + i * 0.12)
-                for j in range(6):
-                    px = tx + i - math.sin(ang) * j * 0.0 + math.sin(ang) * j
-                    py = ty + j * math.cos(ang) + wave + i * math.sin(ang) * 0.3
-                    c = cloth
-                    dw = math.cos(i * 0.8 - phase * math.pi / 2)
-                    if dw < -0.35:
-                        c = dk(cloth, .28)
-                    elif dw > 0.55:
-                        c = lt(cloth, .2)
-                    Pt(round(px + 1), round(py), c)
-        else:
-            # done: happy eyes, a grin, thumbs up by the shoulder
-            for ex in (6, 10):
-                Pt(ex, 9, EYE); Pt(ex + 1, 8, EYE); Pt(ex + 2, 9, EYE)
-            R(8, 11, 10, 11, dk(sk, .5)); Pt(7, 10, dk(sk, .35)); Pt(11, 10, dk(sk, .35))
-            b = (0, -1, -1, 0)[phase % 4]
-            R(14, 13, 15, 15, sh); R(15, 9 + b, 16, 14, sh); R(16, 10 + b, 16, 14, shd)
-            R(14, 6 + b, 17, 9 + b, sk); R(17, 7 + b, 17, 9 + b, sd); R(14, 7 + b, 14, 8 + b, sd)
-            R(15, 2 + b, 16, 5 + b, sk); R(16, 2 + b, 16, 5 + b, sd)  # the thumb
-            if phase % 2 == 0:  # sparkle
-                cx, cy = 20, 1 + (phase // 2)
-                for dx, dy in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)):
-                    Pt(cx + dx, cy + dy, C('#fff3a6') if (dx, dy) == (0, 0) else C('#ffd23a'))
-    elif pose == 'working':
-        # seated, seen from behind at the bench
-        R(5, 13, 13, 21, vs); R(12, 13, 13, 21, vd); R(5, 13, 13, 13, vl)
-        R(6, 13, 6, 18, REFLECT); R(12, 13, 12, 18, dk(REFLECT, .12)); R(5, 18, 13, 18, REFLECT)
-        R(5, 21, 13, 21, C('#4a3220'))
-        R(3, 14, 4, 17, sh); R(3, 14, 3, 17, lt(sh, .15))  # left arm reaching forward
-        # back of the head under the hat
-        R(5, 7, 13, 10, hr); R(5, 10, 13, 10, hrd); R(7, 11, 11, 12, sd); Pt(4, 8, sk); Pt(14, 8, sd)
-        if P['style'] == 'long':
-            R(8, 10, 10, 15, hr); R(10, 10, 10, 15, hrd)
-        R(6, 1, 12, 1, hat); R(5, 2, 13, 5, hat); R(3, 6, 15, 6, hat); R(12, 2, 13, 5, hat_dk); R(13, 6, 15, 6, hat_dk)
-        R(9, 1, 9, 5, lt(hat, .2)); R(6, 2, 7, 4, hat_lt)
-        # swinging arm: shoulder -> elbow -> hand per phase, then the tool
-        sx, sy = 14, 14
-        poses = [((17, 9), (17, 3)), ((18, 11), (21, 8)), ((17, 13), (19, 15)), ((18, 11), (20, 10))]
-        (ex, ey), (hx, hy) = poses[phase % 4]
 
-        def put(x, y, c):
-            Pt(x, y, c)
-        if P['tool'] == 'hammer':
-            # handle from the hand away from the shoulder, head across its end
-            ang = [-1.9, -0.3, 0.9, -0.6][phase % 4]
-            dx, dy = math.cos(ang), math.sin(ang)
-            ex2, ey2 = hx + dx * 6, hy + dy * 6
-            thick(put, hx, hy, ex2, ey2, C('#9a6a3c'), 1)
-            px, py = -dy, dx
-            thick(put, ex2 - px * 2, ey2 - py * 2, ex2 + px * 2, ey2 + py * 2, C('#5c646d'), 2)
-            Pt(ex2 + px * 2, ey2 + py * 2, C('#c9d0d8'))
-        else:
-            # trowel: a steel blade below the fist; the other hand holds a brick
-            ang = [-1.6, -0.6, 0.6, -0.2][phase % 4]
-            dx, dy = math.cos(ang), math.sin(ang)
-            ex2, ey2 = hx + dx * 3, hy + dy * 3
-            thick(put, hx, hy, ex2, ey2, C('#9a6a3c'), 1)
-            for k in range(4):
-                for w in range(-k, k + 1):
-                    Pt(ex2 + dx * k - dy * w * 0.6, ey2 + dy * k + dx * w * 0.6, C('#c9d0d8') if w < 0 else C('#8d96a0'))
-            R(0, 12, 3, 13, F['brick'][0]); R(0, 13, 3, 13, dk(F['brick'][0], .25)); R(2, 14, 3, 14, sk)
-        thick(put, sx, sy, ex, ey, sh, 2)
-        thick(put, ex, ey, hx, hy, sh, 2)
-        R(hx - 0, hy - 0, hx + 1, hy + 1, sk)
-        if phase % 4 == 2:  # impact: sparks (hammer) or a puff of mortar (trowel)
-            cx, cy = 20, 16
-            pts = ((2, -2), (3, 0), (1, -4), (4, -3), (-1, -3), (3, 2), (5, -1)) if P['tool'] == 'hammer' else \
-                ((1, -1), (2, -2), (3, -1), (2, 0), (0, -2), (4, -2))
-            for i, (dx, dy) in enumerate(pts):
-                Pt(cx + dx, cy + dy, (SPARK if P['tool'] == 'hammer' else DUST)[i % (3 if P['tool'] == 'hammer' else 2)])
-        if phase % 4 == 3:  # dying sparks / settling dust
-            cx, cy = 21, 15
-            for i, (dx, dy) in enumerate(((3, -3), (5, -1), (2, 1))):
-                Pt(cx + dx, cy + dy, (SPARK[2] if P['tool'] == 'hammer' else DUST[1]))
+def open_hand(f, sk, hx, hy, thumb=-1):
+    """An open palm facing us, four fingers apart, the thumb out on the [thumb] side (-1 left)."""
+    f.paint(f.mask(('e', (hx - 5, hy - 2, hx + 5, hy + 8))), sk, 'hand', hl=False)
+    for fx, ln in ((-4, 5), (-1, 7), (2, 7), (5, 5)):
+        f.paint(f.mask(('r', (hx + fx, hy - ln, hx + fx + 1, hy))), sk, 'hand', shade='', hl=False)
+        f.px(hx + fx + 1, hy - ln + 1, sk['sh'])
+    f.paint(f.mask(('l', [(hx + 5 * thumb, hy + 4), (hx + 9 * thumb, hy - 1)], 3)), sk, 'hand', shade='', hl=False)
+    f.hl(hx - 3, hx + 3, hy + 6, sk['sh'])
+
+
+def fist(f, sk, x0, y0, x1, y1, group='fist'):
+    f.paint(f.mask(('e', (x0, y0, x1, y1))), sk, group, hl=False)
+    for x in range(x0 + 2, x1 - 1, 2):
+        f.vl(x, y0 + 2, y0 + 3, sk['sh'])
+    f.px(x0 + 1, y0 + 1, sk['hi'])
+
+
+def done_effects(phase):
+    """A sparkle beside the thumb that grows and fades, in another spot every other phase."""
+    out = []
+    cx, cy = (31, -82) if phase < 2 else (-22, -76)
+    r = (3, 2, 3, 1)[phase]
+    for d in range(1, r + 1):
+        c = SPARK[0] if d < r else SPARK[1]
+        for dx, dy in ((d, 0), (-d, 0), (0, d), (0, -d)):
+            out.append((cx + dx, cy + dy, c))
+    out.append((cx, cy, WHITE))
+    return out
+
+
+def standing_f(P, state, phase):
+    """Standing, front 3/4, at the feet's anchor: waving a red flag, or a thumbs up with a ticked clipboard."""
+    f = Fig()
+    sk, hair, top, *_ = looks(P)
+    legs_front(f, P)
+    boots(f, P)
+    f.lift = LIFT
+    hair_back_layer(f, P, 0, -74)
+    torso = [(-12, -58), (12, -58), (14, -52), (12, -33), (-12, -33), (-14, -52)]
+    shoulders = [f.mask(('e', (-16, -60, -6, -48))), f.mask(('e', (6, -60, 16, -48)))]
+    fx = []
+    if state == 'waiting':
+        sw = (-1, 0, 1, 0)[phase]
+        hx = 21 + sw
+        sleeves = [f.mask(('l', [(-12, -54), (-19, -62), (-21, -69)], 7)),
+                   f.mask(('l', [(12, -54), (19, -64), (hx, -72)], 7))]
+        vest_front(f, P, torso, shoulders + sleeves)
+        cuff(f, top, -21, -69)
+        cuff(f, top, hx, -72)
+        open_hand(f, sk, -21, -78, thumb=1)
+        # the flag: a pole through the raised fist, the red cloth rippling off its top
+        a = math.radians((-16, 0, 16, 0)[phase])
+        ux, uy = math.sin(a), -math.cos(a)
+        bx, by = hx - ux * 6, -72 - uy * 6
+        tx, ty = hx + ux * 36, -78 + uy * 36
+        f.paint(f.mask(('l', [(bx, by), (tx, ty)], 2)), WOOD, 'pole', shade='', hl=False)
+        f.px(round(tx), round(ty) - 1, BUCKLE)
+        nx, ny = math.cos(a), math.sin(a)
+        for y in range(int(ty) - 6, int(ty) + 30):
+            for x in range(int(tx) - 4, int(tx) + 26):
+                dx, dy = x - tx, y - ty
+                i = dx * nx + dy * ny
+                j = -(dx * ux + dy * uy)
+                k = i * 0.5 - phase * math.pi / 2
+                j -= math.sin(k) * (0.4 + i * 0.13)
+                if 1 <= i < 18 and 1 <= j < 13:
+                    w = math.cos(k)
+                    c = FLAG['sh'] if w < -0.45 else (FLAG['hi'] if w > 0.6 else FLAG['b'])
+                    if j >= 11.5:
+                        c = FLAG['dp']
+                    f.px(x, y, c, 'flag')
+        fist(f, sk, hx - 4, -81, hx + 4, -73)
+        f.vl(hx - 5, -79, -76, sk['b'])  # the thumb round the pole
+        head_front(f, P, 'calling' if phase in (0, 2) else 'open')
+        hat_front(f, P, 0, -74)
     else:
-        # idle: turned round on the seat, slumped back, knees splayed, arms crossed, head lolled, hat tipped over the face
-        def put(x, y, c):
-            Pt(x, y, c)
-        thick(put, 6, 20, 2, 23, pa, 3); thick(put, 2, 23, 1, 26, pa, 3)
-        thick(put, 10, 20, 14, 23, pa, 3); thick(put, 15, 23, 16, 26, pa, 3)
-        Pt(3, 23, pad); Pt(16, 23, pad)  # knees
-        R(-1, 27, 3, 28, bt); R(15, 27, 19, 28, bt); R(-1, 28, 3, 28, dk(bt, .4)); R(15, 28, 19, 28, dk(bt, .4))
-        R(0, 27, 1, 27, lt(bt, .3)); R(16, 27, 17, 27, lt(bt, .3))
-        vest_front(15, 21)
-        R(5, 21, 13, 21, C('#4a3220'))
-        R(3, 15, 4, 19, sh); R(14, 15, 15, 19, shd)  # upper arms
-        R(4, 17, 14, 19, sh); R(4, 19, 14, 19, shd); R(5, 17, 13, 17, lt(sh, .12))  # crossed forearms
-        Pt(14, 17, sk); Pt(4, 18, sk)
-        # head lolled to one side, only the chin under the brim
-        R(5, 11, 11, 13, sk); R(11, 11, 11, 13, sd); R(6, 14, 10, 14, sd)
-        if P['style'] == 'beard':
-            R(5, 12, 11, 14, hr)
-        if P['style'] == 'long':
-            R(3, 10, 4, 15, hr); R(12, 10, 13, 15, hrd)
-        R(7, 13, 8, 13, dk(sk, .55))  # mouth, slack
-        R(5, 4, 10, 4, hat); R(4, 5, 11, 8, hat); R(10, 5, 11, 8, hat_dk); R(7, 4, 7, 8, lt(hat, .2)); R(5, 5, 6, 6, hat_lt)
-        thick(put, 1, 10, 14, 7, hat, 1); thick(put, 1, 11, 14, 8, hat_dk, 1)  # tilted brim
-        R(3, 9, 12, 9, hat); Pt(2, 10, hat); Pt(13, 8, hat)
-        R(5, 10, 11, 10, dk(sk, .45))
-    outline_out(s, INK)
-    return s
+        b = (0, -1, -2, -1)[phase]
+        sleeves = [f.mask(('l', [(-12, -54), (-15, -44), (-6, -41)], 7)),
+                   f.mask(('l', [(12, -54), (20, -50), (22, -60 + b)], 7))]
+        vest_front(f, P, torso, shoulders + sleeves)
+        # the clipboard held to the chest, three green ticks
+        f.paint(f.mask(('r', (-15, -55, -2, -34))), ramp('#a0703a'), 'board')
+        f.paint(f.mask(('r', (-14, -52, -3, -36))), ramp('#fbfaf4'), 'paper', shade='', hl=False)
+        f.paint(f.mask(('r', (-10, -57, -6, -52))), STEEL, 'clip', hl=False)
+        for ty in (-49, -44, -39):
+            f.px(-13, ty, GREEN); f.px(-12, ty + 1, GREEN); f.px(-11, ty, GREEN); f.px(-10, ty - 1, GREEN)
+            f.hl(-8, -4, ty, C('#9aa3b5'))
+        cuff(f, top, -4, -41)
+        hand(f, sk, -4, -46, 1, -40, 'handL', thumb=-1)
+        # thumbs up by the shoulder
+        cuff(f, top, 22, -60 + b)
+        # a sideways fist, fingers curled towards us (creases across), the thumb straight up on the side of the head
+        f.paint(f.mask(('e', (17, -67 + b, 28, -58 + b))), sk, 'fist', hl=False)
+        for y in (-64, -62, -60):
+            f.hl(21, 26, y + b, sk['sh'])
+        f.paint(f.mask(('e', (16, -76 + b, 21, -63 + b))), sk, 'thumb', shade='r', hl=False)
+        f.px(18, -75 + b, sk['hi']); f.px(17, -73 + b, sk['hi'])
+        f.hl(18, 19, -76 + b, mix(sk['b'], WHITE, .4))  # the nail
+        head_front(f, P, 'happy')
+        hat_front(f, P, 0, -74)
+        fx = done_effects(phase)
+    return f, fx
 
 
-def person_frames(P, pose):
-    """The phases of one pose, cropped to their common box so every phase has the same size and anchor."""
-    n = PHASES if pose != 'idle' else 1
-    sp = [person(P, pose, ph) for ph in range(n)]
-    x0 = min(p.img.getbbox()[0] for p in sp)
-    y0 = min(p.img.getbbox()[1] for p in sp)
-    x1 = max(p.img.getbbox()[2] for p in sp)
-    y1 = max(p.img.getbbox()[3] for p in sp)
+def idle_f(P):
+    """Turned round on the seat, slumped, arms crossed, the hard hat tipped over the face, boots on the floor."""
+    f = Fig()
+    sk, hair, top, pants, shoe, *_ = looks(P)
+    sr = ramp(P['shoe'])
+    f.paint(f.mask(('r', (-12, -6, 12, 1))), pants, 'lap')
+    f.paint(f.mask(('p', [(-12, 0), (-3, 0), (-5, SEAT_HD - 5), (-13, SEAT_HD - 5)])), pants, 'legL', shade='r')
+    f.paint(f.mask(('p', [(3, 0), (12, 0), (15, SEAT_HD - 5), (6, SEAT_HD - 5)])), pants, 'legR', shade='r')
+    f.paint(f.mask(('e', (-16, SEAT_HD - 9, -3, SEAT_HD - 1))), sr, 'shoeL')
+    f.paint(f.mask(('e', (4, SEAT_HD - 9, 17, SEAT_HD - 1))), sr, 'shoeR')
+    f.hl(-16, -3, SEAT_HD - 2, sr['ln']); f.hl(4, 17, SEAT_HD - 2, sr['ln'])
+    f.hl(-13, -8, SEAT_HD - 8, sr['hi']); f.hl(7, 12, SEAT_HD - 8, sr['hi'])
+    f.lift = 28  # the standing torso and head, lowered onto the seat
+    hair_back_layer(f, P, 2, -72)
+    torso = [(-12, -58), (12, -58), (14, -52), (12, -33), (-12, -33), (-14, -52)]
+    shoulders = [f.mask(('e', (-16, -60, -6, -48))), f.mask(('e', (6, -60, 16, -48)))]
+    vest_front(f, P, torso, shoulders + [f.mask(('e', (-15, -51, 15, -41)))])
+    f.hl(-11, 11, -46, top['sh'])
+    f.hl(-13, 13, -41, top['dp'])
+    fist(f, sk, 10, -50, 16, -44, 'handR')
+    fist(f, sk, -16, -47, -10, -41, 'handL')
+    head_front(f, P, 'open', hy=-72, hx=2)
+    hat_front(f, P, 2, -72, tip=9)
+    # a slack, open mouth under the brim
+    f.hl(-2, -1, -62, MOUTH); f.hl(-2, -1, -61, C('#5a2228'))
+    return f, []
+
+
+def tool_line(f, x0, y0, ang, ln):
+    return x0 + math.cos(ang) * ln, y0 + math.sin(ang) * ln
+
+
+def working_f(P, phase):
+    """Seated, seen from behind, facing up-right at the bench: hammering (sparks) or laying a brick with a trowel (dust)."""
+    f = Fig()
+    sk, hair, top, pants, *_ = looks(P)
+    hv = ramp(P['hivis'])
+    hammer = P['tool'] == 'hammer'
+    hx, hy = 8, -50 + (1 if phase == 2 else 0)
+    f.paint(f.mask(('e', (-6, -10, 18, 2))), pants, 'pants')
+    f.lift = SIT
+    f.paint(f.mask(('l', [(-2, -30), (-5, -18), (10, -24)], 7)), top, 'sleeveL')
+    f.lift = 0
+    f.paint(f.mask(('p', [(8, -10), (18, -12), (30, -15), (31, -9), (20, -3), (10, -2)])), pants, 'thigh')
+    f.hl(19, 29, -9, pants['dp'])
+    f.lift = SIT
+    shoulders = f.mask(('e', (-8, -37, 4, -25)), ('e', (8, -37, 20, -25)))
+    f.paint(shoulders | f.mask(('p', [(-6, -6), (16, -6), (18, -24), (16, -33), (0, -34), (-7, -24)])), top, 'shirt')
+    vest = f.mask(('p', [(-5, -6), (15, -6), (16, -24), (14, -33), (1, -34), (-5, -24)]))
+    f.paint(vest, hv, 'vest')
+    for (x, y) in vest:
+        yy = y - f.lift
+        if -20 <= yy <= -18 or (yy < -20 and x in (1, 2, 11, 12)):
+            f.col[(x, y)] = REFLECT['sh'] if (yy == -18 or x >= 11) else REFLECT['b']
+    f.vl(6, -32, -10, hv['sh'])
+    f.hl(-5, 15, -8, BELT); f.hl(-5, 15, -7, PH.wdk(BELT, .4))
+    f.paint(f.mask(('r', (-6, -11, -1, -4))), LEATHER, 'pouch')
+    hair_back_layer(f, P, hx, hy, back=True)
+    head_back(f, P, hx, hy)
+    hat_back(f, P, hx, hy)
+    f.lift = 0
+    fx = []
+    if hammer:
+        S = (17, -26)
+        E, Hd, ang = [((23, -36), (23, -48), math.radians(-150)),
+                      ((25, -28), (31, -38), math.radians(-60)),
+                      ((22, -18), (30, -22), math.radians(15)),
+                      ((24, -24), (31, -31), math.radians(-25))][phase]
+        ex, ey = tool_line(f, Hd[0], Hd[1], ang, 12)
+        f.paint(f.mask(('l', [Hd, (ex, ey)], 3)), WOOD, 'handle', shade='', hl=False)
+        px, py = -math.sin(ang), math.cos(ang)
+        f.paint(f.mask(('l', [(ex - px * 5, ey - py * 5), (ex + px * 4, ey + py * 4)], 5)), STEEL, 'head')
+        hit = (round(ex + px * 5), round(ey + py * 5))
+    else:
+        # the other hand sets a brick on the bench
+        f.lift = SIT
+        f.paint(f.mask(('r', (13, -35, 25, -29))), ramp(F['brick'][0]), 'brick')
+        f.hl(13, 25, -32, F['mortar'])
+        f.lift = 0
+        S = (17, -26)
+        E, Hd, ang = [((23, -27), (28, -35), math.radians(-35)),
+                      ((24, -24), (30, -30), math.radians(-10)),
+                      ((22, -19), (30, -23), math.radians(30)),
+                      ((23, -22), (30, -27), math.radians(5))][phase]
+        ex, ey = tool_line(f, Hd[0], Hd[1], ang, 4)
+        f.paint(f.mask(('l', [Hd, (ex, ey)], 3)), WOOD, 'handle', shade='', hl=False)
+        tx, ty = tool_line(f, ex, ey, ang, 9)
+        px, py = -math.sin(ang), math.cos(ang)
+        f.paint(f.mask(('p', [(ex - px * 4, ey - py * 4), (ex + px * 4, ey + py * 4), (tx, ty)])), STEEL, 'blade')
+        hit = (round(tx), round(ty))
+    f.paint(f.mask(('l', [S, E, Hd], 7)), top, 'sleeveR')
+    cuff(f, top, Hd[0] - 2, Hd[1] + 2)
+    fist(f, sk, Hd[0] - 3, Hd[1] - 3, Hd[0] + 4, Hd[1] + 3, 'hand')
+    if not hammer:
+        f.lift = SIT
+        hand(f, sk, 15, -30, 21, -24, 'handL')
+        f.lift = 0
+    else:
+        f.lift = SIT
+        hand(f, sk, 15, -29, 21, -23, 'handL')
+        f.lift = 0
+    # sparks or mortar dust where the tool lands
+    if phase == 2:
+        hx_, hy_ = hit
+        if hammer:
+            for i, (dx, dy) in enumerate(((3, -3), (5, -1), (2, -6), (6, -5), (-1, -5), (5, 2), (8, -2), (4, -8), (9, -6))):
+                fx.append((hx_ + dx, hy_ + dy, SPARK[i % 3]))
+                if i < 4:
+                    fx.append((hx_ + dx + 1, hy_ + dy, SPARK[0]))
+        else:
+            for i, (dx, dy, r) in enumerate(((2, -3, 2), (6, -2, 2), (4, -6, 1), (-1, -4, 1))):
+                for ddx in range(-r, r + 1):
+                    for ddy in range(-r, r + 1):
+                        if ddx * ddx + ddy * ddy <= r * r + 1:
+                            fx.append((hx_ + dx + ddx, hy_ + dy + ddy, DUST[(ddx + ddy + i) % 2]))
+    elif phase == 3:
+        hx_, hy_ = (34, -24) if hammer else (34, -26)
+        if hammer:
+            for i, (dx, dy) in enumerate(((6, -8), (10, -4), (3, -11), (11, -9))):
+                fx.append((hx_ + dx, hy_ + dy, SPARK[1 + i % 2]))
+        else:
+            for i, (dx, dy, r) in enumerate(((3, -6, 2), (7, -5, 1), (0, -8, 1))):
+                for ddx in range(-r, r + 1):
+                    for ddy in range(-r, r + 1):
+                        if ddx * ddx + ddy * ddy <= r * r:
+                            fx.append((hx_ + dx + ddx, hy_ + dy + ddy, DUST[1 + (ddx + ddy) % 2]))
+    return f, fx
+
+
+def finish_fx(f, fx):
+    """Fig.finish(), then the effect pixels (sparks, dust, a sparkle) on top without an outline, the frame grown to hold them."""
+    sp = f.finish()
+    if not fx:
+        return sp
+    x0, y0 = min([-sp.ax] + [p[0] for p in fx]), min([-sp.ay] + [p[1] for p in fx])
+    x1, y1 = max([sp.w - sp.ax - 1] + [p[0] for p in fx]), max([sp.h - sp.ay - 1] + [p[1] for p in fx])
+    x0 -= x0 % 2
+    y0 -= y0 % 2
+    w, h = x1 - x0 + 1, y1 - y0 + 1
+    out = Spr(w + w % 2, h + h % 2, -x0, -y0)
+    out.img.paste(sp.img, (-sp.ax - x0, -sp.ay - y0))
+    out._load()
+    for x, y, c in fx:
+        out.put(x - x0, y - y0, c)
+    return out
+
+
+def pose_frames(P, state):
+    """The phases of one pose, each grown to their common box so every phase has the same (even) size and anchor."""
+    if state == 'idle':
+        sp = [finish_fx(*idle_f(P))]
+    elif state == 'working':
+        sp = [finish_fx(*working_f(P, ph)) for ph in range(PHASES)]
+    else:
+        sp = [finish_fx(*standing_f(P, state, ph)) for ph in range(PHASES)]
+    x0 = min(-p.ax for p in sp)
+    y0 = min(-p.ay for p in sp)
+    x1 = max(p.w - p.ax for p in sp)
+    y1 = max(p.h - p.ay for p in sp)
     out = []
     for p in sp:
-        c = Spr(x1 - x0, y1 - y0, p.ax - x0, p.ay - y0)
-        c.img = p.img.crop((x0, y0, x1, y1))
-        c.em = p.em.crop((x0, y0, x1, y1))
+        c = Spr(x1 - x0, y1 - y0, -x0, -y0)
+        c.img.paste(p.img, (-p.ax - x0, -p.ay - y0))
         c._load()
         out.append(c)
     return out
+
+
+def crew_frames():
+    fr = {}
+    for vi, P in enumerate(CREW):
+        for st in STATES:
+            for ph, sp in enumerate(pose_frames(P, st)):
+                fr[f'crew{vi}_{st}_{ph}_f'] = sp
+                if st == 'working':
+                    fr[f'crew{vi}_{st}_{ph}_lw_f'] = flip(sp)
+    return fr
+
+
+def crew_lineup(path, scale=4):
+    """Every crew member x state and phase at [scale] x the scene (scale / DETAIL x the frames), on dirt."""
+    fr = crew_frames()
+    cols = [f'working_{p}' for p in range(4)] + ['working_0_lw', 'idle_0'] + [f'waiting_{p}' for p in range(4)] + \
+           [f'done_{p}' for p in range(4)]
+    k = scale // DETAIL
+    cw, ch = 34 * scale, 56 * scale
+    img = Image.new('RGBA', (cw * len(cols) + 20, ch * len(CREW) + 20), (163, 130, 92, 255))
+    d = ImageDraw.Draw(img)
+    for yy in range(0, img.height, 8 * scale):
+        d.line([(0, yy), (img.width, yy)], fill=(150, 118, 82, 255))
+    for r in range(len(CREW)):
+        for c, name in enumerate(cols):
+            sp = fr[f'crew{r}_{name}_f']
+            big = sp.img.resize((sp.w * k, sp.h * k), Image.NEAREST)
+            x = 10 + c * cw + cw // 2 - sp.ax * k
+            y = 10 + r * ch + ch - 10 * scale - sp.ay * k
+            img.alpha_composite(big, (x, max(0, y)))
+    img.convert('RGB').save(path)
+    print('wrote', path)
 
 
 # ---------------------------------------------------------------- sheet
@@ -973,10 +1163,7 @@ def build_sheet_f():
     fr['cones_f'] = cones()
     fr['barrow_f'] = wheelbarrow('lw')
     fr['worklight_f'] = worklight()
-    for vi, P in enumerate(CREW):
-        for st in STATES:
-            for ph, sp in enumerate(person_frames(P, st)):
-                fr[f'crew{vi}_{st}_{ph}_f'] = sp
+    fr.update(crew_frames())
     for st in STATES:
         fr[f'bubble_{st}'] = SP.bubble(st)
     out = f'{OUT}/f'
@@ -986,6 +1173,14 @@ def build_sheet_f():
 
 
 # ---------------------------------------------------------------- mockup (the scene of scenes.py, theme F frames)
+
+
+def native(sp):
+    """An HD crew frame shrunk to the scene's density, for the native mockup only (the plugin draws them at DETAIL x)."""
+    n = Spr(sp.w // DETAIL, sp.h // DETAIL, sp.ax // DETAIL, sp.ay // DETAIL)
+    n.img = sp.img.resize((n.w, n.h), Image.NEAREST)
+    n._load()
+    return n
 
 
 def mockup(fr):
@@ -1016,12 +1211,13 @@ def mockup(fr):
     phase = int(os.environ.get('PHASE', '2'))
     for si, (area, di, state, pv, title) in enumerate(SC.SESSIONS):
         o, U, V = SC.DESKS[area][di]
-        pv = si % 6
+        pv = si % len(CREW)
         add(5, U + V + 15, 'bench_rw_f' if o == 'rw' else 'brickwall_lw_f', U, V)
         cu, cv = (U + 10, V + 12.5) if o == 'rw' else (U + 12.5, V + 10)
         add(5, cu + cv, 'bucket_f' if o == 'rw' else 'cinder_lw_f', cu, cv)
         ph = phase if state != 'idle' else 0
-        name = f'crew{pv}_{state}_{ph}_f'
+        lw = '_lw' if state == 'working' and o == 'lw' else ''
+        name = native(fr[f'crew{pv}_{state}_{ph}{lw}_f'])  # the scene is native: the HD crew at half size
         if state in ('working', 'idle'):
             add(5, cu + cv + 0.1, name, cu, cv, 7)
             X, Y = SC.proj(cu, cv, 7)
@@ -1029,7 +1225,7 @@ def mockup(fr):
             pu, pvv = (U + 16, V + 22) if o == 'lw' else ((U + 15, V + 19) if di == 1 else (U - 3, V + 16))
             add(5, pu + pvv, name, pu, pvv)
             X, Y = SC.proj(pu, pvv)
-        people.append((state, X, Y - fr[name].ay))
+        people.append((state, X, Y - name.ay))
     for label, (pu, pvv), _ in SC.AREAS:
         add(5, pu + pvv, 'sign_f', pu, pvv)
     canvas = Spr(NW, NH)
@@ -1043,23 +1239,7 @@ def mockup(fr):
     img = bg.resize((NW * S, NH * S), Image.NEAREST)
     img.convert('RGB').save(f'{OUT}/F-construction.png')
     print('wrote', f'{OUT}/F-construction.png')
-    # every person frame at x6 for a close look
-    rows = []
-    for vi in range(len(CREW)):
-        row = []
-        for st in STATES:
-            for ph in range(PHASES if st != 'idle' else 1):
-                row.append(fr[f'crew{vi}_{st}_{ph}_f'])
-        rows.append(row)
-    cw = max(f.w for r in rows for f in r) + 4
-    chh = max(f.h for r in rows for f in r) + 4
-    sheet = Image.new('RGBA', (cw * max(len(r) for r in rows), chh * len(rows)), (120, 104, 84, 255))
-    for ri, r in enumerate(rows):
-        for ci, f in enumerate(r):
-            sheet.alpha_composite(f.img, (ci * cw + 2, ri * chh + chh - 2 - f.h))
-    sheet = sheet.resize((sheet.width * 6, sheet.height * 6), Image.NEAREST)
-    sheet.convert('RGB').save(f'{OUT}/F-crew.png')
-    print('wrote', f'{OUT}/F-crew.png')
+    crew_lineup(f'{OUT}/F-crew.png')
 
 
 # (frame, u, v, z, layer, key): mirrors ThemeF.decor, used by the mockup
