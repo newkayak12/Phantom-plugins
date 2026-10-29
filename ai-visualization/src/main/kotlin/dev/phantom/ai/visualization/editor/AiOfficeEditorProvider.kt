@@ -10,7 +10,7 @@ import com.intellij.openapi.vfs.VirtualFile
 
 /** Opens [AiOfficeFile] (and nothing else) as the AI Office editor. */
 class AiOfficeEditorProvider : FileEditorProvider, DumbAware {
-  // with an AI Integration older than 0.3.1 (no public API or no AiSubagent) a tab left open is not restored instead of failing
+  // with an AI Integration older than 0.3.6 (no public API, no AiSubagent or no activity) a tab left open is not restored instead of failing
   override fun accept(project: Project, file: VirtualFile): Boolean = file is AiOfficeFile && dev.phantom.ai.visualization.actions.ApiCheck.available
 
   override fun createEditor(project: Project, file: VirtualFile): FileEditor = AiOfficeEditor(project, file)

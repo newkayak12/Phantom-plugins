@@ -27,7 +27,7 @@ internal object ApiMapping {
   fun session(s: AgentSession): AiSession =
     AiSession(
       s.tabId, s.worktree, agent(s.kind), status(s.status), SessionRow.title(s), s.startedAt,
-      s.subagents.map { AiSubagent(it.id, it.name, it.running) },
+      s.subagents.map { AiSubagent(it.id, it.name, it.running, it.activity) }, s.activity,
     )
 
   /** prNumber is always null: the model is built with no pull request lookup. */

@@ -7,6 +7,7 @@ import dev.phantom.ai.hooks.HookEventMapper
 import dev.phantom.ai.hooks.SubagentEvent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HookEventMapperTest {
@@ -69,5 +70,44 @@ class HookEventMapperTest {
     assertEquals(SubagentEvent.START, m(codex, "SubagentStart").subagent)
     assertEquals(SubagentEvent.STOP, m(codex, "SubagentStop").subagent)
   }
+  private fun tool(kind: AgentKind, tool: String, input: String, name: String = "PreToolUse") =
+    m(kind, name, ""","tool_name":"$tool","tool_input":$input""").activity
+
+  @Test fun toolCallsBecomeShortActivities() {
+    assertEquals("Edit Foo.kt", tool(claude, "Edit", """{"file_path":"/repo/src/Foo.kt","old_string":"a"}"""))
+    assertEquals("Read README.md", tool(claude, "Read", """{"file_path":"/repo/README.md"}"""))
+    assertEquals("Write a.txt", tool(claude, "Write", """{"file_path":"C:\\w\\a.txt"}"""))
+    assertEquals("Bash: ./gradlew test", tool(claude, "Bash", """{"command":"./gradlew test\nmore"}"""))
+    assertEquals("Grep \"foo\"", tool(claude, "Grep", """{"pattern":"foo"}"""))
+    assertEquals("Task: Explore", tool(claude, "Task", """{"subagent_type":"Explore","prompt":"x"}"""))
+    assertEquals("Task: Plan", tool(claude, "Agent", """{"subagent_type":"Plan"}"""))
+    assertEquals("WebFetch example.com", tool(claude, "WebFetch", """{"url":"https://example.com/a/b"}"""))
+    assertEquals("open_in_editor", tool(claude, "mcp__phantom__open_in_editor", "{}"))
+    assertEquals("TodoWrite", tool(claude, "TodoWrite", "{}"))
+    assertEquals("Edit Foo.kt", tool(claude, "Edit", """{"file_path":"/Foo.kt"}""", name = "PostToolUse"))
+    assertEquals("Bash: ls -la", tool(codex, "Bash", """{"command":["bash","-lc","ls -la"]}"""))
+  }
+
+  @Test fun longActivitiesAreCutTo28Characters() {
+    val a = tool(claude, "Bash", """{"command":"./gradlew :ai-integrations:test :ai-visualization:test"}""")!!
+    assertEquals(HookEventMapper.MAX_ACTIVITY, a.length)
+    assertTrue(a.startsWith("Bash: ./gradlew") && a.endsWith("\u2026"))
+  }
+
+  @Test fun waitingAndThinkingHaveTheirOwnActivity() {
+    assertEquals("권한 요청: Bash", m(claude, "PermissionRequest", ""","tool_name":"Bash"""").activity)
+    assertEquals("권한 요청", m(claude, "Notification", ""","notification_type":"permission_prompt"""").activity)
+    assertEquals("답 기다림", m(claude, "Notification", ""","notification_type":"idle_prompt"""").activity)
+    assertEquals("생각 중", m(claude, "UserPromptSubmit", ""","prompt":"hi"""").activity)
+    assertNull(m(claude, "Stop").activity)
+    assertNull(m(claude, "Notification", ""","notification_type":"auth_success"""").activity)
+  }
+
+  @Test fun toolCallsInsideASubagentCarryItsId() {
+    assertEquals("a1", m(claude, "PreToolUse", ""","agent_id":"a1","agent_type":"Explore","tool_name":"Read"""").subagentId)
+    assertNull(m(claude, "PreToolUse", ""","tool_name":"Read"""").subagentId)
+    assertNull(m(claude, "PreToolUse", ""","agent_type":"Explore"""").subagentName)
+  }
+
   @Test fun garbageIsIgnored() { assertNull(HookEventMapper.map(claude, "not json")); assertNull(HookEventMapper.map(claude, "{}")) }
 }

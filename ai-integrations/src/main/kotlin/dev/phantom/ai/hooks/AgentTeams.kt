@@ -42,9 +42,11 @@ object AgentTeams {
     lead to members
   }.getOrNull()
 
-  /** The Task tool's subagents of [current] kept, the teammates replaced by [teammates]. */
-  fun merge(current: List<Subagent>, teammates: List<Subagent>): List<Subagent> =
-    current.filterNot { it.id.startsWith(PREFIX) } + teammates
+  /** The Task tool's subagents of [current] kept, the teammates replaced by [teammates], each keeping the activity it had. */
+  fun merge(current: List<Subagent>, teammates: List<Subagent>): List<Subagent> {
+    val activity = current.filter { it.id.startsWith(PREFIX) && it.activity != null }.associate { it.id to it.activity }
+    return current.filterNot { it.id.startsWith(PREFIX) } + teammates.map { t -> activity[t.id]?.let { t.copy(activity = it) } ?: t }
+  }
 
   /** Lead session id -> teammates, over every team dir under each of [claudeDirs]. Reads a config again only when it changed. */
   class Scanner {

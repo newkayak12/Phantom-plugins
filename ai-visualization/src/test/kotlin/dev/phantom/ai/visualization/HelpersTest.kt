@@ -90,8 +90,8 @@ class HelpersTest {
         for (p in scene.people) {
           val drawn = scene.helpers.count { it.tabId == p.tabId }
           assertEquals("$ctx ${p.tabId}", p.person.helperCount, drawn + (scene.helperOverflow[p.tabId] ?: 0))
-          // a lone session at its desk has room for both helpers up to four areas; five or six crowd the room and may show "+N" only
-          if (p.tabId.startsWith("w") && n <= 4) assertEquals("$ctx ${p.tabId} draws both helpers", 2, drawn)
+          // a lone session at its desk has room for both full-size subordinates up to three areas; four to six crowd the room, so some may show "+N" only
+          if (p.tabId.startsWith("w") && n <= 3) assertEquals("$ctx ${p.tabId} draws both helpers", 2, drawn)
         }
         val furniture = scene.items.filter { it.layer == 5 && it.kind == ItemKind.SPRITE && it.scale == 1 }
         // an opaque pixel of [frame] (anchored at x, y) inside [r]
@@ -106,17 +106,20 @@ class HelpersTest {
             assertFalse("$ctx ${h.key} overlaps ${p.tabId}", h.footprint.intersects(p.bounds))
             assertFalse("$ctx ${h.key} overlaps the bubble of ${p.tabId}", h.footprint.intersects(p.bubbleBounds))
           }
-          // nothing in front of it covers it, and it covers none of its own area's desks
-          for (f in furniture) if (f.key > h.u + h.v) assertFalse("$ctx ${h.key} covered by ${f.frame}", covers(f.frame!!, f.x, f.y, h.footprint))
+          // nothing in front of it covers it, and it covers none of its own area's desks (its chair may tuck under one)
+          for (f in furniture) if (f.key > h.u + h.v) assertFalse("$ctx ${h.key} covered by ${f.frame}", covers(f.frame!!, f.x, f.y, h.bounds))
           for (d in scene.desks) if (d.areaIndex == h.parent.areaIndex) {
             val frame = theme.desk(scene.areas[d.areaIndex].slot.seats[d.seat].orientation)
             val f = atlas[frame]
-            assertFalse("$ctx ${h.key} over its area's desk ${d.seat}", covers(frame, d.bounds.x + f.anchorX, d.bounds.y + f.anchorY, h.footprint))
+            assertFalse("$ctx ${h.key} over its area's desk ${d.seat}", covers(frame, d.bounds.x + f.anchorX, d.bounds.y + f.anchorY, h.bounds))
           }
           for (o in scene.helpers) if (o !== h) assertFalse("$ctx ${h.key} overlaps ${o.key}", h.footprint.intersects(o.footprint))
           // beside the parent: within a few person widths
-          assertTrue("$ctx ${h.key} near its parent", kotlin.math.abs(h.x - h.parent.x) <= 64 && kotlin.math.abs(h.y - h.parent.y) <= 40)
-          assertTrue("$ctx ${h.key} smaller than a person", h.bounds.h < h.parent.bounds.h)
+          assertTrue("$ctx ${h.key} near its parent", kotlin.math.abs(h.x - h.parent.x) <= 100 && kotlin.math.abs(h.y - h.parent.y) <= 64)
+          // a full-size subordinate: a working person's own frame, unshrunk, with a look of its own
+          assertEquals("$ctx ${h.key} full size", 1, h.scale)
+          assertEquals("$ctx ${h.key} full size", atlas[theme.person(h.variant, VizState.WORKING)].h, h.bounds.h)
+          assertTrue("$ctx ${h.key} looks unlike its lead", h.variant != h.parent.person.seed % theme.personVariants)
         }
       }
     }
@@ -173,7 +176,7 @@ class HelpersTest {
             if (a.getRGB(x, y) != b.getRGB(x, y) && a.getRGB(x, y) ushr 24 != 0) changed++
           }
           assertTrue("theme ${theme.id} $status ${h.key}: $changed changed pixels", changed >= 20)
-          assertTrue("theme ${theme.id} $status ${h.key} next to the parent", kotlin.math.abs(h.x - parent.x) <= 64 && kotlin.math.abs(h.y - parent.y) <= 40)
+          assertTrue("theme ${theme.id} $status ${h.key} next to the parent", kotlin.math.abs(h.x - parent.x) <= 100 && kotlin.math.abs(h.y - parent.y) <= 64)
         }
         // nothing changes away from the helpers (and their stools)
         for (y in 0 until a.height) for (x in 0 until a.width) {

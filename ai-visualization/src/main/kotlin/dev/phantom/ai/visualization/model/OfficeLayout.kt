@@ -89,8 +89,9 @@ class PersonPlacement(
 }
 
 /**
- * A running subagent of [parent] as a helper at floor spot ([u], [v]): its person frame [frame] (working, look [variant]) shrunk by
- * [scale] with its feet at ([x], [y]), on a stool whose rectangle is [stoolBounds] (null: no stool). [bounds] is the person sprite, [footprint] sprite and stool.
+ * A running subagent of [parent] as its subordinate at floor spot ([u], [v]): a person frame [frame] (working, look [variant] from
+ * the subagent's id) shrunk by [scale] (1 for the default full size) with its feet at ([x], [y]), on a chair whose rectangle is
+ * [stoolBounds] (null: none). [bounds] is the person sprite, [footprint] sprite and chair.
  */
 class HelperPlacement(
   val parent: PersonPlacement,
@@ -130,6 +131,8 @@ class Scene(
   val helpers: List<HelperPlacement> = emptyList(),
   /** Per parent tab id, how many of its running subagents are not drawn (over the cap or no room): its "+N". */
   val helperOverflow: Map<String, Int> = emptyMap(),
+  /** The part of the scene worth showing (the desk areas with room above for heads and labels); the canvas fits its zoom to it. */
+  val focus: Rect = Rect(0, 0, width, height),
 )
 
 /**
@@ -192,14 +195,30 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
     val overflow = LinkedHashMap<String, Int>()
     if (people.any { it.person.helperCount > 0 }) placeHelpers(slots, items, desks, people, helpers, overflow)
     items.sortWith(compareBy({ it.layer }, { it.key }))
-    return Scene(items, placements, desks, people, pg, pages, SCENE_W, SCENE_H, helpers, overflow)
+    return Scene(items, placements, desks, people, pg, pages, SCENE_W, SCENE_H, helpers, overflow, focus(placements, desks))
   }
 
   /**
-   * Helpers go after every person: each takes the nearest free spot beside its parent on the parent's rug where it stays wholly
-   * visible: clear of every person's sprite and bubble and of every helper placed before it, no opaque pixel of furniture drawn in
-   * front of it (desk, chair, decor, partition) over it, and none of its own area's desks under it. A helper may stand in front of
-   * another area's furniture, as people in an iso room do. One with no free spot is counted in the parent's "+N" instead.
+   * The rugs and desks of the areas shown, with [FOCUS_TOP] pixels above for the heads, bubbles and activity labels of the back
+   * row and a margin elsewhere; the whole scene when there is none. Depends only on the areas, so the view does not jump as
+   * people come and go.
+   */
+  private fun focus(areas: List<AreaPlacement>, desks: List<DeskPlacement>): Rect {
+    val rects = areas.map { it.rugBounds } + desks.map { it.bounds }
+    if (rects.isEmpty()) return Rect(0, 0, SCENE_W, SCENE_H)
+    val x0 = rects.minOf { it.x } - FOCUS_SIDE
+    val y0 = rects.minOf { it.y } - FOCUS_TOP
+    val x1 = rects.maxOf { it.x + it.w } + FOCUS_SIDE
+    val y1 = rects.maxOf { it.y + it.h } + FOCUS_BOTTOM
+    return Rect(maxOf(0, x0), maxOf(0, y0), minOf(SCENE_W, x1) - maxOf(0, x0), minOf(SCENE_H, y1) - maxOf(0, y0))
+  }
+
+  /**
+   * Subordinates (helpers) go after every person: each takes the nearest free spot beside its parent on the parent's rug where it
+   * stays wholly visible: its chair and itself clear of every person's sprite and bubble and of every subordinate placed before it,
+   * no opaque pixel of furniture drawn in front of it (desk, chair, decor, partition) over its sprite, and its sprite over none of
+   * its own area's desks (its chair may tuck under one). It may sit in front of another area's furniture, as people in an iso room
+   * do. One with no free spot is counted in the parent's "+N" instead.
    */
   private fun placeHelpers(
     slots: List<AreaSlot>, items: MutableList<DrawItem>, desks: List<DeskPlacement>, people: List<PersonPlacement>,
@@ -220,8 +239,8 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
           .map { (u, v) -> helperAt(p, h, i, u, v, s, stool) }
           .firstOrNull { c ->
             taken.none { it.intersects(c.footprint) } && helpers.none { it.footprint.intersects(c.footprint) } &&
-              furniture.none { it.key > c.u + c.v && opaqueIn(it.frame!!, it.x, it.y, c.footprint) } &&
-              ownDesks.none { (frame, b) -> opaqueAt(frame, b.x, b.y, c.footprint) }
+              furniture.none { it.key > c.u + c.v && opaqueIn(it.frame!!, it.x, it.y, c.bounds) } &&
+              ownDesks.none { (frame, b) -> opaqueAt(frame, b.x, b.y, c.bounds) }
           }
         if (c == null) {
           dropped++
@@ -237,7 +256,10 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
   }
 
   private fun helperAt(p: PersonPlacement, h: Helper, i: Int, u: Double, v: Double, s: Int, stool: String?): HelperPlacement {
-    val variant = Math.floorMod(p.person.seed + 1 + i, theme.personVariants)
+    // its own look, from its id; never its lead's, so the two do not read as one person
+    val n = theme.personVariants
+    val own = h.seed % n
+    val variant = if (n > 1 && own == p.person.seed % n) (own + 1) % n else own
     val frame = theme.person(variant, VizState.WORKING)
     val x = proj(u, v)
     val y = projY(u, v, if (stool != null) SEAT_Z / s else 0)
@@ -377,12 +399,17 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
     /** How high a chair's seat is: a seated person's feet point is lifted by this many pixels. */
     const val SEAT_Z = 7
 
-    /** How far (iso units along u and v) a helper may sit from its parent. */
-    const val HELPER_REACH = 24
+    /** How far (iso units along u and v) a subordinate may sit from its parent. */
+    const val HELPER_REACH = 40
 
-    /** How far (scene pixels) a helper's feet may be from its parent's, across and down or up the screen. */
-    const val HELPER_REACH_X = 56
-    const val HELPER_REACH_Y = 32
+    /** How far (scene pixels) a subordinate's feet may be from its parent's, across and down or up the screen. */
+    const val HELPER_REACH_X = 96
+    const val HELPER_REACH_Y = 56
+
+    /** Scene pixels the canvas keeps around the desk areas when it fits its zoom: above (heads and labels), at the sides, below. */
+    const val FOCUS_TOP = 40
+    const val FOCUS_SIDE = 16
+    const val FOCUS_BOTTOM = 24
 
     /**
      * The spots a helper may take around a person at ([u], [v]), best first: beside it on screen, about a person's width away (along

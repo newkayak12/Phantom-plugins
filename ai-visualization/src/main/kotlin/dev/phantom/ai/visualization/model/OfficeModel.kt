@@ -9,12 +9,17 @@ import java.io.IOException
 /** One open project as the API reports it: its worktrees and its live sessions. [key] identifies the project (its base path). */
 data class ProjectData(val key: String, val name: String, val worktrees: List<AiWorktree>, val sessions: List<AiSession>)
 
-/** A running subagent of a session, drawn as a smaller helper next to its parent person. */
-data class Helper(val id: String, val name: String)
+/**
+ * A running subagent of a session, drawn as a full-size subordinate seated near its parent (the lead). [seed] picks its look and
+ * is stable per subagent id; [activity] is what its last tool call does (null: unknown).
+ */
+data class Helper(val id: String, val name: String, val activity: String? = null) {
+  val seed: Int get() = id.hashCode() and Int.MAX_VALUE
+}
 
 /**
- * One agent session as a person. [seed] picks the look (hair, shirt) and is stable per tab. [helpers] are its running subagents,
- * oldest first and at most [OfficeModel.MAX_HELPERS]; [moreHelpers] counts the running ones beyond that ("+N").
+ * One agent session as a person. [seed] picks the look (hair, shirt) and is stable per tab. [helpers] are its running subagents
+ * (its subordinates), oldest first and at most [OfficeModel.MAX_HELPERS]; [moreHelpers] counts the running ones beyond that ("+N").
  */
 data class Person(val session: AiSession, val state: VizState, val seed: Int, val helpers: List<Helper> = emptyList(), val moreHelpers: Int = 0) {
   /** Every running subagent, drawn or not. */
@@ -45,7 +50,7 @@ class OfficeModel(val floors: List<Floor>) {
     /** [s] as a person: its running subagents become helpers (stopped ones are not drawn), capped at [MAX_HELPERS]. */
     fun person(s: AiSession): Person {
       val running = s.subagents.filter { it.running }
-      val shown = running.take(MAX_HELPERS).map { Helper(it.id, it.name) }
+      val shown = running.take(MAX_HELPERS).map { Helper(it.id, it.name, it.activity) }
       return Person(s, VizState.of(s.status), s.tabId.hashCode() and Int.MAX_VALUE, shown, running.size - shown.size)
     }
 

@@ -15,7 +15,14 @@ object HookIngest {
     if (current.kind != kind) return false
     if (isOtherSession(current.sessionId, event)) return false
     val next = store.update(tabId) { s ->
+      val fromSubagent = isSubagentTool(event)
       s.copy(
+        // a subagent's tool calls are its own activity; one after a permission prompt means the prompt was answered
+        activity = when {
+          event.status == AgentStatus.DONE || event.name == "SessionStart" -> null
+          fromSubagent -> if (s.status == AgentStatus.WAITING) null else s.activity
+          else -> event.activity ?: s.activity
+        },
         status = event.status ?: s.status,
         unread = if (event.status == AgentStatus.DONE) true else s.unread,
         sessionId = event.sessionId ?: s.sessionId,
@@ -38,6 +45,10 @@ object HookIngest {
     return !(e.name == "SessionStart" && e.source != null && e.source != "startup")
   }
 
+  /** A tool call Claude made inside a subagent: it carries the subagent's agent_id. Permission prompts still go to the session. */
+  private fun isSubagentTool(e: HookEvent): Boolean =
+    e.subagent == null && e.subagentId != null && e.name in setOf("PreToolUse", "PostToolUse", "PostToolUseFailure")
+
   private fun withSubagent(list: List<Subagent>, e: HookEvent): List<Subagent> = when (e.subagent) {
     SubagentEvent.START -> {
       val name = e.subagentName ?: "subagent"
@@ -45,8 +56,14 @@ object HookIngest {
     }
     SubagentEvent.STOP -> {
       val i = list.indexOfFirst { it.running && (e.subagentId == null || it.id == e.subagentId) }
-      if (i < 0) list else list.toMutableList().also { it[i] = it[i].copy(running = false) }
+      if (i < 0) list else list.toMutableList().also { it[i] = it[i].copy(running = false, activity = null) }
     }
-    null -> list
+    null -> {
+      // a teammate's id carries the AgentTeams prefix; an unknown subagent's activity is dropped, not given to the session
+      val i = if (isSubagentTool(e) && e.activity != null) {
+        list.indexOfFirst { it.running && (it.id == e.subagentId || it.id == AgentTeams.PREFIX + e.subagentId) }
+      } else -1
+      if (i < 0) list else list.toMutableList().also { it[i] = it[i].copy(activity = e.activity) }
+    }
   }
 }

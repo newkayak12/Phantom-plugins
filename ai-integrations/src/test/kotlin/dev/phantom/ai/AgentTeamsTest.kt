@@ -33,6 +33,11 @@ class AgentTeamsTest {
     assertEquals(listOf(task), AgentTeams.merge(listOf(task, old), emptyList()))
   }
 
+  @Test fun mergeKeepsATeammatesActivity() {
+    val busy = Subagent("team:y@t", "y", activity = "Edit Foo.kt")
+    assertEquals(listOf(busy), AgentTeams.merge(listOf(busy), listOf(Subagent("team:y@t", "y"))))
+  }
+
   @Test fun scanReadsEveryTeamDirAndRereadsAChangedConfig() {
     val dir = Files.createTempDirectory("claude")
     val team = Files.createDirectories(dir.resolve("teams/session-1"))
