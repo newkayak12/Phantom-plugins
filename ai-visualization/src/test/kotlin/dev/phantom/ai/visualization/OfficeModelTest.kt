@@ -90,7 +90,7 @@ class OfficeModelTest {
   @Test
   fun themeSettingDefaultsToAAndAAndBAreRegistered() {
     assertEquals("A", VizSettingsState().themeId)
-    assertEquals(listOf("A", "B", "C"), Themes.all.map { it.id })
+    assertEquals(listOf("A", "B", "C", "F"), Themes.all.map { it.id })
     assertSame(Themes.default, Themes.byId("nope"))
     assertSame(Themes.default, Themes.byId(null))
   }
