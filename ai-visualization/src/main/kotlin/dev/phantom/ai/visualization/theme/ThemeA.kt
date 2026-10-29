@@ -65,6 +65,9 @@ object ThemeA : Theme {
     Decor("bookshelf_lw", 0, 1, layer = 5, key = 11.0),
     Decor("bookshelf_lw", 0, 80, layer = 5, key = 90.0),
     Decor("coffee_lw", 0, 48, layer = 5, key = 60.0),
+    Decor("bookcase_rw", 17, 0, layer = 5, key = 25.0),
+    Decor("coffee_bar_rw", 31, 0, layer = 5, key = 40.0),
+    Decor("armchair_lw", 1, 36, layer = 5, key = 45.0),
     Decor("plant_big", 90, 6, layer = 5, key = 96.0),
     Decor("plant_big", 7, 89, layer = 5, key = 96.0),
     Decor("plant_big", 5, 68, layer = 5, key = 73.0),
@@ -77,6 +80,7 @@ object ThemeA : Theme {
   override fun person(variant: Int, state: VizState) = people.person(variant, state)
   override fun personFrame(variant: Int, state: VizState, phase: Int) = people.frame(variant, state, phase, null)
   override fun personFrame(variant: Int, state: VizState, phase: Int, facing: Orientation?) = people.frame(variant, state, phase, facing)
+  override fun bubbleAnchorDx(facing: Orientation?) = people.bubbleAnchorDx(facing, bubbleAnchorDx)
 
   /** The frames animate the people themselves. */
   override fun personOffset(state: VizState, phase: Int) = Offset.ZERO

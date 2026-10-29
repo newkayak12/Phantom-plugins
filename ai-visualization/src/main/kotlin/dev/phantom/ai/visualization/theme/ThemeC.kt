@@ -68,6 +68,9 @@ object ThemeC : Theme {
     Decor("bookshelf_lw_c", 0, 1, layer = 5, key = 11.0),
     Decor("bookshelf_lw_c", 0, 80, layer = 5, key = 90.0),
     Decor("coffee_lw_c", 0, 48, layer = 5, key = 60.0),
+    Decor("bookcase_rw_c", 17, 0, layer = 5, key = 25.0),
+    Decor("coffee_bar_rw_c", 31, 0, layer = 5, key = 40.0),
+    Decor("armchair_lw_c", 1, 36, layer = 5, key = 45.0),
     Decor("plant_big_c", 90, 6, layer = 5, key = 96.0),
     Decor("plant_big_c", 7, 89, layer = 5, key = 96.0),
     Decor("plant_big_c", 5, 68, layer = 5, key = 73.0),
@@ -84,6 +87,8 @@ object ThemeC : Theme {
       LightSource("desk_lw_c", -16, -12, radius = 72, color = monitor, strength = 1.3f),
       LightSource("lamp_c", 0, -31, radius = 85, color = Tint(0.55f, 0.40f, 0.23f), strength = 1.0f),
       LightSource("coffee_lw_c", 0, -12, radius = 34, color = Tint(0.55f, 0.25f, 0.22f), strength = 0.5f),
+      LightSource("coffee_bar_rw_c", 10, -22, radius = 40, color = Tint(0.55f, 0.40f, 0.23f), strength = 0.6f),
+      LightSource("desk_rw_c", 34, -6, radius = 44, color = Tint(0.60f, 0.44f, 0.22f), strength = 0.9f),
       LightSource("nameplate_c", 0, -8, radius = 30, color = Tint(0.55f, 0.47f, 0.33f), strength = 0.6f),
     ),
   )
@@ -94,6 +99,7 @@ object ThemeC : Theme {
   override fun person(variant: Int, state: VizState) = people.person(variant, state)
   override fun personFrame(variant: Int, state: VizState, phase: Int) = people.frame(variant, state, phase, null)
   override fun personFrame(variant: Int, state: VizState, phase: Int, facing: Orientation?) = people.frame(variant, state, phase, facing)
+  override fun bubbleAnchorDx(facing: Orientation?) = people.bubbleAnchorDx(facing, bubbleAnchorDx)
 
   /** The frames animate the people themselves. */
   override fun personOffset(state: VizState, phase: Int) = Offset.ZERO

@@ -635,26 +635,68 @@ def seated(P, state, phase):
     return sp
 
 
-def frames_for(P, vi, sfx='', tf=lambda s: s):
+FRONT_LIFT = 29  # the front seated upper body is the standing one moved down onto the seat
+
+
+def seated_front(P, state, phase):
+    """Seated behind a desk facing us (front 3/4, looking down-left before the flip); the anchor is the seat. The legs are left out:
+    the desk drawn over the frame hides them. Working: the head bobs and the hands, low on the keyboard, tap in turn; idle: asleep,
+    the head sunk onto the arms folded on the desk."""
+    f = Fig()
+    sk, hair, top, *_ = looks(P)
+    torso = [(-12, -58), (12, -58), (14, -52), (12, -26), (-12, -26), (-14, -52)]
+    shoulders = [f.mask(('e', (-16, -60, -6, -48))), f.mask(('e', (6, -60, 16, -48)))]
+    if state == 'idle':
+        f.lift = FRONT_LIFT + 4
+        hair_back_layer(f, P, 0, -74)
+        torso_front(f, P, torso, shoulders)
+        f.lift = FRONT_LIFT
+        # the arms folded on the desk in front, the head resting on them
+        f.paint(f.mask(('e', (-20, -40, 20, -28))), top, 'sleeve')
+        f.hl(-16, 16, -31, top['sh'])
+        hand(f, sk, -20, -38, -13, -31, 'handL', thumb=1)
+        hand(f, sk, 13, -38, 20, -31, 'handR', thumb=-1)
+        f.lift = FRONT_LIFT + 10
+        head_front(f, P, 'happy')
+        f.lift = FRONT_LIFT
+        f.paint(f.mask(('e', (-18, -36, 18, -27))), ramp(top['sh']), 'sleeve2')
+        return f.finish()
+    bob = 1 if phase in (1, 3) else 0
+    f.lift = FRONT_LIFT + bob
+    hair_back_layer(f, P, 0, -74)
+    lh = (0, -2, 0, 1)[phase]
+    rh = (1, 0, -2, 0)[phase]
+    sleeves = [f.mask(('l', [(-12, -54), (-16, -42), (-10, -33 + lh)], 7)),
+               f.mask(('l', [(12, -54), (16, -42), (10, -33 + rh)], 7))]
+    torso_front(f, P, torso, shoulders + sleeves)
+    cuff(f, top, -9, -33 + lh)
+    cuff(f, top, 9, -33 + rh)
+    hand(f, sk, -10, -33 + lh, -3, -27 + lh, 'handL', thumb=1)
+    hand(f, sk, 3, -33 + rh, 10, -27 + rh, 'handR', thumb=-1)
+    head_front(f, P, 'open')
+    return f.finish()
+
+
+def frames_for(P, vi, sfx='', tf=lambda s: s, front=None):
     """Every frame of look [P] as [vi], names as in the module doc; [tf] transforms each sprite (C's night())."""
     out = {}
     for ph in range(4):
         sp = seated(P, 'working', ph)
         out[f'person{vi}_working_{ph}{sfx}'] = tf(sp)
-        out[f'person{vi}_working_{ph}_lw{sfx}'] = tf(flip(sp))
+        out[f'person{vi}_working_{ph}_lw{sfx}'] = tf(front(flip(seated_front(P, 'working', ph))) if front else flip(sp))
     idle = seated(P, 'idle', 0)
     out[f'person{vi}_idle{sfx}'] = tf(idle)
-    out[f'person{vi}_idle_lw{sfx}'] = tf(flip(idle))
+    out[f'person{vi}_idle_lw{sfx}'] = tf(front(flip(seated_front(P, 'idle', 0))) if front else flip(idle))
     for st in ('waiting', 'done'):
         for ph in range(2):
             out[f'person{vi}_{st}_{ph}{sfx}'] = tf(standing(P, st, ph))
     return out
 
 
-def all_frames(sfx='', tf=lambda s: s):
+def all_frames(sfx='', tf=lambda s: s, front=None):
     out = {}
     for vi, P in enumerate(PEOPLE_HD):
-        out.update(frames_for(P, vi, sfx, tf))
+        out.update(frames_for(P, vi, sfx, tf, front))
     return out
 
 

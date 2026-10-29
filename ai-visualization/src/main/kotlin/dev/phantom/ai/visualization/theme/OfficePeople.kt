@@ -6,8 +6,8 @@ import dev.phantom.ai.visualization.model.VizState
 
 /**
  * The office people of themes A, B and C (art/people_hd.py), drawn at [DETAIL] x the scene's density. Frame names, [suffix] being
- * the theme's ("" or "_c"): seated working `person<v>_working_<0..3>[_lw]` (seen from behind, typing, facing a desk along u or,
- * with `_lw`, along v), asleep `person<v>_idle[_lw]`, standing `person<v>_waiting_<0|1>` (a hand raised) and
+ * the theme's ("" or "_c"): seated working `person<v>_working_<0..3>[_lw]` (typing; seen from behind at a desk along u, or with
+ * `_lw` facing us from behind a desk along v, the desk's near part drawn over them), asleep `person<v>_idle[_lw]`, standing `person<v>_waiting_<0|1>` (a hand raised) and
  * `person<v>_done_<0|1>` (a mug), the standing ones switching frame every second phase.
  */
 internal class OfficePeople(private val suffix: String) {
@@ -22,7 +22,11 @@ internal class OfficePeople(private val suffix: String) {
     }
   }
 
+  /** One facing us at a desk along v sits [FRONT_DX] scene pixels left of the chair point (behind the desk); the bubble follows. */
+  fun bubbleAnchorDx(facing: Orientation?, default: Int): Int = if (facing == Orientation.LW) FRONT_DX + 1 else default
+
   companion object {
+    const val FRONT_DX = -30
     const val VARIANTS = 10
     const val DETAIL = 2
   }

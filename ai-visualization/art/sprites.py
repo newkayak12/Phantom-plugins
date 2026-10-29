@@ -249,7 +249,7 @@ def screen_tex(T, seed):
     return tex
 
 
-def desk(T, o='rw', seed=0, items=True, plant=False):
+def desk(T, o='rw', seed=0, items=True, plant=False, props=False):
     s = Spr(140, 110, 70, 50)
     A_, D_ = 20, 10
     leg = M(T['desk_leg'])
@@ -285,6 +285,8 @@ def desk(T, o='rw', seed=0, items=True, plant=False):
     # mug
     part(s, lambda t: (obox(t, o, 1.5, 6.5, 12, 2, 2, 4, M(C('#f2efe8'))),
                        obox(t, o, 1.9, 6.9, 15.9, 1.2, 1.2, 0.2, lambda *a: C('#5a3420'), 'T')), .35)
+    if props:
+        desk_props(s, o, lamp=not plant)
     if plant:
         def pl(t):
             obox(t, o, 16, 1, 12, 3, 3, 4, M(T['pot']))
@@ -295,6 +297,150 @@ def desk(T, o='rw', seed=0, items=True, plant=False):
         outline(blob, None, .5)
         s.paste(blob, 0, 0)
     return s.crop()
+
+
+def desk_props(s, o, lamp=True):
+    """The clutter of a lived-in desk (themes A, B, C): a PC tower under the top with its power LED and cables, a sticky note on
+    the monitor, a pen cup and, with [lamp], a desk lamp whose underside glows (emissive, so it stays lit at night)."""
+    def tower(t):
+        def ttex(role, a, d, z, A_, D_, Hh, sf):
+            if sf == 'T':
+                return C('#4a4f5b')
+            if role == 'F':
+                if 6.5 <= z < 7.2 and 1 <= a < 1.6:
+                    return E(C('#5fd0ff'))
+                if 1 <= z < 6 and int(z * 2) % 2 == 0 and 0.6 <= a < A_ - 0.6:
+                    return C('#2a2d35')
+                return C('#3b3f4a')
+            return C('#30333c')
+        obox(t, o, 14.2, 2.2, 0, 2.6, 5, 9, ttex)
+    part(s, tower, .4)
+    part(s, lambda t: (obox(t, o, 11, 1.6, 0.6, 0.5, 0.4, 11.4, M(C('#22242a'), edge=False)),
+                       obox(t, o, 12, 1.6, 0.6, 0.5, 0.4, 10, M(C('#2b2e36'), edge=False))), 0)
+    part(s, lambda t: obox(t, o, 15.6, 2.0, 25, 1.4, 0.2, 1.6, M(C('#ffd84a'), C('#ffd84a'), C('#e8bf2c'))), 0)
+    part(s, lambda t: (obox(t, o, 4.2, 2.2, 12, 1.4, 1.4, 3, M(C('#c0583c'))),
+                       obox(t, o, 4.6, 2.5, 15, 0.3, 0.3, 2, M(C('#2b5fa8'), edge=False)),
+                       obox(t, o, 5.0, 2.8, 15, 0.3, 0.3, 1.5, M(C('#e4b02a'), edge=False))), .35)
+    if lamp:
+        def lmp(t):
+            obox(t, o, 17.5, 1.2, 12, 2, 2, 0.6, M(C('#2f3340')))
+            obox(t, o, 18.2, 1.8, 12.6, 0.5, 0.5, 7, M(C('#3d4250'), edge=False))
+            obox(t, o, 17.4, 2.6, 19.6, 0.5, 0.5, 0.6, M(C('#3d4250'), edge=False))
+
+            def shade(role, a, d, z, A_, D_, Hh, sf):
+                if sf == 'T':
+                    return C('#e8b04a')
+                if z < 0.6:
+                    return E(C('#fff0b8'))
+                return C('#d9962e') if sf == 'L' else C('#b87a22')
+            obox(t, o, 16.3, 2.6, 18.2, 2.4, 2.4, 2.2, shade)
+        part(s, lmp, .4)
+        # the warm light on the desk top below the shade
+        for (a, d) in ((16.6, 5.2), (17.4, 5.0), (18.2, 5.4), (16.2, 6.0)):
+            x, y = _proj_local(s, o, a, d, 12)
+            px = s.p[int(x), int(y)]
+            if px[3]:
+                s.p[int(x), int(y)] = (min(255, px[0] + 40), min(255, px[1] + 30), min(255, px[2] + 8), 255)
+
+
+def desk_front(T, seed=0, chair_behind=True):
+    """Theme A/B/C's desk along v ('lw') for a person facing us: the chair on the far side (smaller u), the keyboard before it and
+    the monitor at the near edge, its back to us, so a face shows over it. Without [chair_behind] it is the part drawn over the
+    person (front_person)."""
+    o = 'lw'
+    s = Spr(140, 110, 70, 50)
+    A_, D_ = 20, 10
+    leg = M(T['desk_leg'])
+    if chair_behind:
+        cm = M(T['chair'], T['chair'], T['chair_dk'])
+        part(s, lambda t: (obox(t, o, 7.5, -5, 0, 5, 5, 1, M(T['chair_base'])),
+                           obox(t, o, 9.5, -3, 1, 1, 1, 5, M(T['chair_base']))), .3)
+        part(s, lambda t: (obox(t, o, 9.5, -6.2, 7, 1, 1, 3, M(T['chair_base'])),
+                           obox(t, o, 6.5, -7.4, 9, 7, 1.6, 10, cm)), .45)
+        part(s, lambda t: obox(t, o, 6.5, -5.8, 6, 7, 6, 2, cm), .45)
+
+    def legs(t):
+        for a0, d0 in ((0.5, 0.5), (A_ - 2.5, 0.5), (0.5, D_ - 2.5), (A_ - 2.5, D_ - 2.5)):
+            obox(t, o, a0, d0, 0, 2, 2, 10, leg)
+        obox(t, o, 1, D_ - 1.5, 4, A_ - 2, 1, 6, M(T['desk_side']))  # modesty panel, on our side
+    part(s, legs, .4)
+    part(s, lambda t: obox(t, o, 0, 0, 10, A_, D_, 2, M(T['desk_top'], T['desk_side'], dk(T['desk_side'], .2))), .45)
+    part(s, lambda t: obox(t, o, 13.5, 1.5, 12, 4, 4, 0.01, lambda *a: C('#f4f1ea') if a[1] < 3.5 else C('#dcd6cb'), 'T'), 0)
+
+    def kb(t):
+        def ktex(role, a, d, z, A_, D_, Hh, sf):
+            if sf != 'T':
+                return C('#3c414d') if sf == 'L' else C('#2c3039')
+            if a < 0.4 or a >= A_ - 0.4 or d < 0.4 or d >= D_ - 0.4:
+                return C('#555b68')
+            return C('#e9ecf1') if (int(a * 2) + int(d * 2)) % 2 == 0 else C('#b8bec9')
+        obox(t, o, 5, 2.5, 12, 10, 3, 1, ktex)
+        obox(t, o, 2.5, 3, 12, 1.5, 2, 1, M(C('#e6e8ec')))
+    part(s, kb, .3)
+    part(s, lambda t: (obox(t, o, 16.5, 2.5, 12, 2, 2, 4, M(C('#f2efe8'))),
+                       obox(t, o, 16.9, 2.9, 15.9, 1.2, 1.2, 0.2, lambda *a: C('#5a3420'), 'T')), .35)
+    # the monitor's back: stand, a dark shell with vents and a cable
+    part(s, lambda t: (obox(t, o, 8, 6.5, 12, 4, 3, 1, M(C('#3a3f4b'))),
+                       obox(t, o, 9.5, 8.6, 13, 1, 1, 4, M(C('#4a505e')))), .4)
+
+    def back(role, a, d, z, A_, D_, Hh, sf):
+        if role == 'F':
+            if 3 <= a < 8 and 5 <= z < 8 and int(a * 2) % 2 == 0:
+                return C('#262a33')
+            return C('#3a3f4c') if z < Hh - 0.6 else C('#4c5262')
+        return M(C('#454b59'))(role, a, d, z, A_, D_, Hh, sf)
+    part(s, lambda t: obox(t, o, 4.5, 7.6, 15.5, 11, 1.4, 11, back), .35)
+    part(s, lambda t: obox(t, o, 9.8, 9.2, 0.6, 0.4, 0.4, 15, M(C('#22242a'), edge=False)), 0)
+    # a little plant at the far corner
+    part(s, lambda t: obox(t, o, 0.5, 6, 12, 3, 3, 4, M(T['pot'])), .4)
+    cx, cy = _proj_local(s, o, 2, 7.5, 18)
+    blob = Spr(s.w, s.h, s.ax, s.ay)
+    foliage(blob, cx, cy, [(-2, 0, 2.6), (2, 0, 2.6), (0, -2, 2.8), (0, 1, 2.4)], T['leaf'])
+    outline(blob, None, .5)
+    s.paste(blob, 0, 0)
+    return s.crop()
+
+
+# hi-res offsets from a seated person's anchor (the chair point the layout gives, u + 12.5 along a desk along v) to where one facing
+# us sits (u - 2.5, behind the desk) and to the desk's anchor; see OfficeLayout.seatItems (SEAT_Z 7, coordinates rounded half up)
+FRONT_SEAT = (-60, -31)
+FRONT_DESK = (-10, -32)
+
+
+def front_person(desk_over):
+    """A composer for people_hd.frames_for: the hi-res person [p] (anchor at its seat) put behind the desk, every pixel of it that
+    [desk_over] (the desk without its chair, scene density) covers repainted with the desk's pixel, so the person shows behind the
+    desk; the frame keeps the layout's anchor (the chair point) and its size and anchor stay even."""
+    def compose(p):
+        ax, ay = p.ax - FRONT_SEAT[0], p.ay - FRONT_SEAT[1]
+        px_, py_ = ax % 2, ay % 2
+        w, h = p.w + px_, p.h + py_
+        w, h = w + w % 2, h + h % 2
+        n = Spr(w, h, ax + px_, ay + py_)
+        src, sem = p.img.load(), p.em.load()
+        dsrc, dem = desk_over.img.load(), desk_over.em.load()
+        for y in range(p.h):
+            for x in range(p.w):
+                c = src[x, y]
+                if not c[3]:
+                    continue
+                X, Y = x + px_, y + py_
+                rx, ry = X - n.ax, Y - n.ay
+                dx = (rx - FRONT_DESK[0]) // 2 + desk_over.ax
+                dy = (ry - FRONT_DESK[1]) // 2 + desk_over.ay
+                if 0 <= dx < desk_over.w and 0 <= dy < desk_over.h and dsrc[dx, dy][3]:
+                    n.p[X, Y] = dsrc[dx, dy]
+                    n.e[X, Y] = dem[dx, dy]
+                else:
+                    n.p[X, Y] = c
+                    n.e[X, Y] = sem[x, y]
+        return n
+    return compose
+
+
+def empty():
+    """A frame with nothing in it (themes A, B, C have no chair before a desk along v: its chair is behind the desk)."""
+    return Spr(2, 2, 1, 1)
 
 
 def _proj_local(s, o, a, d, z):
@@ -382,7 +528,7 @@ def whiteboard(T, o='rw'):
     return s.crop()
 
 
-def bookshelf(T, o='lw', seed=0):
+def bookshelf(T, o='lw', seed=0, h=40, L=14):
     s = Spr(80, 90, 40, 70)
     bcols = [C('#c0392b'), C('#2e86de'), C('#f39c12'), C('#27ae60'), C('#8e44ad'), C('#e8e2d0'), C('#16a085'), C('#d35400')]
     wood = T['shelf']
@@ -414,15 +560,15 @@ def bookshelf(T, o='lw', seed=0):
                 c = dk(c, .1)
             return c
         return dk(wood, .55)
-    part(s, lambda t: obox(t, o, 0, 0, 0, 14, 6, 40, tex), .45)
+    part(s, lambda t: obox(t, o, 0, 0, 0, L, 6, h, tex), .45)
     # top deco: small plant + box
-    part(s, lambda t: obox(t, o, 9, 1.5, 40, 3, 3, 3, M(T['pot'])), .4)
-    cx, cy = _proj_local(s, o, 10.5, 3, 45)
+    part(s, lambda t: obox(t, o, L - 5, 1.5, h, 3, 3, 3, M(T['pot'])), .4)
+    cx, cy = _proj_local(s, o, L - 3.5, 3, h + 5)
     t = Spr(s.w, s.h, s.ax, s.ay)
     foliage(t, cx, cy, [(-2, 1, 2.4), (2, 1, 2.4), (0, -1, 2.6), (-3, 3, 1.8)], T['leaf'])
     outline(t, None, .5)
     s.paste(t, 0, 0)
-    part(s, lambda t: obox(t, o, 2, 1, 40, 5, 4, 3, M(C('#c9a46a'))), .4)
+    part(s, lambda t: obox(t, o, 2, 1, h, 5, 4, 3, M(C('#c9a46a'))), .4)
     return s.crop()
 
 
@@ -472,6 +618,73 @@ def coffee_station(T, o='lw'):
     part(s, lambda t: (obox(t, o, 10, 2, 14, 2, 2, 5, M(C('#f4f1ea'))),
                        obox(t, o, 13, 2, 14, 2, 2, 4, M(C('#a46a3c'))),
                        obox(t, o, 13, 2, 18, 2, 2, 1, M(C('#d0d4da')))), .35)
+    return s.crop()
+
+
+def coffee_bar(T, o='rw'):
+    """A coffee bar against the wall: a long counter with cabinet doors, an espresso machine with its portafilter and a glowing
+    gauge, a grinder, a row of cups and a little plant."""
+    s = Spr(120, 100, 40, 70)
+    cnt = T['counter']
+
+    def ctex(role, a, d, z, A_, D_, Hh, sf):
+        if role == 'T':
+            return lt(T['counter_top'], .2) if (a >= A_ - 0.5 or d >= D_ - 0.5) else T['counter_top']
+        if role != 'F':
+            return M(cnt)(role, a, d, z, A_, D_, Hh, sf)
+        if z >= Hh - 1:
+            return lt(cnt, .15)
+        if z < 1.5:
+            return dk(cnt, .35)
+        if a % 5 < 0.4 or a >= A_ - 0.4:
+            return dk(cnt, .25)
+        if 8 <= z < 9 and 2 <= a % 5 < 3:
+            return C('#d9d9d9')
+        return cnt
+    part(s, lambda t: obox(t, o, 0, 0, 0, 20, 6, 14, ctex), .45)
+    steel = C('#c3c8d0')
+
+    def etex(role, a, d, z, A_, D_, Hh, sf):
+        if sf == 'T':
+            return C('#dfe3e8')
+        if role != 'F':
+            return dk(steel, .25)
+        if Hh - 3 <= z < Hh - 1.5 and A_ / 2 - 0.6 <= a < A_ / 2 + 0.6:
+            return E(C('#ffcf5a'))
+        if 2 <= z < 6 and 1 <= a < A_ - 1:
+            return C('#2b2d33')
+        return steel if z > 6 else dk(steel, .12)
+    part(s, lambda t: (obox(t, o, 2, 1, 14, 7, 4.5, 11, etex),
+                       obox(t, o, 3.2, 4.5, 18, 1.6, 2, 0.8, M(C('#30323a'))),
+                       obox(t, o, 6.2, 4.5, 18, 1.6, 2, 0.8, M(C('#30323a'))),
+                       obox(t, o, 3.4, 4.6, 14, 1.2, 1.2, 1.8, M(C('#f4f1ea'))),
+                       obox(t, o, 6.4, 4.6, 14, 1.2, 1.2, 1.8, M(C('#f4f1ea')))), .4)
+    part(s, lambda t: (obox(t, o, 10.5, 1.5, 14, 2.5, 2.5, 6, M(C('#3a3c44'))),
+                       obox(t, o, 10.7, 1.7, 20, 2.1, 2.1, 3, M(C('#7b4a2a'), C('#6a3e22'), C('#55311b')))), .4)
+    for i, col in enumerate(('#f4f1ea', '#e0574f', '#f4f1ea', '#4f8cff')):
+        part(s, lambda t, i=i, col=col: obox(t, o, 14 + i * 1.3, 4, 14, 1, 1, 1.6, M(C(col))), .3)
+    part(s, lambda t: obox(t, o, 17, 1, 14, 2.4, 2.4, 2.6, M(T['pot'])), .4)
+    cx, cy = _proj_local(s, o, 18.2, 2.2, 19)
+    t = Spr(s.w, s.h, s.ax, s.ay)
+    foliage(t, cx, cy, [(-2, 0, 2.2), (2, 0, 2.2), (0, -2, 2.4)], T['leaf'])
+    outline(t, None, .5)
+    s.paste(t, 0, 0)
+    return s.crop()
+
+
+def armchair(T, o='lw'):
+    """A soft armchair (its back to the wall) with a cushion, a throw and a little side table carrying a book."""
+    s = Spr(70, 70, 35, 45)
+    fab = T.get('armchair', C('#c9783f'))
+    m = M(fab, dk(fab, .12), dk(fab, .3))
+    part(s, lambda t: (obox(t, o, 0, 0, 0, 9, 8, 6, m),), .45)
+    part(s, lambda t: obox(t, o, 0, 0, 6, 9, 2.4, 9, m), .45)
+    part(s, lambda t: (obox(t, o, 0, 2.4, 6, 1.8, 5.6, 4, m), obox(t, o, 7.2, 2.4, 6, 1.8, 5.6, 4, m)), .45)
+    part(s, lambda t: obox(t, o, 2.2, 2.6, 6, 4.6, 4.8, 1.4, M(lt(fab, .18))), .35)
+    part(s, lambda t: obox(t, o, 3, 2.5, 7.4, 3, 1.2, 3.4, M(C('#f1e3c2'))), .35)
+    part(s, lambda t: (obox(t, o, 10.5, 1.5, 0, 0.8, 0.8, 7, M(T['desk_leg'])),
+                       obox(t, o, 9.8, 0.8, 7, 2.6, 2.6, 0.8, M(T['desk_top'])),
+                       obox(t, o, 10.2, 1.2, 7.8, 1.6, 1.8, 0.6, M(C('#3f7657')))), .4)
     return s.crop()
 
 
@@ -774,10 +987,11 @@ def build_all(T):
     d['wall_lw'] = wall_seg(T, 'lw', 3)
     d['wall_lw_window'] = wall_seg(T, 'lw', 4, window=True)
     d['wall_corner'] = wall_corner(T)
-    d['desk_rw'] = desk(T, 'rw', 1)
-    d['desk_lw'] = desk(T, 'lw', 2, plant=True)
+    d['desk_rw'] = desk(T, 'rw', 1, props=True)
+    d['desk_lw'] = desk_front(T, 2)
+    d['desk_lw_over'] = desk_front(T, 2, chair_behind=False)
     d['chair_rw'] = chair(T, 'rw')
-    d['chair_lw'] = chair(T, 'lw')
+    d['chair_lw'] = empty()
     d['chair_seat_rw'] = chair(T, 'rw', 'seat')
     d['chair_back_rw'] = chair(T, 'rw', 'back')
     d['plant_big'] = plant_big(T)
@@ -786,6 +1000,9 @@ def build_all(T):
     d['coffee_lw'] = coffee_station(T, 'lw')
     d['bookshelf_lw'] = bookshelf(T, 'lw', 1)
     d['bookshelf_rw'] = bookshelf(T, 'rw', 2)
+    d['bookcase_rw'] = bookshelf(T, 'rw', 5, h=27, L=12)
+    d['coffee_bar_rw'] = coffee_bar(T, 'rw')
+    d['armchair_lw'] = armchair(T, 'lw')
     for i in range(3):
         d[f'rug_{i}'] = rug(T, i, 24, 16)
     d['lamp'] = lamp(T)
@@ -797,13 +1014,15 @@ def build_all(T):
 
 def build_sheet():
     frames = {}
-    frames.update(build_all(A))
+    a = build_all(A)
+    over = a.pop('desk_lw_over')
+    frames.update(a)
     b = build_all(B)
     for k in ('floor_tile_0', 'floor_tile_1', 'wall_rw', 'wall_rw_window', 'wall_lw_window', 'desk_rw', 'chair_rw', 'rug_0', 'nameplate'):
         frames[k + ('' if k.startswith('floor_tile') else '_b')] = b[k]
     frames['glass_rw_b'] = glass(B, 'rw')
     frames['glass_lw_b'] = glass(B, 'lw')
-    frames.update(people_hd.all_frames())
+    frames.update(people_hd.all_frames(front=front_person(over)))
     for st in ('working', 'waiting', 'done', 'idle'):
         frames[f'bubble_{st}'] = bubble(st)
     pack(frames, OUT)
@@ -848,13 +1067,13 @@ def build_sheet_b():
         frames[f'floor_tile_{v}'] = b[f'floor_tile_{v}']
     for k in ('wall_rw', 'wall_rw_window', 'wall_lw', 'wall_lw_window', 'wall_corner', 'desk_rw', 'desk_lw',
               'chair_seat_rw', 'chair_back_rw', 'chair_lw', 'rug_0', 'rug_1', 'rug_2', 'nameplate',
-              'plant_big', 'bookshelf_lw', 'coffee_lw'):
+              'plant_big', 'bookshelf_lw', 'coffee_lw', 'bookcase_rw', 'coffee_bar_rw', 'armchair_lw'):
         frames[k + '_b'] = b[k]
     frames['glass_rw_b'] = glass(B, 'rw')
     frames['glass_lw_b'] = glass(B, 'lw')
     for k in ('whiteboard_rw', 'whiteboard_lw', 'clock_rw', 'poster_rw', 'lamp'):  # same pixels in every theme
         frames[k] = b[k]
-    frames.update(people_hd.all_frames())
+    frames.update(people_hd.all_frames(front=front_person(b['desk_lw_over'])))
     for st in ('working', 'waiting', 'done', 'idle'):
         frames[f'bubble_{st}'] = bubble(st)
     out = f'{OUT}/b'
@@ -897,9 +1116,9 @@ def build_sheet_c():
     for k in ('floor_wood_0', 'floor_wood_1', 'floor_wood_2', 'wall_rw', 'wall_rw_window', 'wall_lw', 'wall_lw_window',
               'wall_corner', 'desk_rw', 'desk_lw', 'chair_seat_rw', 'chair_back_rw', 'chair_lw', 'rug_0', 'rug_1', 'rug_2',
               'nameplate', 'whiteboard_rw', 'whiteboard_lw', 'clock_rw', 'poster_rw', 'bookshelf_lw', 'coffee_lw',
-              'plant_big', 'lamp'):
+              'plant_big', 'lamp', 'bookcase_rw', 'coffee_bar_rw', 'armchair_lw'):
         frames[k + '_c'] = night(c[k])
-    frames.update(people_hd.all_frames('_c', night))
+    frames.update(people_hd.all_frames('_c', night, front_person(c['desk_lw_over'])))
     for st in ('working', 'waiting', 'done', 'idle'):
         frames[f'bubble_{st}'] = bubble(st)
     out = f'{OUT}/c'
