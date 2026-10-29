@@ -363,7 +363,7 @@
         "Git4Idea",
         "org.jetbrains.plugins.github"
       ],
-      "download": "ai-integrations-0.3.7/ai-integrations-0.3.7.zip",
+      "download": "ai-integrations-0.3.8/ai-integrations-0.3.8.zip",
       "detect": []
     },
     {
@@ -380,7 +380,7 @@
         "com.intellij.modules.platform",
         "dev.phantom.ai"
       ],
-      "download": "ai-visualization-0.4.0/ai-visualization-0.4.0.zip",
+      "download": "ai-visualization-0.5.0/ai-visualization-0.5.0.zip",
       "detect": []
     },
     {
