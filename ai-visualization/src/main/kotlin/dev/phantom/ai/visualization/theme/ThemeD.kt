@@ -7,10 +7,12 @@ import java.awt.Color
 
 /**
  * Restroom Cleaning (화장실 청소): white and teal bathroom tiles, tiled walls with mirrors, a toilet and a sink at every desk and a
- * mop bucket for a chair; the people are janitors. Working mops the floor (four frames, the mop swings with suds), waiting holds
- * a plunger up, done gives a thumbs-up among sparkles, idle dozes leaning on the mop. Everyone stands with the boots on the
- * anchor; the working and idle ones, which the layout lifts to seat height, so stand a little further back, at the toilet, and
- * the session tag under them stays clear of the mop.
+ * mop bucket for a chair; the people are eight janitors in coveralls, rubber gloves and boots, caps or bandanas, drawn like the
+ * office people at twice the scene's density ([personDetail]). Working mops the floor (four frames, the mop sweeps across the body
+ * with suds and a wet streak), waiting raises an open hand and holds a plunger, done gives a thumbs-up among sparkles, idle dozes
+ * standing, hands and cheek on the mop handle, a snot bubble swelling. Everyone stands with the boots on the anchor; the working
+ * and idle ones, which the layout lifts to seat height, so stand a little further back, at the toilet, and the session tag under
+ * them stays clear of the mop.
  */
 object ThemeD : Theme {
   override val id = "D"
@@ -62,6 +64,12 @@ object ThemeD : Theme {
   /** The bucket stands beside the spot, away from the toilet; nothing is drawn over the janitor. */
   override fun chair(o: Orientation) = ChairFrames(if (o == Orientation.RW) "chair_rw_d" else "chair_lw_d", null)
 
+  /** Subordinates stand and mop beside their lead like everyone here: no bucket of their own, so two fit beside a lead. */
+  override val helperStool: String? get() = null
+
+  /** The janitors are as tall as the toilet stalls around them: a helper may stand in front of its own area's fixtures. */
+  override val helperMayCoverOwnDesks: Boolean get() = true
+
   override val rugFrames = listOf("rug_0_d", "rug_1_d", "rug_2_d")
   override val nameplate = "nameplate_d"
   override val nameplateSlice = NameplateSlice(leftInset = 12, rightInset = 12, boardHeight = 12)
@@ -79,9 +87,15 @@ object ThemeD : Theme {
     Decor("plant_big_d", 7, 89, layer = 5, key = 96.0),
     Decor("bin_d", 5, 68, layer = 5, key = 73.0),
     Decor("cart_d", 91, 90, layer = 5, key = 181.0),
+    // a corgi with a sponge by the wet-floor sign, an orange tabby beside the cleaning cart
+    Decor("dog_d", 92, 18, layer = 5, key = 110.0),
+    Decor("cat_d", 80, 93, layer = 5, key = 173.0),
   )
 
-  override val personVariants = 6
+  override val personVariants = 8
+
+  /** The janitors are drawn at twice the scene's pixel density, in the style of the office people (art/theme_d.py). */
+  override val personDetail = 2
   override fun person(variant: Int, state: VizState) = personFrame(variant, state, 0)
   override fun bubble(state: VizState) = "bubble_${state.key}"
 

@@ -34,9 +34,9 @@ class ThemeDTest {
   }
 
   @Test
-  fun themeDHasItsOwnSheetSixJanitorsAndNoPartitions() {
+  fun themeDHasItsOwnSheetEightJanitorsAndNoPartitions() {
     assertTrue(ThemeD.atlasImageResource.contains("/themes/d/"))
-    assertTrue(ThemeD.personVariants >= 6)
+    assertTrue(ThemeD.personVariants >= 8)
     for (o in Orientation.values()) {
       assertNull(ThemeD.partition(o))
       assertNull("the bucket draws nothing over the janitor", ThemeD.chair(o).back)
@@ -72,14 +72,16 @@ class ThemeDTest {
    */
   @Test
   fun everyJanitorStandsOnItsAnchor() {
+    val d = ThemeD.personDetail
+    assertEquals(2, d)
     for (v in 0 until ThemeD.personVariants) {
       for (s in listOf(VizState.WORKING, VizState.IDLE)) {
         val f = atlas[ThemeD.person(v, s)]
-        assertTrue("$v $s reaches ${f.h - f.anchorY} below its anchor", f.h - f.anchorY in 1..3)
+        assertTrue("$v $s reaches ${f.h - f.anchorY} below its anchor", f.h - f.anchorY in d..3 * d)
       }
       for (s in listOf(VizState.WAITING, VizState.DONE)) {
         val f = atlas[ThemeD.person(v, s)]
-        assertEquals("$v $s", 1, f.h - f.anchorY)
+        assertEquals("$v $s", d, f.h - f.anchorY)
       }
     }
   }
