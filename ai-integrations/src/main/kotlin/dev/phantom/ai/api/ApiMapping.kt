@@ -25,7 +25,10 @@ internal object ApiMapping {
   }
 
   fun session(s: AgentSession): AiSession =
-    AiSession(s.tabId, s.worktree, agent(s.kind), status(s.status), SessionRow.title(s), s.startedAt)
+    AiSession(
+      s.tabId, s.worktree, agent(s.kind), status(s.status), SessionRow.title(s), s.startedAt,
+      s.subagents.map { AiSubagent(it.id, it.name, it.running) },
+    )
 
   /** prNumber is always null: the model is built with no pull request lookup. */
   fun worktree(w: WorktreeNode): AiWorktree = AiWorktree(w.path, w.title, w.branch, w.prNumber, w.isMain)

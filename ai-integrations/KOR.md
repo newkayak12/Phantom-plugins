@@ -21,6 +21,7 @@
 `dev.phantom.ai.api`가 이 플러그인의 공개 API이며 다른 플러그인이 쓸 수 있는 유일한 패키지입니다. `dev.phantom.ai.*`의 나머지는 내부 구현이라 바뀔 수 있습니다. `plugin.xml`에서 `dev.phantom.ai`에 의존하고 `PhantomAiApi.getInstance()`를 호출하세요.
 
 - `sessions()` / `sessions(project)`: 변경할 수 없는 `AiSession`(탭 id, worktree 경로, 에이전트 `CLAUDE`/`CODEX`, 상태 `WORKING`/`WAITING`/`DONE`/`NONE`, 제목, `startedAt`). `NONE`은 시작했지만 아직 훅 이벤트가 없다는 뜻입니다.
+- `AiSession.subagents`(0.3.1부터): 세션의 Claude가 Task 도구나 에이전트 팀으로 띄운 서브에이전트마다 `AiSubagent`(id, `Explore`·`Plan` 같은 이름, `running`)를 훅이 알린 대로 오래된 것부터 담습니다. `running`은 서브에이전트가 멈출 때까지 true입니다.
 - `worktrees(project)`: `AiWorktree`(경로, 표시 제목, 브랜치, `prNumber`, `isMain`). 네트워크를 쓰지 않으므로 0.3.0에서 `prNumber`는 항상 null입니다.
 - `addChangeListener(parent, listener)`: 세션과 이름이 바뀔 때, 그리고 리스너가 있는 동안 30초마다 확인해 worktree가 추가·삭제될 때 호출됩니다. `parent`가 dispose되면 제거됩니다.
 - `focusSession(project, tabId)`, `startSession(project, worktreePath, agent)`: 세션의 터미널 탭을 선택하거나 새 Claude/Codex 세션을 시작합니다.

@@ -2,16 +2,18 @@
 
 `dev.phantom.ai.visualization` · [한국어](./KOR.md)
 
-The agent sessions of Phantom AI Integration as an isometric pixel-art office. Needs Phantom AI Integration 0.3.0 or later (`dev.phantom.ai`), whose public API `dev.phantom.ai.api` it uses.
+The agent sessions of Phantom AI Integration as an isometric pixel-art office. Needs Phantom AI Integration 0.3.1 or later (`dev.phantom.ai`), whose public API `dev.phantom.ai.api` it uses.
 
 ![AI Office, theme A (Warm Wood)](docs/screenshots/office.png)
 ![Zoomed in](docs/screenshots/office-zoom.png)
 ![AI Office, theme B (Modern Bright)](docs/screenshots/office-b.png)
 ![AI Office, theme C (Night Shift)](docs/screenshots/office-c.png)
+![Subagents as helpers](docs/screenshots/office-subagents.png)
 
 
 - **The office:** Tools | Open AI Office (or Open AI Office in Find Action) opens an "AI Office" editor tab for the current project. Each open project is a floor, each worktree a desk area with a rug and a name plate, and each live agent session a person at a desk. Several sessions in one worktree are several people in its desk area. Saved sessions that are not running are not drawn. The floor picker lists floors top-down, with the number of sessions per state; the first open project is 1F and the current project's floor is selected on open. More than 6 worktrees on a floor are paged, 6 desk areas per page.
 - **States:** working is a person typing at the desk; waiting for you is a person standing with a raised hand and a `!` bubble; done is a person with a coffee and a check bubble; a session started with no hook event yet is a person asleep with a `zzz` bubble.
+- **Subagents:** the running subagents a session started (Claude's Task tool, agent teams) are smaller helpers, each working on a stool beside its person in the same desk area, with a small name tag ("Explore", "Plan") whose dot has the person's state color. At most 4 per session are drawn, more show as "+N"; stopped subagents are not drawn. Hover a helper for its name and its session's title; click it to focus that session's terminal. Floor counts and the legend stay per session; a person's tooltip adds its helper count.
 - **Interactions:** click a person to focus that session's terminal tab; click an empty desk for New Claude / New Codex in that worktree; Ctrl+wheel zooms in whole steps (1 to 6), drag pans; hover a person for title, agent and elapsed time. The animation (typing, bubbles bobbing) runs only while the tab is showing.
 - **Look:** sprites are drawn with nearest-neighbour integer scaling on a 2:1 iso grid, depth sorted back to front; all text is drawn after scaling, crisp at screen resolution, and Korean renders.
 - **Themes:** three, picked in Settings | Tools | Phantom AI Visualization; open AI Office tabs switch at once, without reopening.
@@ -27,7 +29,7 @@ The office opens from the Tools menu and Find Action only. A button on the Phant
 
 ## Real-IDE probe
 
-The probe starts a real IDE with fixture worktrees and fake sessions in all four states and checks the office, then saves screenshots: `ai-office.png` (theme A), `ai-office-b.png` and `ai-office-c.png` (after switching to theme B, then C, through the setting, with the tab left open; then back to A) and `ai-office-zoom.png`:
+The probe starts a real IDE with fixture worktrees and fake sessions in all four states and checks the office, then saves screenshots: `ai-office.png` (theme A), `ai-office-subagents.png` (sessions with subagents as helpers), `ai-office-b.png` and `ai-office-c.png` (after switching to theme B, then C, through the setting, with the tab left open; then back to A) and `ai-office-zoom.png`:
 
 ```
 ./gradlew --no-configuration-cache -PrealIde -PprobeScenario=ai-visualization -PprobeOut=<dir> :ai-visualization:runIdeProbe

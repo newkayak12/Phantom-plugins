@@ -9,8 +9,17 @@ import java.io.IOException
 /** One open project as the API reports it: its worktrees and its live sessions. [key] identifies the project (its base path). */
 data class ProjectData(val key: String, val name: String, val worktrees: List<AiWorktree>, val sessions: List<AiSession>)
 
-/** One agent session as a person. [seed] picks the look (hair, shirt) and is stable per tab. */
-data class Person(val session: AiSession, val state: VizState, val seed: Int)
+/** A running subagent of a session, drawn as a smaller helper next to its parent person. */
+data class Helper(val id: String, val name: String)
+
+/**
+ * One agent session as a person. [seed] picks the look (hair, shirt) and is stable per tab. [helpers] are its running subagents,
+ * oldest first and at most [OfficeModel.MAX_HELPERS]; [moreHelpers] counts the running ones beyond that ("+N").
+ */
+data class Person(val session: AiSession, val state: VizState, val seed: Int, val helpers: List<Helper> = emptyList(), val moreHelpers: Int = 0) {
+  /** Every running subagent, drawn or not. */
+  val helperCount: Int get() = helpers.size + moreHelpers
+}
 
 /** One worktree as a desk area; [people] are its live sessions, oldest first. */
 data class DeskArea(val worktree: AiWorktree, val people: List<Person>)
@@ -30,12 +39,22 @@ class OfficeModel(val floors: List<Floor>) {
   fun floor(key: String?): Floor? = floors.firstOrNull { it.key == key }
 
   companion object {
+    /** Helpers drawn per person; more running subagents show as "+N". */
+    const val MAX_HELPERS = 4
+
+    /** [s] as a person: its running subagents become helpers (stopped ones are not drawn), capped at [MAX_HELPERS]. */
+    fun person(s: AiSession): Person {
+      val running = s.subagents.filter { it.running }
+      val shown = running.take(MAX_HELPERS).map { Helper(it.id, it.name) }
+      return Person(s, VizState.of(s.status), s.tabId.hashCode() and Int.MAX_VALUE, shown, running.size - shown.size)
+    }
+
     fun build(projects: List<ProjectData>): OfficeModel = OfficeModel(
       projects.mapIndexed { i, p ->
         val areas = orderedWorktrees(p.worktrees).map { w ->
           val own = p.sessions.filter { PathKey.of(it.worktreePath) == PathKey.of(w.path) }
             .sortedWith(compareBy({ it.startedAt }, { it.tabId }))
-          DeskArea(w, own.map { Person(it, VizState.of(it.status), it.tabId.hashCode() and Int.MAX_VALUE) })
+          DeskArea(w, own.map { person(it) })
         }
         // every live session of the project counts, also one the worktree list does not (yet) show
         val counts = VizState.values().associateWith { st -> p.sessions.count { VizState.of(it.status) == st } }

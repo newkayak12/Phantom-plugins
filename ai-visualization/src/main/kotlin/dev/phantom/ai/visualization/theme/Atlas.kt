@@ -21,6 +21,19 @@ class Atlas(val image: BufferedImage, val frames: Map<String, Frame>) {
   /** ARGB pixel at ([x], [y]) inside the frame. */
   fun pixel(name: String, x: Int, y: Int): Int = get(name).let { image.getRGB(it.x + x, it.y + y) }
 
+  /**
+   * [name] shrunk by the whole factor [scale]: ceil(w / scale) x ceil(h / scale), the anchor divided. Its pixel (x, y) is the frame's
+   * pixel (x * scale + scale / 2, y * scale + scale / 2), clamped: see [scaledPixel]. Only w, h and the anchor of the result are meaningful.
+   */
+  fun scaled(name: String, scale: Int): Frame = get(name).let {
+    if (scale <= 1) it else Frame(it.name, it.x, it.y, (it.w + scale - 1) / scale, (it.h + scale - 1) / scale, it.anchorX / scale, it.anchorY / scale)
+  }
+
+  /** ARGB pixel at ([x], [y]) of [name] shrunk by [scale]. */
+  fun scaledPixel(name: String, scale: Int, x: Int, y: Int): Int = get(name).let {
+    pixel(name, minOf(it.w - 1, x * scale + scale / 2), minOf(it.h - 1, y * scale + scale / 2))
+  }
+
   /** The frame names [theme] asks for that this atlas does not have. */
   fun missing(theme: Theme): List<String> = theme.frameNames().filterNot { it in frames }.sorted()
 

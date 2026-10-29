@@ -42,6 +42,18 @@ class PublicApiMappingTest : TestCase() {
     assertEquals("Claude", ApiMapping.session(s.copy(kind = AgentKind.CLAUDE, userTitle = null, firstPrompt = "")).title)
   }
 
+  fun testSubagentsMapInOrderWithTheirRunningState() {
+    val s = dev.phantom.ai.core.AgentSession(
+      "t", "/r", AgentKind.CLAUDE,
+      subagents = listOf(dev.phantom.ai.core.Subagent("a1", "Explore"), dev.phantom.ai.core.Subagent("a2", "Plan", running = false)),
+    )
+    assertEquals(
+      listOf(dev.phantom.ai.api.AiSubagent("a1", "Explore", true), dev.phantom.ai.api.AiSubagent("a2", "Plan", false)),
+      ApiMapping.session(s).subagents,
+    )
+    assertEquals(emptyList<dev.phantom.ai.api.AiSubagent>(), ApiMapping.session(s.copy(subagents = emptyList())).subagents)
+  }
+
   fun testWorktreeTitleBranchPrAndMain() {
     val source = WorktreeSource { listOf(Worktree("/r/app", "main", true), Worktree("/w/feat", "feat/x", false), Worktree("/w/det", null, false)) }
     val withPr = object : PrTitles {

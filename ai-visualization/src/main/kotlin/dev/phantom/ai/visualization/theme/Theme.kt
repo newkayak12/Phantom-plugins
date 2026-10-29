@@ -96,6 +96,13 @@ interface Theme {
   fun person(variant: Int, state: VizState): String
   fun bubble(state: VizState): String
 
+  /**
+   * A session's running subagents are drawn as helpers: its person frames shrunk by this whole factor, working, each on a stool
+   * ([helperStool], shrunk the same way; null for none). The defaults reuse frames every theme has, so no theme needs new art.
+   */
+  val helperScale: Int get() = 2
+  val helperStool: String? get() = chair(Orientation.RW).seat
+
   /** Where a bubble's anchor goes relative to the point just above the head: ([bubbleAnchorDx], [bubbleAnchorDy]) native pixels. */
   val bubbleAnchorDx: Int get() = 3
   val bubbleAnchorDy: Int get() = -1
@@ -124,6 +131,7 @@ interface Theme {
     addAll(rugFrames)
     decor.forEach { add(it.frame) }
     lighting?.sources?.forEach { add(it.frame) }
+    helperStool?.let { add(it) }
     for (o in Orientation.values()) {
       partition(o)?.let { add(it) }
       add(desk(o))

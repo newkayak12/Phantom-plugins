@@ -21,6 +21,7 @@ Claude Code and Codex next to your projects. Needs Phantom Workspaces (`dev.phan
 `dev.phantom.ai.api` is the public API of this plugin and the only package other plugins may use; everything else in `dev.phantom.ai.*` is internal and may change. Depend on `dev.phantom.ai` in your `plugin.xml` and call `PhantomAiApi.getInstance()`:
 
 - `sessions()` / `sessions(project)`: immutable `AiSession` views (tab id, worktree path, agent `CLAUDE`/`CODEX`, status `WORKING`/`WAITING`/`DONE`/`NONE`, title, `startedAt`). `NONE` means launched with no hook event yet.
+- `AiSession.subagents` (since 0.3.1): `AiSubagent` (id, name such as `Explore` or `Plan`, `running`) for each subagent the session's Claude started with the Task tool or agent teams, oldest first, as its hooks report them; `running` stays true until the subagent stops.
 - `worktrees(project)`: `AiWorktree` (path, display title, branch, `prNumber`, `isMain`). It never goes to the network, so `prNumber` is always null in 0.3.0.
 - `addChangeListener(parent, listener)`: fires on session and name changes and, polled every 30 seconds while a listener exists, on worktrees added or removed. Removed when `parent` is disposed.
 - `focusSession(project, tabId)` and `startSession(project, worktreePath, agent)`: select a session's terminal tab, or start a new Claude or Codex session.

@@ -10,9 +10,12 @@ enum class AiAgent { CLAUDE, CODEX }
 /** What a session is doing; [NONE] when it was launched and no hook event has arrived yet. */
 enum class AiSessionStatus { WORKING, WAITING, DONE, NONE }
 
+/** A subagent the session's agent started (Claude's Task tool, agent teams), as its hooks reported it; [running] until it stops. */
+data class AiSubagent(val id: String, val name: String, val running: Boolean)
+
 /**
  * An immutable view of one live agent session (one terminal tab). [title] is the user title, else the first prompt line,
- * else the agent name; [startedAt] is epoch milliseconds.
+ * else the agent name; [startedAt] is epoch milliseconds. [subagents] are the ones it started, oldest first (since 0.3.1).
  */
 data class AiSession(
   val tabId: String,
@@ -21,6 +24,7 @@ data class AiSession(
   val status: AiSessionStatus,
   val title: String,
   val startedAt: Long,
+  val subagents: List<AiSubagent> = emptyList(),
 )
 
 /**

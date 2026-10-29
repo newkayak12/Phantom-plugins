@@ -26,6 +26,7 @@ import javax.swing.SwingUtilities
 private const val OFFICE_ACTION = "dev.phantom.ai.visualization.OpenAiOffice"
 private const val PEOPLE = "phantom.aiviz.people"
 private const val THEME = "phantom.aiviz.theme"
+private const val HELPERS = "phantom.aiviz.helpers"
 private const val AI_TOOL_WINDOW = "Phantom AI Integration"
 
 /**
@@ -35,7 +36,7 @@ private const val AI_TOOL_WINDOW = "Phantom AI Integration"
  * launched the same way, and nothing goes through real hooks or the real home (the task redirects the agent dirs and CLIs).
  * Steps: office.opens, office.floors, office.people, office.state.working|waiting|done|idle (ai-office.png), office.hover,
  * office.theme.b (theme B set through the settings service, ai-office-b.png), office.theme.c (theme C, ai-office-c.png), office.theme.a (back to A),
- * office.click.person, office.pan, office.zoom (ai-office-zoom.png), office.timer.runs, office.timer.stops, office.timer.restarts.
+ * office.helpers (subagents drawn as helpers, ai-office-subagents.png), office.helper.hover, office.click.person, office.pan, office.zoom (ai-office-zoom.png), office.timer.runs, office.timer.stops, office.timer.restarts.
  */
 internal object AiVisualizationScenario : ProbeScenario {
   override suspend fun run(ctx: ProbeContext) {
@@ -68,21 +69,26 @@ internal object AiVisualizationScenario : ProbeScenario {
       val kindClass = Class.forName("dev.phantom.ai.core.AgentKind", true, loader)
       val statusClass = Class.forName("dev.phantom.ai.core.AgentStatus", true, loader)
       val sessionClass = Class.forName("dev.phantom.ai.core.AgentSession", true, loader)
+      val subagentClass = Class.forName("dev.phantom.ai.core.Subagent", true, loader)
+      val subCtor = subagentClass.getConstructor(String::class.java, String::class.java, Boolean::class.javaPrimitiveType)
+      fun subs(vararg s: Pair<String, Boolean>) = s.mapIndexed { i, (name, running) -> subCtor.newInstance("sub-$i", name, running) }
       val store = ApplicationManager.getApplication().getService(storeClass)
       fun enumOf(c: Class<*>, n: String?): Any? = n?.let { c.enumConstants.first { e -> (e as Enum<*>).name == it } }
       val ctor = sessionClass.constructors.filter { c -> c.parameterTypes.none { it.name.endsWith("DefaultConstructorMarker") } }.maxByOrNull { it.parameterCount }!!
       val now = System.currentTimeMillis()
-      fun put(tab: String, worktree: String, kind: String, status: String?, title: String?, minutesAgo: Long) {
+      fun put(tab: String, worktree: String, kind: String, status: String?, title: String?, minutesAgo: Long, subagents: List<Any> = emptyList()) {
         // tabId, worktree, kind, status, unread, sessionId, userTitle, firstPrompt, lastPrompt, lastAnswer, startedAt, accountId, subagents
-        val s = ctor.newInstance(tab, worktree, enumOf(kindClass, kind), enumOf(statusClass, status), false, null, title, null, null, null, now - minutesAgo * 60_000, null, emptyList<Any>())
+        val s = ctor.newInstance(tab, worktree, enumOf(kindClass, kind), enumOf(statusClass, status), false, null, title, null, null, null, now - minutesAgo * 60_000, null, subagents)
         storeClass.getMethod("put", sessionClass).invoke(store, s)
       }
-      put("probe-w1", wt("alpha"), "CLAUDE", "WORKING", "로그인 버그 수정 작업 중", 12)
+      // subagents: two running helpers; a stopped one that is not drawn; six running (four helpers and "+2")
+      put("probe-w1", wt("alpha"), "CLAUDE", "WORKING", "로그인 버그 수정 작업 중", 12, subs("Explore" to true, "Plan" to true, "code-reviewer" to false))
       put("probe-w2", wt("alpha"), "CODEX", "WAITING", "Refactor the 결제 module", 7)
       put("probe-w3", wt("alpha"), "CLAUDE", "DONE", "문서 정리 끝", 41)
       put("probe-a1", wt("alpha-feature"), "CLAUDE", "WAITING", "승인 대기: 마이그레이션 스크립트 실행", 3)
+      put("probe-f2", wt("alpha-feature"), "CLAUDE", "WORKING", "API 문서 생성", 9, subs("Explore" to true, "Plan" to true, "general-purpose" to true, "test-runner" to true, "docs-writer" to true, "linter" to true))
       put("probe-h1", wt("alpha-hotfix"), "CODEX", "DONE", "Hotfix 배포 완료", 95)
-      put("probe-d1", wt("alpha-docs"), "CLAUDE", "WORKING", "README 한글 번역", 18)
+      put("probe-d1", wt("alpha-docs"), "CLAUDE", "WORKING", "README 한글 번역", 18, subs("Explore" to true))
       // a real stub-CLI terminal tab (status none) in alpha-docs, for click-to-focus
       val svcClass = Class.forName("dev.phantom.ai.terminal.AgentTerminalService", true, loader)
       val svc = ctx.project.getService(svcClass)
@@ -155,6 +161,42 @@ internal object AiVisualizationScenario : ProbeScenario {
       report.step("office.state.$state", expected = mapOf("found" to true, "personFrameSuffix" to true, "bubbleFrame" to true, "insideCanvas" to true), observed = obs)
     }
     ctx.edt { ProbeSnapshot.paint(ctx.project, ctx.out, "ai-office.png") }
+
+    // subagents: the running ones of a session are smaller helpers beside it; a stopped one is not drawn; over four show "+N"
+    @Suppress("UNCHECKED_CAST")
+    fun helpers(): List<Map<String, Any?>> = (canvas()?.getClientProperty(HELPERS) as? List<Map<String, Any?>>).orEmpty()
+    ctx.waitUntil(15_000) { helpers().size >= 4 }
+    report.step(
+      "office.helpers",
+      expected = mapOf("w1Helpers" to listOf("Explore", "Plan"), "stoppedHidden" to true, "f2Capped" to 4, "d1Helpers" to 1, "insideCanvas" to true),
+      observed = ctx.edt {
+        val c = canvas()
+        val bounds = Rectangle(0, 0, c?.width ?: 0, c?.height ?: 0)
+        val hs = helpers()
+        mapOf(
+          "w1Helpers" to hs.filter { it["tabId"] == "probe-w1" }.map { it["name"] },
+          "stoppedHidden" to hs.none { it["name"] == "code-reviewer" },
+          "f2Capped" to hs.count { it["tabId"] == "probe-f2" },
+          "d1Helpers" to hs.count { it["tabId"] == "probe-d1" },
+          "insideCanvas" to hs.all { (it["screen"] as? Rectangle)?.let { r -> bounds.contains(r) && r.width > 0 } == true },
+          "count" to hs.size, "people" to people().size,
+        )
+      },
+    )
+    ctx.edt { ProbeSnapshot.paint(ctx.project, ctx.out, "ai-office-subagents.png") }
+
+    // hover a helper: its name and its parent's title
+    val helperTip = ctx.edt {
+      val c = canvas()
+      val r = helpers().firstOrNull { it["tabId"] == "probe-w1" && it["name"] == "Explore" }?.get("screen") as? Rectangle
+      if (c == null || r == null) null else (0 until r.height).asSequence().flatMap { dy -> (0 until r.width).asSequence().map { dx -> r.x + dx to r.y + dy } }
+        .firstNotNullOfOrNull { (x, y) -> c.getToolTipText(MouseEvent(c, MouseEvent.MOUSE_MOVED, System.currentTimeMillis(), 0, x, y, 0, false))?.takeIf { it.startsWith("Explore") } }
+    }
+    report.step(
+      "office.helper.hover",
+      expected = mapOf("hasName" to true, "hasParentTitle" to true),
+      observed = mapOf("hasName" to (helperTip?.startsWith("Explore") == true), "hasParentTitle" to (helperTip?.contains("로그인 버그 수정 작업 중") == true), "tooltip" to helperTip),
+    )
 
     // themes B and C: set like Settings | Tools | Phantom AI Visualization does (VizSettings.themeId, through the plugin's class loader);
     // the open tab re-renders without being reopened. Then back to A, so the remaining steps and the next run start in A.

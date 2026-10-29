@@ -4,7 +4,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.3.0"
+version = "0.3.1"
 
 dependencies {
   implementation("io.nayuki:qrcodegen:1.8.0")

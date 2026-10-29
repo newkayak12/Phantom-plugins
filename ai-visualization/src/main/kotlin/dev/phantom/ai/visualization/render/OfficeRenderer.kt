@@ -4,6 +4,7 @@ package dev.phantom.ai.visualization.render
 import dev.phantom.ai.visualization.model.DrawItem
 import dev.phantom.ai.visualization.model.Elapsed
 import dev.phantom.ai.visualization.model.Floor
+import dev.phantom.ai.visualization.model.HelperPlacement
 import dev.phantom.ai.visualization.model.ItemKind
 import dev.phantom.ai.visualization.model.OfficeLayout
 import dev.phantom.ai.visualization.model.PersonPlacement
@@ -66,11 +67,22 @@ data class PlateGeo(val boardX: Int, val boardY: Int, val width: Int, val boardH
 /** A tag as drawn: its rectangle in screen pixels and the text it shows. */
 data class TagDraw(val tabId: String, val rect: Rect, val text: String, val state: VizState)
 
-/** What a paint put on screen, for hit-testing and the probe: the people at their animated positions and the tags. */
-class PaintResult(val people: List<PlacedPerson>, val tags: List<TagDraw>)
+/**
+ * What a paint put on screen, for hit-testing and the probe: the people at their animated positions and the tags; the helpers and
+ * their tags (a helper tag's [TagDraw.tabId] is its parent's, a "+N" tag included).
+ */
+class PaintResult(
+  val people: List<PlacedPerson>,
+  val tags: List<TagDraw>,
+  val helpers: List<PlacedHelper> = emptyList(),
+  val helperTags: List<TagDraw> = emptyList(),
+)
 
 /** A person as drawn: [screen] is the sprite rectangle in screen pixels at the current animation phase. */
 class PlacedPerson(val placement: PersonPlacement, val personFrame: String, val bubbleFrame: String, val screen: Rect)
+
+/** A helper as drawn: [frame] is its (unshrunk) person frame in this phase, [screen] its shrunk sprite in screen pixels. */
+class PlacedHelper(val placement: HelperPlacement, val frame: String, val screen: Rect)
 
 /** The rectangles of a floor picker with [count] cards in a column [width] wide. */
 object PickerLayout {
@@ -99,8 +111,17 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
   private val palette get() = theme.palette
   private val scratch = BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB)
   private val frameImages = HashMap<String, BufferedImage>()
+  private val scaledImages = HashMap<Pair<String, Int>, BufferedImage>()
 
   private fun frame(name: String) = frameImages.getOrPut(name) { atlas.sub(name) }
+
+  /** [name] shrunk by [scale], sampled as [Atlas.scaledPixel] does, so hit-testing sees the pixels drawn. */
+  private fun scaledFrame(name: String, scale: Int): BufferedImage = scaledImages.getOrPut(name to scale) {
+    val f = atlas.scaled(name, scale)
+    val img = BufferedImage(f.w, f.h, BufferedImage.TYPE_INT_ARGB)
+    for (y in 0 until f.h) for (x in 0 until f.w) img.setRGB(x, y, atlas.scaledPixel(name, scale, x, y))
+    img
+  }
 
   // ---- text
 
@@ -122,6 +143,7 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
 
   private fun plateFont(zoom: Int) = Fonts.font(((zoom * 4 + 1).coerceIn(9, 14)).toFloat())
   private fun tagFont() = Fonts.font(11f)
+  private fun helperTagFont() = Fonts.font(9.5f)
 
   fun ellipsize(s: String, max: Int) = if (s.length <= max) s else s.take(max - 1) + "\u2026"
 
@@ -143,9 +165,14 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
       g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR)
       g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF)
       val byTab = scene.people.associateBy { it.tabId }
+      val helpers = scene.helpers.associateBy { it.key }
       for (it in scene.items) when (it.kind) {
         ItemKind.FLOOR_BASE -> slab(g)
-        ItemKind.SPRITE, ItemKind.RUG -> sprite(g, it.frame!!, it.x, it.y)
+        ItemKind.SPRITE, ItemKind.RUG -> sprite(g, it.frame!!, it.x, it.y, it.scale)
+        ItemKind.HELPER -> helpers[it.tabId]?.let { h ->
+          val (frameName, off) = helperAt(h, phase)
+          sprite(g, frameName, it.x + off.dx, it.y + off.dy, h.scale)
+        }
         ItemKind.NAMEPLATE -> plate(g, it, zoom)
         ItemKind.PERSON -> byTab[it.tabId]?.let { p ->
           val (frameName, off) = personAt(p, phase)
@@ -170,7 +197,16 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
 
   private fun bubbleAt(p: PersonPlacement, phase: Int) = theme.bubbleFrame(p.state, phase) to theme.bubbleOffset(p.state, phase)
 
-  private fun sprite(g: Graphics2D, name: String, x: Int, y: Int) {
+  /** A helper animates as a working person of its look. */
+  fun helperAt(h: HelperPlacement, phase: Int) =
+    theme.personFrame(h.variant, VizState.WORKING, phase) to theme.personOffset(VizState.WORKING, phase)
+
+  private fun sprite(g: Graphics2D, name: String, x: Int, y: Int, scale: Int = 1) {
+    if (scale > 1) {
+      val f = atlas.scaled(name, scale)
+      g.drawImage(scaledFrame(name, scale), x - f.anchorX, y - f.anchorY, null)
+      return
+    }
     val f = atlas[name]
     g.drawImage(frame(name), x - f.anchorX, y - f.anchorY, null)
   }
@@ -237,7 +273,16 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
       val r = p.bounds
       PlacedPerson(p, pn, bn, Rect(ox + (r.x + po.dx) * zoom, oy + (r.y + po.dy) * zoom, r.w * zoom, r.h * zoom))
     }
-    return PaintResult(placed, drawTags(g, scene, zoom, ox, oy, phase))
+    val helpers = placedHelpers(scene, zoom, ox, oy, phase)
+    val (tags, helperTags) = drawTags(g, scene, zoom, ox, oy)
+    return PaintResult(placed, tags, helpers, helperTags)
+  }
+
+  /** The helpers of [scene] at their animated positions in screen pixels. */
+  fun placedHelpers(scene: Scene, zoom: Int, ox: Int, oy: Int, phase: Int): List<PlacedHelper> = scene.helpers.map { h ->
+    val (fn, o) = helperAt(h, phase)
+    val f = atlas.scaled(fn, h.scale)
+    PlacedHelper(h, fn, Rect(ox + (h.x + o.dx - f.anchorX) * zoom, oy + (h.y + o.dy - f.anchorY) * zoom, f.w * zoom, f.h * zoom))
   }
 
   /** Name plates and state bubbles in screen pixels: tags keep clear of them. */
@@ -255,33 +300,64 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
     return out
   }
 
-  private fun drawTags(g: Graphics2D, scene: Scene, zoom: Int, ox: Int, oy: Int, phase: Int): List<TagDraw> {
-    val font = tagFont()
-    g.font = font
-    val fm = g.fontMetrics
-    val h = fm.height + 4
+  /** One tag to draw: [parent] gives the dot color, [small] for a helper's tag (and its "+N"). */
+  private class TagSpec(val parent: PersonPlacement, val text: String, val small: Boolean)
+
+  /** The session tags, then the helper tags in the same layout pass so neither covers the other. */
+  private fun drawTags(g: Graphics2D, scene: Scene, zoom: Int, ox: Int, oy: Int): Pair<List<TagDraw>, List<TagDraw>> {
+    val big = g.getFontMetrics(tagFont())
+    val small = g.getFontMetrics(helperTagFont())
     val dot = 7
-    val requests = scene.people.map { p ->
+    val smallDot = 5
+    val specs = HashMap<String, TagSpec>()
+    val requests = ArrayList<TagRequest>()
+    for (p in scene.people) {
       val s = p.person.session
       val text = ellipsize("${s.agent.name.lowercase()} \u00b7 ${s.title}", 30)
-      val w = fm.stringWidth(text) + dot + 16
-      TagRequest(p.tabId, ox + p.x * zoom - w / 2, oy + p.y * zoom + p.tagDy, w, h) to text
+      val w = big.stringWidth(text) + dot + 16
+      requests += TagRequest(p.tabId, ox + p.x * zoom - w / 2, oy + p.y * zoom + p.tagDy, w, big.height + 4)
+      specs[p.tabId] = TagSpec(p, text, small = false)
     }
-    val texts = requests.associate { it.first.id to it.second }
+    val lastHelper = HashMap<String, HelperPlacement>()
+    for (h in scene.helpers) {
+      val text = ellipsize(h.helper.name, 18)
+      val w = small.stringWidth(text) + smallDot + 10
+      // above the head: below it are the parent's tag and the name plates
+      requests += TagRequest(h.key, ox + h.x * zoom - w / 2, oy + h.bounds.y * zoom - small.height - 2 - HELPER_TAG_DY, w, small.height + 2, up = true)
+      specs[h.key] = TagSpec(h.parent, text, small = true)
+      lastHelper[h.tabId] = h
+    }
     val byTab = scene.people.associateBy { it.tabId }
-    val rects = TagLayout.layout(requests.map { it.first }, obstacles = tagObstacles(scene, zoom, ox, oy))
+    for ((tab, n) in scene.helperOverflow) {
+      val p = byTab[tab] ?: continue
+      val text = "+$n"
+      val w = small.stringWidth(text) + smallDot + 10
+      // next to the last helper drawn, else beside the person
+      val (ax, ay) = lastHelper[tab]?.let { it.x + 5 to it.bounds.y } ?: (p.x + 8 to p.y)
+      requests += TagRequest("$tab/+", ox + ax * zoom, oy + ay * zoom - small.height - 2 - HELPER_TAG_DY, w, small.height + 2, up = true)
+      specs["$tab/+"] = TagSpec(p, text, small = true)
+    }
+    // helper tags stack upwards, clear of every helper, so none hides a helper
+    val helperRects = scene.helpers.map { h -> h.bounds.let { TagRect("helper", ox + it.x * zoom, oy + (it.y - 1) * zoom, it.w * zoom, (it.h + 1) * zoom) } }
+    val rects = TagLayout.layout(requests, obstacles = tagObstacles(scene, zoom, ox, oy), upObstacles = helperRects)
     val out = ArrayList<TagDraw>()
+    val helperOut = ArrayList<TagDraw>()
     for (r in rects) {
-      val p = byTab.getValue(r.id)
+      val spec = specs.getValue(r.id)
+      val d = if (spec.small) smallDot else dot
+      val fm = if (spec.small) small else big
+      val inset = if (spec.small) 4 else 6
+      g.font = fm.font
       g.color = palette.tagBackground
       g.fillRoundRect(r.x, r.y, r.w, r.h, r.h, r.h)
-      g.color = palette.stateColor(p.state)
-      g.fillOval(r.x + 6, r.y + (r.h - dot) / 2, dot, dot)
+      g.color = palette.stateColor(spec.parent.state)
+      g.fillOval(r.x + inset, r.y + (r.h - d) / 2, d, d)
       g.color = palette.tagText
-      g.drawString(texts.getValue(r.id), (r.x + 6 + dot + 4).toFloat(), (r.y + (r.h + fm.ascent - fm.descent) / 2).toFloat())
-      out += TagDraw(r.id, Rect(r.x, r.y, r.w, r.h), texts.getValue(r.id), p.state)
+      g.drawString(spec.text, (r.x + inset + d + if (spec.small) 3 else 4).toFloat(), (r.y + (r.h + fm.ascent - fm.descent) / 2).toFloat())
+      val draw = TagDraw(spec.parent.tabId, Rect(r.x, r.y, r.w, r.h), spec.text, spec.parent.state)
+      if (spec.small) helperOut += draw else out += draw
     }
-    return out
+    return out to helperOut
   }
 
   /** The canvas background: a flat color with a dot grid. */
@@ -437,6 +513,16 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
   /** Elapsed text for the tooltip, kept here so every text format of the office lives with the renderer. */
   fun tooltip(p: PersonPlacement, now: Long): String {
     val s = p.person.session
-    return "${s.title} \u00b7 ${s.agent.name.lowercase()} \u00b7 ${Elapsed.format(s.startedAt, now)}"
+    val n = p.person.helperCount
+    val helpers = if (n == 0) "" else " \u00b7 $n helper${if (n == 1) "" else "s"}"
+    return "${s.title} \u00b7 ${s.agent.name.lowercase()} \u00b7 ${Elapsed.format(s.startedAt, now)}$helpers"
+  }
+
+  /** A helper's tooltip: the subagent's name and its parent's title. */
+  fun tooltip(h: HelperPlacement): String = "${h.helper.name} \u00b7 helper of ${h.parent.person.session.title}"
+
+  companion object {
+    /** A helper's tag ends this many screen pixels (not scaled) above its head. */
+    const val HELPER_TAG_DY = 2
   }
 }

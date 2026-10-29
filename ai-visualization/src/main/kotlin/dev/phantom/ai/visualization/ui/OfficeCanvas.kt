@@ -9,6 +9,7 @@ import dev.phantom.ai.visualization.model.Scene
 import dev.phantom.ai.visualization.render.OfficeRenderer
 import dev.phantom.ai.visualization.render.PagerLayout
 import dev.phantom.ai.visualization.render.PaintResult
+import dev.phantom.ai.visualization.render.PlacedHelper
 import dev.phantom.ai.visualization.render.PlacedPerson
 import dev.phantom.ai.visualization.theme.Theme
 import java.awt.Cursor
@@ -32,6 +33,9 @@ interface OfficeActions {
 /** What is under a point of the canvas. */
 sealed interface Hit {
   data class PersonHit(val tabId: String) : Hit
+
+  /** A helper (a running subagent) of the session [tabId]; a click focuses that session. */
+  data class HelperHit(val tabId: String, val helperId: String) : Hit
   data class DeskHit(val worktreePath: String) : Hit
   data class PageHit(val delta: Int) : Hit
   object None : Hit
@@ -196,15 +200,25 @@ class OfficeCanvas(
     return renderer.atlas.pixel(p.personFrame, lx, ly) ushr 24 != 0
   }
 
+  private fun opaque(h: PlacedHelper, x: Int, y: Int): Boolean {
+    val s = h.placement.scale
+    val f = renderer.atlas.scaled(h.frame, s)
+    val lx = ((x - h.screen.x) / zoom).coerceIn(0, f.w - 1)
+    val ly = ((y - h.screen.y) / zoom).coerceIn(0, f.h - 1)
+    return renderer.atlas.scaledPixel(h.frame, s, lx, ly) ushr 24 != 0
+  }
+
   fun hitTest(x: Int, y: Int): Hit {
     if (scene.pageCount > 1) {
       if (PagerLayout.prev(width, height).contains(x, y)) return Hit.PageHit(-1)
       if (PagerLayout.next(width, height).contains(x, y)) return Hit.PageHit(1)
     }
     val people = computePeople()
-    // the person in front (largest feet y) wins
-    people.sortedByDescending { it.placement.y }.firstOrNull { it.screen.contains(x, y) && opaque(it, x, y) }
-      ?.let { return Hit.PersonHit(it.placement.tabId) }
+    val helpers = renderer.placedHelpers(scene, zoom, originX(), originY(), phase)
+    // the person or helper in front (largest feet y) wins
+    val front = people.filter { it.screen.contains(x, y) && opaque(it, x, y) }.map { it.placement.y to Hit.PersonHit(it.placement.tabId) } +
+      helpers.filter { it.screen.contains(x, y) && opaque(it, x, y) }.map { it.placement.y to Hit.HelperHit(it.placement.tabId, it.placement.helper.id) }
+    front.maxByOrNull { it.first }?.let { return it.second }
     val ox = originX()
     val oy = originY()
     for (d in scene.desks) {
@@ -234,11 +248,11 @@ class OfficeCanvas(
     }
   }
 
-  /** The tooltip text under ([x], [y]): "title · agent · elapsed", or null. */
-  fun tooltipAt(x: Int, y: Int): String? {
-    val hit = hitTest(x, y) as? Hit.PersonHit ?: return null
-    val p = scene.people.firstOrNull { it.tabId == hit.tabId } ?: return null
-    return renderer.tooltip(p, clock())
+  /** The tooltip text under ([x], [y]): "title · agent · elapsed" (and the helper count), a helper's "name · helper of title", or null. */
+  fun tooltipAt(x: Int, y: Int): String? = when (val hit = hitTest(x, y)) {
+    is Hit.PersonHit -> scene.people.firstOrNull { it.tabId == hit.tabId }?.let { renderer.tooltip(it, clock()) }
+    is Hit.HelperHit -> scene.helpers.firstOrNull { it.tabId == hit.tabId && it.helper.id == hit.helperId }?.let { renderer.tooltip(it) }
+    else -> null
   }
 
   override fun getToolTipText(event: MouseEvent): String? = tooltipAt(event.x, event.y)
@@ -251,6 +265,7 @@ class OfficeCanvas(
   private fun click(x: Int, y: Int, e: MouseEvent?) {
     when (val h = hitTest(x, y)) {
       is Hit.PersonHit -> actions.focus(h.tabId)
+      is Hit.HelperHit -> actions.focus(h.tabId)
       is Hit.DeskHit -> if (e != null && !java.awt.GraphicsEnvironment.isHeadless()) deskMenu(h.worktreePath).show(this, x, y)
       is Hit.PageHit -> showPage(h.delta)
       Hit.None -> Unit
@@ -278,8 +293,18 @@ class OfficeCanvas(
       )
     }
     // read-only, for the real-IDE probe: it reads the entries by key without importing plugin classes
+    val helpers = renderer.placedHelpers(scene, zoom, originX(), originY(), phase).map {
+      mapOf(
+        "tabId" to it.placement.tabId,
+        "helperId" to it.placement.helper.id,
+        "name" to it.placement.helper.name,
+        "personFrame" to it.frame,
+        "screen" to java.awt.Rectangle(it.screen.x, it.screen.y, it.screen.w, it.screen.h),
+      )
+    }
+    putClientProperty(HELPERS_PROPERTY, java.util.Collections.unmodifiableList(helpers))
     putClientProperty(PEOPLE_PROPERTY, java.util.Collections.unmodifiableList(list))
-    last = PaintResult(people, last.tags)
+    last = PaintResult(people, last.tags, last.helpers, last.helperTags)
   }
 
   override fun paintComponent(g: Graphics) {
@@ -301,6 +326,9 @@ class OfficeCanvas(
 
     /** Client property holding the visible people: a read-only list of maps with tabId, status, personFrame, bubbleFrame, screen (java.awt.Rectangle). */
     const val PEOPLE_PROPERTY = "phantom.aiviz.people"
+
+    /** Client property holding the visible helpers: a read-only list of maps with tabId (the parent's), helperId, name, personFrame, screen. */
+    const val HELPERS_PROPERTY = "phantom.aiviz.helpers"
 
     /** Read-only client property: the id of the theme drawn, for the probe. */
     const val THEME_PROPERTY = "phantom.aiviz.theme"
