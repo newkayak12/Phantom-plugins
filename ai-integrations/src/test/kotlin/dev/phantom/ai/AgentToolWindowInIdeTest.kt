@@ -84,6 +84,36 @@ class AgentToolWindowInIdeTest {
     assertEquals(0.4f, p.splitterForTest()!!.proportion, 0.001f)
   }
 
+  @Test fun foldButtonFoldsIntoAStripThatUnfolds() {
+    val p = panel()
+    p.setSize(1000, 500)
+    p.relayout()
+    assertFalse(p.stripForTest().isVisible)
+    assertTrue(p.treeColumnForTest().isAncestorOf(p.foldButtonForTest()))
+    p.foldButtonForTest().doClick()
+    assertTrue(p.treeHidden)
+    assertFalse(p.treeColumnForTest().isVisible)
+    assertTrue(p.stripForTest().isVisible)
+    assertTrue(p.stripForTest().sideways)
+    assertEquals(java.awt.BorderLayout.WEST, (p.centerForTest().layout as java.awt.BorderLayout).getConstraints(p.stripForTest()))
+    p.stripForTest().mouseListeners.forEach {
+      it.mouseClicked(java.awt.event.MouseEvent(p.stripForTest(), java.awt.event.MouseEvent.MOUSE_CLICKED, 0, 0, 5, 5, 1, false))
+    }
+    assertFalse(p.treeHidden)
+    assertTrue(p.treeColumnForTest().isVisible)
+    assertFalse(p.stripForTest().isVisible)
+  }
+
+  @Test fun stackedTreeFoldsIntoAStripAbove() {
+    type = ToolWindowType.FLOATING
+    val p = panel()
+    p.setSize(400, 800)
+    p.relayout()
+    p.toggleTree()
+    assertFalse(p.stripForTest().sideways)
+    assertEquals(java.awt.BorderLayout.NORTH, (p.centerForTest().layout as java.awt.BorderLayout).getConstraints(p.stripForTest()))
+  }
+
   @Test fun treeHiddenStateSurvivesRecreate() {
     val first = panel()
     first.toggleTree()
