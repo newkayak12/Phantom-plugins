@@ -17,6 +17,8 @@ data class HookEvent(
   val subagent: SubagentEvent? = null,
   val subagentId: String? = null,
   val subagentName: String? = null,
+  /** SessionStart only: startup, resume, clear or compact. */
+  val source: String? = null,
 )
 
 enum class SubagentEvent { START, STOP }
@@ -62,6 +64,7 @@ object HookEventMapper {
       subagent = sub,
       subagentId = if (sub != null) str(o, "agent_id") ?: str(o, "subagent_id") else null,
       subagentName = if (sub != null) str(o, "agent_type") ?: str(o, "subagent_type") else null,
+      source = if (name == "SessionStart") str(o, "source") else null,
     )
   }
 

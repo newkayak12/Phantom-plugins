@@ -9,10 +9,11 @@ import dev.phantom.ai.core.Subagent
 
 /** Applies [HookEvent]s to the [SessionStore] session of the matching tab id and remembers its session_id in [AiState]. */
 object HookIngest {
-  /** Returns false if no live session has [tabId]. */
+  /** Returns false if no live session has [tabId] or the event belongs to another session ([isOtherSession]). */
   fun apply(tabId: String, kind: AgentKind, event: HookEvent, store: SessionStore = SessionStore.getInstance()): Boolean {
     val current = store.get(tabId) ?: return false
     if (current.kind != kind) return false
+    if (isOtherSession(current.sessionId, event)) return false
     val next = store.update(tabId) { s ->
       s.copy(
         status = event.status ?: s.status,
@@ -26,6 +27,15 @@ object HookIngest {
     } ?: return false
     next.sessionId?.let { AiState.getInstance().rememberSession(next.worktree, kind, it, next.firstPrompt, next.accountId) }
     return true
+  }
+
+  /**
+   * A headless `claude -p` / `codex exec` run inside the tab inherits its hook env and posts here with its own session id.
+   * Once the tab has a session, only a SessionStart that is not a fresh startup (/clear, resume) may move it to another.
+   */
+  private fun isOtherSession(current: String?, e: HookEvent): Boolean {
+    if (current == null || e.sessionId == null || e.sessionId == current) return false
+    return !(e.name == "SessionStart" && e.source != null && e.source != "startup")
   }
 
   private fun withSubagent(list: List<Subagent>, e: HookEvent): List<Subagent> = when (e.subagent) {

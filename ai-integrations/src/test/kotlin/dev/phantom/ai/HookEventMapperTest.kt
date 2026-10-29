@@ -42,6 +42,11 @@ class HookEventMapperTest {
   @Test fun claudeSessionStartRegistersWithoutStatus() {
     val e = m(claude, "SessionStart"); assertNull(e.status); assertEquals("s1", e.sessionId)
   }
+  @Test fun sessionStartCarriesItsSource() {
+    assertEquals("clear", m(claude, "SessionStart", ""","source":"clear"""").source)
+    assertEquals("startup", m(codex, "SessionStart", ""","source":"startup"""").source)
+    assertNull(m(claude, "Stop", ""","source":"clear"""").source)
+  }
 
   @Test fun codexSessionStartCapturesSessionIdWithoutStatus() {
     val e = m(codex, "SessionStart"); assertNull(e.status); assertEquals("s1", e.sessionId)
