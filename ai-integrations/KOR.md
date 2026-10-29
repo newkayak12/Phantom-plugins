@@ -8,7 +8,7 @@
 ![플로팅, 넓을 때](docs/screenshots/floating.png) ![플로팅, 좁을 때](docs/screenshots/floating-narrow.png)
 
 
-- **도구 창:** Phantom AI Integration 도구 창은 현재 프로젝트의 패널 하나입니다. 프로젝트의 저장소, worktree, 에이전트 세션 트리(GitHub 플러그인에 그 원격의 계정이 있으면 열린 PR 제목도)가 에이전트 터미널과 나란히 있고, 터미널은 닫을 수 있는 탭으로 하나씩 열립니다. 도킹하면 트리는 항상 터미널 왼쪽에 있고, 플로팅이나 창 모드에서는 너비가 `max(600, 0.8 × 높이)` 이상이면 왼쪽, 아니면 위에 놓이며, 트리 위쪽의 «(또는 제목줄의 Hide Tree / Show Tree)를 누르면 트리가 얇은 Worktrees 띠로 접히고, 띠를 누르면 다시 펼쳐집니다. 도킹했을 때 + Claude, + Codex, Board, Dashboard는 트리 쪽에 있고, 플로팅이거나 트리를 접으면 전체 너비 한 줄에 놓입니다. 플로팅 창은 크기와 위치를 기억합니다. 프로젝트 그룹과 Add Repo는 없습니다. 저장소는 현재 프로젝트의 것입니다.
+- **도구 창:** Phantom AI Integration 도구 창은 현재 프로젝트의 패널 하나입니다. 프로젝트의 저장소, worktree, 에이전트 세션 트리(GitHub 플러그인에 그 원격의 계정이 있으면 열린 PR 제목도)가 에이전트 터미널과 나란히 있고, 터미널은 닫을 수 있는 탭으로 하나씩 열립니다. worktree 행의 New Worktree로 만든 worktree는 브랜치와 상관없이 그 worktree 아래에 놓입니다. 도킹하면 트리는 항상 터미널 왼쪽에 있고, 플로팅이나 창 모드에서는 너비가 `max(600, 0.8 × 높이)` 이상이면 왼쪽, 아니면 위에 놓이며, 트리 위쪽의 «(또는 제목줄의 Hide Tree / Show Tree)를 누르면 트리가 얇은 Worktrees 띠로 접히고, 띠를 누르면 다시 펼쳐집니다. 도킹했을 때 + Claude, + Codex, Board, Dashboard는 트리 쪽에 있고, 플로팅이거나 트리를 접으면 전체 너비 한 줄에 놓입니다. 플로팅 창은 크기와 위치를 기억합니다. 프로젝트 그룹과 Add Repo는 없습니다. 저장소는 현재 프로젝트의 것입니다.
 - **세션:** New Claude Session, New Codex Session, Resume Session은 worktree에서 `claude`나 `codex`를 이 도구 창의 터미널 탭으로 띄웁니다. 세션은 작업 중, 입력 대기, 완료로 표시되고 읽지 않음 표시가 붙습니다.
 - **에이전트가 편집기를 다룸:** 에이전트 터미널은 설정 없이 Phantom 전용 MCP 서버(`phantom`, 루프백 훅 서버, 실행마다 새 토큰)에 연결됩니다. "그거 어디야?"라고 물으면 에이전트가 그 파일을 해당 줄에서 편집기로 열고, 블록을 선택하고, 창을 앞으로 가져옵니다(`open_in_editor`). worktree가 열려 있지 않으면 프로젝트 탭으로 엽니다. "이거"라고 하면 지금 보고 있는 파일, 커서 위치, 선택 영역을 읽습니다(`get_editor_context`).
 - **보드:** Board(버튼 또는 Find Action의 Open Board)가 에디터 탭을 열고, 모든 worktree를 카드로 열(Todo, In progress, In review, Done)에 보여 주고, 카드를 끌어 옮깁니다. 카드에는 브랜치, 세션 상태 점, 프롬프트가 나옵니다.

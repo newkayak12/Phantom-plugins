@@ -37,3 +37,44 @@ class CachedPrTitles(
   }
 }
 
+
+/**
+ * [delegate] without the wait: answers at once from what is known, a stale answer too, and looks a missing or stale one
+ * up on [background], once however often it is asked, calling [loaded] when it arrives. A view's refresh then no longer
+ * waits for git and GitHub once per worktree; the title shows on the refresh that [loaded] starts.
+ */
+class BackgroundPrTitles(
+  private val delegate: PrTitles,
+  private val background: (Runnable) -> Unit,
+  private val loaded: () -> Unit,
+  private val ttlMillis: Long = 5 * 60_000L,
+  private val clock: () -> Long = System::currentTimeMillis,
+) : PrTitles {
+  private class Entry(val info: PrInfo?, val at: Long)
+
+  private val cache = ConcurrentHashMap<String, Entry>()
+  private val asked = ConcurrentHashMap.newKeySet<String>()
+
+  override fun titleFor(repoPath: String, branch: String): String? = infoFor(repoPath, branch)?.title
+
+  override fun infoFor(repoPath: String, branch: String): PrInfo? {
+    val key = "$repoPath\n$branch"
+    val known = cache[key]
+    if ((known == null || clock() - known.at >= ttlMillis) && asked.add(key)) {
+      background(Runnable {
+        val info = bestEffort { delegate.infoFor(repoPath, branch) }.getOrNull()
+        cache[key] = Entry(info, clock())
+        asked.remove(key)
+        if (info != known?.info) loaded()
+      })
+    }
+    return known?.info
+  }
+}
+
+/** The views' shared PR titles: one lookup per branch however many views ask; an arrival refreshes every view. */
+object SharedPrTitles : PrTitles by BackgroundPrTitles(
+  GithubPrTitles(),
+  { com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread(it) },
+  { dev.phantom.ai.core.AiState.getInstance().changed() },
+)

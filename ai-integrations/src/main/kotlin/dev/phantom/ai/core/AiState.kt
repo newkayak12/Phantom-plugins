@@ -17,6 +17,8 @@ class WorktreeEntry : BaseState() {
   var column by string()
   var order by property(0)
   var userName by string()
+  /** The worktree this one was made from, as in Orca's lineage; the sidebar shows it below that one. Not its base branch. */
+  var parentPath by string()
 }
 
 /** A remembered agent session of a worktree (provider = AgentKind.name). */

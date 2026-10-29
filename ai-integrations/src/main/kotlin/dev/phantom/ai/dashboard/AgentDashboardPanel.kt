@@ -18,10 +18,9 @@ import dev.phantom.ai.core.AiState
 import dev.phantom.ai.core.PhantomAiBundle
 import dev.phantom.ai.core.SessionListener
 import dev.phantom.ai.core.SessionStore
-import dev.phantom.ai.sidebar.CachedPrTitles
+import dev.phantom.ai.sidebar.SharedPrTitles
 import dev.phantom.ai.sidebar.SharedWorktrees
 import dev.phantom.ai.sidebar.GitProjectRepos
-import dev.phantom.ai.sidebar.GithubPrTitles
 import dev.phantom.ai.sidebar.ProjectRepos
 import dev.phantom.ai.sidebar.PrTitles
 import dev.phantom.ai.sidebar.SidebarModel
@@ -56,7 +55,7 @@ import javax.swing.event.DocumentListener
 class AgentDashboardPanel(
   private val project: Project,
   private val worktrees: WorktreeSource = SharedWorktrees,
-  private val prTitles: PrTitles = CachedPrTitles(GithubPrTitles()),
+  private val prTitles: PrTitles = SharedPrTitles,
   /** The repositories of an open project; one model is built per open project. */
   private val reposOf: (Project) -> ProjectRepos = { GitProjectRepos(it) },
 ) : JPanel(BorderLayout()), Disposable {

@@ -106,4 +106,28 @@ class GithubPrLookupTest {
     assertEquals("Nine", c.titleFor("/r", "b"))
     assertEquals(1, calls)
   }
+
+  @Test
+  fun `background lookup answers at once and asks once`() {
+    val queued = ArrayList<Runnable>()
+    var calls = 0
+    var loaded = 0
+    var now = 0L
+    val b = dev.phantom.ai.sidebar.BackgroundPrTitles(
+      GithubPrTitles(remotes) { _, _ -> calls++; PrInfo(9, "Nine") }, { queued += it }, { loaded++ }, ttlMillis = 10, clock = { now },
+    )
+    assertNull(b.infoFor("/r", "b"))
+    assertNull(b.infoFor("/r", "b"))
+    assertEquals(1, queued.size)
+    queued.removeAt(0).run()
+    assertEquals(1, loaded)
+    assertEquals(PrInfo(9, "Nine"), b.infoFor("/r", "b"))
+    assertTrue(queued.isEmpty())
+    // stale: the old answer stays until the new one is in, and an unchanged answer refreshes nothing
+    now = 10
+    assertEquals(PrInfo(9, "Nine"), b.infoFor("/r", "b"))
+    queued.removeAt(0).run()
+    assertEquals(1, loaded)
+    assertEquals(2, calls)
+  }
 }

@@ -64,7 +64,7 @@ object SidebarColors {
 class WorktreeTreePanel(
   private val project: Project,
   private val worktrees: WorktreeSource = SharedWorktrees,
-  private val prTitles: PrTitles = CachedPrTitles(GithubPrTitles()),
+  private val prTitles: PrTitles = SharedPrTitles,
   private val actions: SidebarActions = SidebarActions(project),
   private val background: (Runnable) -> Unit = { ApplicationManager.getApplication().executeOnPooledThread(it) },
   private val creator: WorktreeCreator = WorktreeCreator(),
@@ -84,6 +84,7 @@ class WorktreeTreePanel(
   private val ticker = javax.swing.Timer(30_000) { if (isShowing) refresh() }
   private var repoOfWorktree: Map<String, RepoNode> = emptyMap()
   private val known = HashSet<String>() // rows seen before: a new row opens, an old one keeps what the user chose
+  private var shown: SidebarModel? = null
 
   init {
     tree.isRootVisible = false
@@ -153,7 +154,8 @@ class WorktreeTreePanel(
         SidebarModel.build(
           repos.roots(), worktrees, SessionStore.getInstance().all(),
           state.state.sessions.mapNotNull(SidebarModel::saved), prTitles,
-          { state.state.worktrees.firstOrNull { w -> w.path == it }?.userName }, System.currentTimeMillis(),
+          { state.findWorktree(it)?.userName }, System.currentTimeMillis(),
+          { state.findWorktree(it)?.parentPath },
         )
       }.getOrNull() ?: return@Runnable
       ApplicationManager.getApplication().invokeLater({ show(built) }, project.disposed)
@@ -161,21 +163,28 @@ class WorktreeTreePanel(
   }
 
   private fun show(m: SidebarModel) {
+    // hook events refresh several times a second while agents work; most change nothing that shows
+    if (m == shown) return
+    shown = m
     val expanded = (0 until tree.rowCount).mapNotNull { tree.getPathForRow(it) }.filter { tree.isExpanded(it) }.map { key(it) }.toSet()
     val selected = tree.selectionPath?.let { key(it) }
     root.removeAllChildren()
     val toExpand = ArrayList<DefaultMutableTreeNode>()
-    fun worktree(parent: DefaultMutableTreeNode, w: WorktreeNode) {
+    // the sessions of a worktree, then the worktrees made from it
+    fun worktree(parent: DefaultMutableTreeNode, n: NestedWorktree) {
+      val w = n.node
       val wn = DefaultMutableTreeNode(w).also(parent::add)
       w.sessions.forEach { wn.add(DefaultMutableTreeNode(it)) }
-      if (w.sessions.isNotEmpty()) toExpand += wn
+      n.children.forEach { worktree(wn, it) }
+      if (w.sessions.isNotEmpty() || n.children.isNotEmpty()) toExpand += wn
     }
     for (r in m.repos) {
+      val nested = SidebarModel.nest(r.worktrees)
       if (m.flat) {
-        r.worktrees.forEach { worktree(root, it) }
+        nested.forEach { worktree(root, it) }
       } else {
         val rn = DefaultMutableTreeNode(r).also(root::add)
-        r.worktrees.forEach { worktree(rn, it) }
+        nested.forEach { worktree(rn, it) }
         toExpand += rn
       }
     }
@@ -217,7 +226,7 @@ class WorktreeTreePanel(
       PhantomAiBundle.message("action.new.claude") to { actions.newSession(o.path, AgentKind.CLAUDE) },
       PhantomAiBundle.message("action.new.codex") to { actions.newSession(o.path, AgentKind.CODEX) },
       PhantomAiBundle.message("sidebar.rename") to { renameWorktree(o) },
-      PhantomAiBundle.message("worktree.new") to (repoOfWorktree[o.path]?.let { r -> { newWorktree(r) } }),
+      PhantomAiBundle.message("worktree.new") to (repoOfWorktree[o.path]?.let { r -> { newWorktree(r, o.path) } }),
       PhantomAiBundle.message("worktree.remove") to (if (o.isMain) null else ({ removeWorktree(o) })),
     )
     is RepoNode -> menu(PhantomAiBundle.message("worktree.new") to { newWorktree(o) })
@@ -239,8 +248,11 @@ class WorktreeTreePanel(
     refresh()
   }
 
-  /** Orca's new workspace: a worktree on a new branch (git off the EDT), then the chosen agent started in it. */
-  private fun newWorktree(r: RepoNode) {
+  /**
+   * Orca's new workspace: a worktree on a new branch (git off the EDT), then the chosen agent started in it. Made from a
+   * worktree row, it shows below [parent], as Orca's lineage; the base branch is chosen apart from that.
+   */
+  private fun newWorktree(r: RepoNode, parent: String? = null) {
     val repo = r.path
     background(Runnable {
       val base = creator.defaultBase(repo)
@@ -252,6 +264,10 @@ class WorktreeTreePanel(
           val created = creator.create(repo, request.name, request.base)
           later {
             created.onSuccess { w ->
+              if (parent != null) {
+                AiState.getInstance().worktree(w.path).parentPath = parent
+                AiState.getInstance().changed()
+              }
               refresh()
               request.agent?.let { actions.newSession(w.path, it) }
             }.onFailure { Messages.showErrorDialog(project, it.message, PhantomAiBundle.message("worktree.new.failed")) }

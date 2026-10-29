@@ -7,6 +7,7 @@ import dev.phantom.ai.core.AgentStatus
 import dev.phantom.ai.sidebar.PrTitles
 import dev.phantom.ai.sidebar.SidebarModel
 import dev.phantom.ai.sidebar.Worktree
+import dev.phantom.ai.sidebar.WorktreeNode
 import dev.phantom.ai.sidebar.WorktreePorcelain
 import dev.phantom.ai.sidebar.WorktreeSource
 import junit.framework.TestCase
@@ -69,6 +70,29 @@ class SidebarModelTest : TestCase() {
     val row = m2.repos[0].worktrees.single { it.isMain }.sessions.single()
     assertEquals("old", row.title)
     assertNull(row.elapsed)
+  }
+
+  fun testWorktreesNestUnderTheWorktreeTheyWereMadeFromNotTheirBranch() {
+    val src = WorktreeSource {
+      listOf(
+        Worktree("/r/app", "main", true), Worktree("/w/310", "refactor/CL-310", false),
+        Worktree("/w/531", "refactor/CL-531", false), Worktree("/w/526", "refactor/CL-526", false),
+        Worktree("/w/9", "feat/9", false),
+      )
+    }
+    val parents = mapOf("/w/531" to "/w/310", "/w/526" to "/w/310/", "/w/9" to "/w/gone", "/r/app" to "/w/310")
+    val m = SidebarModel.build(listOf("/r/app"), src, emptyList(), emptyList(), { _, _ -> null }, { null }, 1, { parents[it] })
+    val nested = SidebarModel.nest(m.repos.single().worktrees)
+    // the main worktree never nests, and a parent that is gone puts the worktree at the top
+    assertEquals(listOf("/r/app", "/w/310", "/w/9"), nested.map { it.node.path })
+    assertEquals(listOf("/w/531", "/w/526"), nested[1].children.map { it.node.path })
+  }
+
+  fun testWorktreesInACycleGoToTheTop() {
+    fun wt(p: String, parent: String?) = WorktreeNode(p, p, null, false, emptyList(), parentPath = parent)
+    val nested = SidebarModel.nest(listOf(wt("/a", "/b"), wt("/b", "/a"), wt("/c", "/a"), wt("/d", "/d")))
+    assertEquals(listOf("/a", "/b", "/d"), nested.map { it.node.path })
+    assertEquals(listOf("/c"), nested[0].children.map { it.node.path })
   }
 
   fun testPorcelainParserListsMainLinkedAndDetached() {
