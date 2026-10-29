@@ -15,7 +15,7 @@ class OpenAiOfficeAction : AnAction(), DumbAware {
     if (!ApiCheck.available) {
       Messages.showWarningDialog(
         project,
-        "Phantom AI Visualization needs Phantom AI Integration 0.3.7 or later. Update it in Settings | Plugins and restart.",
+        "Phantom AI Visualization needs Phantom AI Integration 0.3.8 or later. Update it in Settings | Plugins and restart.",
         "Open AI Office",
       )
       return

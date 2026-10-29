@@ -349,9 +349,9 @@
     {
       "id": "dev.phantom.ai",
       "name": "Phantom AI Integration",
-      "version": "0.3.7",
+      "version": "0.3.8",
       "source": "ai-integrations",
-      "description": "Claude Code and Codex next to your projects (0.3.7): a tree of the current project's worktrees and agent sessions beside the agent terminals in one tool window, a board editor tab, an agent dashboard, usage in the status bar and opt-in remote control from another device's browser. Agents open files at a line in the editor and read what you are looking at through Phantom's own MCP server, with no setup. A small public API, dev.phantom.ai.api, lets other plugins read sessions (with the subagents each started, since 0.3.1) and worktrees and focus or start a session. Needs Phantom Workspaces.",
+      "description": "Claude Code and Codex next to your projects (0.3.8): a tree of the current project's worktrees and agent sessions beside the agent terminals in one tool window, a board editor tab, an agent dashboard, usage in the status bar and opt-in remote control from another device's browser. Agents open files at a line in the editor and read what you are looking at through Phantom's own MCP server, with no setup. A small public API, dev.phantom.ai.api, lets other plugins read sessions (with the subagents each started, since 0.3.1, and what each is doing right now, since 0.3.8) and worktrees and focus or start a session. Needs Phantom Workspaces.",
       "vendor": "Phantom",
       "category": "Tools",
       "since": "262",
@@ -369,9 +369,9 @@
     {
       "id": "dev.phantom.ai.visualization",
       "name": "Phantom AI Visualization",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "source": "ai-visualization",
-      "description": "The agent sessions of Phantom AI Integration as an isometric pixel-art office (0.4.0): each open project is a floor, each worktree a desk area with a rug and a name plate, each live session a person who types, waits with a raised hand, has a coffee or sleeps; the running subagents a session started are smaller helpers on stools beside it, each with a small name tag (up to 4, then \"+N\"). Click a person or a helper to focus its terminal, an empty desk to start Claude or Codex. Opens from Tools | Open AI Office; three themes, Warm Wood (A), Modern Bright (B, light tiles, white walls, glass partitions, teal accents) and Night Shift (C, the office at night: starry windows, monitors casting cool light, lamp and name plates warm pools), switched in Settings | Tools | Phantom AI Visualization. Needs Phantom AI Integration 0.3.1.",
+      "description": "The agent sessions of Phantom AI Integration as an isometric pixel-art place (0.5.0): each open project is a floor, each worktree a desk area with a rug and a name plate, each live session a person drawn at twice the scene's pixel density, warm and readable: typing, waiting with a raised hand, holding a coffee or asleep. A label over every head says what the agent is doing right now (Edit Foo.kt, Bash: ./gradlew test, 권한 요청) and running subagents sit beside their lead as full-size subordinates, each with its own label. Click a person to focus its terminal, an empty desk to start Claude or Codex. Opens from Tools | Open AI Office; six themes in Settings | Tools | Phantom AI Visualization: Warm Wood (A), Modern Bright (B), Night Shift (C), Restroom Cleaning (D, with a cat and a corgi), Kitchen (E) and Construction Site (F). Needs Phantom AI Integration 0.3.8.",
       "vendor": "Phantom",
       "category": "Tools",
       "since": "262",

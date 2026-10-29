@@ -2,7 +2,7 @@
 package dev.phantom.ai.visualization.actions
 
 /**
- * Whether the installed Phantom AI Integration has the public API this plugin uses (0.3.7 and later: dev.phantom.ai.api with
+ * Whether the installed Phantom AI Integration has the public API this plugin uses (0.3.8 and later: dev.phantom.ai.api with
  * AiSubagent and the sessions' and subagents' activity). An older one loads fine as the dependency but lacks those, and opening
  * the office would fail with NoClassDefFoundError or NoSuchMethodError (0.3.0 has the API but no subagents, 0.3.1 to 0.3.5 no activity).
  */
