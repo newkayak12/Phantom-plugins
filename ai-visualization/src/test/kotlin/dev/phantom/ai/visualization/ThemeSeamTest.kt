@@ -79,8 +79,8 @@ class ThemeSeamTest {
   }
 
   @Test
-  fun registryHoldsThemesABCAndD() {
-    assertEquals(listOf(ThemeA, dev.phantom.ai.visualization.theme.ThemeB, dev.phantom.ai.visualization.theme.ThemeC, dev.phantom.ai.visualization.theme.ThemeD), Themes.all)
+  fun registryHoldsAllThemes() {
+    assertEquals(listOf(ThemeA, dev.phantom.ai.visualization.theme.ThemeB, dev.phantom.ai.visualization.theme.ThemeC, dev.phantom.ai.visualization.theme.ThemeD, dev.phantom.ai.visualization.theme.ThemeE, dev.phantom.ai.visualization.theme.ThemeF), Themes.all)
     assertEquals(ThemeA, Themes.default)
   }
 }
