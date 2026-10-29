@@ -33,6 +33,7 @@
     <fileEditorProvider implementation="dev.phantom.ai.board.BoardFileEditorProvider"/>
     <notificationGroup id="Phantom AI Integration" displayType="BALLOON"/>
     <!-- ===== other extensions (append here) ===== -->
+    <postStartupActivity implementation="dev.phantom.ai.hooks.AgentTeamsStartup"/>
   </extensions>
   <actions>
     <!-- ===== U4/U5/U6 actions (append here) ===== -->
