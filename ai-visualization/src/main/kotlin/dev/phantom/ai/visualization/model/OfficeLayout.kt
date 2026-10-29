@@ -195,16 +195,17 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
     val overflow = LinkedHashMap<String, Int>()
     if (people.any { it.person.helperCount > 0 }) placeHelpers(slots, items, desks, people, helpers, overflow)
     items.sortWith(compareBy({ it.layer }, { it.key }))
-    return Scene(items, placements, desks, people, pg, pages, SCENE_W, SCENE_H, helpers, overflow, focus(placements, desks))
+    return Scene(items, placements, desks, people, pg, pages, SCENE_W, SCENE_H, helpers, overflow, focus(placements, desks, people, helpers))
   }
 
   /**
-   * The rugs and desks of the areas shown, with [FOCUS_TOP] pixels above for the heads, bubbles and activity labels of the back
-   * row and a margin elsewhere; the whole scene when there is none. Depends only on the areas, so the view does not jump as
-   * people come and go.
+   * The rugs and desks of the areas shown and every person (with its bubble) and subordinate, with [FOCUS_TOP] pixels above for
+   * the activity labels and a margin elsewhere; the whole scene when there is none. A person who found no room on its rug and
+   * stands elsewhere in the room is inside it too, so a fitted view never crops anyone.
    */
-  private fun focus(areas: List<AreaPlacement>, desks: List<DeskPlacement>): Rect {
-    val rects = areas.map { it.rugBounds } + desks.map { it.bounds }
+  private fun focus(areas: List<AreaPlacement>, desks: List<DeskPlacement>, people: List<PersonPlacement>, helpers: List<HelperPlacement>): Rect {
+    val rects = areas.map { it.rugBounds } + desks.map { it.bounds } + people.flatMap { listOf(it.bounds, it.bubbleBounds) } +
+      helpers.map { it.footprint }
     if (rects.isEmpty()) return Rect(0, 0, SCENE_W, SCENE_H)
     val x0 = rects.minOf { it.x } - FOCUS_SIDE
     val y0 = rects.minOf { it.y } - FOCUS_TOP
@@ -216,9 +217,9 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
   /**
    * Subordinates (helpers) go after every person: each takes the nearest free spot beside its parent on the parent's rug where it
    * stays wholly visible: its chair and itself clear of every person's sprite and bubble and of every subordinate placed before it,
-   * no opaque pixel of furniture drawn in front of it (desk, chair, decor, partition) over its sprite, and its sprite over none of
-   * its own area's desks (its chair may tuck under one). It may sit in front of another area's furniture, as people in an iso room
-   * do. One with no free spot is counted in the parent's "+N" instead.
+   * no opaque pixel of furniture drawn in front of it (desk, chair, decor, partition) over an opaque pixel of it, and none of it over
+   * an opaque pixel of its own area's desks (its chair may tuck under one) unless [Theme.helperMayCoverOwnDesks]. It may sit in
+   * front of another area's furniture, as people in an iso room do. One with no free spot is counted in the parent's "+N" instead.
    */
   private fun placeHelpers(
     slots: List<AreaSlot>, items: MutableList<DrawItem>, desks: List<DeskPlacement>, people: List<PersonPlacement>,
@@ -239,8 +240,8 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
           .map { (u, v) -> helperAt(p, h, i, u, v, s, stool) }
           .firstOrNull { c ->
             taken.none { it.intersects(c.footprint) } && helpers.none { it.footprint.intersects(c.footprint) } &&
-              furniture.none { it.key > c.u + c.v && opaqueIn(it.frame!!, it.x, it.y, c.bounds) } &&
-              ownDesks.none { (frame, b) -> opaqueAt(frame, b.x, b.y, c.bounds) }
+              furniture.none { it.key > c.u + c.v && atlas[it.frame!!].let { f -> overlaps(it.frame, it.x - f.anchorX, it.y - f.anchorY, c) } } &&
+              (theme.helperMayCoverOwnDesks || ownDesks.none { (frame, b) -> overlaps(frame, b.x, b.y, c) })
           }
         if (c == null) {
           dropped++
@@ -266,15 +267,23 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
     return HelperPlacement(p, h, i, variant, frame, s, u, v, x, y, boundsOf(frame, x, y, s), stool?.let { boundsOf(it, x, projY(u, v), s) })
   }
 
-  /** Whether the frame [frame] drawn with its anchor at ([x], [y]) has an opaque pixel inside [r]. */
-  private fun opaqueIn(frame: String, x: Int, y: Int, r: Rect): Boolean = atlas[frame].let { opaqueAt(frame, x - it.anchorX, y - it.anchorY, r) }
-
-  /** Whether the frame [frame] with its top left at ([fx], [fy]) has an opaque pixel inside [r]. */
-  private fun opaqueAt(frame: String, fx: Int, fy: Int, r: Rect): Boolean {
+  /**
+   * Whether the frame [frame] with its top left at ([fx], [fy]) has an opaque pixel on an opaque pixel of the subordinate [c] in
+   * any animation phase. Pixels, not rectangles: a theme's working pose may be wide (a cook's arms, a mop) and mostly transparent.
+   */
+  private fun overlaps(frame: String, fx: Int, fy: Int, c: HelperPlacement): Boolean {
     val f = atlas[frame]
-    if (!r.intersects(Rect(fx, fy, f.w, f.h))) return false
-    for (py in maxOf(r.y, fy) until minOf(r.y + r.h, fy + f.h)) for (px in maxOf(r.x, fx) until minOf(r.x + r.w, fx + f.w)) {
-      if (atlas.pixel(frame, px - fx, py - fy) ushr 24 != 0) return true
+    val poses = (0 until theme.animationPhases).map { ph ->
+      val name = theme.personFrame(c.variant, VizState.WORKING, ph)
+      val off = theme.personOffset(VizState.WORKING, ph)
+      val sf = atlas.scaled(name, c.scale)
+      Triple(name, Rect(c.x + off.dx - sf.anchorX, c.y + off.dy - sf.anchorY, sf.w, sf.h), sf)
+    }.distinct()
+    for ((name, b, _) in poses) {
+      if (!b.intersects(Rect(fx, fy, f.w, f.h))) continue
+      for (py in maxOf(b.y, fy) until minOf(b.y + b.h, fy + f.h)) for (px in maxOf(b.x, fx) until minOf(b.x + b.w, fx + f.w)) {
+        if (atlas.pixel(frame, px - fx, py - fy) ushr 24 != 0 && atlas.scaledPixel(name, c.scale, px - b.x, py - b.y) ushr 24 != 0) return true
+      }
     }
     return false
   }
@@ -406,8 +415,8 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
     const val HELPER_REACH_X = 96
     const val HELPER_REACH_Y = 56
 
-    /** Scene pixels the canvas keeps around the desk areas when it fits its zoom: above (heads and labels), at the sides, below. */
-    const val FOCUS_TOP = 40
+    /** Scene pixels the canvas keeps around the desk areas and people when it fits its zoom: above (activity labels), at the sides, below (tags). */
+    const val FOCUS_TOP = 20
     const val FOCUS_SIDE = 16
     const val FOCUS_BOTTOM = 24
 

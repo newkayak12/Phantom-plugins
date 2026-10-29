@@ -58,6 +58,9 @@ object ThemeF : Theme {
   override fun chair(o: Orientation) =
     if (o == Orientation.RW) ChairFrames("bucket_f", null) else ChairFrames("cinder_lw_f", null)
 
+  /** The sawhorse benches reach far down their deck and the crew works at them: a helper may stand in front of one. */
+  override val helperMayCoverOwnDesks: Boolean get() = true
+
   override val rugFrames = listOf("deck_0_f", "deck_1_f", "deck_2_f")
   override val nameplate = "sign_f"
   override val nameplateSlice = NameplateSlice(leftInset = 12, rightInset = 12, boardHeight = 12)

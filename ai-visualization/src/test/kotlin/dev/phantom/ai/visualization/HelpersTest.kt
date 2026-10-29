@@ -6,6 +6,7 @@ import dev.phantom.ai.api.AiSession
 import dev.phantom.ai.api.AiSessionStatus
 import dev.phantom.ai.api.AiSubagent
 import dev.phantom.ai.visualization.model.DeskArea
+import dev.phantom.ai.visualization.model.HelperPlacement
 import dev.phantom.ai.visualization.model.ItemKind
 import dev.phantom.ai.visualization.model.OfficeLayout
 import dev.phantom.ai.visualization.model.OfficeModel
@@ -94,10 +95,22 @@ class HelpersTest {
           if (p.tabId.startsWith("w") && n <= 3) assertEquals("$ctx ${p.tabId} draws both helpers", 2, drawn)
         }
         val furniture = scene.items.filter { it.layer == 5 && it.kind == ItemKind.SPRITE && it.scale == 1 }
-        // an opaque pixel of [frame] (anchored at x, y) inside [r]
-        fun covers(frame: String, x: Int, y: Int, r: Rect): Boolean {
+        // an opaque pixel of [frame] (anchored at x, y) on an opaque pixel of the subordinate [h] in any animation phase
+        fun covers(frame: String, x: Int, y: Int, h: HelperPlacement): Boolean {
           val f = atlas[frame]
-          return (0 until f.h).any { fy -> (0 until f.w).any { fx -> r.contains(x - f.anchorX + fx, y - f.anchorY + fy) && atlas.pixel(frame, fx, fy) ushr 24 != 0 } }
+          return (0 until theme.animationPhases).any { ph ->
+            val pose = theme.personFrame(h.variant, VizState.WORKING, ph)
+            val off = theme.personOffset(VizState.WORKING, ph)
+            val pf = atlas.scaled(pose, h.scale)
+            val r = Rect(h.x + off.dx - pf.anchorX, h.y + off.dy - pf.anchorY, pf.w, pf.h)
+            (0 until f.h).any { fy ->
+              (0 until f.w).any { fx ->
+                val sx = x - f.anchorX + fx
+                val sy = y - f.anchorY + fy
+                r.contains(sx, sy) && atlas.pixel(frame, fx, fy) ushr 24 != 0 && atlas.scaledPixel(pose, h.scale, sx - r.x, sy - r.y) ushr 24 != 0
+              }
+            }
+          }
         }
         for (h in scene.helpers) {
           val rug = scene.areas[h.parent.areaIndex].slot.rug
@@ -106,12 +119,13 @@ class HelpersTest {
             assertFalse("$ctx ${h.key} overlaps ${p.tabId}", h.footprint.intersects(p.bounds))
             assertFalse("$ctx ${h.key} overlaps the bubble of ${p.tabId}", h.footprint.intersects(p.bubbleBounds))
           }
-          // nothing in front of it covers it, and it covers none of its own area's desks (its chair may tuck under one)
-          for (f in furniture) if (f.key > h.u + h.v) assertFalse("$ctx ${h.key} covered by ${f.frame}", covers(f.frame!!, f.x, f.y, h.bounds))
-          for (d in scene.desks) if (d.areaIndex == h.parent.areaIndex) {
+          // nothing in front of it covers it, and it covers none of its own area's desks (its chair may tuck under one) unless the
+          // theme lets it stand at them
+          for (f in furniture) if (f.key > h.u + h.v) assertFalse("$ctx ${h.key} covered by ${f.frame}", covers(f.frame!!, f.x, f.y, h))
+          if (!theme.helperMayCoverOwnDesks) for (d in scene.desks) if (d.areaIndex == h.parent.areaIndex) {
             val frame = theme.desk(scene.areas[d.areaIndex].slot.seats[d.seat].orientation)
             val f = atlas[frame]
-            assertFalse("$ctx ${h.key} over its area's desk ${d.seat}", covers(frame, d.bounds.x + f.anchorX, d.bounds.y + f.anchorY, h.bounds))
+            assertFalse("$ctx ${h.key} over its area's desk ${d.seat}", covers(frame, d.bounds.x + f.anchorX, d.bounds.y + f.anchorY, h))
           }
           for (o in scene.helpers) if (o !== h) assertFalse("$ctx ${h.key} overlaps ${o.key}", h.footprint.intersects(o.footprint))
           // beside the parent: within a few person widths

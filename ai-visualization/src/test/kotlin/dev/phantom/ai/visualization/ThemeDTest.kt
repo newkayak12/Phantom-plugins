@@ -24,7 +24,7 @@ class ThemeDTest {
 
   @Test
   fun everyRegisteredThemesAtlasHasEveryFrameItNames() {
-    assertEquals(listOf("A", "B", "C", "D"), Themes.all.map { it.id })
+    assertEquals(listOf("A", "B", "C", "D", "E", "F"), Themes.all.map { it.id })
     for (t in Themes.all) {
       val a = Atlas.load(t)
       assertEquals("missing in ${t.id}", emptyList<String>(), a.missing(t))

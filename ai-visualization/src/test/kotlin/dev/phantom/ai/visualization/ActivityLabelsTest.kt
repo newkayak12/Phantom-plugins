@@ -35,17 +35,18 @@ class ActivityLabelsTest {
   private fun floor(): Floor = OfficeModel.build(
     listOf(
       ProjectData(
-        "/repo", "repo", (0 until 3).map { Fixtures.wt(it, it == 0) },
+        // two sessions per worktree, so every one has a desk or a spot on its own rug in every theme
+        "/repo", "repo", (0 until 4).map { Fixtures.wt(it, it == 0) },
         listOf(
           session(
             "lead", 0, AiSessionStatus.WORKING, "Task: Explore",
             listOf(AiSubagent("a1", "Explore", true, "Grep \"drawTags\""), AiSubagent("a2", "Plan", true), AiSubagent("a0", "old", false)),
           ),
           session("wait", 0, AiSessionStatus.WAITING, "권한 요청: Bash"),
-          session("done", 0, AiSessionStatus.DONE, null),
-          session("idle", 0, AiSessionStatus.NONE, null),
-          session("codex", 1, AiSessionStatus.WORKING, "Bash: ./gradlew test", listOf(AiSubagent("team:rev@t", "reviewer", true, "Read README.md")), AiAgent.CODEX),
-          session("many", 2, AiSessionStatus.WORKING, "Edit OfficeRenderer.kt", (0 until 6).map { AiSubagent("m$it", "worker-$it", true, "Read F$it.kt") }),
+          session("done", 1, AiSessionStatus.DONE, null),
+          session("idle", 1, AiSessionStatus.NONE, null),
+          session("codex", 2, AiSessionStatus.WORKING, "Bash: ./gradlew test", listOf(AiSubagent("team:rev@t", "reviewer", true, "Read README.md")), AiAgent.CODEX),
+          session("many", 3, AiSessionStatus.WORKING, "Edit OfficeRenderer.kt", (0 until 6).map { AiSubagent("m$it", "worker-$it", true, "Read F$it.kt") }),
         ),
       ),
     ),
@@ -82,8 +83,10 @@ class ActivityLabelsTest {
       }
       val subs = res.activities.filter { it.subagentId != null }.associateBy { it.subagentId }
       assertEquals(ctx, res.helpers.map { it.placement.helper.id }.toSet(), subs.keys)
-      assertEquals(ctx, "Grep \"drawTags\"", subs.getValue("a1").text)
-      // the lead's area is crowded: Plan may only be counted in its "+N"; drawn, it says what its state says
+      // the lead draws at least one of its two; which ones fit depends on each one's look, the other may only count in its "+N".
+      // Drawn, Explore says what it does and Plan (no activity reported) what its state says
+      assertTrue(ctx, res.helpers.any { it.placement.tabId == "lead" })
+      subs["a1"]?.let { assertEquals(ctx, "Grep \"drawTags\"", it.text) }
       subs["a2"]?.let { assertEquals(ctx, "작업 중", it.text) }
       for (h in res.helpers) {
         val label = subs.getValue(h.placement.helper.id)
@@ -138,10 +141,10 @@ class ActivityLabelsTest {
     override fun start(worktreePath: String, agent: AiAgent) = Unit
   }
 
-  /** A look at the office as a user sees it (canvas at a common editor size, fitted zoom), to /tmp/viz-core-<theme>.png. */
+  /** A look at the office as a user sees it (canvas at a common editor size, fitted zoom), to /tmp/viz-merged-<theme>.png, every theme. */
   @Test
   fun writesScreenshots() {
-    for (theme in listOf(ThemeA, ThemeC)) {
+    for (theme in Themes.all) {
       val c = OfficeCanvas(theme, NoActions)
       try {
         c.setSize(1280, 800)
@@ -153,7 +156,7 @@ class ActivityLabelsTest {
         } finally {
           g.dispose()
         }
-        val out = File(System.getProperty("java.io.tmpdir").let { if (File("/tmp").isDirectory) "/tmp" else it }, "viz-core-${theme.id.lowercase()}.png")
+        val out = File(System.getProperty("java.io.tmpdir").let { if (File("/tmp").isDirectory) "/tmp" else it }, "viz-merged-${theme.id.lowercase()}.png")
         assertTrue(ImageIO.write(img, "png", out))
       } finally {
         c.dispose()

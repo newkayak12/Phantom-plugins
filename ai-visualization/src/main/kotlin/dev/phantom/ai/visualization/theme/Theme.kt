@@ -104,6 +104,12 @@ interface Theme {
   val helperScale: Int get() = 1
   val helperStool: String? get() = chair(Orientation.RW).seat
 
+  /**
+   * Whether a subordinate may stand in front of its own area's desks, covering some of them. False (the default) keeps every desk
+   * of the area whole; a theme whose desks fill the area (a kitchen's counters) and whose working pose belongs at a desk says true.
+   */
+  val helperMayCoverOwnDesks: Boolean get() = false
+
   /** Where a bubble's anchor goes relative to the point just above the head: ([bubbleAnchorDx], [bubbleAnchorDy]) native pixels. */
   val bubbleAnchorDx: Int get() = 3
   val bubbleAnchorDy: Int get() = -1

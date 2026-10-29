@@ -80,6 +80,9 @@ object ThemeE : Theme {
   /** Helpers stand and cook like their parent; a stool would sit behind their legs. */
   override val helperStool: String? get() = null
 
+  /** The counters fill each area and a cook works at one: a sous-chef may stand in front of the area's counters. */
+  override val helperMayCoverOwnDesks: Boolean get() = true
+
   override val personVariants = 6
   override fun person(variant: Int, state: VizState) = personFrame(variant, state, 0)
   override fun personFrame(variant: Int, state: VizState, phase: Int) =
