@@ -105,6 +105,18 @@ class HookScriptsTest : TestCase() {
     assertTrue(seen.isEmpty())
   }
 
+  /** The agents' global config points at the scripts, so they live outside the IDE's caches, under the user's home. */
+  fun testDefaultDirIsUnderTheHome() {
+    assertEquals(java.nio.file.Path.of(System.getProperty("user.home"), ".phantom", "ai"), HookScripts.defaultDir())
+  }
+
+  fun testSandboxKeepsTheScriptsOutOfTheHome() {
+    System.setProperty(dev.phantom.ai.core.SystemDirs.CLAUDE_DIR_PROP, dir.toString())
+    try {
+      assertFalse(HookScripts.defaultDir().startsWith(java.nio.file.Path.of(System.getProperty("user.home"), ".phantom")))
+    } finally { System.clearProperty(dev.phantom.ai.core.SystemDirs.CLAUDE_DIR_PROP) }
+  }
+
   fun testWriteIsIdempotentAndExecutable() {
     val a = HookScripts.write(dir); val b = HookScripts.write(dir)
     assertEquals(a, b)
