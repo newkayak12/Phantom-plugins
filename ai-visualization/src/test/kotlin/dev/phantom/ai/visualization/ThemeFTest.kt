@@ -30,7 +30,8 @@ class ThemeFTest {
     val a = Atlas.load(ThemeF)
     assertEquals(emptyList<String>(), a.missing(ThemeF))
     for (f in a.frames.values) assertTrue(f.name, f.x >= 0 && f.y >= 0 && f.x + f.w <= a.image.width && f.y + f.h <= a.image.height)
-    assertTrue(ThemeF.personVariants >= 6)
+    assertTrue(ThemeF.personVariants >= 8)
+    assertEquals(2, ThemeF.personDetail)
     for (o in Orientation.values()) {
       assertNull(ThemeF.partition(o))
       assertNull(ThemeF.chair(o).back)
@@ -65,14 +66,15 @@ class ThemeFTest {
   /** The poses tell the states apart by shape: the flag rises far above the head; the dozer turns round, legs down to the floor. */
   @Test
   fun posesDifferInSilhouette() {
+    val d = ThemeF.personDetail
     for (v in 0 until ThemeF.personVariants) {
       val waiting = atlas[ThemeF.person(v, VizState.WAITING)]
       val done = atlas[ThemeF.person(v, VizState.DONE)]
       val idle = atlas[ThemeF.person(v, VizState.IDLE)]
       val working = atlas[ThemeF.person(v, VizState.WORKING)]
-      assertTrue("waiting flag above the head", waiting.anchorY > done.anchorY + 8)
-      assertTrue("idle legs reach the floor", idle.h - idle.anchorY >= OfficeLayout.SEAT_Z)
-      assertTrue("working shows the back only", working.h - working.anchorY <= 2)
+      assertTrue("waiting flag above the head", waiting.anchorY > done.anchorY + 8 * d)
+      assertTrue("idle legs reach the floor", idle.h - idle.anchorY >= OfficeLayout.SEAT_Z * d)
+      assertTrue("working shows the back only", working.h - working.anchorY <= 2 * d)
     }
   }
 
@@ -111,13 +113,26 @@ class ThemeFTest {
     }
   }
 
+  /** Every frame is whole native pixels: even size and anchor (personDetail 2); a desk along v gets the mirrored working pose. */
+  @Test
+  fun crewFramesAreDetailAlignedAndTurnToTheirDesk() {
+    val d = ThemeF.personDetail
+    for (v in 0 until ThemeF.personVariants) for (s in VizState.values()) for (ph in 0 until 4) for (o in listOf(null, *Orientation.values())) {
+      val f = atlas[ThemeF.personFrame(v, s, ph, o)]
+      assertTrue(f.name, f.w % d == 0 && f.h % d == 0 && f.anchorX % d == 0 && f.anchorY % d == 0)
+    }
+    assertEquals("crew0_working_1_lw_f", ThemeF.personFrame(0, VizState.WORKING, 1, Orientation.LW))
+    assertEquals("crew0_working_1_f", ThemeF.personFrame(0, VizState.WORKING, 1, Orientation.RW))
+    assertEquals("crew0_waiting_1_f", ThemeF.personFrame(0, VizState.WAITING, 1, Orientation.LW))
+  }
+
   @Test
   fun writesTheSampleRenderWhenAskedTo() {
     val dir = System.getProperty("phantom.aiviz.renderOut") ?: return
     java.io.File(dir).mkdirs()
-    for (n in listOf(3, 4, 6)) for (ph in listOf(0, 2)) {
-      val img = renderer.render(layout.layout(Fixtures.areas(n)), null, 3, ph)
-      assertTrue(javax.imageio.ImageIO.write(img, "png", java.io.File(dir, "render-f-$n-phase$ph-zoom3.png")))
+    for (n in listOf(3, 4, 6)) for (ph in listOf(0, 2)) for (zoom in listOf(2, 3)) {
+      val img = renderer.render(layout.layout(Fixtures.areas(n)), null, zoom, ph)
+      assertTrue(javax.imageio.ImageIO.write(img, "png", java.io.File(dir, "render-f-$n-phase$ph-zoom$zoom.png")))
     }
   }
 

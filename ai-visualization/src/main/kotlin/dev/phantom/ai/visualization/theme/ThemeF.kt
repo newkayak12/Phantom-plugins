@@ -79,13 +79,20 @@ object ThemeF : Theme {
     Decor("worklight_f", 91, 90, layer = 5, key = 181.0),
   )
 
-  override val personVariants = 6
+  override val personVariants = 10
+
+  /** The crew is drawn at twice the scene's density, in the style of the office people (art/theme_f.py, art/people_hd.py). */
+  override val personDetail = 2
 
   /** The idle pose has one frame; the others four, all of one size and anchor per variant and state. */
   override fun person(variant: Int, state: VizState) = personFrame(variant, state, 0)
-  override fun personFrame(variant: Int, state: VizState, phase: Int): String {
+  override fun personFrame(variant: Int, state: VizState, phase: Int) = personFrame(variant, state, phase, null)
+
+  /** Working at a desk along v ([Orientation.LW]) is the same pose mirrored, turned up-left towards the brick wall. */
+  override fun personFrame(variant: Int, state: VizState, phase: Int, facing: Orientation?): String {
     val ph = if (state == VizState.IDLE) 0 else Math.floorMod(phase, 4)
-    return "crew${Math.floorMod(variant, personVariants)}_${state.key}_${ph}_f"
+    val lw = if (state == VizState.WORKING && facing == Orientation.LW) "_lw" else ""
+    return "crew${Math.floorMod(variant, personVariants)}_${state.key}_$ph${lw}_f"
   }
 
   /** The frames carry the motion (hammer swing, flag, thumb), so no extra jitter. */
