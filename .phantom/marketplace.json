@@ -369,9 +369,9 @@
     {
       "id": "dev.phantom.ai.visualization",
       "name": "Phantom AI Visualization",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "source": "ai-visualization",
-      "description": "The agent sessions of Phantom AI Integration as an isometric pixel-art place (0.5.0): each open project is a floor, each worktree a desk area with a rug and a name plate, each live session a person drawn at twice the scene's pixel density, warm and readable: typing, waiting with a raised hand, holding a coffee or asleep. A label over every head says what the agent is doing right now (Edit Foo.kt, Bash: ./gradlew test, 권한 요청) and running subagents sit beside their lead as full-size subordinates, each with its own label. Click a person to focus its terminal, an empty desk to start Claude or Codex. Opens from Tools | Open AI Office; six themes in Settings | Tools | Phantom AI Visualization: Warm Wood (A), Modern Bright (B), Night Shift (C), Restroom Cleaning (D, with a cat and a corgi), Kitchen (E) and Construction Site (F). Needs Phantom AI Integration 0.3.8.",
+      "description": "The agent sessions of Phantom AI Integration as an isometric pixel-art place (0.5.1): each open project is a floor, each worktree a desk area with a rug and a name plate, each live session a person drawn at twice the scene's pixel density, warm and readable: typing, waiting with a raised hand, holding a coffee or asleep. A label over every head says what the agent is doing right now (Edit Foo.kt, Bash: ./gradlew test, 권한 요청) and running subagents sit beside their lead as full-size subordinates, each with its own label. Click a person to focus its terminal, an empty desk to start Claude or Codex. Opens from its AI Office tool window icon or Tools | Open AI Office; six themes in Settings | Tools | Phantom AI Visualization: Warm Wood (A), Modern Bright (B), Night Shift (C), Restroom Cleaning (D, with a cat and a corgi), Kitchen (E) and Construction Site (F). Needs Phantom AI Integration 0.3.8.",
       "vendor": "Phantom",
       "category": "Tools",
       "since": "262",
@@ -380,7 +380,7 @@
         "com.intellij.modules.platform",
         "dev.phantom.ai"
       ],
-      "download": "ai-visualization-0.5.0/ai-visualization-0.5.0.zip",
+      "download": "ai-visualization-0.5.1/ai-visualization-0.5.1.zip",
       "detect": []
     },
     {

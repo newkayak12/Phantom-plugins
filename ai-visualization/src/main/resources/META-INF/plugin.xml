@@ -6,7 +6,7 @@
   <description><![CDATA[
   The agent sessions of Phantom AI Integration as an isometric pixel-art office: each project is a floor, each worktree a desk
   area with a rug and a name plate, each agent session a person at a desk (typing, waiting with a raised hand, holding a coffee,
-  or asleep). Opens as the "AI Office" editor tab from Tools | Open AI Office. Uses only the public API dev.phantom.ai.api of
+  or asleep). Opens in the "AI Office" tool window (its stripe icon), or as the "AI Office" editor tab from Tools | Open AI Office. Uses only the public API dev.phantom.ai.api of
   Phantom AI Integration.
   ]]></description>
 
@@ -14,6 +14,8 @@
   <depends>dev.phantom.ai</depends>
 
   <extensions defaultExtensionNs="com.intellij">
+    <toolWindow id="AI Office" anchor="bottom" icon="AllIcons.Toolwindows.ToolWindowHierarchy"
+                factoryClass="dev.phantom.ai.visualization.editor.AiOfficeToolWindowFactory"/>
     <fileEditorProvider implementation="dev.phantom.ai.visualization.editor.AiOfficeEditorProvider"/>
     <applicationService serviceImplementation="dev.phantom.ai.visualization.settings.VizSettings"/>
     <applicationConfigurable parentId="tools" instance="dev.phantom.ai.visualization.settings.VizConfigurable"
