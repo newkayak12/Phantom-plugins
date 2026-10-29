@@ -25,6 +25,7 @@ import javax.swing.SwingUtilities
 
 private const val OFFICE_ACTION = "dev.phantom.ai.visualization.OpenAiOffice"
 private const val PEOPLE = "phantom.aiviz.people"
+private const val THEME = "phantom.aiviz.theme"
 private const val AI_TOOL_WINDOW = "Phantom AI Integration"
 
 /**
@@ -33,6 +34,7 @@ private const val AI_TOOL_WINDOW = "Phantom AI Integration"
  * SessionStore of the dev.phantom.ai plugin through that plugin's class loader (reflection), one real stub-CLI terminal tab is
  * launched the same way, and nothing goes through real hooks or the real home (the task redirects the agent dirs and CLIs).
  * Steps: office.opens, office.floors, office.people, office.state.working|waiting|done|idle (ai-office.png), office.hover,
+ * office.theme.b (theme B set through the settings service, ai-office-b.png), office.theme.a (back to A),
  * office.click.person, office.pan, office.zoom (ai-office-zoom.png), office.timer.runs, office.timer.stops, office.timer.restarts.
  */
 internal object AiVisualizationScenario : ProbeScenario {
@@ -153,6 +155,27 @@ internal object AiVisualizationScenario : ProbeScenario {
       report.step("office.state.$state", expected = mapOf("found" to true, "personFrameSuffix" to true, "bubbleFrame" to true, "insideCanvas" to true), observed = obs)
     }
     ctx.edt { ProbeSnapshot.paint(ctx.project, ctx.out, "ai-office.png") }
+
+    // theme B: set like Settings | Tools | Phantom AI Visualization does (VizSettings.themeId, through the plugin's class loader);
+    // the open tab re-renders without being reopened. Then back to A, so the remaining steps and the next run start in A.
+    suspend fun setTheme(id: String): Any? = ctx.edt {
+      val loader = PluginManagerCore.getPlugin(PluginId.getId("dev.phantom.ai.visualization"))?.pluginClassLoader ?: return@edt "no plugin"
+      val cls = Class.forName("dev.phantom.ai.visualization.settings.VizSettings", true, loader)
+      val svc = ApplicationManager.getApplication().getService(cls)
+      cls.getMethod("setThemeId", String::class.java).invoke(svc, id)
+      cls.getMethod("getThemeId").invoke(svc)
+    }
+    for (id in listOf("B", "A")) {
+      val stored = setTheme(id)
+      val switched = ctx.waitUntil(15_000) { canvas()?.getClientProperty(THEME) == id && people().size >= 7 }
+      ctx.waitUntil(1_000) { false }
+      if (id == "B") ctx.edt { ProbeSnapshot.paint(ctx.project, ctx.out, "ai-office-b.png") }
+      report.step(
+        "office.theme.${id.lowercase()}",
+        expected = mapOf("stored" to id, "canvasTheme" to id, "sevenPeople" to true),
+        observed = ctx.edt { mapOf("stored" to stored, "canvasTheme" to canvas()?.getClientProperty(THEME), "sevenPeople" to (people().size >= 7), "waited" to switched) },
+      )
+    }
 
     // hover: the tooltip of a Korean-titled person shows title, agent and elapsed time
     val tip = ctx.edt {

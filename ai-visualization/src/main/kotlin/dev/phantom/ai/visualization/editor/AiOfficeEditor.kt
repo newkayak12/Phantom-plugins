@@ -18,6 +18,7 @@ import dev.phantom.ai.api.PhantomAiApi
 import dev.phantom.ai.visualization.model.OfficeModel
 import dev.phantom.ai.visualization.model.ProjectData
 import dev.phantom.ai.visualization.settings.VizSettings
+import dev.phantom.ai.visualization.settings.VizThemeListener
 import dev.phantom.ai.visualization.ui.OfficeActions
 import dev.phantom.ai.visualization.ui.OfficePanel
 import java.awt.event.HierarchyEvent
@@ -49,6 +50,10 @@ class AiOfficeEditor(
 
   init {
     api().addChangeListener(this) { request() }
+    // Settings | Tools | Phantom AI Visualization: a new theme re-renders this tab
+    ApplicationManager.getApplication().messageBus.connect(this).subscribe(VizSettings.TOPIC, VizThemeListener { t ->
+      ApplicationManager.getApplication().invokeLater({ if (!disposed) panel.setTheme(t) }, ModalityState.any())
+    })
     // back on screen: show current data (the timer restarts with the component, see Animation)
     panel.addHierarchyListener { e ->
       if (e.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() != 0L && panel.isShowing) request()

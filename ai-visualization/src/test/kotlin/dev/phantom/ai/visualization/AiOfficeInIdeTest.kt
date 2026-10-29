@@ -9,6 +9,12 @@ import dev.phantom.ai.visualization.actions.OpenAiOfficeAction
 import dev.phantom.ai.visualization.editor.AiOfficeEditor
 import dev.phantom.ai.visualization.editor.AiOfficeEditorProvider
 import dev.phantom.ai.visualization.editor.AiOfficeFile
+import dev.phantom.ai.visualization.settings.VizConfigurable
+import dev.phantom.ai.visualization.settings.VizSettings
+import com.intellij.openapi.util.Disposer
+import com.intellij.testFramework.PlatformTestUtil
+import java.awt.Container
+import javax.swing.JComboBox
 
 class AiOfficeInIdeTest : BasePlatformTestCase() {
   override fun tearDown() {
@@ -51,5 +57,34 @@ class AiOfficeInIdeTest : BasePlatformTestCase() {
 
   fun testOneFilePerProject() {
     assertSame(AiOfficeFile.of(project), AiOfficeFile.of(project))
+  }
+
+  fun testSettingsOfferBothThemesAndApplyingOneReRendersAnOpenOffice() {
+    val settings = VizSettings.getInstance()
+    val before = settings.themeId
+    settings.themeId = "A"
+    val editor = AiOfficeEditorProvider().createEditor(project, AiOfficeFile.of(project)) as AiOfficeEditor
+    val configurable = VizConfigurable()
+    try {
+      assertEquals("A", editor.panel().canvas.theme.id)
+      fun combos(c: java.awt.Component): List<JComboBox<*>> =
+        (if (c is JComboBox<*>) listOf(c) else emptyList()) + ((c as? Container)?.components?.flatMap { combos(it) } ?: emptyList())
+      val combo = combos(configurable.createComponent()).single()
+      assertEquals(listOf("A", "B"), (0 until combo.itemCount).map { (combo.getItemAt(it) as dev.phantom.ai.visualization.theme.Theme).id })
+      combo.selectedIndex = 1
+      assertTrue(configurable.isModified)
+      configurable.apply()
+      PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+      assertEquals("B", settings.themeId)
+      assertEquals("B", editor.panel().canvas.theme.id)
+      assertEquals("B", editor.panel().canvas.getClientProperty("phantom.aiviz.theme"))
+      settings.themeId = "A"
+      PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+      assertEquals("A", editor.panel().canvas.theme.id)
+    } finally {
+      configurable.disposeUIResources()
+      settings.themeId = before
+      Disposer.dispose(editor)
+    }
   }
 }

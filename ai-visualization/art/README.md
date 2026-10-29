@@ -3,7 +3,7 @@
 Python + Pillow scripts that draw the pixel art of the Phantom AI Visualization themes. The plugin does not run them; it bundles their output.
 
 - `pix.py`: colors, sprite canvas, 2:1 isometric box rasterizer, outlines.
-- `sprites.py`: every sprite at native resolution, packed into `sprites.png` with an atlas `sprites.json` (54 frames, each with x/y/w/h and an anchor). Also writes `sprites-preview.png`.
+- `sprites.py`: every sprite at native resolution, packed into sheets with an atlas each (frames with x/y/w/h and an anchor): theme A's `sprites.png`/`sprites.json` (54 frames) and `sprites-preview.png` in `OUT`, theme B's `sprites.png`/`sprites.json` (42 frames) in `OUT/b/`.
 - `scenes.py`: composes the mockups (`A-warm-wood.png`, `B-modern-bright.png`, `C-night.png`, native 480x300 at x3) from the sprites.
 
 ## Regenerate
@@ -25,24 +25,28 @@ Environment variables:
 
 ## Put the output into the plugin
 
-Copy the two files, unchanged, to the theme's resource folder:
+Copy each theme's two files, unchanged, to its resource folder:
 
 ```
 cp "$OUT/sprites.png" "$OUT/sprites.json" \
    ../src/main/resources/dev/phantom/ai/visualization/themes/a/
+cp "$OUT/b/sprites.png" "$OUT/b/sprites.json" \
+   ../src/main/resources/dev/phantom/ai/visualization/themes/b/
 ```
 
-The sprite sheet in the plugin must stay byte-identical to what `sprites.py` writes for theme A.
+The sheets in the plugin must stay byte-identical to what `sprites.py` writes; check with `cmp "$OUT/sprites.png" ../src/main/resources/dev/phantom/ai/visualization/themes/a/sprites.png` (and the same for `b/`).
 
 ## Mockups
 
 From `ai-visualization/art`, `PHANTOM_AIVIZ_OUT="$OUT" "$VENV/bin/python" scenes.py [A|B|C ...]` writes the sheet and the mockups for the given themes (all three without arguments).
 
-## Add a theme B or C
+## Sheets per theme
 
-There is one combined sheet, not one per theme. `build_sheet()` writes theme A's frames unsuffixed (`floor_wood_0`, `wall_rw`, `desk_rw`, ...), theme B's variants beside them under a `_b` suffix (`wall_rw_b`, `desk_rw_b`, `chair_rw_b`, `rug_0_b`, `nameplate_b`, `glass_*_b`, and `floor_tile_0`/`floor_tile_1`), and the people (`person<n>_<state>`) and bubbles (`bubble_<state>`) shared by all. There are no C frames. The 54 frames bundled in `themes/a/` already contain B's; only `ThemeA` is registered, and it uses just the unsuffixed ones.
+- **A** (`build_sheet()`, `OUT/`): theme A's frames unsuffixed (`floor_wood_0`, `wall_rw`, `desk_rw`, ...), the people (`person<n>_<state>`) and bubbles (`bubble_<state>`), plus some B variants under a `_b` suffix kept from before B had a sheet of its own. `ThemeA` uses only the unsuffixed frames. Leave this function's frame list alone: the bundled `themes/a/sprites.png` must not change.
+- **B** (`build_sheet_b()`, `OUT/b/`): self-contained. B's art under a `_b` suffix (`wall_rw_b`, `wall_lw_b`, `wall_corner_b`, `desk_rw_b`, `desk_lw_b`, `chair_seat_rw_b`, `chair_back_rw_b`, `chair_lw_b`, `rug_0_b`..`rug_2_b`, `nameplate_b`, `glass_rw_b`, `glass_lw_b`, `plant_big_b`, `bookshelf_lw_b`, `coffee_lw_b`), its floor as `floor_tile_0`/`floor_tile_1`, and the decor that looks the same in every theme (`whiteboard_*`, `clock_rw`, `poster_rw`, `lamp`), the people and the bubbles re-exported under A's names. The `B` dict in `sprites.py` holds B's colors.
 
-1. To expose B: add a `Theme` (below) that names the `_b` frames, with its own palette. It can point `atlasImageResource`/`atlasIndexResource` at `themes/a/` (or at a copy under `themes/b/`); no sprite work is needed.
-2. For C (or a B with new art): add its draw code and palette dict in `sprites.py` and pack its frames in `build_sheet()` under a new suffix (`_c`). Per-theme sheets would need `build_sheet()` to write separate files; as it stands, copying `sprites.png` and `sprites.json` into another `themes/<id>/` yields the same combined sheet.
-3. Run `sprites.py`, copy both files into the theme's folder under `src/main/resources/dev/phantom/ai/visualization/themes/`, keeping `themes/a/` byte-identical to the output.
-4. Add `object ThemeX : Theme` under `dev.phantom.ai.visualization.theme` (id, displayName, the two resource paths, `Palette`, frame names, window segments, decor, `nameplateSlice`, person/bubble names, as `ThemeA` does) and add it to the list in `Themes.all`. `Theme.frameNames()` is checked against the atlas on load, so a missing frame fails loudly. Renderer, layout and model do not change.
+## Add a theme C
+
+1. Add its palette dict (as `B` is) and any new draw code in `sprites.py`, and a `build_sheet_c()` like `build_sheet_b()` that packs its frames with `pack(frames, f'{OUT}/c')`; call it from `__main__`.
+2. Run `sprites.py`, copy both files into `src/main/resources/dev/phantom/ai/visualization/themes/c/`, and check that `themes/a/` and `themes/b/` are still byte-identical to the output.
+3. Add `object ThemeC : Theme` under `dev.phantom.ai.visualization.theme` (id, displayName, the two resource paths, `Palette`, frame names, window segments, decor, `nameplateSlice`, person/bubble names, optional `partition()` frames, as `ThemeB` does) and add it to the list in `Themes.all`. `Theme.frameNames()` is checked against the atlas on load and by the tests, so a missing frame fails loudly. Renderer, layout and model do not change.

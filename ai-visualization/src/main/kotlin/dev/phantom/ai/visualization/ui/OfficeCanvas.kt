@@ -75,6 +75,7 @@ class OfficeCanvas(
 
   init {
     isOpaque = true
+    putClientProperty(THEME_PROPERTY, theme.id)
     ToolTipManager.sharedInstance().registerComponent(this)
     val mouse = object : MouseAdapter() {
       private var pressed: Point? = null
@@ -135,6 +136,7 @@ class OfficeCanvas(
   fun setTheme(t: Theme) {
     if (t.id == theme.id) return
     theme = t
+    putClientProperty(THEME_PROPERTY, t.id)
     renderer = OfficeRenderer(t)
     layout = OfficeLayout(t, renderer.atlas)
     setFloor(floor, page)
@@ -299,6 +301,9 @@ class OfficeCanvas(
 
     /** Client property holding the visible people: a read-only list of maps with tabId, status, personFrame, bubbleFrame, screen (java.awt.Rectangle). */
     const val PEOPLE_PROPERTY = "phantom.aiviz.people"
+
+    /** Read-only client property: the id of the theme drawn, for the probe. */
+    const val THEME_PROPERTY = "phantom.aiviz.theme"
 
     val DESK_MENU = listOf("New Claude" to AiAgent.CLAUDE, "New Codex" to AiAgent.CODEX)
 

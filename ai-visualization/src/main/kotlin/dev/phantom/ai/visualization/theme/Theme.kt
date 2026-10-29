@@ -63,6 +63,12 @@ interface Theme {
   val nameplateSlice: NameplateSlice
   val decor: List<Decor>
 
+  /**
+   * The partition segment running along [o] (one 16-unit wall piece, anchored at its start on the floor), set between desk areas
+   * where the layout has room for one; null (the default) means the theme has no partitions and the layout adds none.
+   */
+  fun partition(o: Orientation): String? = null
+
   /** How many different people (hair, shirt) there are. */
   val personVariants: Int
   fun person(variant: Int, state: VizState): String
@@ -96,6 +102,7 @@ interface Theme {
     addAll(rugFrames)
     decor.forEach { add(it.frame) }
     for (o in Orientation.values()) {
+      partition(o)?.let { add(it) }
       add(desk(o))
       val c = chair(o)
       add(c.seat)

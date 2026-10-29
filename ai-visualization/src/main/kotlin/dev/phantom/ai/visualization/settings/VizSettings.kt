@@ -7,27 +7,38 @@ import com.intellij.openapi.components.RoamingType
 import com.intellij.openapi.components.SimplePersistentStateComponent
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
+import com.intellij.util.messages.Topic
 import dev.phantom.ai.visualization.theme.Theme
 import dev.phantom.ai.visualization.theme.Themes
 
 class VizSettingsState : BaseState() {
-  /** Id of the chosen theme; "A" (Warm Wood) until another theme exists and is picked. */
+  /** Id of the chosen theme; "A" (Warm Wood) until another one is picked. */
   var themeId by string("A")
 }
 
-/** The theme setting. Registered as an application service in plugin.xml. */
+/** Told when the chosen theme changes; open AI Office tabs listen and re-render. */
+fun interface VizThemeListener {
+  fun themeChanged(theme: Theme)
+}
+
+/** The theme setting. Registered as an application service in plugin.xml; a change is published on [TOPIC]. */
 @State(name = "PhantomAiVisualization", storages = [Storage(value = "phantom-ai-visualization.xml", roamingType = RoamingType.DISABLED)])
 class VizSettings : SimplePersistentStateComponent<VizSettingsState>(VizSettingsState()) {
   var themeId: String
     get() = state.themeId ?: Themes.default.id
     set(v) {
+      if (v == themeId) return
       state.themeId = v
+      ApplicationManager.getApplication().messageBus.syncPublisher(TOPIC).themeChanged(theme)
     }
 
   /** The chosen theme; the default when the stored id is not registered. */
   val theme: Theme get() = Themes.byId(themeId)
 
   companion object {
+    @JvmField
+    val TOPIC: Topic<VizThemeListener> = Topic(VizThemeListener::class.java, Topic.BroadcastDirection.NONE)
+
     fun getInstance(): VizSettings = ApplicationManager.getApplication().getService(VizSettings::class.java)
   }
 }

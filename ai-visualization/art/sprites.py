@@ -807,7 +807,13 @@ def build_sheet():
             frames[f'person{vi}_{st}'] = person(P, st)
     for st in ('working', 'waiting', 'done', 'idle'):
         frames[f'bubble_{st}'] = bubble(st)
-    # shelf-pack
+    pack(frames, OUT)
+    preview(frames)
+    return frames
+
+
+def pack(frames, out_dir):
+    """Shelf-pack [frames] into out_dir/sprites.png and its atlas out_dir/sprites.json."""
     names = sorted(frames, key=lambda n: -frames[n].h)
     SW, pad = 512, 2
     x = y = rowh = 0
@@ -829,10 +835,34 @@ def build_sheet():
         px, py = pos[n]
         sheet.alpha_composite(f.img, (px, py))
         atlas['frames'][n] = {'x': px, 'y': py, 'w': f.w, 'h': f.h, 'anchor': [f.ax, f.ay]}
-    sheet.save(f'{OUT}/sprites.png')
-    with open(f'{OUT}/sprites.json', 'w') as fp:
+    sheet.save(f'{out_dir}/sprites.png')
+    with open(f'{out_dir}/sprites.json', 'w') as fp:
         json.dump(atlas, fp, indent=1)
-    preview(frames)
+
+
+def build_sheet_b():
+    """Theme B's own sheet in OUT/b/: its _b art (B floor tiles keep their floor_tile_<n> names), the generic decor and the
+    people and bubbles of A re-exported unchanged, so the theme is self-contained."""
+    b = build_all(B)
+    frames = {}
+    for v in range(2):
+        frames[f'floor_tile_{v}'] = b[f'floor_tile_{v}']
+    for k in ('wall_rw', 'wall_rw_window', 'wall_lw', 'wall_lw_window', 'wall_corner', 'desk_rw', 'desk_lw',
+              'chair_seat_rw', 'chair_back_rw', 'chair_lw', 'rug_0', 'rug_1', 'rug_2', 'nameplate',
+              'plant_big', 'bookshelf_lw', 'coffee_lw'):
+        frames[k + '_b'] = b[k]
+    frames['glass_rw_b'] = glass(B, 'rw')
+    frames['glass_lw_b'] = glass(B, 'lw')
+    for k in ('whiteboard_rw', 'whiteboard_lw', 'clock_rw', 'poster_rw', 'lamp'):  # same pixels in every theme
+        frames[k] = b[k]
+    for vi, P in enumerate(PEOPLE):
+        for st in ('working', 'waiting', 'done', 'idle'):
+            frames[f'person{vi}_{st}'] = person(P, st)
+    for st in ('working', 'waiting', 'done', 'idle'):
+        frames[f'bubble_{st}'] = bubble(st)
+    out = f'{OUT}/b'
+    os.makedirs(out, exist_ok=True)
+    pack(frames, out)
     return frames
 
 
@@ -876,4 +906,6 @@ def preview(frames):
 
 if __name__ == '__main__':
     fr = build_sheet()
-    print(len(fr), 'frames')
+    print(len(fr), 'frames (theme A sheet)')
+    fb = build_sheet_b()
+    print(len(fb), 'frames (theme B sheet, b/)')

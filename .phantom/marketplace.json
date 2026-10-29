@@ -369,9 +369,9 @@
     {
       "id": "dev.phantom.ai.visualization",
       "name": "Phantom AI Visualization",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "source": "ai-visualization",
-      "description": "The agent sessions of Phantom AI Integration as an isometric pixel-art office (0.1.0): each open project is a floor, each worktree a desk area with a rug and a name plate, each live session a person who types, waits with a raised hand, has a coffee or sleeps. Click a person to focus its terminal, an empty desk to start Claude or Codex. Opens from Tools | Open AI Office; theme Warm Wood. Needs Phantom AI Integration 0.3.0.",
+      "description": "The agent sessions of Phantom AI Integration as an isometric pixel-art office (0.2.0): each open project is a floor, each worktree a desk area with a rug and a name plate, each live session a person who types, waits with a raised hand, has a coffee or sleeps. Click a person to focus its terminal, an empty desk to start Claude or Codex. Opens from Tools | Open AI Office; two themes, Warm Wood (A) and Modern Bright (B, light tiles, white walls, glass partitions, teal accents), switched in Settings | Tools | Phantom AI Visualization. Needs Phantom AI Integration 0.3.0.",
       "vendor": "Phantom",
       "category": "Tools",
       "since": "262",
@@ -380,7 +380,7 @@
         "com.intellij.modules.platform",
         "dev.phantom.ai"
       ],
-      "download": "ai-visualization-0.1.0/ai-visualization-0.1.0.zip",
+      "download": "ai-visualization-0.2.0/ai-visualization-0.2.0.zip",
       "detect": []
     },
     {

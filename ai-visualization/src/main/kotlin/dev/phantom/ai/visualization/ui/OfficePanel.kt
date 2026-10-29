@@ -109,6 +109,7 @@ class OfficePanel(theme: Theme, actions: OfficeActions, clock: () -> Long = Syst
   val canvas = OfficeCanvas(theme, actions, clock)
   val picker = FloorPickerView(renderer) { select(it) }
   val legend = LegendView(renderer)
+  private val west = JPanel(BorderLayout())
 
   var model: OfficeModel = OfficeModel(emptyList())
     private set
@@ -116,7 +117,6 @@ class OfficePanel(theme: Theme, actions: OfficeActions, clock: () -> Long = Syst
     private set
 
   init {
-    val west = JPanel(BorderLayout())
     west.background = theme.palette.surface
     west.add(picker, BorderLayout.CENTER)
     west.add(legend, BorderLayout.SOUTH)
@@ -145,6 +145,7 @@ class OfficePanel(theme: Theme, actions: OfficeActions, clock: () -> Long = Syst
     renderer = OfficeRenderer(t)
     picker.setRenderer(renderer)
     legend.setRenderer(renderer)
+    west.background = t.palette.surface
     canvas.setTheme(t)
   }
 

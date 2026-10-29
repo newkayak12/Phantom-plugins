@@ -40,6 +40,14 @@ data class DrawItem(
 
 data class SeatSlot(val orientation: Orientation, val u: Int, val v: Int)
 
+/**
+ * One partition segment between desk areas: [SEG] units long from ([u], [v]), along u for [Orientation.RW] and along v for
+ * [Orientation.LW], one unit thick.
+ */
+data class PartitionSlot(val orientation: Orientation, val u: Int, val v: Int) {
+  val footprint: URect get() = if (orientation == Orientation.RW) URect(u, v, OfficeLayout.SEG, 1) else URect(u, v, 1, OfficeLayout.SEG)
+}
+
 /** Where one worktree's desk area goes: its rug, the plate position and the desks. */
 data class AreaSlot(val rug: URect, val rugStyle: Int, val plateU: Int, val plateV: Int, val seats: List<SeatSlot>)
 
@@ -112,6 +120,11 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
       items += sprite(1, 1.0 + i, if (i in theme.windowSegmentsLeft) theme.wallLeftWindow else theme.wallLeft, 0, i * SEG)
     }
     for (d in theme.decor) items += sprite(d.layer, d.key, d.frame, d.u, d.v, d.z)
+    if (shown.isNotEmpty()) for (ps in partitions(shown.size)) {
+      val frame = theme.partition(ps.orientation) ?: continue
+      val f = ps.footprint
+      items += sprite(5, f.u + f.w / 2.0 + f.v + f.d / 2.0, frame, ps.u, ps.v)
+    }
 
     val placements = ArrayList<AreaPlacement>()
     val desks = ArrayList<DeskPlacement>()
@@ -267,6 +280,23 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
 
     private fun rw(cols: Int, rows: Int = 1, du: Int = 20, dv: Int = 0, firstU: Int, firstV: Int) =
       (0 until rows).flatMap { r -> (0 until cols).map { c -> SeatSlot(Orientation.RW, firstU + c * du, firstV + r * dv) } }
+
+    private fun line(o: Orientation, fixed: Int, vararg starts: Int) =
+      starts.map { if (o == Orientation.RW) PartitionSlot(o, it, fixed) else PartitionSlot(o, fixed, it) }
+
+    /**
+     * The partition segments between the desk areas of [slots] ([count]): in the gaps between rugs, behind the name plates
+     * in front of them, with a doorway where a wide plate would sit behind the glass. None for a single area. Used only when the
+     * theme has partition frames.
+     */
+    fun partitions(count: Int): List<PartitionSlot> = when (count.coerceIn(1, PER_PAGE)) {
+      1 -> emptyList()
+      2 -> line(Orientation.RW, 45, 0, 16, 32, 48, 64, 80)
+      3 -> line(Orientation.LW, 57, 0, 16, 32) + line(Orientation.RW, 54, 16, 32, 48, 64, 80)
+      4 -> line(Orientation.RW, 41, 0, 16, 32, 48, 64, 80) + line(Orientation.LW, 48, 0, 16, 25, 42, 58, 74)
+      else -> line(Orientation.RW, 47, 0, 16, 32, 48, 64, 80) +
+        line(Orientation.LW, 33, 0, 16, 31, 64, 80) + line(Orientation.LW, 64, 0, 16, 31, 64, 80)
+    }
 
     /** The desk areas for [count] (1..6) worktrees: inside the room, no two rugs overlap, every desk inside its rug. */
     fun slots(count: Int): List<AreaSlot> = when (count.coerceIn(1, PER_PAGE)) {
