@@ -30,14 +30,17 @@ class ClaudeHookInstallerTest : TestCase() {
     assertTrue(j.getAsJsonObject("statusLine")["command"].asString.contains("claude-statusline.sh"))
   }
 
-  fun testKeepsUserHooksAndUnknownKeysAndReplacesStatusLine() {
-    put("""{"theme":"dark","permissions":{"allow":["Bash"]},"statusLine":{"type":"command","command":"my-line"},
+  private val ours = HookScripts.command(scripts.claudeStatusline)
+
+  fun testKeepsUserHooksAndUnknownKeysAndWrapsStatusLine() {
+    put("""{"theme":"dark","permissions":{"allow":["Bash"]},"statusLine":{"type":"command","command":"my-line","padding":2},
       "hooks":{"Stop":[{"hooks":[{"type":"command","command":"user-stop.sh"}]}],"Custom":[{"x":1}]}}""")
     ClaudeHookInstaller.install(cfg, scripts)
     val j = json()
     assertEquals("dark", j["theme"].asString)
     assertEquals("Bash", j.getAsJsonObject("permissions").getAsJsonArray("allow")[0].asString)
-    assertTrue(j.getAsJsonObject("statusLine")["command"].asString.contains("claude-statusline.sh"))
+    assertEquals("$ours 'my-line'", j.getAsJsonObject("statusLine")["command"].asString)
+    assertEquals(2, j.getAsJsonObject("statusLine")["padding"].asInt)
     val stop = j.getAsJsonObject("hooks").getAsJsonArray("Stop")
     assertEquals(2, stop.size()); assertTrue(stop.toString().contains("user-stop.sh"))
     assertEquals(1, j.getAsJsonObject("hooks").getAsJsonArray("Custom").size())
@@ -65,6 +68,23 @@ class ClaudeHookInstallerTest : TestCase() {
     ClaudeHookInstaller.install(cfg, scripts)
     assertEquals(first, Files.readString(file))
     assertEquals(1, json().getAsJsonObject("hooks").getAsJsonArray("Stop").size())
+  }
+
+  fun testWrappedStatusLineSurvivesReinstallAndAMovedScript() {
+    put("""{"statusLine":{"type":"command","command":"echo 'it''s'"}}""")
+    ClaudeHookInstaller.install(cfg, scripts); val first = Files.readString(file)
+    ClaudeHookInstaller.install(cfg, scripts)
+    assertEquals(first, Files.readString(file))
+    val moved = HookScripts.write(root.resolve("other"))
+    ClaudeHookInstaller.install(cfg, moved)
+    assertEquals(HookScripts.command(moved.claudeStatusline) + " 'echo '\\''it'\\'''\\''s'\\'''",
+      json().getAsJsonObject("statusLine")["command"].asString)
+  }
+
+  fun testOwnPlainStatusLineStaysPlain() {
+    ClaudeHookInstaller.install(cfg, scripts)
+    ClaudeHookInstaller.install(cfg, scripts)
+    assertEquals(ours, json().getAsJsonObject("statusLine")["command"].asString)
   }
 
   fun testMalformedJsonLeftUntouched() {

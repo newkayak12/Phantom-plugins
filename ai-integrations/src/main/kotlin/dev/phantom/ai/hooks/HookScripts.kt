@@ -44,11 +44,15 @@ exit 0
 """,
   )
 
-  /** Prints one line (never empty) for Claude's status line; posts the payload only when the env is present. */
+  /**
+   * Prints one line (never empty) for Claude's status line; posts the payload only when the env is present. The user's
+   * previous statusLine command, if any, comes as the first argument: it gets the same payload and its output wins.
+   */
   fun statuslineScript(): String = sh(
     """
 #!/bin/sh
 # Phantom AI statusLine: prints "<model> · 5h N% · 7d N%" (or "Claude") and forwards the payload to the IDE.
+# With an argument (the previous statusLine command), prints that command's output instead when it prints any.
 payload=§(cat)
 flat=§(printf '%s' "§payload" | tr -d '\n')
 model=§(printf '%s' "§flat" | sed -n 's/.*"display_name" *: *"\([^"]*\)".*/\1/p' | head -n 1)
@@ -57,6 +61,10 @@ week=§(printf '%s' "§flat" | sed -n 's/.*"seven_day" *: *{[^}]*"used_percentag
 line="§{model:-Claude}"
 [ -n "§five" ] && line="§line · 5h §{five}%"
 [ -n "§week" ] && line="§line · 7d §{week}%"
+if [ -n "§{1:-}" ]; then
+  prev=§(printf '%s' "§payload" | /bin/sh -c "§1" 2>/dev/null)
+  [ -n "§prev" ] && line=§prev
+fi
 if $GUARD; then
   ${POST.replace("@PATH", "/statusline/claude")} || true
 fi

@@ -30,8 +30,8 @@ class HookScriptsTest : TestCase() {
 
   override fun tearDown() { http.stop(0); dir.toFile().deleteRecursively() }
 
-  private fun run(script: java.nio.file.Path, stdin: String, withEnv: Boolean): Pair<Int, String> {
-    val pb = ProcessBuilder("/bin/sh", script.toString()).redirectErrorStream(true)
+  private fun run(script: java.nio.file.Path, stdin: String, withEnv: Boolean, vararg args: String): Pair<Int, String> {
+    val pb = ProcessBuilder("/bin/sh", script.toString(), *args).redirectErrorStream(true)
     pb.environment().keys.removeIf { it.startsWith("PHANTOM_") }
     if (withEnv) pb.environment().putAll(mapOf(HookEnv.PORT to http.address.port.toString(), HookEnv.TOKEN to "tok-123", HookEnv.TAB_ID to "tab-9"))
     val p = pb.start()
@@ -80,6 +80,20 @@ class HookScriptsTest : TestCase() {
     val (code, out) = run(s.claudeStatusline, payload, true)
     assertEquals(0, code); assertEquals("Opus · 5h 12.5% · 7d 30%\n", out)
     assertEquals("/statusline/claude", seen.single().path); assertEquals("tab-9", seen.single().tab)
+  }
+
+  fun testStatuslinePrintsThePreviousLineFedTheSamePayloadAndStillPosts() {
+    val s = HookScripts.write(dir)
+    val payload = """{"model":{"display_name":"Opus"}}"""
+    val (code, out) = run(s.claudeStatusline, payload, true, "printf 'mine: '; cat")
+    assertEquals(0, code); assertEquals("mine: $payload\n", out)
+    assertEquals(payload, seen.single().body)
+  }
+
+  fun testStatuslineFallsBackToItsOwnLineWhenThePreviousPrintsNothing() {
+    val s = HookScripts.write(dir)
+    val (_, out) = run(s.claudeStatusline, """{"model":{"display_name":"Opus"}}""", false, "exit 3")
+    assertEquals("Opus\n", out)
   }
 
   fun testStatuslinePrintsClaudeWithoutDataAndDoesNotPostWithoutEnv() {

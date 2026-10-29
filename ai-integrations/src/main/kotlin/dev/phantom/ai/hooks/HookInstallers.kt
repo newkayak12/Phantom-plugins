@@ -69,12 +69,21 @@ object ClaudeHookInstaller {
     val file = configDir.resolve("settings.json")
     val root = HookJson.read(file) ?: return false
     HookJson.mergeHooks(root, HookEventMapper.CLAUDE_EVENTS, HookScripts.command(scripts.claudeHook), MARKER) { 5 }
-    // The plugin takes over the status line (a previous one is replaced).
-    root.add("statusLine", JsonObject().apply {
-      addProperty("type", "command"); addProperty("command", HookScripts.command(scripts.claudeStatusline))
-    })
+    // The plugin's script runs the status line (it feeds the usage widget); a previous command is kept as its argument.
+    val old = root.get("statusLine")?.takeIf { it.isJsonObject }?.asJsonObject
+    val line = old?.deepCopy() ?: JsonObject()
+    line.addProperty("type", "command")
+    line.addProperty("command", statusLineCommand(HookScripts.command(scripts.claudeStatusline), old?.get("command")))
+    root.add("statusLine", line)
     HookJson.write(file, root)
     return true
+  }
+
+  /** [ours], followed by the previous command quoted; a command of ours keeps the argument it already carries. */
+  private fun statusLineCommand(ours: String, old: JsonElement?): String {
+    val cmd = old?.takeIf { it.isJsonPrimitive }?.asString?.takeIf { it.isNotBlank() } ?: return ours
+    if (cmd.contains(STATUSLINE_MARKER)) return ours + cmd.substringAfter("$STATUSLINE_MARKER'", "")
+    return "$ours '" + cmd.replace("'", "'\\''") + "'"
   }
 }
 
