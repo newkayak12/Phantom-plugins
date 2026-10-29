@@ -5,7 +5,9 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindowType
 import com.intellij.testFramework.DisposableRule
+import com.intellij.testFramework.EdtRule
 import com.intellij.testFramework.ProjectRule
+import com.intellij.testFramework.RunsInEdt
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -27,12 +29,17 @@ import java.nio.file.Files
 import javax.swing.JLabel
 import javax.swing.JPanel
 
-/** In-IDE tests of the one-panel tool window, on a JUnit 4 project rule so the cases keep their plain names. */
+/**
+ * In-IDE tests of the one-panel tool window, on a JUnit 4 project rule so the cases keep their plain names. They run on the
+ * EDT: setSize queues a componentResized whose relayout() would otherwise race the test thread's toggleTree().
+ */
+@RunsInEdt
 class AgentToolWindowInIdeTest {
   companion object {
     @ClassRule @JvmField val projectRule = ProjectRule()
   }
 
+  @Rule @JvmField val edtRule = EdtRule()
   @Rule @JvmField val disposableRule = DisposableRule()
   private val project get() = projectRule.project
   private val testRootDisposable get() = disposableRule.disposable
