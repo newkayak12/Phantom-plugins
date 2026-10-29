@@ -1,12 +1,13 @@
 """Theme E - 주방 (Restaurant Kitchen): sprites at native resolution, packed to OUT/e/, and a mockup.
 
 Same grid as A (16-unit tiles, 2:1 iso, desk 20x10 units, chair centre 12.5 units in front of the desk, seat height 7 px).
-A desk is a steel cooking station, the chair a wooden duckboard on the floor (the cook stands on it), and the people are cooks
-with four animation phases per state:
+A desk is a steel cooking station, the chair a wooden duckboard on the floor (the cook stands on it), and the people are ten
+cooks drawn at people_hd.DETAIL x (people_hd's heads and faces, E's jackets, aprons and hats) with four animation phases per state:
   working  back view at the station, tossing a wok over flames (even variants) or chopping with a cleaver (odd variants)
-  waiting  front view, ringing a brass hand bell held high and calling out
+  waiting  front view, an open hand raised high, calling out, ringing a brass hand bell in the other
   done     front view, presenting a plate under a silver cloche, steam rising
   idle     front view, dozing on an upturned crate, a sleep bubble growing
+  (working is also mirrored, `_lw`, for stations along v)
 Run from ai-visualization/art:  PHANTOM_AIVIZ_OUT="$OUT" "$VENV/bin/python" theme_e.py [mockup]
 """
 import math
@@ -15,6 +16,8 @@ import sys
 from PIL import Image, ImageDraw, ImageFont
 from pix import C, dk, lt, mix, H, Spr, part, outline, outline_out, box, obox, M, INK
 import sprites as SP
+import people_hd as PH
+from people_hd import Fig, ramp, looks, SKIN, WHITE
 
 OUT = SP.OUT
 SEG, W_H = SP.SEG, SP.W_H
@@ -293,374 +296,430 @@ def crate(s, u, v, col=C('#a8743f'), n=4):
     part(s, lambda t: box(t, u - n / 2, v - n / 2, 0, n, n, SEAT_Z, tex), .4)
 
 
-# ---------------------------------------------------------------- people
+# ---------------------------------------------------------------- people (HD: drawn at people_hd.DETAIL x, like A/B/C's)
+# The cooks reuse the office people's heads, faces, hair, hands and shading (people_hd.py, imported, unchanged); only the
+# clothes (white double-breasted jacket, apron, toque/bandana/cap) and the poses are E's own.
+
+DETAIL = PH.DETAIL
+JACKET = '#f6f2ea'
 
 
-EYE = C('#2a2238')
-JK, JK_S, JK_D = C('#f7f7f4'), C('#d9dde2'), C('#aab1bb')
-HAT, HAT_S = C('#ffffff'), C('#dde1e6')
+def _cook(**d):
+    d.setdefault('shirt', JACKET)
+    d['pants'] = '#2c2b33' if d.get('pants', 'check') == 'black' else '#5a5d6a'
+    d.setdefault('pants_kind', 'black' if d['pants'] == '#2c2b33' else 'check')
+    d.setdefault('shoe', '#2a2228')
+    d['top'] = 'chef'
+    return d
+
 
 COOKS = [
-    dict(skin=C('#f1c39b'), hair=C('#5b3a26'), hat='toque', apron=C('#2f4a7a'), neck=C('#d9443a'), pants='check', shoe=C('#2a2a30')),
-    dict(skin=C('#d9a273'), hair=C('#1f1b24'), hat='bandana', band=C('#d63c3c'), apron=C('#2b2b30'), neck=None, pants='black',
-         shoe=C('#3a2a22')),
-    dict(skin=C('#8d5a3b'), hair=C('#1a1416'), hat='toque', apron=C('#2f7d4f'), neck=C('#f2b33d'), pants='check', shoe=C('#22202a')),
-    dict(skin=C('#f7d6b8'), hair=C('#e0a845'), hat='bandana', band=C('#2f6fd1'), apron=C('#8a5a33'), neck=None, pants='black',
-         shoe=C('#2a2a30'), pony=True),
-    dict(skin=C('#e2b089'), hair=C('#b5532a'), hat='cap', band=C('#2a2b31'), apron=C('#b8323a'), neck=None, pants='check',
-         shoe=C('#22202a'), beard=True),
-    dict(skin=C('#f3cfb3'), hair=C('#c9c9cf'), hat='tall', apron=C('#6b2d3c'), neck=C('#2f6fd1'), pants='black', shoe=C('#2a2a30'),
-         mustache=True),
+    _cook(skin='light', hair='#5c3a25', style='short', hat='toque', apron='#2f4a7a', neck='#d9443a', pants='check'),
+    _cook(skin='medium', hair='#2a2028', style='ponytail', hat='bandana', band='#d63c3c', apron='#34343c', pants='black'),
+    _cook(skin='dark', hair='#1f1a20', style='curly', hat='toque', apron='#2f7d4f', neck='#f2b33d', pants='check'),
+    _cook(skin='pale', hair='#f0c060', style='long', hat='bandana', band='#2f6fd1', apron='#8a5a33', pants='black',
+          freckles=True),
+    _cook(skin='tan', hair='#b5532a', style='messy', hat='cap', band='#34343c', apron='#b8323a', pants='check', beard=True),
+    _cook(skin='pale', hair='#c9c9cf', style='short', hat='tall', apron='#6b2d3c', neck='#2f6fd1', pants='black',
+          glasses='#2a2228'),
+    _cook(skin='light', hair='#7a4a2c', style='twintail', hat='bandana', band='#f2a93d', apron='#d0574a', pants='check'),
+    _cook(skin='brown', hair='#231c24', style='bun', hat='cap', band='#f4f0e6', apron='#3a6f8f', pants='black',
+          glasses='#7a3a2a'),
+    _cook(skin='medium', hair='#d4683a', style='bob', hat='toque', apron='#5a8f3a', neck='#e85a7a', pants='check'),
+    _cook(skin='dark', hair='#2c2028', style='short', hat='bandana', band='#2f9a6a', apron='#34343c', pants='black',
+          beard=True),
 ]
 
-
-class Fig:
-    """Draws a cook in local coordinates: body x 3..15, head top y 2, shoes bottom y 28 (A's person grid)."""
-    OX, OY = 12, 16
-
-    def __init__(s, P):
-        s.s = Spr(48, 56, 9 + Fig.OX, 29 + Fig.OY)  # anchor: feet on the floor
-        s.P = P
-        sk = P['skin']
-        s.sk, s.sd = sk, dk(sk, .18)
-        s.h, s.hd, s.hh = P['hair'], dk(P['hair'], .3), lt(P['hair'], .3)
-        s.blush = mix(sk, C('#ff7a8a'), .35)
-
-    def R(s, x0, y0, x1, y1, c):
-        s.s.rect(x0 + Fig.OX, y0 + Fig.OY, x1 + Fig.OX, y1 + Fig.OY, c)
-
-    def P_(s, x, y, c):
-        s.s.put(x + Fig.OX, y + Fig.OY, c)
-
-    def line(s, x0, y0, x1, y1, c, w=1):
-        n = max(abs(x1 - x0), abs(y1 - y0), 1)
-        for i in range(n + 1):
-            x = round(x0 + (x1 - x0) * i / n)
-            y = round(y0 + (y1 - y0) * i / n)
-            s.R(x, y, x + w - 1, y + w - 1, c)
-
-    # ---- parts
-    def legs(s, y0=21, sit=False):
-        P = s.P
-        pc = C('#2b2b30')
-        for x0 in (6, 10):
-            for y in range(y0, 27):
-                for x in range(x0, x0 + 3):
-                    c = pc
-                    if P['pants'] == 'check':
-                        c = C('#d6d8dc') if (x + y) % 2 == 0 else C('#3a3c44')
-                    s.P_(x, y, c)
-        k = P['shoe']
-        s.R(5, 27, 8, 28, k); s.R(10, 27, 13, 28, k)
-        s.R(6, 27, 7, 27, lt(k, .3)); s.R(11, 27, 12, 27, lt(k, .3))
-
-    def jacket_front(s, y1=21):
-        s.R(5, 13, 13, y1, JK); s.R(13, 13, 13, y1, JK_S); s.R(5, 13, 13, 13, C('#ffffff'))
-        s.R(10, 14, 10, y1, JK_S)  # double-breasted overlap
-        for y in (15, 17, 19):
-            if y <= y1:
-                s.P_(7, y, C('#5d6570')); s.P_(11, y, C('#5d6570'))
-        neck = s.P['neck']
-        s.R(8, 12, 10, 12, s.sd)
-        if neck:
-            s.R(7, 13, 11, 13, neck); s.R(8, 14, 10, 14, neck); s.P_(9, 15, dk(neck, .2))
-
-    def apron_front(s, y0=19, y1=24):
-        a = s.P['apron']
-        s.R(5, y0, 13, y1, a); s.R(5, y0, 13, y0, dk(a, .3)); s.R(13, y0 + 1, 13, y1, dk(a, .2))
-        s.R(7, y0 + 2, 11, y0 + 2, lt(a, .18))
-
-    def jacket_back(s):
-        s.R(5, 13, 13, 20, JK); s.R(12, 13, 13, 20, JK_S); s.R(5, 13, 13, 13, C('#ffffff'))
-        s.R(9, 15, 9, 19, JK_S)  # centre seam
-        a = s.P['apron']
-        s.R(5, 19, 13, 20, a); s.R(5, 20, 13, 20, dk(a, .25))
-        s.R(4, 20, 4, 24, a); s.R(14, 20, 14, 24, dk(a, .2))  # apron wrapping the sides
-        s.R(8, 18, 10, 20, lt(a, .2)); s.P_(9, 19, dk(a, .3))  # bow
-        s.P_(8, 21, a); s.P_(7, 22, a); s.P_(10, 21, a); s.P_(11, 22, a)  # tails
-
-    def face(s, expr='open', dy=0, dx=0):
-        sk, sd = s.sk, s.sd
-        R = lambda x0, y0, x1, y1, c: s.R(x0 + dx, y0 + dy, x1 + dx, y1 + dy, c)
-        P_ = lambda x, y, c: s.P_(x + dx, y + dy, c)
-        R(5, 5, 13, 10, sk); R(6, 11, 12, 11, sk); R(13, 5, 13, 10, sd); P_(12, 11, sd)
-        R(4, 6, 4, 8, sk); R(14, 6, 14, 8, sd)  # ears
-        h, hd = s.h, s.hd
-        R(4, 4, 4, 5, h); R(14, 4, 14, 5, hd); R(5, 5, 6, 5, h); R(12, 5, 13, 5, hd)  # sideburns / fringe edge
-        if expr == 'sleep':
-            R(6, 8, 7, 8, EYE); R(11, 8, 12, 8, EYE)
-            P_(9, 10, dk(sk, .45))
-        elif expr == 'happy':
-            for ex in (6, 10):
-                P_(ex, 8, EYE); P_(ex + 1, 7, EYE); P_(ex + 2, 8, EYE)
-            R(8, 10, 10, 10, dk(sk, .5)); P_(7, 9, dk(sk, .3)); P_(11, 9, dk(sk, .3))
-        elif expr == 'shout':
-            R(7, 7, 7, 8, EYE); R(11, 7, 11, 8, EYE); P_(7, 7, C('#ffffff')); P_(11, 7, C('#ffffff'))
-            R(6, 6, 7, 6, s.hd); R(11, 6, 12, 6, s.hd)
-            R(8, 9, 10, 11, C('#5a1f28')); P_(9, 11, C('#e0606a'))
-        elif expr == 'shout2':
-            R(7, 7, 7, 8, EYE); R(11, 7, 11, 8, EYE); P_(7, 7, C('#ffffff')); P_(11, 7, C('#ffffff'))
-            R(6, 6, 7, 6, s.hd); R(11, 6, 12, 6, s.hd)
-            R(8, 10, 10, 10, C('#5a1f28'))
-        else:
-            R(7, 7, 7, 8, EYE); R(11, 7, 11, 8, EYE); P_(9, 10, dk(sk, .4))
-        P_(6, 9, s.blush); P_(12, 9, s.blush)
-        if s.P.get('mustache'):
-            R(7, 9, 11, 9, s.h); P_(6, 10, s.h); P_(12, 10, s.h)
-        if s.P.get('beard'):
-            R(5, 10, 13, 11, s.h); R(6, 12, 12, 12, s.hd); R(8, 10, 10, 10, dk(sk, .4)) if expr in ('shout', 'happy') else None
-
-    def hat(s, back=False, dy=0, dx=0, tilt=0):
-        P = s.P
-        R = lambda x0, y0, x1, y1, c: s.R(x0 + dx, y0 + dy, x1 + dx, y1 + dy, c)
-        P_ = lambda x, y, c: s.P_(x + dx, y + dy, c)
-        kind = P['hat']
-        if kind in ('toque', 'tall'):
-            top = -4 if kind == 'toque' else -7
-            R(5, 2, 13, 4, HAT); R(5, 4, 13, 4, HAT_S); R(13, 2, 13, 4, HAT_S)
-            for y in range(top, 2):
-                t = tilt * (1 - y) // 6 if tilt else 0
-                x0, x1 = (5, 13) if y == top else (4, 14)
-                R(x0 + t, y, x1 + t, y, HAT)
-                for px in (7, 10):
-                    if y > top:
-                        P_(px + t, y, HAT_S)
-                P_(x1 + t, y, HAT_S)
-            P_(5 + (tilt * (1 - top) // 6 if tilt else 0), top, lt(HAT_S, .5))
-        elif kind == 'bandana':
-            b = P['band']
-            R(5, 1, 13, 1, b); R(4, 2, 14, 4, b); R(4, 4, 14, 4, dk(b, .2))
-            for x in range(5, 14, 3):
-                P_(x, 3, lt(b, .5))
-            if back:
-                R(8, 4, 10, 5, dk(b, .15)); P_(8, 6, b); P_(10, 6, b); P_(7, 7, b); P_(11, 7, dk(b, .2))
-            else:
-                P_(15, 3, b); P_(16, 4, dk(b, .2))
-        else:  # skull cap
-            b = P['band']
-            R(5, 1, 13, 1, b); R(4, 2, 14, 4, b); R(4, 4, 14, 4, lt(b, .25)); R(6, 1, 8, 1, lt(b, .25))
-
-    def head_back(s, dy=0):
-        h, hd, hh = s.h, s.hd, s.hh
-        s.R(4, 4 + dy, 14, 11 + dy, h); s.R(12, 4 + dy, 14, 10 + dy, hd); s.R(5, 12 + dy, 13, 12 + dy, hd)
-        s.R(6, 5 + dy, 8, 5 + dy, hh)
-        s.P_(3, 7 + dy, s.sk); s.P_(3, 8 + dy, s.sd); s.P_(15, 7 + dy, s.sk); s.P_(15, 8 + dy, s.sd)
-        s.R(7, 12 + dy, 11, 12 + dy, s.sd)  # nape
-        if s.P.get('pony'):
-            s.R(8, 11 + dy, 10, 16 + dy, h); s.R(10, 12 + dy, 10, 16 + dy, hd); s.P_(9, 17 + dy, hd)
-
-    def done(s, crop=True):
-        outline_out(s.s, INK)
-        return s.s
-
-
-def _union_crop(sprs):
-    bb = None
-    for sp in sprs:
-        b = sp.img.getbbox()
-        if b:
-            bb = b if bb is None else (min(bb[0], b[0]), min(bb[1], b[1]), max(bb[2], b[2]), max(bb[3], b[3]))
-    out = []
-    for sp in sprs:
-        x0, y0, x1, y1 = bb
-        n = Spr(x1 - x0, y1 - y0, sp.ax - x0, sp.ay - y0)
-        n.img = sp.img.crop(bb)
-        n.em = sp.em.crop(bb)
-        n._load()
-        out.append(n)
-    return out
-
-
+GOLD = ramp('#f2c14e')
+STEEL = ramp('#c3cad2')
+WOK = ramp('#4a4a54')
+WOOD = ramp('#b98552')
+CRATE = ramp('#b07a45')
 FLAME = [C('#c92a2a'), C('#f76707'), C('#ffa94d'), C('#ffe066'), C('#fff9db')]
+STEAM = C('#ffffff', 200)
+SPARK = C('#ffe066')
 
 
-def flames(f, cx, base, height, phase, w=5):
-    """A tongue of fire per column around cx, rising from row base by up to height."""
+def _check(f, P, m):
+    """Houndstooth-ish checks on the pants mask m (check trousers only)."""
+    if P['pants_kind'] != 'check':
+        return
+    d = ramp(P['pants'])['ln']
+    for (x, y) in m:
+        if (x + y) % 4 == 0 and (x - y) % 4 == 0:
+            f.col[(x, y)] = d
+
+
+def legs(f, P, spread=0):
+    """Standing legs (people_hd's, chunky), checked when the cook wears check trousers."""
+    f.lift = 0
+    PH.legs_front(f, P, spread)
+    t = -31 + PH.LIFT
+    _check(f, P, f.mask(('r', (-11, t - 5, 11, -8))))
+
+
+def apron_r(P):
+    return ramp(P['apron'])
+
+
+def chef_front(f, P, poly, sleeves, skirt=-20):
+    """A white double-breasted jacket seen from the front with an apron (bib and skirt down to [skirt]), then the sleeves."""
+    sk, hair, jk, *_ = looks(P)
+    body = f.mask(('p', poly))
+    f.paint(body, jk, 'shirt')
+    # the jacket's flap: two rows of cloth buttons, the overlap's edge
+    f.vl(5, -56, -36, jk['sh'])
+    for y in (-55, -50):
+        f.px(-6, y, jk['ln']); f.px(8, y, jk['ln'])
+    ap = apron_r(P)
+    bib = f.mask(('r', (-8, -47, 7, -34)), ('p', [(-12, -36), (11, -36), (13, skirt), (-13, skirt)]))
+    f.paint(bib, ap, 'apron')
+    f.hl(-4, 3, -42, ap['sh'])  # a pocket on the bib
+    f.vl(-4, -42, -38, ap['sh']); f.vl(3, -42, -38, ap['sh'])
+    f.hl(-13, 12, -35, ap['dp'])  # waist tie
+    for y in range(-31, skirt, 3):  # folds
+        f.px(-6, y, ap['sh']); f.px(6, y + 1, ap['sh'])
+    for i in range(10):  # neck straps
+        f.px(-8 + i // 4, -47 - i, ap['dp']); f.px(7 - i // 4, -47 - i, ap['dp'])
+    for m in sleeves:
+        f.paint(m, jk, 'sleeve')
+
+
+def collar(f, P, cx=0, cy=-74):
+    """The jacket's stand collar and the neckerchief, drawn after the head so they wrap the neck."""
+    sk, hair, jk, *_ = looks(P)
+    f.paint(f.mask(('r', (cx - 7, cy + 15, cx + 7, cy + 18))), jk, 'collar', hl=False)
+    if P.get('neck'):
+        nk = ramp(P['neck'])
+        f.paint(f.mask(('p', [(cx - 4, cy + 15), (cx + 4, cy + 15), (cx, cy + 21)])), nk, 'neck2', hl=False)
+
+
+def hat(f, P, cx, cy, back=False):
+    """Toque (puffy white), tall toque, bandana (dotted, knot) or a skull cap with a folded band, over people_hd's hair."""
+    kind = P['hat']
+    if kind in ('toque', 'tall'):
+        W = ramp('#fdfbf6')
+        top = cy - (36 if kind == 'tall' else 29)
+        puff = f.mask(('e', (cx - 15, top, cx + 15, cy - 8)), ('e', (cx - 18, top + 7, cx - 3, cy - 8)),
+                      ('e', (cx + 3, top + 7, cx + 18, cy - 8)))
+        f.paint(puff, W, 'hat', shade='rb')
+        for x in range(cx - 10, cx + 11, 5):
+            f.vl(x, top + 9, cy - 15, W['sh'])
+        f.paint(f.mask(('r', (cx - 15, cy - 15, cx + 15, cy - 8))), W, 'hatband', shade='rb')
+        f.hl(cx - 14, cx + 14, cy - 15, W['sh'])
+    else:
+        R = ramp(P['band'])
+        cap = f.mask(('e', (cx - 16, cy - 19, cx + 16, cy + 5)))
+        cap = {p for p in cap if p[1] - f.lift <= cy - 6 + (abs(p[0] - cx) // 5 if kind == 'bandana' else 0)}
+        f.paint(cap, R, 'hat', shade='rb')
+        if kind == 'bandana':
+            for (x, y) in cap:
+                if (x * 3 + (y - f.lift) * 5) % 13 == 0 and (x - cx) ** 2 < 150:
+                    f.col[(x, y)] = lt(R['b'], .7)
+            if back:
+                kx = cx + 1
+                f.paint(f.mask(('e', (kx - 3, cy - 8, kx + 3, cy - 3))), R, 'knot')
+                f.paint(f.mask(('p', [(kx - 2, cy - 4), (kx + 1, cy - 4), (kx - 4, cy + 7), (kx - 7, cy + 5)]),
+                               ('p', [(kx, cy - 4), (kx + 3, cy - 4), (kx + 6, cy + 6), (kx + 3, cy + 7)])), R, 'tails')
+            else:
+                f.paint(f.mask(('e', (cx + 11, cy - 11, cx + 17, cy - 5))), R, 'knot')
+                f.paint(f.mask(('p', [(cx + 15, cy - 9), (cx + 21, cy - 5), (cx + 18, cy - 2)])), R, 'tails')
+        else:
+            f.paint({p for p in cap if p[1] - f.lift >= cy - 10}, ramp(R['dp']), 'hatband', hl=False)
+            f.hl(cx - 4, cx + 2, cy - 17, R['hi'])
+
+
+def face_sleep(f, P, cx, cy):
+    """Closes people_hd's open eyes: skin over them, a downward arc each."""
+    sk = SKIN[P['skin']]
+    ex, ey = (cx - 8, cx + 2), cy + 1
+    for x0 in ex:
+        for y in range(ey - 1, ey + 4):
+            for x in range(x0, x0 + 3):
+                f.px(x, y, sk['b'])
+        f.px(x0 - 1, ey + 1, PH.EYE); f.hl(x0, x0 + 2, ey + 2, PH.EYE); f.px(x0 + 3, ey + 1, PH.EYE)
+    my = ey + 8
+    f.hl(cx - 5, cx, my - 1, sk['b']); f.hl(cx - 4, cx - 1, my, sk['b'])
+    f.hl(cx - 3, cx - 2, my, PH.MOUTH); f.hl(cx - 3, cx - 2, my + 1, PH.MOUTH)
+
+
+TORSO = [(-12, -58), (12, -58), (14, -52), (12, -33), (-12, -33), (-14, -52)]
+
+
+def shoulders(f):
+    return [f.mask(('e', (-16, -60, -6, -48))), f.mask(('e', (6, -60, 16, -48)))]
+
+
+def flames(f, cx, base, height, phase, w=8):
+    """Tongues of fire around cx rising from row base (absolute frame coords)."""
     for dx in range(-w, w + 1):
-        hgt = height * (1 - (abs(dx) / (w + 1)) ** 1.6) + (H('fl', phase, dx) - 0.5) * 3
+        hgt = height * (1 - (abs(dx) / (w + 1)) ** 1.5) + (H('fl', phase, dx // 2) - 0.5) * 5
         hgt = int(round(hgt))
         for k in range(max(hgt, 0)):
             t = k / max(hgt, 1)
             core = 1 - abs(dx) / (w + 1)
             lvl = int((1 - t) * 2.2 + core * 2.4)
-            f.P_(cx + dx, base - k, FLAME[max(0, min(4, lvl))])
+            f.px(cx + dx, base - k, FLAME[max(0, min(4, lvl))], 'flame')
+
+
+def back_body(f, P):
+    """A standing cook seen from behind: jacket, crossed apron straps, the bow at the back, apron edges, head and hat."""
+    sk, hair, jk, *_ = looks(P)
+    legs(f, P)
+    f.lift = PH.LIFT
+    ap = apron_r(P)
+    # apron skirt edges peeking at the sides
+    f.paint(f.mask(('p', [(-13, -36), (-10, -36), (-11, -20), (-14, -20)]), ('p', [(10, -36), (13, -36), (14, -20), (11, -20)])),
+            ap, 'apron')
+    torso = f.mask(('p', TORSO))
+    f.paint(torso, jk, 'shirt')
+    f.vl(0, -56, -37, jk['sh'])  # back seam
+    for i in range(19):  # straps crossing on the back
+        f.px(-9 + i, -56 + i, ap['b']); f.px(-8 + i, -56 + i, ap['dp'])
+        f.px(9 - i, -56 + i, ap['b']); f.px(8 - i, -56 + i, ap['dp'])
+    f.paint(f.mask(('r', (-13, -37, 12, -34))), ap, 'tie', hl=False)
+    f.paint(f.mask(('e', (-8, -41, -1, -32)), ('e', (0, -41, 7, -32))), ap, 'bow')
+    f.paint(f.mask(('e', (-2, -39, 1, -34))), ramp(ap['dp']), 'knot', hl=False)
+    f.paint(f.mask(('l', [(-1, -34), (-4, -26)], 3), ('l', [(0, -34), (3, -27)], 3)), ap, 'tails', shade='', hl=False)
+    for m in shoulders(f):
+        f.paint(m, jk, 'sleeve')
+    PH.hair_back_layer(f, P, 2, -74, back=True)
+    PH.head_back(f, P, 2, -74)
+    hat(f, P, 2, -74, back=True)
 
 
 def working(P, phase, chop=False):
-    f = Fig(P)
-    f.legs(21)
-    f.jacket_back()
-    f.head_back()
-    f.hat(back=True)
+    """At the station seen from behind (the station is ahead, up-right): tossing a wok over flames, or chopping."""
+    f = Fig()
+    sk, hair, jk, *_ = looks(P)
+    if chop:
+        # the board on the station top, a carrot and its slices, drawn first: the cook stands in front of it
+        f.lift = 0
+        f.paint(f.mask(('r', (12, -46, 42, -41))), WOOD, 'board')
+        f.hl(12, 42, -40, WOOD['dp'])
+        f.paint(f.mask(('e', (30, -52, 42, -46))), ramp('#e8590c'), 'carrot')
+        f.paint(f.mask(('p', [(40, -52), (46, -58), (44, -50)])), ramp('#5fa83d'), 'greens')
+        for i, x in enumerate((19, 23, 27)):
+            f.paint(f.mask(('e', (x - 1, -49, x + 2, -46))), ramp('#f08a3a' if i % 2 else '#e8590c'), 'slice', hl=False)
+    back_body(f, P)
+    f.lift = 0
+    # left arm hanging, its hand on the station's edge
+    f.paint(f.mask(('l', [(-12, -48), (-16, -40), (-15, -32)], 7)), jk, 'sleeveL')
+    PH.cuff(f, jk, -15, -33)
+    PH.hand(f, sk, -19, -33, -12, -27, 'handL', thumb=1)
     if not chop:
-        # wok over the burner on the right, tossed through four phases
-        rim = (8, 5, 3, 6)[phase]
-        tilt = (0, 1, 0, 0)[phase]
-        flames(f, 23, rim + 9, (9, 6, 11, 7)[phase], phase)
-        wx0, wx1 = 18, 28
-        f.R(wx0, rim, wx1, rim, C('#8a8f99'))
-        f.R(wx0 + 1, rim + 1, wx1 - 1, rim + 1, C('#3a3a42'))
-        f.R(wx0 + 2, rim + 2, wx1 - 2, rim + 2, C('#2c2c33'))
-        f.R(wx0 + 4, rim + 3, wx1 - 4, rim + 3, C('#24242a'))
-        f.R(wx0 + 2, rim + 1, wx0 + 4, rim + 1, C('#55565f'))
-        f.P_(wx1 + 1, rim, C('#3a3a42'))  # helper handle
-        if tilt:
-            f.P_(wx1, rim - 1, C('#8a8f99'))
-        # food in the wok / in the air
-        food = [C('#5fa83d'), C('#e8590c'), C('#ffe9a8'), C('#c0392b'), C('#ffe9a8')]
-        arcs = {0: [(-2, -1), (0, -1), (2, -1), (1, -1)],
-                1: [(-3, -3), (0, -4), (2, -2), (3, -5)],
-                2: [(-2, -7), (0, -9), (2, -6), (4, -8), (-4, -5)],
-                3: [(-2, -3), (1, -2), (3, -4), (0, -5)]}[phase]
+        rim = (-58, -64, -70, -62)[phase]
+        flames(f, 30, -38, (16, 11, 20, 13)[phase], phase)
+        # the wok: a dark bowl, a steel rim, food inside or in the air
+        bowl = f.mask(('e', (19, rim - 6, 41, rim + 9)))
+        bowl = {p for p in bowl if p[1] >= rim}
+        f.paint(bowl, WOK, 'wok', shade='rb')
+        f.paint(f.mask(('e', (19, rim - 2, 41, rim + 2))), ramp('#2a2830'), 'wokin', shade='', hl=False)
+        f.hl(20, 40, rim - 2, STEEL['hi']); f.px(19, rim, STEEL['b']); f.px(41, rim, STEEL['b'])
+        f.hl(22, 38, rim + 3, WOK['hi'])
+        food = [ramp('#5fa83d'), ramp('#e8590c'), ramp('#ffe9a8'), ramp('#c0392b'), ramp('#ffe9a8')]
+        arcs = {0: [(-6, -1), (-1, -2), (4, -1), (1, 0)],
+                1: [(-7, -6), (0, -9), (5, -5), (3, -12)],
+                2: [(-5, -14), (1, -19), (6, -12), (-1, -10), (8, -17)],
+                3: [(-5, -6), (2, -4), (6, -8), (0, -10)]}[phase]
         for i, (dx, dy) in enumerate(arcs):
-            f.P_(23 + dx, rim + dy, food[i % len(food)])
-            if phase == 2 and i < 2:
-                f.P_(23 + dx + 1, rim + dy, food[(i + 2) % len(food)])
-        # long handle into the right hand; the arm reaches up from the shoulder
-        hx, hy = 16, rim + 2
-        f.line(wx0 - 1, rim, hx + 1, hy - 1, C('#6b4a2e'))
-        f.line(14, 14, hx, hy + 1, JK, 2)
-        f.R(hx, hy, hx + 1, hy + 1, f.sk)
-        # left arm forward (bent, at the station)
-        f.R(3, 14, 4, 18, JK); f.R(4, 15, 4, 18, JK_S); f.R(3, 19, 4, 19, f.sk)
+            x, y = 30 + dx, rim + dy
+            f.paint(f.mask(('e', (x - 1, y - 1, x + 2, y + 1))), food[i % 5], f'food{i}', hl=False, shade='')
+        # the long handle back to the right hand; the arm forward from the shoulder
+        hx, hy = 15, rim + 7
+        f.paint(f.mask(('l', [(20, rim + 1), (hx + 2, hy - 1)], 3)), ramp('#6b4a2e'), 'handle', shade='', hl=False)
+        f.paint(f.mask(('l', [(12, -48), (16, -44), (hx, hy + 2)], 7)), jk, 'sleeveR')
+        PH.cuff(f, jk, hx, hy + 2)
+        PH.hand(f, sk, hx - 2, hy - 3, hx + 4, hy + 3, 'handR', thumb=-1)
+        # sparks flying off
+        if phase in (0, 2):
+            for i in range(3):
+                f.px(26 + int(H('sp', phase, i) * 10), rim + 6 - int(H('sy', phase, i) * 6), SPARK)
     else:
-        # cleaver chopping on the right: raised, falling, striking, rising
-        # board with a carrot and greens at the right, at station height
-        f.R(17, 16, 29, 17, K['wood']); f.R(17, 16, 29, 16, lt(K['wood'], .2)); f.R(17, 18, 29, 18, K['wood_dk'])
-        f.R(24, 14, 28, 15, C('#e8590c')); f.P_(28, 14, lt(C('#e8590c'), .3)); f.R(29, 13, 29, 14, C('#5fa83d'))
-        for i in range(3):
-            f.P_(19 + i * 2, 15, C('#e8590c') if i % 2 else C('#f4a25b'))
-        hy = (4, 8, 12, 8)[phase]  # hand height
-        bx = 19 + (phase == 2)  # blade's left edge
-        f.line(14, 14, 16, hy + 1, JK, 2)
-        f.R(16, hy, 17, hy + 1, f.sk)
-        f.R(17, hy, 18, hy, C('#5a3420'))  # handle
-        blade, bhi, bdk = C('#c9d0d8'), C('#f4f7fa'), C('#7d8590')
-        if phase == 2:  # blade down, striking the board
-            f.R(bx, hy - 1, bx + 3, hy + 3, blade); f.R(bx, hy - 1, bx + 3, hy - 1, bdk); f.R(bx + 3, hy, bx + 3, hy + 3, bhi)
-            f.R(bx + 5, hy - 2, bx + 5, hy - 1, C('#ffe066')); f.R(bx - 2, hy - 2, bx - 2, hy - 1, C('#ffe066'))
-            for dx, dy, c in ((bx + 6, hy - 4, C('#e8590c')), (bx + 8, hy - 2, C('#f4a25b')), (bx - 1, hy - 4, C('#e8590c'))):
-                f.P_(dx, dy, c)
-        else:  # blade up, cutting edge down
-            f.R(bx, hy - 4, bx + 4, hy, blade); f.R(bx, hy - 4, bx + 4, hy - 4, bdk); f.R(bx, hy, bx + 4, hy, bhi)
-            f.P_(bx + 3, hy - 3, C('#5d6570'))  # the cleaver's hole
-            if phase == 1:  # motion lines on the way down
-                f.R(bx + 6, hy - 5, bx + 6, hy - 3, C('#ffffff', 170)); f.R(bx + 1, hy - 6, bx + 3, hy - 6, C('#ffffff', 170))
-        f.R(3, 14, 4, 18, JK); f.R(4, 15, 4, 18, JK_S); f.R(3, 19, 4, 19, f.sk)
-    sp = f.done()
-    sp.ay -= SEAT_Z  # the layout lifts a seated person's feet point by the seat height
+        # the cleaver: raised, falling, striking, rising
+        hy = (-74, -64, -52, -64)[phase]
+        hx = 20 + (phase == 2)
+        f.paint(f.mask(('l', [(12, -48), (16, -50), (hx, hy + 3)], 7)), jk, 'sleeveR')
+        PH.cuff(f, jk, hx, hy + 3)
+        bx = hx + 4
+        if phase == 2:  # blade down on the board
+            f.paint(f.mask(('r', (bx, hy + 1, bx + 9, hy + 7))), STEEL, 'blade')
+            f.hl(bx, bx + 9, hy + 7, STEEL['hi'])
+            for dx, dy, c in ((bx + 12, hy - 2, '#e8590c'), (bx + 15, hy + 2, '#f08a3a'), (bx - 3, hy - 3, '#e8590c')):
+                f.paint(f.mask(('e', (dx, dy, dx + 2, dy + 2))), ramp(c), 'chip', hl=False, shade='')
+            for x in (bx - 4, bx + 12):
+                f.vl(x, hy + 4, hy + 6, SPARK)
+        else:  # blade up, its edge down
+            f.paint(f.mask(('r', (bx, hy - 5, bx + 9, hy + 2))), STEEL, 'blade')
+            f.hl(bx, bx + 9, hy + 2, STEEL['hi'])
+            f.paint(f.mask(('e', (bx + 6, hy - 4, bx + 8, hy - 2))), ramp('#5d6570'), 'hole', shade='', hl=False)
+            if phase == 1:  # motion lines
+                f.vl(bx + 12, hy - 6, hy - 1, STEAM); f.hl(bx + 2, bx + 7, hy - 9, STEAM)
+        f.paint(f.mask(('r', (hx + 1, hy - 1, bx, hy + 2))), ramp('#5a3420'), 'grip', shade='', hl=False)
+        PH.hand(f, sk, hx - 3, hy - 2, hx + 3, hy + 4, 'handR', thumb=-1)
+    sp = f.finish()
+    sp.ay -= SEAT_Z * DETAIL  # the layout lifts a seated person's feet point by the seat height; the cook stands on the floor
     return sp
 
 
 def waiting(P, phase):
-    f = Fig(P)
-    f.legs(25)
-    f.jacket_front()
-    f.apron_front()
-    sw = (-1, 0, 1, 0)[phase]
-    # raised left arm with the hand bell
-    f.R(3, 13, 4, 14, JK)
-    f.line(3, 13, 2, 5, JK, 2)
-    f.R(1, 3, 3, 4, f.sk)
-    bx = 2 + sw
-    f.R(bx, 1, bx + 1, 2, C('#6b4a2e'))  # handle
-    gold, gd = C('#f2c14e'), C('#b7862a')
-    f.R(bx - 1, -2, bx + 2, 0, gold); f.R(bx, -3, bx + 1, -3, gold); f.R(bx - 2, -1, bx + 3, 0, gold)
-    f.R(bx - 2, 0, bx + 3, 0, gd); f.P_(bx - 1, -2, lt(gold, .5)); f.P_(bx + sw + 0, 1, C('#7a5a1a'))
-    if phase in (0, 2):  # ring marks
-        side = -1 if phase == 0 else 1
-        ox = bx - 4 if side < 0 else bx + 5
-        f.R(ox, -3, ox, -1, C('#ffe066')); f.P_(ox + side, -4, C('#ffe066')); f.P_(ox + side, 0, C('#ffe066'))
-        ox2 = bx + 5 if side < 0 else bx - 4
-        f.P_(ox2, -2, C('#ffe066'))
-    else:  # between swings: a short shake mark on each side, higher on the way back
-        f.P_(bx - 3, -2 - phase // 3, C('#ffe066')); f.P_(bx + 4, -1 - phase // 3, C('#ffe066'))
-    # right hand cupped at the mouth
-    f.R(14, 13, 15, 16, JK); f.R(15, 14, 15, 16, JK_S)
-    f.line(15, 16, 14, 12, JK, 2)
-    f.face('shout' if phase % 2 == 0 else 'shout2')
-    f.R(13, 9, 14, 11, f.sk); f.P_(14, 11, f.sd)
-    f.hat()
-    return f.done()
+    """Front 3/4: an open hand raised high, calling out, ringing a brass hand bell in the other."""
+    f = Fig()
+    sk, hair, jk, *_ = looks(P)
+    legs(f, P)
+    f.lift = PH.LIFT
+    PH.hair_back_layer(f, P, 0, -74)
+    dx = (0, 1, 0, -1)[phase]
+    sw = (-2, 0, 2, 0)[phase]
+    sleeves = [f.mask(('l', [(-12, -54), (-19, -52), (-24, -58)], 7)),
+               f.mask(('l', [(12, -54), (19, -64), (20 + dx, -76)], 7))]
+    chef_front(f, P, TORSO, shoulders(f) + sleeves)
+    PH.cuff(f, jk, -24, -59)
+    PH.cuff(f, jk, 20 + dx, -75)
+    # the bell hangs from the left hand by its handle, swinging
+    bx, by = -26 + sw, -50
+    f.paint(f.mask(('l', [(-26, -60), (bx, by - 4)], 3)), ramp('#6b4a2e'), 'bellh', shade='', hl=False)
+    f.paint(f.mask(('e', (bx - 6, by - 6, bx + 6, by + 10))) - f.mask(('r', (bx - 7, by + 5, bx + 7, by + 11))), GOLD, 'bell')
+    f.paint(f.mask(('e', (bx - 8, by + 3, bx + 8, by + 6))), GOLD, 'lip')
+    f.paint(f.mask(('e', (bx - 2 - sw // 2, by + 6, bx + 1 - sw // 2, by + 9))), ramp('#7a5a1a'), 'clapper', hl=False)
+    f.px(bx - 3, by - 3, lt(GOLD['b'], .6)); f.px(bx - 4, by - 1, lt(GOLD['b'], .6))
+    PH.hand(f, sk, -29, -64, -23, -58, 'handL', thumb=1)
+    # ring marks on the side it swings to
+    side = (-1, 0, 1, 0)[phase]
+    for s_ in ((side,) if side else (-1, 1)):
+        n = 2 if side else 1
+        for k in range(n):
+            ox = bx + s_ * (10 + k * 4)
+            h_ = 3 + k * 2
+            for y in range(by - h_ + (phase == 3), by + h_ + 2 + (phase == 3)):
+                f.px(ox + s_ * (1 if abs(y - by - 1) > h_ - 2 else 0), y, SPARK, 'ring')
+    # the open hand: palm, four fingers apart, the thumb out (people_hd's)
+    hx, hy = 20 + dx, -82
+    f.paint(f.mask(('e', (hx - 5, hy - 2, hx + 5, hy + 8))), sk, 'hand', hl=False)
+    for fx, ln in ((-4, 5), (-1, 7), (2, 7), (5, 5)):
+        f.paint(f.mask(('r', (hx + fx, hy - ln, hx + fx + 1, hy))), sk, 'hand', shade='', hl=False)
+        f.px(hx + fx + 1, hy - ln + 1, sk['sh'])
+    f.paint(f.mask(('l', [(hx - 5, hy + 4), (hx - 9, hy - 1)], 3)), sk, 'hand', shade='', hl=False)
+    f.hl(hx - 3, hx + 3, hy + 6, sk['sh'])
+    PH.head_front(f, P, 'calling' if phase % 2 == 0 else 'open')
+    collar(f, P)
+    hat(f, P, 0, -74)
+    return f.finish()
 
 
 def done_pose(P, phase):
-    f = Fig(P)
-    f.legs(25)
-    f.jacket_front()
-    f.apron_front()
-    f.face('happy')
-    f.hat()
-    # both hands hold a plate in front, a silver cloche on it
-    f.R(3, 13, 4, 18, JK); f.R(14, 13, 15, 18, JK_S)
-    f.R(1, 18, 17, 18, C('#ffffff')); f.R(2, 19, 16, 19, C('#c9ced6'))
-    f.R(2, 18, 3, 19, f.sk); f.R(15, 18, 16, 19, f.sk)
-    sil, sh, sdk = C('#cfd6de'), C('#ffffff'), C('#8b949f')
-    for y, (x0, x1) in zip(range(12, 18), ((7, 11), (5, 13), (4, 14), (3, 15), (3, 15), (3, 15))):
-        f.R(x0, y, x1, y, sil)
-        f.R(x1 - 1, y, x1, y, sdk)
-        f.P_(x0, y, lt(sil, .4))
-    f.R(4, 17, 14, 17, dk(sil, .18))
-    f.R(8, 10, 10, 11, sdk); f.R(8, 10, 9, 10, sil)  # knob
-    f.R(5, 14, 5, 15, sh); f.R(6, 13, 7, 13, sh)  # highlight
-    sp = f.done()
-    # steam escaping from under the rim and curling up past the shoulders; a sparkle that blinks on the dome
-    st = C('#ffffff', 215)
-    for side, x0 in ((-1, 1), (1, 17)):
-        for k in range(5):
-            y = 15 - k * 2 - (phase % 2)
-            x = x0 + side * ((k + phase // 2) % 2)
-            sp.put(x + Fig.OX, y + Fig.OY, st)
-            if k < 3:
-                sp.put(x + Fig.OX, y - 1 + Fig.OY, st)
+    """Front 3/4, eyes closed in a smile, presenting a plate under a silver cloche, steam escaping from under its rim."""
+    f = Fig()
+    sk, hair, jk, *_ = looks(P)
+    legs(f, P)
+    f.lift = PH.LIFT
+    PH.hair_back_layer(f, P, 0, -74)
+    sleeves = [f.mask(('l', [(-12, -54), (-17, -46), (-15, -38)], 7)),
+               f.mask(('l', [(12, -54), (17, -46), (15, -38)], 7))]
+    chef_front(f, P, TORSO, shoulders(f) + sleeves)
+    PH.head_front(f, P, 'happy')
+    collar(f, P)
+    hat(f, P, 0, -74)
+    # the plate, the dome on it, the hands under the plate's rim
+    f.paint(f.mask(('e', (-20, -42, 20, -36))), ramp('#fbfaf6'), 'plate')
+    f.hl(-17, 17, -37, ramp('#fbfaf6')['sh'])
+    dome = {p for p in f.mask(('e', (-15, -56, 15, -24))) if p[1] - f.lift <= -40}
+    f.paint(dome, STEEL, 'dome', shade='rb')
+    f.hl(-15, 15, -40, STEEL['dp'])
+    for i in range(5):
+        f.px(-10 + i // 2, -50 + i, STEEL['hi']); f.px(-9 + i // 2, -50 + i, STEEL['hi'])
+    f.paint(f.mask(('e', (-3, -59, 3, -54))), STEEL, 'knob')
+    PH.cuff(f, jk, -16, -38)
+    PH.cuff(f, jk, 16, -38)
+    PH.hand(f, sk, -22, -41, -16, -35, 'handL', thumb=1)
+    PH.hand(f, sk, 16, -41, 22, -35, 'handR', thumb=-1)
+    sp = f.finish()
+    # steam curling up from under the rim, past the dome; a sparkle that blinks on the dome
+    for side, x0 in ((-1, -21), (1, 21)):
+        for k in range(9):
+            y = -37 - k * 3 - (phase % 2) * 2 + PH.LIFT
+            x = x0 + side * (((k + phase // 2) // 2) % 2) * 2
+            sp.put(x + sp.ax, y + sp.ay, STEAM)
+            sp.put(x + sp.ax, y - 1 + sp.ay, STEAM)
     if phase in (1, 2):
-        arms = ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)) if phase == 1 else ((0, 0),)
+        arms = ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1), (2, 0), (-2, 0), (0, 2), (0, -2)) if phase == 1 else ((0, 0), (1, 0), (0, 1), (1, 1))
         for dx, dy in arms:
-            sp.put(15 + dx + Fig.OX, 11 + dy + Fig.OY, C('#fff4a8'))
+            sp.put(9 + dx + sp.ax, -47 + PH.LIFT + dy + sp.ay, C('#fff8c8'))
     return sp
 
 
 def idle(P, phase):
-    f = Fig(P)
-    # crate first (at the floor point), then the cook sitting on it
-    crate(f.s, 0, 0)
+    """Dozing on an upturned produce crate, hands in the lap, head drooping, hat askew, a bubble at the nose."""
+    f = Fig()
+    sk, hair, jk, pants, shoe, *_ = looks(P)
     b = (0, 0, 1, 1)[phase]  # breathing
-    # shins down to the floor, thighs on the crate
-    k = P['shoe']
-    pc = C('#2b2b30') if P['pants'] == 'black' else C('#55575f')
-    f.R(5, 23, 7, 26, pc); f.R(11, 23, 13, 26, pc)
-    f.R(4, 27, 7, 28, k); f.R(11, 27, 14, 28, k)
-    f.R(5, 20, 13, 22, pc); f.R(9, 21, 9, 22, dk(pc, .3))
-    a = P['apron']
-    f.R(5, 19, 13, 22, a); f.R(5, 19, 13, 19, dk(a, .3))
-    # torso slumped
-    f.R(5, 12 + b, 13, 19, JK); f.R(13, 12 + b, 13, 19, JK_S)
-    neck = P['neck']
-    if neck:
-        f.R(7, 12 + b, 11, 12 + b, neck)
-    # arms crossed
-    f.R(4, 15 + b, 14, 17 + b, JK_S); f.R(4, 15 + b, 14, 15 + b, JK); f.R(3, 13 + b, 4, 17 + b, JK); f.R(14, 13 + b, 15, 17 + b, JK_S)
-    f.R(5, 16 + b, 6, 16 + b, f.sk); f.R(12, 16 + b, 13, 16 + b, f.sk)
-    # head drooping to the side
-    hd = 3 + b
-    f.face('sleep', dy=hd, dx=1)
-    f.hat(dy=hd, dx=1, tilt=3)
-    # sleep bubble from the nose
-    r = (1, 2, 3, 0)[phase]
+    # the crate: front, right side, slatted top; the floor point is the anchor
+    f.paint(f.mask(('p', [(-16, -18), (-8, -24), (22, -24), (14, -18)])), ramp(lt(CRATE['b'], .15)), 'cratetop', shade='')
+    f.paint(f.mask(('p', [(14, -18), (22, -24), (22, -6), (14, 0)])), ramp(CRATE['sh']), 'crateside', shade='', hl=False)
+    f.paint(f.mask(('r', (-16, -18, 14, 0))), CRATE, 'cratefront', shade='')
+    for y in (-12, -6):
+        f.hl(-15, 13, y, CRATE['dp'])
+    f.vl(-1, -17, 0, CRATE['sh'])
+    f.paint(f.mask(('r', (-10, -10, 8, -8))), ramp(CRATE['ln']), 'handhole', shade='', hl=False)
+    # legs: thighs on the crate, shins down its front, shoes on the floor
+    th = f.mask(('r', (-12, -24, 12, -16)))
+    f.paint(th, pants, 'thigh')
+    f.paint(f.mask(('r', (-11, -17, -3, -6))), pants, 'shinL', shade='r')
+    f.paint(f.mask(('r', (3, -17, 11, -6))), pants, 'shinR', shade='r')
+    _check(f, P, f.mask(('r', (-12, -24, 12, -6))))
+    f.paint(f.mask(('e', (-13, -8, -1, 1))), shoe, 'shoeL')
+    f.paint(f.mask(('e', (1, -8, 13, 1))), shoe, 'shoeR')
+    for x in range(-14, 15):
+        f.col.pop((x, 1), None)
+    # the body, slumped (lowered by the seat and a breath)
+    f.lift = 10 + b
+    hx, hy = 2, -70
+    PH.hair_back_layer(f, P, hx, hy)
+    sleeves = [f.mask(('l', [(-12, -54), (-15, -44), (-8, -38)], 7)),
+               f.mask(('l', [(12, -54), (15, -44), (8, -38)], 7))]
+    chef_front(f, P, TORSO, shoulders(f) + sleeves, skirt=-28)
+    PH.hand(f, sk, -9, -42, -2, -35, 'handL', thumb=1)
+    PH.hand(f, sk, 1, -42, 8, -35, 'handR', thumb=-1)
+    PH.head_front(f, P, 'open', hy=hy, hx=hx)
+    face_sleep(f, P, hx, hy)
+    collar(f, P, hx - 2, hy - 2)
+    hat(f, P, hx + 3, hy + 1)
+    # the bubble at the nose, growing then popping
+    r = (2, 4, 6, 0)[phase]
     if r:
-        cx, cy = 13 + 1, 11 + hd
-        for yy in range(-r, r + 1):
-            for xx in range(-r, r + 1):
-                if xx * xx + yy * yy <= r * r + 1:
-                    f.P_(cx + xx + r, cy + yy, C('#cfe8ff', 220))
-        f.P_(cx + r - 1, cy - r + 1, C('#ffffff'))
-    sp = f.done()
-    sp.ay -= SEAT_Z
+        bx, by = hx - 3 - r, hy + 8
+        f.paint(f.mask(('e', (bx - r, by - r, bx + r, by + r))), ramp('#d4ecff'), 'bubble', shade='rb')
+        f.px(bx - r // 2, by - r // 2, WHITE)
+    sp = f.finish()
+    sp.ay -= SEAT_Z * DETAIL
     return sp
 
 
+def _align(sprs):
+    """The sprites on one canvas each, sharing size and anchor (the union of their boxes, kept even)."""
+    x0 = min(-s.ax for s in sprs)
+    y0 = min(-s.ay for s in sprs)
+    x1 = max(s.w - s.ax for s in sprs)
+    y1 = max(s.h - s.ay for s in sprs)
+    x0 -= x0 % 2
+    y0 -= y0 % 2
+    w, h = x1 - x0, y1 - y0
+    w += w % 2
+    h += h % 2
+    out = []
+    for s in sprs:
+        n = Spr(w, h, -x0, -y0)
+        n.img = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+        n.img.paste(s.img, (-x0 - s.ax, -y0 - s.ay))
+        n.em = Image.new('L', (w, h), 0)
+        n._load()
+        out.append(n)
+    return out
+
+
 def person_frames(P, vi):
-    """name -> Spr for the 4 states x 4 phases of cook P; all phases of one state share size and anchor."""
+    """name -> Spr for the 4 states x 4 phases of cook P (and working mirrored for stations along v, `_lw`); all phases of
+    one state share size and anchor."""
     out = {}
     for st in STATES:
         if st == 'working':
@@ -671,8 +730,10 @@ def person_frames(P, vi):
             fr = [done_pose(P, ph) for ph in range(PHASES)]
         else:
             fr = [idle(P, ph) for ph in range(PHASES)]
-        for ph, sp in enumerate(_union_crop(fr)):
+        for ph, sp in enumerate(_align(fr)):
             out[f'person{vi}_e{ph}_{st}'] = sp
+            if st == 'working':
+                out[f'person{vi}_e{ph}_{st}_lw'] = PH.flip(sp)
     return out
 
 
@@ -1000,7 +1061,7 @@ def mockup(frames, phase=0, path=None):
         add(5, U + V + 15, frames[f'desk_{o}_e'], U, V)
         cu, cv = (U + 10, V + 12.5) if o == 'rw' else (U + 12.5, V + 10)
         add(5, cu + cv, frames[f'duckboard_{o}_e'], cu, cv)
-        ps = frames[f'person{pv}_e{phase}_{state}']
+        ps = _half(frames[f'person{pv}_e{phase}_{state}' + ('_lw' if state == 'working' and o == 'lw' else '')])
         if state in ('working', 'idle'):
             add(5, cu + cv + 0.1, ps, cu, cv, SEAT_Z)
             X, Y = proj(cu, cv, SEAT_Z)
@@ -1041,19 +1102,27 @@ DECOR = [  # frame, u, v, z, key (kept in step with ThemeE.decor)
 ]
 
 
+def _half(sp):
+    """An HD person frame shrunk to the scene's density (nearest neighbour), for the native mockup."""
+    n = Spr(sp.w // DETAIL, sp.h // DETAIL, sp.ax // DETAIL, sp.ay // DETAIL)
+    n.img = sp.img.resize((n.w, n.h), Image.NEAREST)
+    n._load()
+    return n
+
+
 def lineup(frames, path=None):
-    """Every cook in every state and phase at x4, on the quarry floor: the legibility check."""
-    Sx = 4
-    cw, ch = 40, 52
-    img = Image.new('RGBA', (cw * 16 * Sx, ch * 6 * Sx), (60, 56, 54, 255))
-    for vi in range(6):
+    """Every cook in every state and phase at x4 of the scene (x2 of the HD frames), on the quarry floor."""
+    Sx = 2
+    cw, ch = 96, 128
+    img = Image.new('RGBA', (cw * 16 * Sx, ch * len(COOKS) * Sx), (60, 56, 54, 255))
+    for vi in range(len(COOKS)):
         for si, st in enumerate(STATES):
             for ph in range(PHASES):
                 sp = frames[f'person{vi}_e{ph}_{st}']
                 cell = Spr(cw, ch)
                 X, Y = cw // 2, ch - 8
                 if st in ('working', 'idle'):
-                    Y -= SEAT_Z // 2
+                    Y -= SEAT_Z * DETAIL
                 cell.place(sp, X, Y)
                 big = cell.img.resize((cw * Sx, ch * Sx), Image.NEAREST)
                 img.alpha_composite(big, ((si * 4 + ph) * cw * Sx, vi * ch * Sx))

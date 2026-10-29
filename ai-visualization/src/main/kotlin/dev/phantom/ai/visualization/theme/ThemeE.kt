@@ -7,7 +7,8 @@ import java.awt.Color
 
 /**
  * Restaurant Kitchen (주방): red quarry tiles, white subway-tile walls with pass windows to the dining room, steel cooking stations
- * on rubber mats, and cooks instead of office workers. Every state has four real animation frames (art/theme_e.py): working is a
+ * on rubber mats, and cooks instead of office workers: ten looks in white jackets, aprons and toques, bandanas or caps, drawn at
+ * twice the scene's density on the office people's heads and faces. Every state has four real animation frames (art/theme_e.py): working is a
  * cook at the station seen from behind tossing a wok over flames or chopping with a cleaver, waiting rings a hand bell held high
  * and calls out, done presents a plate under a cloche with steam rising, idle dozes on an upturned crate.
  */
@@ -83,10 +84,17 @@ object ThemeE : Theme {
   /** The counters fill each area and a cook works at one: a sous-chef may stand in front of the area's counters. */
   override val helperMayCoverOwnDesks: Boolean get() = true
 
-  override val personVariants = 6
+  override val personVariants = 10
+
+  /** The cooks are drawn at twice the scene's density, like A/B/C's office people (art/theme_e.py on art/people_hd.py). */
+  override val personDetail = 2
   override fun person(variant: Int, state: VizState) = personFrame(variant, state, 0)
   override fun personFrame(variant: Int, state: VizState, phase: Int) =
     "person${variant}_e${Math.floorMod(phase, animationPhases)}_${state.key}"
+
+  /** A cook working at a station along v is the working frame mirrored (`_lw`), so the wok or board is over that station. */
+  override fun personFrame(variant: Int, state: VizState, phase: Int, facing: Orientation?) =
+    personFrame(variant, state, phase) + if (state == VizState.WORKING && facing == Orientation.LW) "_lw" else ""
 
   /** The frames move by themselves (wok toss, bell, steam, breathing): no extra shift. */
   override fun personOffset(state: VizState, phase: Int) = Offset.ZERO
