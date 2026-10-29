@@ -141,7 +141,7 @@ class OfficeCanvasTest {
     assertEquals(4, list.size)
     assertEquals(setOf("working", "waiting", "done", "idle"), list.map { it["status"] }.toSet())
     for (e in list) {
-      assertTrue((e["personFrame"] as String).endsWith("_" + e["status"]))
+      assertTrue(e["personFrame"] as String, (e["personFrame"] as String).contains("_" + e["status"]))
       assertNotNull(e["bubbleFrame"])
       assertTrue(e["screen"] is java.awt.Rectangle)
     }

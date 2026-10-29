@@ -4,6 +4,7 @@ import math
 import os
 from PIL import Image, ImageDraw, ImageFont
 from pix import C, dk, lt, mix, E, H, Spr, part, outline, outline_out, box, obox, M, INK
+import people_hd
 
 OUT = os.environ.get('PHANTOM_AIVIZ_OUT', '/tmp/phantom-ai-viz')
 FONT = os.environ.get('PHANTOM_AIVIZ_FONT', '/System/Library/Fonts/AppleSDGothicNeo.ttc')
@@ -802,9 +803,7 @@ def build_sheet():
         frames[k + ('' if k.startswith('floor_tile') else '_b')] = b[k]
     frames['glass_rw_b'] = glass(B, 'rw')
     frames['glass_lw_b'] = glass(B, 'lw')
-    for vi, P in enumerate(PEOPLE):
-        for st in ('working', 'waiting', 'done', 'idle'):
-            frames[f'person{vi}_{st}'] = person(P, st)
+    frames.update(people_hd.all_frames())
     for st in ('working', 'waiting', 'done', 'idle'):
         frames[f'bubble_{st}'] = bubble(st)
     pack(frames, OUT)
@@ -855,9 +854,7 @@ def build_sheet_b():
     frames['glass_lw_b'] = glass(B, 'lw')
     for k in ('whiteboard_rw', 'whiteboard_lw', 'clock_rw', 'poster_rw', 'lamp'):  # same pixels in every theme
         frames[k] = b[k]
-    for vi, P in enumerate(PEOPLE):
-        for st in ('working', 'waiting', 'done', 'idle'):
-            frames[f'person{vi}_{st}'] = person(P, st)
+    frames.update(people_hd.all_frames())
     for st in ('working', 'waiting', 'done', 'idle'):
         frames[f'bubble_{st}'] = bubble(st)
     out = f'{OUT}/b'
@@ -902,9 +899,7 @@ def build_sheet_c():
               'nameplate', 'whiteboard_rw', 'whiteboard_lw', 'clock_rw', 'poster_rw', 'bookshelf_lw', 'coffee_lw',
               'plant_big', 'lamp'):
         frames[k + '_c'] = night(c[k])
-    for vi, P in enumerate(PEOPLE):
-        for st in ('working', 'waiting', 'done', 'idle'):
-            frames[f'person{vi}_{st}_c'] = night(person(P, st))
+    frames.update(people_hd.all_frames('_c', night))
     for st in ('working', 'waiting', 'done', 'idle'):
         frames[f'bubble_{st}'] = bubble(st)
     out = f'{OUT}/c'

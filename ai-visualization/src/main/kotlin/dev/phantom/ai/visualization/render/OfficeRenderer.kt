@@ -160,13 +160,35 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
     return PlateGeo(item.x - wn / 2, item.y - f.anchorY, wn, s.boardHeight)
   }
 
+  /** Person frames are this many times denser than the scene: see [Theme.personDetail]. */
+  val detail: Int get() = theme.personDetail.coerceAtLeast(1)
+
+  /**
+   * How many image pixels per scene pixel the room is composed at for [zoom], before it is scaled up by whole pixels to the zoom:
+   * 1 when the people are as dense as the scene or at zoom 1 (people shrunk by [detail]); [detail] at a multiple of it (people
+   * 1:1); else the zoom itself (the room at screen resolution, each person pixel [zoom] / [detail] screen pixels wide, picked by
+   * nearest neighbour, so 1 or 2 alternately at zoom 3: uneven but never blurred).
+   */
+  fun composeScale(zoom: Int): Int = when {
+    detail == 1 || zoom <= 1 -> 1
+    zoom % detail == 0 -> detail
+    else -> zoom
+  }
+
   /** The room at native resolution ([Scene.width] x [Scene.height]) in animation [phase]; [zoom] only sizes the name plates to their text. */
-  fun nativeImage(scene: Scene, phase: Int, zoom: Int): BufferedImage {
-    val img = BufferedImage(scene.width, scene.height, BufferedImage.TYPE_INT_ARGB)
+  fun nativeImage(scene: Scene, phase: Int, zoom: Int): BufferedImage = composeImage(scene, phase, zoom, 1)
+
+  /**
+   * The room composed at [k] image pixels per scene pixel (see [composeScale]): every frame scaled up by [k] by pixel replication,
+   * except person frames, which are [detail] x denser already and so are drawn at [k] / [detail] (1:1 at [k] = [detail]).
+   */
+  fun composeImage(scene: Scene, phase: Int, zoom: Int, k: Int): BufferedImage {
+    val img = BufferedImage(scene.width * k, scene.height * k, BufferedImage.TYPE_INT_ARGB)
     val g = img.createGraphics()
     try {
       g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR)
       g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF)
+      g.scale(k.toDouble(), k.toDouble())
       val byTab = scene.people.associateBy { it.tabId }
       val helpers = scene.helpers.associateBy { it.key }
       for (it in scene.items) when (it.kind) {
@@ -174,16 +196,16 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
         ItemKind.SPRITE, ItemKind.RUG -> sprite(g, it.frame!!, it.x, it.y, it.scale)
         ItemKind.HELPER -> helpers[it.tabId]?.let { h ->
           val (frameName, off) = helperAt(h, phase)
-          sprite(g, frameName, it.x + off.dx, it.y + off.dy, h.scale)
+          personSprite(g, frameName, it.x + off.dx, it.y + off.dy, h.scale, k)
         }
         ItemKind.NAMEPLATE -> plate(g, it, zoom)
         ItemKind.PERSON -> byTab[it.tabId]?.let { p ->
           val (frameName, off) = personAt(p, phase)
-          sprite(g, frameName, it.x + off.dx, it.y + off.dy)
+          personSprite(g, frameName, it.x + off.dx, it.y + off.dy, 1, k)
         }
       }
       // the theme's lighting goes over the room and under the bubbles, which stay readable
-      theme.lighting?.let { LightOverlay.apply(img, LightOverlay.lights(scene, it), it) }
+      theme.lighting?.let { LightOverlay.apply(img, LightOverlay.lights(scene, it), it, k) }
       for (p in scene.people) {
         val (name, off) = bubbleAt(p, phase)
         val b = p.bubbleBounds
@@ -196,13 +218,36 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
   }
 
   private fun personAt(p: PersonPlacement, phase: Int) =
-    theme.personFrame(p.person.seed % theme.personVariants, p.state, phase) to theme.personOffset(p.state, phase)
+    theme.personFrame(p.person.seed % theme.personVariants, p.state, phase, p.facing) to theme.personOffset(p.state, phase)
 
   private fun bubbleAt(p: PersonPlacement, phase: Int) = theme.bubbleFrame(p.state, phase) to theme.bubbleOffset(p.state, phase)
 
   /** A helper animates as a working person of its look. */
   fun helperAt(h: HelperPlacement, phase: Int) =
     theme.personFrame(h.variant, VizState.WORKING, phase) to theme.personOffset(VizState.WORKING, phase)
+
+  /**
+   * A person frame with its anchor at scene pixel ([x], [y]), shrunk by [scale] (a subordinate's), into an image composed at [k]
+   * pixels per scene pixel whose graphics [g] is scaled by [k]: drawn 1:1 in image pixels when [detail] x [scale] equals [k].
+   */
+  private fun personSprite(g: Graphics2D, name: String, x: Int, y: Int, scale: Int, k: Int) {
+    val ds = scale * detail
+    if (k == 1) return sprite(g, name, x, y, ds)
+    val old = g.transform
+    g.scale(1.0 / k, 1.0 / k)
+    try {
+      if (ds % k == 0) {
+        val f = atlas.scaled(name, ds / k)
+        g.drawImage(scaledFrame(name, ds / k), x * k - f.anchorX, y * k - f.anchorY, null)
+      } else {
+        // k / ds image pixels per frame pixel: whole when k is a multiple of ds, else nearest neighbour
+        val f = atlas[name]
+        g.drawImage(frame(name), x * k - f.anchorX * k / ds, y * k - f.anchorY * k / ds, f.w * k / ds, f.h * k / ds, null)
+      }
+    } finally {
+      g.transform = old
+    }
+  }
 
   private fun sprite(g: Graphics2D, name: String, x: Int, y: Int, scale: Int = 1) {
     if (scale > 1) {
@@ -252,7 +297,7 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
 
   /** The whole canvas content: background dots, the scaled room at ([ox], [oy]), then every text at screen resolution. */
   fun paintScene(g: Graphics2D, scene: Scene, zoom: Int, ox: Int, oy: Int, phase: Int): PaintResult {
-    val native = nativeImage(scene, phase, zoom)
+    val native = composeImage(scene, phase, zoom, composeScale(zoom))
     val old = g.getRenderingHint(RenderingHints.KEY_INTERPOLATION)
     g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR)
     g.drawImage(native, ox, oy, scene.width * zoom, scene.height * zoom, null)
@@ -284,7 +329,7 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
   /** The helpers of [scene] at their animated positions in screen pixels. */
   fun placedHelpers(scene: Scene, zoom: Int, ox: Int, oy: Int, phase: Int): List<PlacedHelper> = scene.helpers.map { h ->
     val (fn, o) = helperAt(h, phase)
-    val f = atlas.scaled(fn, h.scale)
+    val f = atlas.scaled(fn, h.scale * detail)
     PlacedHelper(h, fn, Rect(ox + (h.x + o.dx - f.anchorX) * zoom, oy + (h.y + o.dy - f.anchorY) * zoom, f.w * zoom, f.h * zoom))
   }
 

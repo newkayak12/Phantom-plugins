@@ -11,10 +11,11 @@ class AtlasTest {
   private val atlas = Atlas.of(ThemeA)
 
   @Test
-  fun sheetHas54FramesAndTheRightSize() {
-    assertEquals(54, atlas.frames.size)
+  fun sheetHas182FramesAndTheRightSize() {
+    // 42 frames of scenery and bubbles, 140 of people: 10 looks x 14 hi-res frames (art/people_hd.py)
+    assertEquals(182, atlas.frames.size)
     assertEquals(512, atlas.image.width)
-    assertEquals(232, atlas.image.height)
+    assertEquals(1223, atlas.image.height)
   }
 
   @Test

@@ -121,6 +121,22 @@ interface Theme {
   /** The person frame in animation [phase]; a theme with real animation frames returns them here. */
   fun personFrame(variant: Int, state: VizState, phase: Int): String = person(variant, state)
 
+  /**
+   * The person frame in animation [phase] for one seated at a desk of orientation [facing] (null: standing, or a subordinate on its
+   * stool), so a theme may turn its people towards their desks. The default ignores [facing].
+   */
+  fun personFrame(variant: Int, state: VizState, phase: Int, facing: Orientation?): String = personFrame(variant, state, phase)
+
+  /**
+   * How many times denser than the scene the person frames are drawn (1: as dense). A person frame of size w x h with anchor
+   * (ax, ay) covers w / [personDetail] x h / [personDetail] scene pixels, its anchor at (ax / [personDetail], ay / [personDetail]);
+   * every person frame's size and anchor are multiples of it. The renderer composes the room at [personDetail] x when the zoom is a
+   * multiple of it and draws the people 1:1 there, so faces keep their detail and every pixel stays a whole, crisp square; at any
+   * other zoom the people are drawn shrunk by it, as subordinates are (see Atlas.scaled). Subordinates reuse person frames, so the
+   * same holds for them. Layout, hit-testing and bubbles stay in scene pixels.
+   */
+  val personDetail: Int get() = 1
+
   /** The bubble frame in animation [phase]. */
   fun bubbleFrame(state: VizState, phase: Int): String = bubble(state)
 
@@ -151,7 +167,10 @@ interface Theme {
       for (v in 0 until personVariants) add(person(v, s))
       for (ph in 0 until animationPhases) {
         add(bubbleFrame(s, ph))
-        for (v in 0 until personVariants) add(personFrame(v, s, ph))
+        for (v in 0 until personVariants) {
+          add(personFrame(v, s, ph))
+          for (o in Orientation.values()) add(personFrame(v, s, ph, o))
+        }
       }
     }
   }

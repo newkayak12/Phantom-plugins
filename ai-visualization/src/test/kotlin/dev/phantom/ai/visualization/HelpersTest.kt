@@ -91,8 +91,10 @@ class HelpersTest {
         for (p in scene.people) {
           val drawn = scene.helpers.count { it.tabId == p.tabId }
           assertEquals("$ctx ${p.tabId}", p.person.helperCount, drawn + (scene.helperOverflow[p.tabId] ?: 0))
-          // a lone session at its desk has room for both full-size subordinates up to three areas; four to six crowd the room, so some may show "+N" only
-          if (p.tabId.startsWith("w") && n <= 3) assertEquals("$ctx ${p.tabId} draws both helpers", 2, drawn)
+          // a lone session at its desk has room for both full-size subordinates up to three areas (two where the people are as tall
+          // as a desk and its monitor); more areas crowd the room, so some may show "+N" only
+          val roomy = if (theme.personDetail > 1) 2 else 3
+          if (p.tabId.startsWith("w") && n <= roomy) assertEquals("$ctx ${p.tabId} draws both helpers", 2, drawn)
         }
         val furniture = scene.items.filter { it.layer == 5 && it.kind == ItemKind.SPRITE && it.scale == 1 }
         // an opaque pixel of [frame] (anchored at x, y) on an opaque pixel of the subordinate [h] in any animation phase
@@ -101,13 +103,13 @@ class HelpersTest {
           return (0 until theme.animationPhases).any { ph ->
             val pose = theme.personFrame(h.variant, VizState.WORKING, ph)
             val off = theme.personOffset(VizState.WORKING, ph)
-            val pf = atlas.scaled(pose, h.scale)
+            val pf = atlas.scaled(pose, h.scale * theme.personDetail)
             val r = Rect(h.x + off.dx - pf.anchorX, h.y + off.dy - pf.anchorY, pf.w, pf.h)
             (0 until f.h).any { fy ->
               (0 until f.w).any { fx ->
                 val sx = x - f.anchorX + fx
                 val sy = y - f.anchorY + fy
-                r.contains(sx, sy) && atlas.pixel(frame, fx, fy) ushr 24 != 0 && atlas.scaledPixel(pose, h.scale, sx - r.x, sy - r.y) ushr 24 != 0
+                r.contains(sx, sy) && atlas.pixel(frame, fx, fy) ushr 24 != 0 && atlas.scaledPixel(pose, h.scale * theme.personDetail, sx - r.x, sy - r.y) ushr 24 != 0
               }
             }
           }
@@ -132,7 +134,7 @@ class HelpersTest {
           assertTrue("$ctx ${h.key} near its parent", kotlin.math.abs(h.x - h.parent.x) <= 100 && kotlin.math.abs(h.y - h.parent.y) <= 64)
           // a full-size subordinate: a working person's own frame, unshrunk, with a look of its own
           assertEquals("$ctx ${h.key} full size", 1, h.scale)
-          assertEquals("$ctx ${h.key} full size", atlas[theme.person(h.variant, VizState.WORKING)].h, h.bounds.h)
+          assertEquals("$ctx ${h.key} full size", atlas[theme.person(h.variant, VizState.WORKING)].h / theme.personDetail, h.bounds.h)
           assertTrue("$ctx ${h.key} looks unlike its lead", h.variant != h.parent.person.seed % theme.personVariants)
         }
       }

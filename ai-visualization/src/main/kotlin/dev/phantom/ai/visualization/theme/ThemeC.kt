@@ -88,7 +88,14 @@ object ThemeC : Theme {
     ),
   )
 
-  override val personVariants = 3
-  override fun person(variant: Int, state: VizState) = "person${variant}_${state.key}_c"
+  private val people = OfficePeople("_c")
+  override val personVariants = OfficePeople.VARIANTS
+  override val personDetail = OfficePeople.DETAIL
+  override fun person(variant: Int, state: VizState) = people.person(variant, state)
+  override fun personFrame(variant: Int, state: VizState, phase: Int) = people.frame(variant, state, phase, null)
+  override fun personFrame(variant: Int, state: VizState, phase: Int, facing: Orientation?) = people.frame(variant, state, phase, facing)
+
+  /** The frames animate the people themselves. */
+  override fun personOffset(state: VizState, phase: Int) = Offset.ZERO
   override fun bubble(state: VizState) = "bubble_${state.key}"
 }

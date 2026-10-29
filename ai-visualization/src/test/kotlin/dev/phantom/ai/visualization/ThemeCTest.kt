@@ -155,6 +155,6 @@ class ThemeCTest {
   }
 
   companion object {
-    const val THEME_B_3_AREAS_SHA256 = "1aba01c3447962d5acd646008e49a72b6ca0170b3734af38efd512afefe03d58"
+    const val THEME_B_3_AREAS_SHA256 = "c13c026eee363db792920e5749ec491ecea8d5d61f97fde8c9e1f3c201bc6e70"
   }
 }

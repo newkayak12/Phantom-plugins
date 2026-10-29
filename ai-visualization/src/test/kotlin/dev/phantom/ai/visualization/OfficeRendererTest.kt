@@ -43,17 +43,46 @@ class OfficeRendererTest {
   fun spritePixelsAreTheAtlasPixelsReplicatedByTheZoom() {
     val floor = floorOf(AiSessionStatus.WAITING)
     val scene = layout.layout(floor.areas)
-    val p = scene.people.single()
-    val frame = ThemeA.personFrame(p.person.seed % ThemeA.personVariants, p.state, 0)
-    val (lx, ly) = opaqueInside(frame)
-    val f = atlas[frame]
-    val sx = p.x - f.anchorX + lx
-    val sy = p.y - f.anchorY + ly
-    val want = atlas.pixel(frame, lx, ly)
-    for (zoom in listOf(1, 3)) {
+    // scenery: one native pixel is zoom x zoom screen pixels
+    val desk = scene.items.first { it.frame == ThemeA.desk(dev.phantom.ai.visualization.model.Orientation.RW) }
+    val (dx, dy) = opaqueInside(desk.frame!!)
+    val df = atlas[desk.frame!!]
+    for (zoom in listOf(1, 2, 3)) {
       val img = renderer.render(scene, floor, zoom, 0)
       assertEquals(scene.width * zoom, img.width)
-      for (i in 0 until zoom) for (j in 0 until zoom) assertEquals("zoom $zoom at +$i,$j", want, img.getRGB(sx * zoom + i, sy * zoom + j))
+      val x = desk.x - df.anchorX + dx
+      val y = desk.y - df.anchorY + dy
+      for (i in 0 until zoom) for (j in 0 until zoom) assertEquals("desk zoom $zoom at +$i,$j", atlas.pixel(desk.frame!!, dx, dy), img.getRGB(x * zoom + i, y * zoom + j))
+    }
+    // a person: its frame is [d] x denser, so one frame pixel is zoom / d x zoom / d screen pixels at a multiple of d
+    val d = ThemeA.personDetail
+    val p = scene.people.single()
+    val frame = ThemeA.personFrame(p.person.seed % ThemeA.personVariants, p.state, 0, p.facing)
+    val (lx, ly) = opaqueInside(frame)
+    val f = atlas[frame]
+    val sx = p.x * d - f.anchorX + lx
+    val sy = p.y * d - f.anchorY + ly
+    val want = atlas.pixel(frame, lx, ly)
+    for (zoom in listOf(d, 2 * d)) {
+      val img = renderer.render(scene, floor, zoom, 0)
+      val m = zoom / d
+      for (i in 0 until m) for (j in 0 until m) assertEquals("zoom $zoom at +$i,$j", want, img.getRGB(sx * m + i, sy * m + j))
+    }
+    // at a zoom that is not a multiple of d the person is still drawn in its own pixels (nearest neighbour), never blended
+    if (d > 1) {
+      val zoom = d + 1
+      val img = renderer.render(scene, floor, zoom, 0)
+      val x0 = p.x * zoom - f.anchorX * zoom / d
+      val y0 = p.y * zoom - f.anchorY * zoom / d
+      assertEquals("zoom $zoom", want, img.getRGB(x0 + (lx * 2 + 1) * zoom / (2 * d), y0 + (ly * 2 + 1) * zoom / (2 * d)))
+      // every opaque frame pixel shows as itself at its centre (but where text is drawn over it)
+      var opaque = 0
+      var same = 0
+      for (y in 0 until f.h) for (x in 0 until f.w) if (atlas.pixel(frame, x, y) ushr 24 == 255) {
+        opaque++
+        if (img.getRGB(x0 + (x * 2 + 1) * zoom / (2 * d), y0 + (y * 2 + 1) * zoom / (2 * d)) == atlas.pixel(frame, x, y)) same++
+      }
+      assertTrue("zoom $zoom: $same of $opaque", same >= opaque * 9 / 10)
     }
   }
 
@@ -95,7 +124,7 @@ class OfficeRendererTest {
     assertEquals(VizState.values().toSet(), scene.people.map { it.state }.toSet())
     val img = renderer.nativeImage(scene, 0, 1)
     for (p in scene.people) {
-      assertTrue(p.frame.endsWith("_" + p.state.key))
+      assertTrue(p.frame, p.frame.contains("_" + p.state.key))
       assertEquals("bubble_${p.state.key}", p.bubbleFrame)
       val (bx, by) = opaqueInside(p.bubbleFrame)
       assertEquals(

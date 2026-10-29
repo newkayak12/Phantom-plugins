@@ -74,7 +74,12 @@ class AnimationTest {
   fun workingSpriteAndWaitingBubbleMoveBetweenPhases() {
     for (n in 0 until ThemeA.animationPhases) {
       val m = (n + 1) % ThemeA.animationPhases
-      assertNotEquals(ThemeA.personOffset(VizState.WORKING, n), ThemeA.personOffset(VizState.WORKING, m))
+      // the typing person moves: its frame (its arms) or its position changes every phase
+      assertTrue(
+        "phase $n to $m",
+        ThemeA.personOffset(VizState.WORKING, n) != ThemeA.personOffset(VizState.WORKING, m) ||
+          ThemeA.personFrame(0, VizState.WORKING, n) != ThemeA.personFrame(0, VizState.WORKING, m),
+      )
       assertNotEquals(ThemeA.bubbleOffset(VizState.WAITING, n), ThemeA.bubbleOffset(VizState.WAITING, m))
     }
     assertEquals(ThemeA.personOffset(VizState.DONE, 0), ThemeA.personOffset(VizState.DONE, 1))
@@ -89,11 +94,14 @@ class AnimationTest {
       listOf(Fixtures.session("w", "/repo/wt0", AiSessionStatus.WORKING), Fixtures.session("a", "/repo/wt0", AiSessionStatus.WAITING, 2000L)),
     )
     c.setFloor(OfficeModel.build(listOf(data)).floors[0])
-    val before = c.screenRect("w")!!
+    @Suppress("UNCHECKED_CAST")
+    fun pose() = (c.getClientProperty(OfficeCanvas.PEOPLE_PROPERTY) as List<Map<String, Any?>>).first { it["tabId"] == "w" }
+      .let { it["personFrame"] to it["screen"] }
+    val before = pose()
     c.animation.tick()
+    assertNotEquals("typing moves the working person (its frame or where it is drawn)", before, pose())
     val after = c.screenRect("w")!!
-    assertNotEquals("typing jitter moves the working person", before, after)
-    assertEquals(before.x, after.x)
+    assertEquals(before.second.let { (it as Rectangle).x }, after.x)
 
     // the room image differs as the bubble bobs, too
     val atlas = Atlas.of(ThemeA)

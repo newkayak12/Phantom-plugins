@@ -30,9 +30,10 @@ object LightOverlay {
     return scene.items.flatMap { item -> byFrame[item.frame].orEmpty().map { PlacedLight(item.x + it.dx, item.y + it.dy, it) } }
   }
 
-  fun apply(img: BufferedImage, lights: List<PlacedLight>, lighting: Lighting) {
-    val w = img.width
-    val h = img.height
+  /** Lights [img], composed at [k] image pixels per scene pixel: the pools and their dither stay in scene pixels at any [k]. */
+  fun apply(img: BufferedImage, lights: List<PlacedLight>, lighting: Lighting, k: Int = 1) {
+    val w = img.width / k
+    val h = img.height / k
     val lr = FloatArray(w * h)
     val lg = FloatArray(w * h)
     val lb = FloatArray(w * h)
@@ -62,10 +63,12 @@ object LightOverlay {
     val maxR = (255 * a.r).toInt()
     val maxG = (255 * a.g).toInt()
     val maxB = (255 * a.b).toInt()
-    val px = img.getRGB(0, 0, w, h, null, 0, w)
-    for (i in px.indices) {
-      if (lr[i] == 0f && lg[i] == 0f && lb[i] == 0f) continue
-      val p = px[i]
+    val iw = img.width
+    val px = img.getRGB(0, 0, iw, img.height, null, 0, iw)
+    for (j in px.indices) {
+      val i = (j / iw / k) * w + (j % iw) / k
+      if (i >= lr.size || lr[i] == 0f && lg[i] == 0f && lb[i] == 0f) continue
+      val p = px[j]
       if (p ushr 24 == 0) continue
       val r = p shr 16 and 255
       val g = p shr 8 and 255
@@ -74,8 +77,8 @@ object LightOverlay {
       val nr = minOf(255, (r * (a.r + lr[i]) / a.r).toInt())
       val ng = minOf(255, (g * (a.g + lg[i]) / a.g).toInt())
       val nb = minOf(255, (b * (a.b + lb[i]) / a.b).toInt())
-      px[i] = (p and -0x1000000) or (nr shl 16) or (ng shl 8) or nb
+      px[j] = (p and -0x1000000) or (nr shl 16) or (ng shl 8) or nb
     }
-    img.setRGB(0, 0, w, h, px, 0, w)
+    img.setRGB(0, 0, iw, img.height, px, 0, iw)
   }
 }

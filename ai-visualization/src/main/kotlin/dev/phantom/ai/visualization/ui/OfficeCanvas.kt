@@ -203,20 +203,26 @@ class OfficeCanvas(
 
   // ---- hit testing
 
-  private fun opaque(p: PlacedPerson, x: Int, y: Int): Boolean {
-    val f = renderer.atlas[p.personFrame]
-    val lx = ((x - p.screen.x) / zoom).coerceIn(0, f.w - 1)
-    val ly = ((y - p.screen.y) / zoom).coerceIn(0, f.h - 1)
-    return renderer.atlas.pixel(p.personFrame, lx, ly) ushr 24 != 0
+  /** Whether the person frame [frame] drawn shrunk by [scale] (a subordinate's; 1 for a person) at [screen] is opaque at ([x], [y]). */
+  private fun opaque(frame: String, scale: Int, screen: Rect, x: Int, y: Int): Boolean {
+    // in the frame's own pixels, [detail] of them per scene pixel, as the renderer draws it (see OfficeRenderer.composeScale)
+    val d = renderer.detail
+    if (scale > 1 || renderer.composeScale(zoom) == 1) {
+      val s = scale * d
+      val f = renderer.atlas.scaled(frame, s)
+      val lx = ((x - screen.x) / zoom).coerceIn(0, f.w - 1)
+      val ly = ((y - screen.y) / zoom).coerceIn(0, f.h - 1)
+      return renderer.atlas.scaledPixel(frame, s, lx, ly) ushr 24 != 0
+    }
+    val f = renderer.atlas[frame]
+    val lx = ((x - screen.x) * d / zoom).coerceIn(0, f.w - 1)
+    val ly = ((y - screen.y) * d / zoom).coerceIn(0, f.h - 1)
+    return renderer.atlas.pixel(frame, lx, ly) ushr 24 != 0
   }
 
-  private fun opaque(h: PlacedHelper, x: Int, y: Int): Boolean {
-    val s = h.placement.scale
-    val f = renderer.atlas.scaled(h.frame, s)
-    val lx = ((x - h.screen.x) / zoom).coerceIn(0, f.w - 1)
-    val ly = ((y - h.screen.y) / zoom).coerceIn(0, f.h - 1)
-    return renderer.atlas.scaledPixel(h.frame, s, lx, ly) ushr 24 != 0
-  }
+  private fun opaque(p: PlacedPerson, x: Int, y: Int) = opaque(p.personFrame, 1, p.screen, x, y)
+
+  private fun opaque(h: PlacedHelper, x: Int, y: Int) = opaque(h.frame, h.placement.scale, h.screen, x, y)
 
   fun hitTest(x: Int, y: Int): Hit {
     if (scene.pageCount > 1) {
@@ -252,7 +258,7 @@ class OfficeCanvas(
       val o = theme.personOffset(p.state, phase)
       val r = p.bounds
       PlacedPerson(
-        p, theme.personFrame(p.person.seed % theme.personVariants, p.state, phase), theme.bubbleFrame(p.state, phase),
+        p, theme.personFrame(p.person.seed % theme.personVariants, p.state, phase, p.facing), theme.bubbleFrame(p.state, phase),
         Rect(ox + (r.x + o.dx) * z, oy + (r.y + o.dy) * z, r.w * z, r.h * z),
       )
     }

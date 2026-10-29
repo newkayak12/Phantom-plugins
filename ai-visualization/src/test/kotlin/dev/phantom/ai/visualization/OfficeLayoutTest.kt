@@ -85,7 +85,7 @@ class OfficeLayoutTest {
     val scene = layout.layout(Fixtures.areas(1))
     assertEquals(4, scene.people.size)
     for (p in scene.people) {
-      assertTrue(p.frame, p.frame.endsWith("_" + p.state.key))
+      assertTrue(p.frame, p.frame.contains("_" + p.state.key))
       assertEquals("bubble_" + p.state.key, p.bubbleFrame)
     }
     val working = scene.people.single { it.state == VizState.WORKING }

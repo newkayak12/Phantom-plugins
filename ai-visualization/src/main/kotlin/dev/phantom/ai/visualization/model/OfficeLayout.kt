@@ -77,6 +77,8 @@ class PersonPlacement(
   val bubbleBounds: Rect,
   val u: Double = 0.0,
   val v: Double = 0.0,
+  /** The orientation of the desk it sits at, null when standing: see [Theme.personFrame]. */
+  val facing: Orientation? = null,
 ) {
   val tabId: String get() = person.session.tabId
   val state: VizState get() = person.state
@@ -141,6 +143,8 @@ class Scene(
  * people. Knows no color or frame name: those come from the [theme] and the [atlas].
  */
 class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
+  /** Person frames are this many times denser than the scene: see [Theme.personDetail]. */
+  private val detail = theme.personDetail.coerceAtLeast(1)
 
   fun layout(areas: List<DeskArea>, page: Int = 0): Scene {
     val pages = pageCount(areas.size)
@@ -188,7 +192,8 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
       val spots = candidates(st)
       val pick = spots.firstOrNull { (u, v) -> fits(placementFor(st.ai, st.person, st.seat, u, v, false, 0), people, strict = true) }
         ?: spots.firstOrNull { (u, v) -> fits(placementFor(st.ai, st.person, st.seat, u, v, false, 0), people, strict = false) }
-        ?: spots.last()
+        // a full room: where it covers the fewest people
+        ?: spots.minBy { (u, v) -> placementFor(st.ai, st.person, st.seat, u, v, false, 0).bounds.let { b -> people.count { it.bounds.intersects(b) } } }
       items += personItems(st.ai, st.person, st.seat, pick.first, pick.second, sitting = false, people)
     }
     val helpers = ArrayList<HelperPlacement>()
@@ -264,7 +269,7 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
     val frame = theme.person(variant, VizState.WORKING)
     val x = proj(u, v)
     val y = projY(u, v, if (stool != null) SEAT_Z / s else 0)
-    return HelperPlacement(p, h, i, variant, frame, s, u, v, x, y, boundsOf(frame, x, y, s), stool?.let { boundsOf(it, x, projY(u, v), s) })
+    return HelperPlacement(p, h, i, variant, frame, s, u, v, x, y, boundsOf(frame, x, y, s * detail), stool?.let { boundsOf(it, x, projY(u, v), s) })
   }
 
   /**
@@ -276,13 +281,13 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
     val poses = (0 until theme.animationPhases).map { ph ->
       val name = theme.personFrame(c.variant, VizState.WORKING, ph)
       val off = theme.personOffset(VizState.WORKING, ph)
-      val sf = atlas.scaled(name, c.scale)
+      val sf = atlas.scaled(name, c.scale * detail)
       Triple(name, Rect(c.x + off.dx - sf.anchorX, c.y + off.dy - sf.anchorY, sf.w, sf.h), sf)
     }.distinct()
     for ((name, b, _) in poses) {
       if (!b.intersects(Rect(fx, fy, f.w, f.h))) continue
       for (py in maxOf(b.y, fy) until minOf(b.y + b.h, fy + f.h)) for (px in maxOf(b.x, fx) until minOf(b.x + b.w, fx + f.w)) {
-        if (atlas.pixel(frame, px - fx, py - fy) ushr 24 != 0 && atlas.scaledPixel(name, c.scale, px - b.x, py - b.y) ushr 24 != 0) return true
+        if (atlas.pixel(frame, px - fx, py - fy) ushr 24 != 0 && atlas.scaledPixel(name, c.scale * detail, px - b.x, py - b.y) ushr 24 != 0) return true
       }
     }
     return false
@@ -313,7 +318,7 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
     desks += DeskPlacement(ai, area.worktree.path, si, Rect(deskItem.x - f.anchorX, deskItem.y - f.anchorY, f.w, f.h), p?.session?.tabId)
     if (p != null) {
       if (p.state == VizState.WORKING || p.state == VizState.IDLE) {
-        res += personItems(ai, p, si, cu, cv, sitting = true, people, z = SEAT_Z, key = base + 0.1)
+        res += personItems(ai, p, si, cu, cv, sitting = true, people, z = SEAT_Z, key = base + 0.1, facing = o)
       } else {
         val (su, sv) = when {
           o == Orientation.LW -> u + 16.0 to v + 22.0
@@ -326,16 +331,16 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
     return res
   }
 
-  private fun placementFor(ai: Int, p: Person, seat: Int, u: Double, v: Double, sitting: Boolean, z: Int): PersonPlacement {
-    val frame = theme.person(p.seed % theme.personVariants, p.state)
+  private fun placementFor(ai: Int, p: Person, seat: Int, u: Double, v: Double, sitting: Boolean, z: Int, facing: Orientation? = null): PersonPlacement {
+    val frame = theme.personFrame(p.seed % theme.personVariants, p.state, 0, facing)
     val x = proj(u, v)
     val y = projY(u, v, z)
-    val f = atlas[frame]
+    val f = atlas.scaled(frame, detail)
     val bubble = theme.bubble(p.state)
     val b = atlas[bubble]
     val head = y - f.anchorY
     val bubbleBounds = Rect(x + theme.bubbleAnchorDx - b.anchorX, head + theme.bubbleAnchorDy - b.anchorY, b.w, b.h)
-    return PersonPlacement(p, ai, seat, frame, x, y, sitting, Rect(x - f.anchorX, y - f.anchorY, f.w, f.h), bubble, bubbleBounds, u, v)
+    return PersonPlacement(p, ai, seat, frame, x, y, sitting, Rect(x - f.anchorX, y - f.anchorY, f.w, f.h), bubble, bubbleBounds, u, v, facing)
   }
 
   /** Strict: neither the sprite nor the bubble touches another person's sprite or bubble. Otherwise only the sprites must not touch. */
@@ -357,15 +362,15 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
       }
     }
     grid(r.u + 6, r.u + r.w - 4, r.v + 6, r.v + r.d - 6, 7, 6)
-    grid(6, ROOM - 6, 6, ROOM - 6, 6, 6)
+    grid(6, ROOM - 6, 6, ROOM - 6, 3, 3)
     return out
   }
 
   private fun personItems(
     ai: Int, p: Person, seat: Int, u: Double, v: Double, sitting: Boolean, people: MutableList<PersonPlacement>,
-    z: Int = 0, key: Double = u + v,
+    z: Int = 0, key: Double = u + v, facing: Orientation? = null,
   ): DrawItem {
-    val pl = placementFor(ai, p, seat, u, v, sitting, z)
+    val pl = placementFor(ai, p, seat, u, v, sitting, z, facing)
     people += pl
     return DrawItem(5, key, ItemKind.PERSON, pl.frame, pl.x, pl.y, tabId = p.session.tabId)
   }

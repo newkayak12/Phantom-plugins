@@ -85,7 +85,9 @@ class ActivityLabelsTest {
       assertEquals(ctx, res.helpers.map { it.placement.helper.id }.toSet(), subs.keys)
       // the lead draws at least one of its two; which ones fit depends on each one's look, the other may only count in its "+N".
       // Drawn, Explore says what it does and Plan (no activity reported) what its state says
-      assertTrue(ctx, res.helpers.any { it.placement.tabId == "lead" })
+      // (where glass partitions box in its two desks, as in B, the big people leave no room by the lead: both count in its "+N")
+      if (theme.partition(dev.phantom.ai.visualization.model.Orientation.RW) == null) assertTrue(ctx, res.helpers.any { it.placement.tabId == "lead" })
+      else assertTrue(ctx, res.helpers.any { it.placement.tabId == "lead" } || res.helperTags.any { it.tabId == "lead" && it.text.startsWith("+") })
       subs["a1"]?.let { assertEquals(ctx, "Grep \"drawTags\"", it.text) }
       subs["a2"]?.let { assertEquals(ctx, "작업 중", it.text) }
       for (h in res.helpers) {
@@ -126,8 +128,12 @@ class ActivityLabelsTest {
   fun theFittedZoomShowsTheDeskAreasBiggerThanTheWholeRoomWould() {
     val c = OfficeCanvas(ThemeA, NoActions)
     try {
-      c.setSize(1440, 900)
+      // the people are as tall as a desk and its monitor, so the areas with their heads and labels fill more of a 1440 x 900 view
+      // than they did; at 1600 x 1000 the whole room would fit at 3, the areas at 4
+      c.setSize(1600, 1000)
       c.setFloor(floor())
+      val room = (minOf(1600.0 / OfficeLayout.SCENE_W, 1000.0 / OfficeLayout.SCENE_H) * (1 + OfficeCanvas.FIT_SLACK)).toInt()
+      assertEquals(3, room)
       assertTrue("zoom ${c.zoom}", c.zoom >= 4)
       c.setSize(1000, 640)
       assertTrue("zoom ${c.zoom}", c.zoom >= 2)
