@@ -1,0 +1,308 @@
+// Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
+package dev.phantom.ai.visualization.ui
+
+import dev.phantom.ai.api.AiAgent
+import dev.phantom.ai.visualization.model.Floor
+import dev.phantom.ai.visualization.model.OfficeLayout
+import dev.phantom.ai.visualization.model.Rect
+import dev.phantom.ai.visualization.model.Scene
+import dev.phantom.ai.visualization.render.OfficeRenderer
+import dev.phantom.ai.visualization.render.PagerLayout
+import dev.phantom.ai.visualization.render.PaintResult
+import dev.phantom.ai.visualization.render.PlacedPerson
+import dev.phantom.ai.visualization.theme.Theme
+import java.awt.Cursor
+import java.awt.Graphics
+import java.awt.Graphics2D
+import java.awt.Point
+import java.awt.event.MouseAdapter
+import java.awt.event.MouseEvent
+import java.awt.event.MouseWheelEvent
+import javax.swing.JComponent
+import javax.swing.JMenuItem
+import javax.swing.JPopupMenu
+import javax.swing.ToolTipManager
+
+/** What a click on a person or an empty desk does; the editor wires it to PhantomAiApi, tests to a fake. */
+interface OfficeActions {
+  fun focus(tabId: String)
+  fun start(worktreePath: String, agent: AiAgent)
+}
+
+/** What is under a point of the canvas. */
+sealed interface Hit {
+  data class PersonHit(val tabId: String) : Hit
+  data class DeskHit(val worktreePath: String) : Hit
+  data class PageHit(val delta: Int) : Hit
+  object None : Hit
+}
+
+/** The room of one floor page: draws it, hit-tests it and handles ctrl+wheel zoom, drag pan, click, hover and the desk menu. */
+class OfficeCanvas(
+  theme: Theme,
+  private val actions: OfficeActions,
+  private val clock: () -> Long = System::currentTimeMillis,
+) : JComponent() {
+  var theme: Theme = theme
+    private set
+  private var renderer = OfficeRenderer(theme)
+  private var layout = OfficeLayout(theme, renderer.atlas)
+
+  var floor: Floor? = null
+    private set
+  var page = 0
+    private set
+  var scene: Scene = layout.layout(emptyList(), 0)
+    private set
+
+  /** Integer zoom, 1..[MAX_ZOOM]; follows the size of the canvas until the user zooms. */
+  var zoom = 1
+    private set
+  var panX = 0
+    private set
+  var panY = 0
+    private set
+  private var userZoomed = false
+  private var last: PaintResult = PaintResult(emptyList(), emptyList())
+
+  val animation = Animation(this, { this.theme.animationPhases }, { this.theme.animationPeriodMs }) {
+    refreshPeople()
+    repaint()
+  }
+
+  /** The phase now drawn. */
+  val phase: Int get() = animation.phase
+
+  init {
+    isOpaque = true
+    ToolTipManager.sharedInstance().registerComponent(this)
+    val mouse = object : MouseAdapter() {
+      private var pressed: Point? = null
+      private var dragged = false
+      private var startPanX = 0
+      private var startPanY = 0
+
+      override fun mousePressed(e: MouseEvent) {
+        pressed = e.point
+        dragged = false
+        startPanX = panX
+        startPanY = panY
+      }
+
+      override fun mouseDragged(e: MouseEvent) {
+        val p = pressed ?: return
+        if (!dragged && p.distance(e.point) < 4) return
+        dragged = true
+        panTo(startPanX + e.x - p.x, startPanY + e.y - p.y)
+      }
+
+      override fun mouseReleased(e: MouseEvent) {
+        if (!dragged && e.button == MouseEvent.BUTTON1) click(e.x, e.y, e)
+        pressed = null
+      }
+
+      override fun mouseMoved(e: MouseEvent) {
+        cursor = if (hitTest(e.x, e.y) == Hit.None) Cursor.getDefaultCursor() else Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+      }
+
+      override fun mouseWheelMoved(e: MouseWheelEvent) {
+        if (!(e.isControlDown || e.isMetaDown)) return
+        zoomBy(if (e.wheelRotation < 0) 1 else -1, e.x, e.y)
+      }
+    }
+    addMouseListener(mouse)
+    addMouseMotionListener(mouse)
+    addMouseWheelListener(mouse)
+  }
+
+  // ---- data
+
+  /** Shows [floor] (null: an empty room) at [page]; keeps pan and zoom when it is the same floor. */
+  fun setFloor(floor: Floor?, page: Int = 0) {
+    val same = floor?.key == this.floor?.key && floor != null
+    this.floor = floor
+    this.scene = layout.layout(floor?.areas ?: emptyList(), page)
+    this.page = scene.page
+    if (!same) {
+      panX = 0
+      panY = 0
+    }
+    fit()
+    refreshPeople()
+    repaint()
+  }
+
+  fun setTheme(t: Theme) {
+    if (t.id == theme.id) return
+    theme = t
+    renderer = OfficeRenderer(t)
+    layout = OfficeLayout(t, renderer.atlas)
+    setFloor(floor, page)
+  }
+
+  fun showPage(delta: Int) = setFloor(floor, (page + delta).coerceIn(0, scene.pageCount - 1))
+
+  fun dispose() = animation.dispose()
+
+  // ---- view
+
+  /** Largest integer zoom whose room fits the canvas, 1..[MAX_ZOOM]. */
+  fun fitZoom(): Int = min(MAX_ZOOM, max(1, min(width / CONTENT_W, height / CONTENT_H)))
+
+  private fun fit() {
+    if (!userZoomed) zoom = fitZoom()
+  }
+
+  override fun setBounds(x: Int, y: Int, w: Int, h: Int) {
+    super.setBounds(x, y, w, h)
+    fit()
+    refreshPeople()
+  }
+
+  private fun originX() = (width - scene.width * zoom) / 2 + panX
+  private fun originY() = (height - scene.height * zoom) / 2 + panY
+
+  fun panTo(x: Int, y: Int) {
+    val lx = scene.width * zoom
+    val ly = scene.height * zoom
+    panX = x.coerceIn(-lx, lx)
+    panY = y.coerceIn(-ly, ly)
+    refreshPeople()
+    repaint()
+  }
+
+  /** Changes the zoom by [steps] whole steps (clamped), keeping the scene point under ([cx], [cy]) in place. */
+  fun zoomBy(steps: Int, cx: Int = width / 2, cy: Int = height / 2) {
+    val nz = (zoom + steps).coerceIn(1, MAX_ZOOM)
+    if (nz == zoom) return
+    val sx = (cx - originX()).toDouble() / zoom
+    val sy = (cy - originY()).toDouble() / zoom
+    zoom = nz
+    userZoomed = true
+    panX = (cx - sx * nz - (width - scene.width * nz) / 2.0).toInt()
+    panY = (cy - sy * nz - (height - scene.height * nz) / 2.0).toInt()
+    refreshPeople()
+    repaint()
+  }
+
+  // ---- hit testing
+
+  private fun opaque(p: PlacedPerson, x: Int, y: Int): Boolean {
+    val f = renderer.atlas[p.personFrame]
+    val lx = ((x - p.screen.x) / zoom).coerceIn(0, f.w - 1)
+    val ly = ((y - p.screen.y) / zoom).coerceIn(0, f.h - 1)
+    return renderer.atlas.pixel(p.personFrame, lx, ly) ushr 24 != 0
+  }
+
+  fun hitTest(x: Int, y: Int): Hit {
+    if (scene.pageCount > 1) {
+      if (PagerLayout.prev(width, height).contains(x, y)) return Hit.PageHit(-1)
+      if (PagerLayout.next(width, height).contains(x, y)) return Hit.PageHit(1)
+    }
+    val people = computePeople()
+    // the person in front (largest feet y) wins
+    people.sortedByDescending { it.placement.y }.firstOrNull { it.screen.contains(x, y) && opaque(it, x, y) }
+      ?.let { return Hit.PersonHit(it.placement.tabId) }
+    val ox = originX()
+    val oy = originY()
+    for (d in scene.desks) {
+      if (d.occupiedBy != null) continue
+      val b = d.bounds
+      val r = Rect(ox + b.x * zoom, oy + b.y * zoom, b.w * zoom, b.h * zoom)
+      if (!r.contains(x, y)) continue
+      val frame = renderer.theme.desk(scene.areas[d.areaIndex].slot.seats[d.seat].orientation)
+      val lx = ((x - r.x) / zoom).coerceIn(0, b.w - 1)
+      val ly = ((y - r.y) / zoom).coerceIn(0, b.h - 1)
+      if (renderer.atlas.pixel(frame, lx, ly) ushr 24 != 0) return Hit.DeskHit(d.worktreePath)
+    }
+    return Hit.None
+  }
+
+  private fun computePeople(): List<PlacedPerson> {
+    val ox = originX()
+    val oy = originY()
+    val z = zoom
+    return scene.people.map { p ->
+      val o = theme.personOffset(p.state, phase)
+      val r = p.bounds
+      PlacedPerson(
+        p, theme.personFrame(p.person.seed % theme.personVariants, p.state, phase), theme.bubbleFrame(p.state, phase),
+        Rect(ox + (r.x + o.dx) * z, oy + (r.y + o.dy) * z, r.w * z, r.h * z),
+      )
+    }
+  }
+
+  /** The tooltip text under ([x], [y]): "title · agent · elapsed", or null. */
+  fun tooltipAt(x: Int, y: Int): String? {
+    val hit = hitTest(x, y) as? Hit.PersonHit ?: return null
+    val p = scene.people.firstOrNull { it.tabId == hit.tabId } ?: return null
+    return renderer.tooltip(p, clock())
+  }
+
+  override fun getToolTipText(event: MouseEvent): String? = tooltipAt(event.x, event.y)
+
+  /** The "New Claude / New Codex" menu of an empty desk of [worktreePath]. */
+  fun deskMenu(worktreePath: String): JPopupMenu = JPopupMenu().apply {
+    for ((label, agent) in DESK_MENU) add(JMenuItem(label).apply { addActionListener { actions.start(worktreePath, agent) } })
+  }
+
+  private fun click(x: Int, y: Int, e: MouseEvent?) {
+    when (val h = hitTest(x, y)) {
+      is Hit.PersonHit -> actions.focus(h.tabId)
+      is Hit.DeskHit -> if (e != null && !java.awt.GraphicsEnvironment.isHeadless()) deskMenu(h.worktreePath).show(this, x, y)
+      is Hit.PageHit -> showPage(h.delta)
+      Hit.None -> Unit
+    }
+  }
+
+  /** A click at ([x], [y]) without a mouse event (the desk menu is not shown): for tests. */
+  fun clickAt(x: Int, y: Int) = click(x, y, null)
+
+  // ---- painting
+
+  /** Screen rectangle of the person drawn for [tabId], or null. */
+  fun screenRect(tabId: String): java.awt.Rectangle? =
+    computePeople().firstOrNull { it.placement.tabId == tabId }?.screen?.let { java.awt.Rectangle(it.x, it.y, it.w, it.h) }
+
+  private fun refreshPeople() {
+    val people = computePeople()
+    val list = people.map {
+      mapOf(
+        "tabId" to it.placement.tabId,
+        "status" to it.placement.state.key,
+        "personFrame" to it.personFrame,
+        "bubbleFrame" to it.bubbleFrame,
+        "screen" to java.awt.Rectangle(it.screen.x, it.screen.y, it.screen.w, it.screen.h),
+      )
+    }
+    // read-only, for the real-IDE probe: it reads the entries by key without importing plugin classes
+    putClientProperty(PEOPLE_PROPERTY, java.util.Collections.unmodifiableList(list))
+    last = PaintResult(people, last.tags)
+  }
+
+  override fun paintComponent(g: Graphics) {
+    val g2 = g.create() as Graphics2D
+    try {
+      renderer.paintBackground(g2, width, height)
+      last = renderer.paintScene(g2, scene, zoom, originX(), originY(), phase)
+      renderer.drawHeader(g2, floor, 18, 26)
+      if (scene.pageCount > 1) renderer.drawPager(g2, width, height, scene.page, scene.pageCount)
+    } finally {
+      g2.dispose()
+    }
+  }
+
+  companion object {
+    const val MAX_ZOOM = 6
+    private const val CONTENT_W = 420
+    private const val CONTENT_H = 280
+
+    /** Client property holding the visible people: a read-only list of maps with tabId, status, personFrame, bubbleFrame, screen (java.awt.Rectangle). */
+    const val PEOPLE_PROPERTY = "phantom.aiviz.people"
+
+    val DESK_MENU = listOf("New Claude" to AiAgent.CLAUDE, "New Codex" to AiAgent.CODEX)
+
+    private fun min(a: Int, b: Int) = if (a < b) a else b
+    private fun max(a: Int, b: Int) = if (a > b) a else b
+  }
+}

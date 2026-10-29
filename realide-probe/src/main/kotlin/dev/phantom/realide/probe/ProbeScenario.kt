@@ -55,6 +55,7 @@ object ProbeScenarios {
     all["tabs-restart"] = TabsRestartScenario
     all["workspaces"] = WorkspacesScenario
     all["ai-integrations"] = AiIntegrationsScenario
+    all["ai-visualization"] = AiVisualizationScenario
   }
 
   fun find(name: String): ProbeScenario? = all[name]

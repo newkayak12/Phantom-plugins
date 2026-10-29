@@ -4,13 +4,28 @@
 
 Claude Code and Codex next to your projects. Needs Phantom Workspaces (`dev.phantom.workspaces`).
 
-- **Tool window:** the Phantom AI Integration tool window is one panel for the current project: a tree of the project's repositories, worktrees and their agent sessions (with the open pull request title when the GitHub plugin has an account for the remote) next to the agent terminals, each its own closable tab. The tree sits left of the terminals when the window is at least as wide as `max(600, 0.8 × height)`, above them otherwise; Hide Tree / Show Tree in the title bar folds it away. Docked, + Claude, + Codex, Board and Dashboard sit with the tree; floating (or with the tree hidden) they sit in a full-width row. A floating window keeps its size and position. There are no project groups and no Add Repo: the repositories are the current project's.
+![Docked: worktree and session tree beside the agent terminals](docs/screenshots/docked.png)
+![Floating, wide](docs/screenshots/floating.png) ![Floating, narrow](docs/screenshots/floating-narrow.png)
+
+
+- **Tool window:** the Phantom AI Integration tool window is one panel for the current project: a tree of the project's repositories, worktrees and their agent sessions (with the open pull request title when the GitHub plugin has an account for the remote) next to the agent terminals, each its own closable tab. Docked, the tree always sits left of the terminals; floating or windowed, it sits left when the window is at least as wide as `max(600, 0.8 × height)` and above them otherwise; Hide Tree / Show Tree in the title bar folds it away. Docked, + Claude, + Codex, Board and Dashboard sit with the tree; floating (or with the tree hidden) they sit in a full-width row. A floating window keeps its size and position. There are no project groups and no Add Repo: the repositories are the current project's.
 - **Sessions:** New Claude Session, New Codex Session and Resume Session start `claude` or `codex` in the worktree, in a terminal tab of that tool window. A session shows working, waiting for you or done, with an unread mark.
 - **Board:** Board (the button, or Open Board in Find Action) opens an editor tab that shows every worktree as a card in columns (Todo, In progress, In review, Done); drag a card to move it. A card carries its branch, session status dots and prompt.
 - **Dashboard:** Open Agent Dashboard (Find Action) opens a separate window: sessions by Needs attention, Working and Done, with the last prompt and answer, subagents, search and agent/project filters. Click a session to jump to its terminal.
 - **Status bar:** the usage widget shows Claude `5h` and `wk` (and Fable) and Codex `5h` and `wk`, with reset times in its tooltip.
 - **Remote Control:** off by default. Settings | Tools | Phantom AI Integration | Remote Control starts a small web server on the address and port you pick (this computer, your Tailscale or local-network address). Generate link makes a pairing link and QR code; open it in another device's browser to list worktrees and sessions, watch an agent terminal, type into it and start or resume Claude or Codex in a listed worktree.
 - **Accounts:** Settings | Tools | Phantom AI Integration lists the System default and any accounts you add, per agent. Adding one makes its own config dir (`CLAUDE_CONFIG_DIR` or `CODEX_HOME`), installs the hooks there and opens the CLI's login in a terminal. The one marked active is used by new terminals. Phantom stores no tokens; the CLI owns the login.
+
+## Public API
+
+`dev.phantom.ai.api` is the public API of this plugin and the only package other plugins may use; everything else in `dev.phantom.ai.*` is internal and may change. Depend on `dev.phantom.ai` in your `plugin.xml` and call `PhantomAiApi.getInstance()`:
+
+- `sessions()` / `sessions(project)`: immutable `AiSession` views (tab id, worktree path, agent `CLAUDE`/`CODEX`, status `WORKING`/`WAITING`/`DONE`/`NONE`, title, `startedAt`). `NONE` means launched with no hook event yet.
+- `worktrees(project)`: `AiWorktree` (path, display title, branch, `prNumber`, `isMain`). It never goes to the network, so `prNumber` is always null in 0.3.0.
+- `addChangeListener(parent, listener)`: fires on session and name changes and, polled every 30 seconds while a listener exists, on worktrees added or removed. Removed when `parent` is disposed.
+- `focusSession(project, tabId)` and `startSession(project, worktreePath, agent)`: select a session's terminal tab, or start a new Claude or Codex session.
+
+Calls that list worktrees run git: call them off the EDT.
 
 ## Read before using
 

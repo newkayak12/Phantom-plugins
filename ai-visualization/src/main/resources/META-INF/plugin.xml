@@ -1,0 +1,28 @@
+<idea-plugin>
+  <id>dev.phantom.ai.visualization</id>
+  <name>Phantom AI Visualization</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Tools</category>
+  <description><![CDATA[
+  The agent sessions of Phantom AI Integration as an isometric pixel-art office: each project is a floor, each worktree a desk
+  area with a rug and a name plate, each agent session a person at a desk (typing, waiting with a raised hand, holding a coffee,
+  or asleep). Opens as the "AI Office" editor tab from Tools | Open AI Office. Uses only the public API dev.phantom.ai.api of
+  Phantom AI Integration.
+  ]]></description>
+
+  <depends>com.intellij.modules.platform</depends>
+  <depends>dev.phantom.ai</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <fileEditorProvider implementation="dev.phantom.ai.visualization.editor.AiOfficeEditorProvider"/>
+    <applicationService serviceImplementation="dev.phantom.ai.visualization.settings.VizSettings"/>
+    <applicationConfigurable parentId="tools" instance="dev.phantom.ai.visualization.settings.VizConfigurable"
+                             id="dev.phantom.ai.visualization" displayName="Phantom AI Visualization"/>
+  </extensions>
+  <actions>
+    <action id="dev.phantom.ai.visualization.OpenAiOffice" class="dev.phantom.ai.visualization.actions.OpenAiOfficeAction"
+            text="Open AI Office" description="Show the agent sessions as a pixel-art office">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
+  </actions>
+</idea-plugin>

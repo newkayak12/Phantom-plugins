@@ -6,7 +6,8 @@
   <description><![CDATA[
   Claude Code and Codex agents next to your projects: a project-group sidebar of repositories, worktrees and agent
   sessions, agent terminals in their own tool window, a workspace board, an agent dashboard and usage in the status bar.
-  Needs Phantom Workspaces.
+  Needs Phantom Workspaces. The package dev.phantom.ai.api is the public API of this plugin: read-only sessions and worktrees,
+  a change listener, and actions to focus or start a session; other plugins use it instead of internals.
   ]]></description>
 
   <depends>com.intellij.modules.platform</depends>
@@ -14,6 +15,9 @@
   <depends>org.jetbrains.plugins.terminal</depends>
   <depends>Git4Idea</depends>
   <depends>org.jetbrains.plugins.github</depends>
+
+  <!-- Public API: dev.phantom.ai.api is the only package other plugins may use. PhantomAiApi.getInstance() is a light
+       application service (no registration needed). Everything else in dev.phantom.ai.* is internal. -->
 
   <extensions defaultExtensionNs="com.intellij">
     <!-- ===== core (U1) ===== -->

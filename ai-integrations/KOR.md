@@ -4,13 +4,28 @@
 
 프로젝트 옆에서 쓰는 Claude Code와 Codex입니다. Phantom Workspaces(`dev.phantom.workspaces`)가 필요합니다.
 
-- **도구 창:** Phantom AI Integration 도구 창은 현재 프로젝트의 패널 하나입니다. 프로젝트의 저장소, worktree, 에이전트 세션 트리(GitHub 플러그인에 그 원격의 계정이 있으면 열린 PR 제목도)가 에이전트 터미널과 나란히 있고, 터미널은 닫을 수 있는 탭으로 하나씩 열립니다. 창 너비가 `max(600, 0.8 × 높이)` 이상이면 트리가 터미널 왼쪽에, 아니면 위에 놓이고, 제목줄의 Hide Tree / Show Tree로 트리를 접습니다. 도킹했을 때 + Claude, + Codex, Board, Dashboard는 트리 쪽에 있고, 플로팅이거나 트리를 접으면 전체 너비 한 줄에 놓입니다. 플로팅 창은 크기와 위치를 기억합니다. 프로젝트 그룹과 Add Repo는 없습니다. 저장소는 현재 프로젝트의 것입니다.
+![도킹: worktree·세션 트리와 에이전트 터미널](docs/screenshots/docked.png)
+![플로팅, 넓을 때](docs/screenshots/floating.png) ![플로팅, 좁을 때](docs/screenshots/floating-narrow.png)
+
+
+- **도구 창:** Phantom AI Integration 도구 창은 현재 프로젝트의 패널 하나입니다. 프로젝트의 저장소, worktree, 에이전트 세션 트리(GitHub 플러그인에 그 원격의 계정이 있으면 열린 PR 제목도)가 에이전트 터미널과 나란히 있고, 터미널은 닫을 수 있는 탭으로 하나씩 열립니다. 도킹하면 트리는 항상 터미널 왼쪽에 있고, 플로팅이나 창 모드에서는 너비가 `max(600, 0.8 × 높이)` 이상이면 왼쪽, 아니면 위에 놓이며, 제목줄의 Hide Tree / Show Tree로 트리를 접습니다. 도킹했을 때 + Claude, + Codex, Board, Dashboard는 트리 쪽에 있고, 플로팅이거나 트리를 접으면 전체 너비 한 줄에 놓입니다. 플로팅 창은 크기와 위치를 기억합니다. 프로젝트 그룹과 Add Repo는 없습니다. 저장소는 현재 프로젝트의 것입니다.
 - **세션:** New Claude Session, New Codex Session, Resume Session은 worktree에서 `claude`나 `codex`를 이 도구 창의 터미널 탭으로 띄웁니다. 세션은 작업 중, 입력 대기, 완료로 표시되고 읽지 않음 표시가 붙습니다.
 - **보드:** Board(버튼 또는 Find Action의 Open Board)가 에디터 탭을 열고, 모든 worktree를 카드로 열(Todo, In progress, In review, Done)에 보여 주고, 카드를 끌어 옮깁니다. 카드에는 브랜치, 세션 상태 점, 프롬프트가 나옵니다.
 - **대시보드:** Open Agent Dashboard(Find Action)가 별도 창을 엽니다. 세션을 Needs attention, Working, Done으로 나누고 마지막 프롬프트와 답, 서브에이전트, 검색, 에이전트/프로젝트 필터를 보여 줍니다. 세션을 누르면 그 터미널로 갑니다.
 - **상태 표시줄:** 사용량 위젯이 Claude의 `5h`, `wk`(와 Fable), Codex의 `5h`, `wk`를 보여 주고, 초기화 시각은 툴팁에 나옵니다.
 - **원격 제어:** 기본은 꺼져 있습니다. Settings | Tools | Phantom AI Integration | Remote Control에서 고른 주소와 포트(이 컴퓨터, Tailscale, 로컬 네트워크 주소)로 작은 웹 서버를 시작합니다. Generate link가 페어링 링크와 QR 코드를 만들고, 다른 기기의 브라우저에서 열면 worktree와 세션 목록, 에이전트 터미널 화면을 보고 입력할 수 있고, 목록에 있는 worktree에서 Claude나 Codex를 시작하거나 이어갈 수 있습니다.
 - **계정:** Settings | Tools | Phantom AI Integration에 에이전트별로 System default와 추가한 계정이 나옵니다. 계정을 추가하면 전용 설정 폴더(`CLAUDE_CONFIG_DIR` 또는 `CODEX_HOME`)를 만들고, 거기에 훅을 설치하고, CLI 로그인을 터미널로 엽니다. 활성으로 표시한 계정이 새 터미널에 쓰입니다. 토큰은 Phantom이 저장하지 않고 CLI가 로그인을 관리합니다.
+
+## 공개 API
+
+`dev.phantom.ai.api`가 이 플러그인의 공개 API이며 다른 플러그인이 쓸 수 있는 유일한 패키지입니다. `dev.phantom.ai.*`의 나머지는 내부 구현이라 바뀔 수 있습니다. `plugin.xml`에서 `dev.phantom.ai`에 의존하고 `PhantomAiApi.getInstance()`를 호출하세요.
+
+- `sessions()` / `sessions(project)`: 변경할 수 없는 `AiSession`(탭 id, worktree 경로, 에이전트 `CLAUDE`/`CODEX`, 상태 `WORKING`/`WAITING`/`DONE`/`NONE`, 제목, `startedAt`). `NONE`은 시작했지만 아직 훅 이벤트가 없다는 뜻입니다.
+- `worktrees(project)`: `AiWorktree`(경로, 표시 제목, 브랜치, `prNumber`, `isMain`). 네트워크를 쓰지 않으므로 0.3.0에서 `prNumber`는 항상 null입니다.
+- `addChangeListener(parent, listener)`: 세션과 이름이 바뀔 때, 그리고 리스너가 있는 동안 30초마다 확인해 worktree가 추가·삭제될 때 호출됩니다. `parent`가 dispose되면 제거됩니다.
+- `focusSession(project, tabId)`, `startSession(project, worktreePath, agent)`: 세션의 터미널 탭을 선택하거나 새 Claude/Codex 세션을 시작합니다.
+
+worktree를 나열하는 호출은 git을 실행하므로 EDT 밖에서 호출하세요.
 
 ## 쓰기 전에 읽어 주세요
 
