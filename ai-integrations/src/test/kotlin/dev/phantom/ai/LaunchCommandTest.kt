@@ -25,6 +25,22 @@ class LaunchCommandTest {
   @Test fun codexResume() =
     assertEquals("codex resume '--dangerously-bypass-approvals-and-sandbox' 'abc-1'", LaunchCommand.resume(AgentKind.CODEX, "abc-1"))
 
+  @Test fun claudeGetsPhantomMcpFromItsConfigFile() {
+    val link = dev.phantom.ai.launch.McpLink("http://127.0.0.1:9/mcp?tabId=t", "PHANTOM_AGENT_HOOK_TOKEN", "/tmp/a b/t.json")
+    assertEquals("claude '--dangerously-skip-permissions' '--mcp-config' '/tmp/a b/t.json'", LaunchCommand.launch(AgentKind.CLAUDE, link))
+    assertEquals(
+      "claude '--dangerously-skip-permissions' '--mcp-config' '/tmp/a b/t.json' '--resume' 'abc-1'",
+      LaunchCommand.resume(AgentKind.CLAUDE, "abc-1", link),
+    )
+  }
+
+  @Test fun codexGetsPhantomMcpAsConfigOverridesBeforeItsSubcommand() {
+    val link = dev.phantom.ai.launch.McpLink("http://127.0.0.1:9/mcp?tabId=t", "PHANTOM_AGENT_HOOK_TOKEN", "/tmp/t.json")
+    val mcp = "'-c' 'mcp_servers.phantom.url=\"http://127.0.0.1:9/mcp?tabId=t\"' '-c' 'mcp_servers.phantom.bearer_token_env_var=\"PHANTOM_AGENT_HOOK_TOKEN\"'"
+    assertEquals("codex $mcp '--dangerously-bypass-approvals-and-sandbox'", LaunchCommand.launch(AgentKind.CODEX, link))
+    assertEquals("codex $mcp resume '--dangerously-bypass-approvals-and-sandbox' 'abc-1'", LaunchCommand.resume(AgentKind.CODEX, "abc-1", link))
+  }
+
   @Test fun idIsSingleQuoteEscaped() {
     assertEquals("'a'\\''b'", LaunchCommand.quote("a'b"))
     assertEquals("claude '--dangerously-skip-permissions' '--resume' ''\\''; rm -rf ~'\\'''", LaunchCommand.resume(AgentKind.CLAUDE, "'; rm -rf ~'"))

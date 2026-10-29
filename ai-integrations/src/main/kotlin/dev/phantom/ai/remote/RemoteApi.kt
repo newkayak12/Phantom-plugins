@@ -9,7 +9,7 @@ import dev.phantom.ai.core.AgentSession
 import dev.phantom.ai.core.AiState
 import dev.phantom.ai.core.SessionStore
 import dev.phantom.ai.sidebar.GitProjectRepos
-import dev.phantom.ai.sidebar.GitWorktreeSource
+import dev.phantom.ai.sidebar.SharedWorktrees
 import dev.phantom.ai.sidebar.PrTitles
 import dev.phantom.ai.sidebar.SidebarModel
 import dev.phantom.ai.terminal.AgentTabsHost
@@ -53,7 +53,7 @@ class IdeRemoteApi : RemoteApi {
     val se = HashMap<String, Pair<Project, AgentSession>>()
     val infos = projects().map { project ->
       val model = SidebarModel.build(
-        GitProjectRepos(project).roots(), GitWorktreeSource(project), live, saved, noPr,
+        GitProjectRepos(project).roots(), SharedWorktrees, live, saved, noPr,
         { p -> aiState.state.worktrees.firstOrNull { it.path == p }?.userName }, now,
       )
       val tabs = onEdt { AgentTabsHost.getInstance(project).tabs().map { it.id }.toSet() }

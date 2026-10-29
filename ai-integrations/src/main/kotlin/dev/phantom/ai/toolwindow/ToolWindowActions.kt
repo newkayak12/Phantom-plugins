@@ -55,7 +55,10 @@ class RefreshTreeAction(private val panel: AgentToolWindowPanel) : AnAction(), D
     e.presentation.icon = AllIcons.Actions.Refresh
   }
 
-  override fun actionPerformed(e: AnActionEvent) = panel.tree.refresh()
+  override fun actionPerformed(e: AnActionEvent) {
+    dev.phantom.ai.sidebar.SharedWorktrees.invalidateAll()
+    panel.tree.refresh()
+  }
 }
 
 /** Opens the settings page of the plugin (accounts). */

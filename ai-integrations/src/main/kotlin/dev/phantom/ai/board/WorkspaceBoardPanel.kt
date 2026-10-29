@@ -14,7 +14,7 @@ import dev.phantom.ai.core.PhantomAiBundle
 import dev.phantom.ai.core.SessionListener
 import dev.phantom.ai.core.SessionStore
 import dev.phantom.ai.sidebar.CachedPrTitles
-import dev.phantom.ai.sidebar.GitWorktreeSource
+import dev.phantom.ai.sidebar.SharedWorktrees
 import dev.phantom.ai.sidebar.GithubPrTitles
 import dev.phantom.ai.sidebar.GitProjectRepos
 import dev.phantom.ai.sidebar.ProjectRepos
@@ -45,7 +45,7 @@ data class BoardCard(val path: String, val title: String, val branch: String?, v
  */
 class WorkspaceBoardPanel(
   private val project: Project,
-  private val worktrees: WorktreeSource = GitWorktreeSource(project),
+  private val worktrees: WorktreeSource = SharedWorktrees,
   private val prTitles: PrTitles = CachedPrTitles(GithubPrTitles()),
   private val repos: ProjectRepos = GitProjectRepos(project),
 ) : JPanel(BorderLayout()), Disposable {

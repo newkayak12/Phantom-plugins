@@ -36,7 +36,7 @@ class ResumeJsonlInIdeTest : BasePlatformTestCase() {
     claudeDir = Files.createTempDirectory("phantom-ai-resume-claude")
     System.setProperty(SystemDirs.CLAUDE_DIR_PROP, claudeDir.toString())
     AgentTerminalService.getInstance(project).replaceStarter(TerminalStarter { _: Disposable, _, _, command ->
-      commands.add(command)
+      commands.add(withoutMcp(command))
       StartedTerminal(JPanel())
     })
   }

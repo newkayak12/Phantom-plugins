@@ -19,14 +19,28 @@ object LaunchCommand {
   /** The CLI word: bare `claude`/`codex`, or the quoted stub path with -Dphantom.ai.agentBinDir. */
   private fun cli(kind: AgentKind): String = SystemDirs.cli(kind).let { if (it == "claude" || it == "codex") it else quote(it) }
 
-  fun launch(kind: AgentKind): String = when (kind) {
-    AgentKind.CLAUDE -> "${cli(kind)} '--dangerously-skip-permissions'"
-    AgentKind.CODEX -> "${cli(kind)} '--dangerously-bypass-approvals-and-sandbox'"
+  fun launch(kind: AgentKind, mcp: McpLink? = null): String = when (kind) {
+    AgentKind.CLAUDE -> "${cli(kind)} '--dangerously-skip-permissions'${mcpArgs(kind, mcp)}"
+    AgentKind.CODEX -> "${cli(kind)}${mcpArgs(kind, mcp)} '--dangerously-bypass-approvals-and-sandbox'"
   }
 
-  fun resume(kind: AgentKind, id: String): String = when (kind) {
-    AgentKind.CLAUDE -> "${cli(kind)} '--dangerously-skip-permissions' '--resume' ${quote(id)}"
-    AgentKind.CODEX -> "${cli(kind)} resume '--dangerously-bypass-approvals-and-sandbox' ${quote(id)}"
+  fun resume(kind: AgentKind, id: String, mcp: McpLink? = null): String = when (kind) {
+    AgentKind.CLAUDE -> "${cli(kind)} '--dangerously-skip-permissions'${mcpArgs(kind, mcp)} '--resume' ${quote(id)}"
+    AgentKind.CODEX -> "${cli(kind)}${mcpArgs(kind, mcp)} resume '--dangerously-bypass-approvals-and-sandbox' ${quote(id)}"
+  }
+
+  /**
+   * Phantom's MCP server for the agent ([dev.phantom.ai.mcp.PhantomMcp]): Claude reads it from a config file (the token stays
+   * off the command line), Codex from `-c` overrides with the bearer token read from [tokenEnv]. Empty without [mcp].
+   */
+  private fun mcpArgs(kind: AgentKind, mcp: McpLink?): String {
+    mcp ?: return ""
+    return when (kind) {
+      AgentKind.CLAUDE -> " '--mcp-config' ${quote(mcp.claudeConfigFile)}"
+      AgentKind.CODEX ->
+        " '-c' ${quote("mcp_servers.${McpLink.NAME}.url=\"${mcp.url}\"")}" +
+          " '-c' ${quote("mcp_servers.${McpLink.NAME}.bearer_token_env_var=\"${mcp.tokenEnv}\"")}"
+    }
   }
 
   /** The CLI's own login; the CLI keeps the tokens in the account dir or its keychain, Phantom stores none. */
@@ -46,5 +60,13 @@ object LaunchCommand {
       AgentKind.CLAUDE -> mapOf(CLAUDE_CONFIG_DIR to dir)
       AgentKind.CODEX -> mapOf(CODEX_HOME to dir)
     }
+  }
+}
+
+/** Where an agent reaches Phantom's MCP server: its [url], the env variable holding the token, Claude's config file. */
+data class McpLink(val url: String, val tokenEnv: String, val claudeConfigFile: String) {
+  companion object {
+    /** The server name the agents see: tools show up as `mcp__phantom__open_in_editor` and so on. */
+    const val NAME = "phantom"
   }
 }

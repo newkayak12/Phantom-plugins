@@ -24,7 +24,10 @@ import dev.phantom.ai.core.SystemDirs
 import dev.phantom.ai.core.bestEffort
 import dev.phantom.ai.core.rethrowIfCancellation
 import dev.phantom.ai.hooks.HookEnv
+import dev.phantom.ai.hooks.HookServer
 import dev.phantom.ai.launch.LaunchCommand
+import dev.phantom.ai.launch.McpLink
+import dev.phantom.ai.mcp.McpConfigFiles
 import org.jetbrains.annotations.TestOnly
 import java.nio.file.Path
 import java.util.UUID
@@ -46,7 +49,7 @@ class AgentTerminalService(private val project: Project) {
   /** Starts a new agent in [worktreePath], the tab titled by [label], else the worktree's branch, else its folder; returns the tab id, or null. */
   @RequiresEdt
   fun launch(worktreePath: String, kind: AgentKind, label: String? = null): String? =
-    open(worktreePath, kind, LaunchCommand.launch(kind), sessionId = null, account = AccountsService.getInstance().active(kind), label = label)
+    open(worktreePath, kind, { LaunchCommand.launch(kind, it) }, sessionId = null, account = AccountsService.getInstance().active(kind), label = label)
 
   /**
    * Starts the agent resuming [session] (hook session_id, else Claude's earliest-created .jsonl no other session owns); null and nothing run when
@@ -58,7 +61,7 @@ class AgentTerminalService(private val project: Project) {
     val account = accountOf(session)
     val id = fallbackTarget(session, account)?.id ?: return null
     bind(session, id)
-    return open(session.worktree, session.kind, LaunchCommand.resume(session.kind, id), sessionId = id, account = account)
+    return open(session.worktree, session.kind, { LaunchCommand.resume(session.kind, id, it) }, sessionId = id, account = account)
   }
 
   /** Whether Resume can do anything for [session]; the UI disables the action otherwise. */
@@ -139,15 +142,19 @@ class AgentTerminalService(private val project: Project) {
   private fun accountOf(session: AgentSession): AgentAccount? =
     session.accountId?.let { id -> AccountsService.getInstance().accounts(session.kind).firstOrNull { it.id == id } }
 
-  private fun open(worktree: String, kind: AgentKind, command: String, sessionId: String?, account: AgentAccount?, label: String? = null): String? {
+  /** [command] gets the tab's link to Phantom's MCP server (null if its config could not be written: the agent runs without it). */
+  private fun open(worktree: String, kind: AgentKind, command: (McpLink?) -> String, sessionId: String?, account: AgentAccount?, label: String? = null): String? {
     val tabId = UUID.randomUUID().toString()
-    val env = LaunchCommand.env(kind, account, HookEnv.forTab(worktree, tabId))
+    val hookEnv = HookEnv.forTab(worktree, tabId)
+    val env = LaunchCommand.env(kind, account, hookEnv)
+    val mcp = bestEffort { McpConfigFiles.link(HookServer.getInstance().port, HookServer.getInstance().token, tabId) }
+      .onFailure { LOG.warn("Phantom MCP config for the agent failed", it) }.getOrNull()
     val title = PhantomAiBundle.message("terminal.tab", kind.command, label ?: branchOf(worktree) ?: Path.of(worktree).fileName?.toString() ?: worktree)
     // registered before the shell starts, so an early hook event finds its session
     SessionStore.getInstance().put(AgentSession(tabId, worktree, kind, sessionId = sessionId, accountId = account?.id))
     sessionId?.let { AiState.getInstance().rememberSession(worktree, kind, it, null, account?.id) }
     val shown = try {
-      show(title, worktree, env, command, tabId, dev.phantom.ai.core.AgentIcons.of(kind))
+      show(title, worktree, env, command(mcp), tabId, dev.phantom.ai.core.AgentIcons.of(kind))
     } catch (e: Exception) {
       try {
         rethrowIfCancellation(e)
@@ -158,7 +165,10 @@ class AgentTerminalService(private val project: Project) {
       AiNotify.error(LOG, project, PhantomAiBundle.message("notify.terminal.failed", e.message ?: e.toString()), e)
       false
     }
-    if (!shown) SessionStore.getInstance().remove(tabId)
+    if (!shown) {
+      SessionStore.getInstance().remove(tabId)
+      McpConfigFiles.delete(tabId)
+    }
     return tabId.takeIf { shown }
   }
 
@@ -178,6 +188,7 @@ class AgentTerminalService(private val project: Project) {
       Disposer.register(disposable) {
         bindOnClose(it)
         SessionStore.getInstance().remove(it)
+        McpConfigFiles.delete(it)
       }
     }
     host.add(AgentTab(id, title, started.component, started.preferredFocus, started.io, disposable, icon))

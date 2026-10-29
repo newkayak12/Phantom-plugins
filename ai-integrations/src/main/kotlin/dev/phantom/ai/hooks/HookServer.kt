@@ -9,6 +9,10 @@ import com.intellij.openapi.components.Service
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import dev.phantom.ai.core.AgentKind
+import dev.phantom.ai.core.SessionStore
+import dev.phantom.ai.mcp.IdeEditorBridge
+import dev.phantom.ai.mcp.PhantomMcp
+import org.jetbrains.annotations.TestOnly
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.nio.charset.StandardCharsets
@@ -25,13 +29,16 @@ fun interface StatuslineListener {
 
 /**
  * Loopback-only HTTP server for agent hooks. POST only; every request needs the per-run token header.
- * Routes: /hook/claude, /hook/codex, /statusline/claude. The tab id comes from the X-Phantom-Tab-Id header or ?tabId=.
+ * Routes: /hook/claude, /hook/codex, /statusline/claude, and /mcp ([PhantomMcp], which also takes the token as
+ * `Authorization: Bearer`). The tab id comes from the X-Phantom-Tab-Id header or ?tabId=.
  */
 @Service(Service.Level.APP)
 class HookServer : Disposable {
   val token: String = ByteArray(32).also { SecureRandom().nextBytes(it) }.let { Base64.getUrlEncoder().withoutPadding().encodeToString(it) }
   private var server: HttpServer? = null
   val statuslineListeners = CopyOnWriteArrayList<StatuslineListener>()
+  @Volatile var mcp: PhantomMcp = PhantomMcp(IdeEditorBridge()) { tab -> tab?.let { SessionStore.getInstance().get(it)?.worktree } }
+    @TestOnly set
 
   val port: Int get() = server?.address?.port ?: 0
 
@@ -40,31 +47,51 @@ class HookServer : Disposable {
     if (server != null) return
     val s = HttpServer.create(InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0)
     s.createContext("/") { handle(it) }
-    s.executor = Executors.newFixedThreadPool(2) { r -> Thread(r, "Phantom AI hook server").apply { isDaemon = true } }
+    // an MCP call may wait on the EDT; hooks keep their own threads meanwhile
+    s.executor = Executors.newFixedThreadPool(4) { r -> Thread(r, "Phantom AI hook server").apply { isDaemon = true } }
     s.start()
     server = s
   }
 
+  private class Reply(val code: Int, val json: String? = null)
+
   private fun handle(ex: HttpExchange) {
     ex.use {
-      val code = try { respond(ex) } catch (e: Exception) { rethrowIfCancellation(e); 500 }
-      ex.sendResponseHeaders(code, -1)
+      val reply = try { respond(ex) } catch (e: Exception) { rethrowIfCancellation(e); Reply(500) }
+      if (reply.json == null) {
+        ex.sendResponseHeaders(reply.code, -1)
+      } else {
+        val bytes = reply.json.toByteArray(StandardCharsets.UTF_8)
+        ex.responseHeaders.set("Content-Type", "application/json")
+        ex.sendResponseHeaders(reply.code, bytes.size.toLong())
+        ex.responseBody.write(bytes)
+      }
     }
   }
 
-  private fun respond(ex: HttpExchange): Int {
-    if (ex.requestMethod != "POST") return 405
-    val given = ex.requestHeaders.getFirst(HookEnv.TOKEN_HEADER) ?: return 403
-    if (!MessageDigest.isEqual(given.toByteArray(StandardCharsets.UTF_8), token.toByteArray(StandardCharsets.UTF_8))) return 403
+  private fun respond(ex: HttpExchange): Reply {
+    if (ex.requestMethod != "POST") return Reply(405)
+    if (!authorized(ex)) return Reply(403)
     val body = String(ex.requestBody.readNBytes(MAX_BODY), StandardCharsets.UTF_8)
     val tabId = ex.requestHeaders.getFirst("X-Phantom-Tab-Id") ?: query(ex, "tabId")
     when (ex.requestURI.path) {
       "/hook/claude" -> hook(AgentKind.CLAUDE, tabId, body)
       "/hook/codex" -> hook(AgentKind.CODEX, tabId, body)
       "/statusline/claude" -> statuslineListeners.forEach { l -> bestEffort { l.received(tabId, body) } }
-      else -> return 404
+      "/mcp" -> return mcp.handle(body, tabId)?.let { Reply(200, it) } ?: Reply(202)
+      else -> return Reply(404)
     }
-    return 204
+    return Reply(204)
+  }
+
+  /** The token header, or a bearer token (MCP clients); never a browser page of another origin (DNS rebinding). */
+  private fun authorized(ex: HttpExchange): Boolean {
+    val origin = ex.requestHeaders.getFirst("Origin")
+    if (origin != null && !LOCAL_ORIGIN.matches(origin)) return false
+    val given = ex.requestHeaders.getFirst(HookEnv.TOKEN_HEADER)
+      ?: ex.requestHeaders.getFirst("Authorization")?.takeIf { it.startsWith("Bearer ") }?.removePrefix("Bearer ")?.trim()
+      ?: return false
+    return MessageDigest.isEqual(given.toByteArray(StandardCharsets.UTF_8), token.toByteArray(StandardCharsets.UTF_8))
   }
 
   private fun hook(kind: AgentKind, tabId: String?, body: String) {
@@ -83,6 +110,7 @@ class HookServer : Disposable {
 
   companion object {
     private const val MAX_BODY = 4 * 1024 * 1024
+    private val LOCAL_ORIGIN = Regex("^https?://(127\\.0\\.0\\.1|localhost|\\[::1])(:\\d+)?$")
     fun getInstance(): HookServer = ApplicationManager.getApplication().getService(HookServer::class.java)
   }
 }

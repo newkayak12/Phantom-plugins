@@ -58,3 +58,39 @@ class GitWorktreeSource(private val project: Project = ProjectManager.getInstanc
     if (result.success()) WorktreePorcelain.parse(result.output) else emptyList()
   }.getOrDefault(emptyList())
 }
+
+/**
+ * [delegate] with each repository's list kept for [ttlMs]: every hook event (several a second while an agent works)
+ * refreshes the tree, the board and the dashboard, and git then runs once per repository instead of once per view and
+ * event. A worktree added outside Phantom shows up within [ttlMs]; Phantom's own create and remove [invalidate] at once.
+ */
+class CachedWorktreeSource(
+  private val delegate: WorktreeSource,
+  private val ttlMs: Long = 5_000,
+  private val clock: () -> Long = System::currentTimeMillis,
+) : WorktreeSource {
+  private val cache = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, List<Worktree>>>()
+
+  override fun list(repoPath: String): List<Worktree> {
+    val now = clock()
+    cache[repoPath]?.takeIf { now - it.first < ttlMs }?.let { return it.second }
+    return delegate.list(repoPath).also { cache[repoPath] = now to it }
+  }
+
+  fun invalidate(repoPath: String) {
+    cache.remove(repoPath)
+  }
+
+  fun invalidateAll() = cache.clear()
+}
+
+/** The views' shared worktree lists: one git run per repository however many views and hook events ask. */
+object SharedWorktrees : WorktreeSource {
+  private val cached = CachedWorktreeSource(GitWorktreeSource())
+
+  override fun list(repoPath: String): List<Worktree> = cached.list(repoPath)
+
+  fun invalidate(repoPath: String) = cached.invalidate(repoPath)
+
+  fun invalidateAll() = cached.invalidateAll()
+}

@@ -27,7 +27,7 @@ class SidebarActionsInIdeTest : BasePlatformTestCase() {
   override fun setUp() {
     super.setUp()
     AgentTerminalService.getInstance(project).replaceStarter(TerminalStarter { _: Disposable, cwd, env, command ->
-      started.add(Started(cwd, env, command))
+      started.add(Started(cwd, env, withoutMcp(command)))
       StartedTerminal(JPanel())
     })
     AiState.getInstance().setActiveAccount(AgentKind.CLAUDE, null)

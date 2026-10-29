@@ -40,7 +40,7 @@ class PublicApiInIdeTest : BasePlatformTestCase() {
     super.setUp()
     impl = newImpl(0)
     AgentTerminalService.getInstance(project).replaceStarter(TerminalStarter { _: Disposable, cwd, _, command ->
-      started.add(cwd to command)
+      started.add(cwd to withoutMcp(command))
       StartedTerminal(JPanel())
     })
     AiState.getInstance().setActiveAccount(AgentKind.CLAUDE, null)

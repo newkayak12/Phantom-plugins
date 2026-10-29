@@ -46,6 +46,22 @@ class AgentTerminalInIdeTest : BasePlatformTestCase() {
     }
   }
 
+  fun testAgentsGetPhantomMcpAndTheConfigGoesWithTheTab() {
+    val tab = service.launch("/w/repo/mcp", AgentKind.CLAUDE)!!
+    val config = java.nio.file.Path.of(com.intellij.openapi.application.PathManager.getTempPath(), "phantom-ai-mcp", "$tab.json")
+    assertTrue(started.last().command.contains("'--mcp-config' '$config'"))
+    val json = Files.readString(config)
+    assertTrue(json, json.contains("/mcp?tabId=$tab") && json.contains("Bearer ${dev.phantom.ai.hooks.HookServer.getInstance().token}"))
+
+    service.launch("/w/repo/mcp", AgentKind.CODEX)
+    val codex = started.last().command
+    assertTrue(codex, codex.contains("'-c' 'mcp_servers.phantom.url=\"http://127.0.0.1:"))
+    assertTrue(codex, codex.contains("'-c' 'mcp_servers.phantom.bearer_token_env_var=\"PHANTOM_AGENT_HOOK_TOKEN\"'"))
+
+    dev.phantom.ai.terminal.AgentTabsHost.getInstance(project).close(tab)
+    assertFalse("deleted with its tab", Files.exists(config))
+  }
+
   private fun toolWindow() = ToolWindowManager.getInstance(project).getToolWindow("Phantom AI Integration")
 
   fun testLaunchLandsInAiToolWindowWithEnvAndCommand() {
@@ -53,7 +69,7 @@ class AgentTerminalInIdeTest : BasePlatformTestCase() {
     val tab = service.launch("/w/repo/feat", AgentKind.CLAUDE)!!
     val s = started.single()
     assertEquals("/w/repo/feat", s.cwd)
-    assertEquals(LaunchCommand.launch(AgentKind.CLAUDE), s.command)
+    assertEquals(LaunchCommand.launch(AgentKind.CLAUDE), withoutMcp(s.command))
     assertEquals(tab, s.env[HookEnv.TAB_ID])
     assertNotNull(s.env[HookEnv.PORT])
     assertNotNull(s.env[HookEnv.TOKEN])
@@ -91,7 +107,7 @@ class AgentTerminalInIdeTest : BasePlatformTestCase() {
     try {
       service.launch("/w/r/x", AgentKind.CODEX)
       assertEquals(acc, started.single().env["CODEX_HOME"])
-      assertEquals(LaunchCommand.launch(AgentKind.CODEX), started.single().command)
+      assertEquals(LaunchCommand.launch(AgentKind.CODEX), withoutMcp(started.single().command))
       service.launch("/w/r/x", AgentKind.CLAUDE)
       assertFalse(started.last().env.containsKey("CLAUDE_CONFIG_DIR"))
     } finally {
@@ -108,7 +124,7 @@ class AgentTerminalInIdeTest : BasePlatformTestCase() {
     val s = AgentSession("old-1", "/w/r/y", AgentKind.CODEX, sessionId = "abc'd")
     assertTrue(service.canResume(s))
     val tab = service.resume(s)!!
-    assertEquals(LaunchCommand.resume(AgentKind.CODEX, "abc'd"), started.single().command)
+    assertEquals(LaunchCommand.resume(AgentKind.CODEX, "abc'd"), withoutMcp(started.single().command))
     assertEquals("abc'd", SessionStore.getInstance().get(tab)!!.sessionId)
   }
 

@@ -63,7 +63,7 @@ object SidebarColors {
  */
 class WorktreeTreePanel(
   private val project: Project,
-  private val worktrees: WorktreeSource = GitWorktreeSource(project),
+  private val worktrees: WorktreeSource = SharedWorktrees,
   private val prTitles: PrTitles = CachedPrTitles(GithubPrTitles()),
   private val actions: SidebarActions = SidebarActions(project),
   private val background: (Runnable) -> Unit = { ApplicationManager.getApplication().executeOnPooledThread(it) },

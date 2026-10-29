@@ -67,7 +67,7 @@ class WorktreeTreePanelInIdeTest : BasePlatformTestCase() {
     state.setActiveAccount(AgentKind.CLAUDE, null)
     state.setActiveAccount(AgentKind.CODEX, null)
     AgentTerminalService.getInstance(project).replaceStarter(TerminalStarter { _: Disposable, cwd, _, command ->
-      started.add(Started(cwd, command))
+      started.add(Started(cwd, withoutMcp(command)))
       StartedTerminal(JPanel())
     })
     state.state.sessions = mutableListOf()

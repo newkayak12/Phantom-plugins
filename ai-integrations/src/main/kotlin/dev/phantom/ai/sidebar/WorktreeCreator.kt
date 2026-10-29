@@ -80,6 +80,7 @@ class WorktreeCreator(
     if (!add.success) return Result.failure(IllegalStateException(add.error.ifBlank { "git worktree add failed" }))
     git.run(repo, GitCommand.CONFIG, listOf("--local", "branch.$branch.base", from))
     copyIncluded(repo, path)
+    SharedWorktrees.invalidate(repo)
     return Result.success(CreatedWorktree(path, branch, from))
   }
 
@@ -91,6 +92,7 @@ class WorktreeCreator(
     val args = listOf("remove") + (if (force) listOf("--force") else emptyList()) + path
     val out = git.run(repo, GitCommand.WORKTREE, args)
     if (!out.success) return out.error.ifBlank { "git worktree remove failed" }
+    SharedWorktrees.invalidate(repo)
     branch?.let { git.run(repo, GitCommand.BRANCH, listOf("-d", it)) }
     return null
   }

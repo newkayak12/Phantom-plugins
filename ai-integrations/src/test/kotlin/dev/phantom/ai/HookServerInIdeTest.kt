@@ -80,6 +80,39 @@ class HookServerInIdeTest : BasePlatformTestCase() {
     assertEquals("tabA" to """{"x":1}""", got.get())
   }
 
+  private fun mcpCall(body: String, headers: Map<String, String>): Pair<Int, String> {
+    // java.net.http: HttpURLConnection drops a restricted Origin header
+    val request = java.net.http.HttpRequest.newBuilder(URI("http://127.0.0.1:${server.port}/mcp?tabId=tabA"))
+      .header("Content-Type", "application/json").header("Accept", "application/json, text/event-stream")
+      .apply { headers.forEach { (k, v) -> header(k, v) } }
+      .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body)).build()
+    val response = java.net.http.HttpClient.newHttpClient().send(request, java.net.http.HttpResponse.BodyHandlers.ofString())
+    return response.statusCode() to response.body()
+  }
+
+  fun testMcpTakesTheBearerTokenAndAnswersJsonWithTheTabsWorktree() {
+    val seen = java.util.concurrent.atomic.AtomicReference<String?>()
+    val before = server.mcp
+    server.mcp = dev.phantom.ai.mcp.PhantomMcp(object : dev.phantom.ai.mcp.EditorBridge {
+      override fun open(worktree: String?, path: String, line: Int?, column: Int?, endLine: Int?) = path.also { seen.set(worktree) }
+      override fun context(worktree: String?) = com.google.gson.JsonObject()
+    }) { tab -> tab?.let { SessionStore.getInstance().get(it)?.worktree } }
+    try {
+      val bearer = mapOf("Authorization" to "Bearer ${server.token}")
+      val (code, body) = mcpCall("""{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"open_in_editor","arguments":{"path":"a.kt"}}}""", bearer)
+      assertEquals(200, code)
+      assertTrue(body, body.contains("\"id\":7") && body.contains("Opened a.kt"))
+      assertEquals(wt, seen.get())
+      assertEquals(202, mcpCall("""{"jsonrpc":"2.0","method":"notifications/initialized"}""", bearer).first)
+      assertEquals(403, mcpCall("""{"jsonrpc":"2.0","id":1,"method":"ping"}""", mapOf("Authorization" to "Bearer nope")).first)
+      assertEquals(403, mcpCall("""{"jsonrpc":"2.0","id":1,"method":"ping"}""", bearer + ("Origin" to "http://evil.example")).first)
+      assertEquals(200, mcpCall("""{"jsonrpc":"2.0","id":1,"method":"ping"}""", bearer + ("Origin" to "http://localhost:3000")).first)
+      assertEquals(405, call("GET", "/mcp"))
+    } finally {
+      server.mcp = before
+    }
+  }
+
   fun testEnvAndLoopback() {
     val env = HookEnv.forTab(wt, "tabA")
     assertEquals(server.port.toString(), env[HookEnv.PORT]); assertEquals(server.token, env[HookEnv.TOKEN])
