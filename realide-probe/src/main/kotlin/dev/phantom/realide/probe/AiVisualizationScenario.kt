@@ -34,7 +34,7 @@ private const val AI_TOOL_WINDOW = "Phantom AI Integration"
  * SessionStore of the dev.phantom.ai plugin through that plugin's class loader (reflection), one real stub-CLI terminal tab is
  * launched the same way, and nothing goes through real hooks or the real home (the task redirects the agent dirs and CLIs).
  * Steps: office.opens, office.floors, office.people, office.state.working|waiting|done|idle (ai-office.png), office.hover,
- * office.theme.b (theme B set through the settings service, ai-office-b.png), office.theme.a (back to A),
+ * office.theme.b (theme B set through the settings service, ai-office-b.png), office.theme.c (theme C, ai-office-c.png), office.theme.a (back to A),
  * office.click.person, office.pan, office.zoom (ai-office-zoom.png), office.timer.runs, office.timer.stops, office.timer.restarts.
  */
 internal object AiVisualizationScenario : ProbeScenario {
@@ -156,7 +156,7 @@ internal object AiVisualizationScenario : ProbeScenario {
     }
     ctx.edt { ProbeSnapshot.paint(ctx.project, ctx.out, "ai-office.png") }
 
-    // theme B: set like Settings | Tools | Phantom AI Visualization does (VizSettings.themeId, through the plugin's class loader);
+    // themes B and C: set like Settings | Tools | Phantom AI Visualization does (VizSettings.themeId, through the plugin's class loader);
     // the open tab re-renders without being reopened. Then back to A, so the remaining steps and the next run start in A.
     suspend fun setTheme(id: String): Any? = ctx.edt {
       val loader = PluginManagerCore.getPlugin(PluginId.getId("dev.phantom.ai.visualization"))?.pluginClassLoader ?: return@edt "no plugin"
@@ -165,11 +165,11 @@ internal object AiVisualizationScenario : ProbeScenario {
       cls.getMethod("setThemeId", String::class.java).invoke(svc, id)
       cls.getMethod("getThemeId").invoke(svc)
     }
-    for (id in listOf("B", "A")) {
+    for (id in listOf("B", "C", "A")) {
       val stored = setTheme(id)
       val switched = ctx.waitUntil(15_000) { canvas()?.getClientProperty(THEME) == id && people().size >= 7 }
       ctx.waitUntil(1_000) { false }
-      if (id == "B") ctx.edt { ProbeSnapshot.paint(ctx.project, ctx.out, "ai-office-b.png") }
+      if (id != "A") ctx.edt { ProbeSnapshot.paint(ctx.project, ctx.out, "ai-office-${id.lowercase()}.png") }
       report.step(
         "office.theme.${id.lowercase()}",
         expected = mapOf("stored" to id, "canvasTheme" to id, "sevenPeople" to true),

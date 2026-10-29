@@ -866,6 +866,53 @@ def build_sheet_b():
     return frames
 
 
+NIGHT_AMBIENT = (0.30, 0.32, 0.50)  # theme C: the RGB factors an unlit pixel keeps at night (ThemeC.lighting.ambient)
+
+
+def night(sp, ambient=NIGHT_AMBIENT):
+    """A copy of [sp] at night: every pixel not marked emissive (screens, lamp, night windows) is multiplied by [ambient]."""
+    n = Spr(sp.w, sp.h, sp.ax, sp.ay)
+    src, em, dst = sp.img.load(), sp.em.load(), n.img.load()
+    for y in range(sp.h):
+        for x in range(sp.w):
+            r, g, b, a = src[x, y]
+            if a == 0:
+                continue
+            if em[x, y]:
+                dst[x, y] = (r, g, b, a)
+                n.e[x, y] = 255
+            else:
+                dst[x, y] = (int(r * ambient[0]), int(g * ambient[1]), int(b * ambient[2]), a)
+    return n
+
+
+def build_sheet_c():
+    """Theme C's own sheet in OUT/c/: A's art at night under a _c suffix (windows show the night sky with stars, moon and a lit
+    skyline; everything not emissive is darkened by NIGHT_AMBIENT; the name plate boards are backlit and stay bright), the
+    people at night (person<n>_<state>_c), and the bubbles unchanged under A's names, since they are UI and never dimmed."""
+    c = build_all(Cn)
+    plate = c['nameplate']
+    for yy in range(1, 11):  # backlit board
+        for xx in range(plate.w):
+            if plate.p[xx, yy][3]:
+                plate.e[xx, yy] = 255
+    frames = {}
+    for k in ('floor_wood_0', 'floor_wood_1', 'floor_wood_2', 'wall_rw', 'wall_rw_window', 'wall_lw', 'wall_lw_window',
+              'wall_corner', 'desk_rw', 'desk_lw', 'chair_seat_rw', 'chair_back_rw', 'chair_lw', 'rug_0', 'rug_1', 'rug_2',
+              'nameplate', 'whiteboard_rw', 'whiteboard_lw', 'clock_rw', 'poster_rw', 'bookshelf_lw', 'coffee_lw',
+              'plant_big', 'lamp'):
+        frames[k + '_c'] = night(c[k])
+    for vi, P in enumerate(PEOPLE):
+        for st in ('working', 'waiting', 'done', 'idle'):
+            frames[f'person{vi}_{st}_c'] = night(person(P, st))
+    for st in ('working', 'waiting', 'done', 'idle'):
+        frames[f'bubble_{st}'] = bubble(st)
+    out = f'{OUT}/c'
+    os.makedirs(out, exist_ok=True)
+    pack(frames, out)
+    return frames
+
+
 def preview(frames):
     S = 4
     font = ImageFont.truetype(FONT, 13, index=4)
@@ -909,3 +956,5 @@ if __name__ == '__main__':
     print(len(fr), 'frames (theme A sheet)')
     fb = build_sheet_b()
     print(len(fb), 'frames (theme B sheet, b/)')
+    fc = build_sheet_c()
+    print(len(fc), 'frames (theme C sheet, c/)')

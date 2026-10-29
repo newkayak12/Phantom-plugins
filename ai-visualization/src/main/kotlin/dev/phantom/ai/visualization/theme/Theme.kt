@@ -20,6 +20,22 @@ data class Offset(val dx: Int, val dy: Int) {
   companion object { val ZERO = Offset(0, 0) }
 }
 
+/** RGB light factors, about 0..1 per channel. */
+data class Tint(val r: Float, val g: Float, val b: Float)
+
+/**
+ * A light cast by every scene item drawn with [frame]: centred ([dx], [dy]) scene pixels from the item's anchor, reaching [radius]
+ * pixels across (half that up and down, the 2:1 floor), adding up to [color] x [strength] at its centre with a dithered falloff.
+ */
+data class LightSource(val frame: String, val dx: Int, val dy: Int, val radius: Int, val color: Tint, val strength: Float)
+
+/**
+ * A lit scene. The theme's frames are already shaded by [ambient] (an unlit pixel keeps these factors of its day color); pixels
+ * brighter than [ambient] allows are the sheet's own glowing pixels (screens, lamps, lit windows) and stay as they are. Every other
+ * pixel inside a light's reach is brightened by it, as if the light were added to the ambient light.
+ */
+data class Lighting(val ambient: Tint, val sources: List<LightSource>)
+
 /**
  * A look for the office: an atlas (image + frame index in the classpath), a [Palette] and the frame names the renderer asks for.
  * Adding a theme is a new implementation, its sprites and one line in [Themes]; model, layout and renderer do not change.
@@ -69,6 +85,12 @@ interface Theme {
    */
   fun partition(o: Orientation): String? = null
 
+  /**
+   * The scene's lighting, drawn over the room after every sprite and before the bubbles, plate labels and tags (which are never
+   * dimmed); null (the default) draws the frames as they are.
+   */
+  val lighting: Lighting? get() = null
+
   /** How many different people (hair, shirt) there are. */
   val personVariants: Int
   fun person(variant: Int, state: VizState): String
@@ -101,6 +123,7 @@ interface Theme {
     addAll(listOf(wallRight, wallRightWindow, wallLeft, wallLeftWindow, wallCorner, nameplate))
     addAll(rugFrames)
     decor.forEach { add(it.frame) }
+    lighting?.sources?.forEach { add(it.frame) }
     for (o in Orientation.values()) {
       partition(o)?.let { add(it) }
       add(desk(o))

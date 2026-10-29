@@ -152,6 +152,8 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
           sprite(g, frameName, it.x + off.dx, it.y + off.dy)
         }
       }
+      // the theme's lighting goes over the room and under the bubbles, which stay readable
+      theme.lighting?.let { LightOverlay.apply(img, LightOverlay.lights(scene, it), it) }
       for (p in scene.people) {
         val (name, off) = bubbleAt(p, phase)
         val b = p.bubbleBounds

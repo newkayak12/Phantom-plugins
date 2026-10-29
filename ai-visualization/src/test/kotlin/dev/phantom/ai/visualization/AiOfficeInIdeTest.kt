@@ -59,7 +59,7 @@ class AiOfficeInIdeTest : BasePlatformTestCase() {
     assertSame(AiOfficeFile.of(project), AiOfficeFile.of(project))
   }
 
-  fun testSettingsOfferBothThemesAndApplyingOneReRendersAnOpenOffice() {
+  fun testSettingsOfferEveryThemeAndApplyingOneReRendersAnOpenOffice() {
     val settings = VizSettings.getInstance()
     val before = settings.themeId
     settings.themeId = "A"
@@ -70,7 +70,7 @@ class AiOfficeInIdeTest : BasePlatformTestCase() {
       fun combos(c: java.awt.Component): List<JComboBox<*>> =
         (if (c is JComboBox<*>) listOf(c) else emptyList()) + ((c as? Container)?.components?.flatMap { combos(it) } ?: emptyList())
       val combo = combos(configurable.createComponent()).single()
-      assertEquals(listOf("A", "B"), (0 until combo.itemCount).map { (combo.getItemAt(it) as dev.phantom.ai.visualization.theme.Theme).id })
+      assertEquals(listOf("A", "B", "C"), (0 until combo.itemCount).map { (combo.getItemAt(it) as dev.phantom.ai.visualization.theme.Theme).id })
       combo.selectedIndex = 1
       assertTrue(configurable.isModified)
       configurable.apply()
@@ -78,6 +78,11 @@ class AiOfficeInIdeTest : BasePlatformTestCase() {
       assertEquals("B", settings.themeId)
       assertEquals("B", editor.panel().canvas.theme.id)
       assertEquals("B", editor.panel().canvas.getClientProperty("phantom.aiviz.theme"))
+      combo.selectedIndex = 2
+      configurable.apply()
+      PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+      assertEquals("C", editor.panel().canvas.theme.id)
+      assertEquals("C", editor.panel().canvas.getClientProperty("phantom.aiviz.theme"))
       settings.themeId = "A"
       PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
       assertEquals("A", editor.panel().canvas.theme.id)
