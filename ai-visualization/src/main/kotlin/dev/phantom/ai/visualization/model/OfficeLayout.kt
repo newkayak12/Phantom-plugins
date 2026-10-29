@@ -339,7 +339,7 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
     val bubble = theme.bubble(p.state)
     val b = atlas[bubble]
     val head = y - f.anchorY
-    val bubbleBounds = Rect(x + theme.bubbleAnchorDx - b.anchorX, head + theme.bubbleAnchorDy - b.anchorY, b.w, b.h)
+    val bubbleBounds = Rect(x + theme.bubbleAnchorDx(facing) - b.anchorX, head + theme.bubbleAnchorDy - b.anchorY, b.w, b.h)
     return PersonPlacement(p, ai, seat, frame, x, y, sitting, Rect(x - f.anchorX, y - f.anchorY, f.w, f.h), bubble, bubbleBounds, u, v, facing)
   }
 

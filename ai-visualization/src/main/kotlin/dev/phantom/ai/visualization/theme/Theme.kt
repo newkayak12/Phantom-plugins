@@ -114,6 +114,12 @@ interface Theme {
   val bubbleAnchorDx: Int get() = 3
   val bubbleAnchorDy: Int get() = -1
 
+  /**
+   * [bubbleAnchorDx] for one seated at a desk of orientation [facing] (null: standing, or a subordinate): a theme whose people at
+   * some desks sit away from the chair point (behind the desk, facing us) says where their head is. The default ignores [facing].
+   */
+  fun bubbleAnchorDx(facing: Orientation?): Int = bubbleAnchorDx
+
   /** Animation: [animationPhases] phases (2..4), one every [animationPeriodMs]. */
   val animationPhases: Int get() = 4
   val animationPeriodMs: Int get() = 250
