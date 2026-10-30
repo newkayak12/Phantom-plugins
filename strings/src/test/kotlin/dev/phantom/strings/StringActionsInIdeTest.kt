@@ -26,6 +26,30 @@ class StringActionsInIdeTest : BasePlatformTestCase() {
     myFixture.checkResult("b\na<caret>")
   }
 
+  fun `test a selected identifier stays selected`() {
+    myFixture.configureByText("a.txt", "x <selection>userId</selection> y")
+    myFixture.testAction(TransformAction(Transform.SNAKE))
+    myFixture.checkResult("x <selection>user_id</selection> y")
+  }
+
+  fun `test a Kotlin template keeps its dollar`() {
+    myFixture.configureByText("a.kt", "val s = \"Hi \$user<caret>Name\"")
+    myFixture.testAction(TransformAction(Transform.SNAKE))
+    myFixture.checkResult("val s = \"Hi \$user_name<caret>\"")
+  }
+
+  fun `test two carets in one identifier convert it once`() {
+    myFixture.configureByText("a.txt", "user<caret>I<caret>d")
+    myFixture.testAction(TransformAction(Transform.CYCLE))
+    assertEquals("user_id", myFixture.editor.document.text)
+  }
+
+  fun `test base64 that is not text leaves the document as it was`() {
+    myFixture.configureByText("a.txt", "<selection>test</selection>")
+    myFixture.testAction(TransformAction(Transform.DECODE_BASE64))
+    myFixture.checkResult("<selection>test</selection>")
+  }
+
   fun `test the group and the popup action are registered`() {
     assertNotNull(ActionManager.getInstance().getAction("Phantom.Strings"))
     assertNotNull(ActionManager.getInstance().getAction("Phantom.Strings.Popup"))

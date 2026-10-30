@@ -402,7 +402,7 @@
     {
       "id": "dev.phantom.workspaces",
       "name": "Phantom Workspaces",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "source": "workspaces",
       "description": "All open projects as tabs of one window: a tab strip above the editor lists every open project (click to switch, middle-click or the close button to close, drag to reorder), and only the project in front has a window on screen, the others hidden behind it, so there is one window and a project you open comes in as a new tab. Project windows share one size, position and maximized state; a project switched to also takes full screen. Every project tab takes the tool window layout of the one in front (stripe sides and order, open tool windows, sizes). Next/previous project: Window | Next Project Window. Works on every OS, no native window tabs; off in Settings | Advanced Settings | Phantom Workspaces. Moved out of the Phantom bundle so it updates like any other plugin.",
       "vendor": "Phantom",
@@ -412,13 +412,13 @@
       "depends": [
         "com.intellij.modules.platform"
       ],
-      "download": "workspaces-0.4.0/workspaces-0.4.0.zip",
+      "download": "workspaces-0.4.1/workspaces-0.4.1.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.strings",
       "name": "Phantom Strings",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "strings",
       "description": "Text conversions on each selection, or on the identifier at the caret: switch case (camelCase, snake_case, SCREAMING_SNAKE_CASE, kebab-case, PascalCase in turn) or convert to one of them, dot.case, words, upper and lower case; escape and unescape Java/Kotlin strings and HTML/XML, URL and Base64 encode and decode; sort, reverse, shuffle, deduplicate and trim lines, remove blank ones. Alt+M opens them in a popup with speed search; also under Edit and the editor's context menu. Works with several carets. Replaces the StringManipulation plugin: turn that one off.",
       "vendor": "Phantom",
@@ -428,13 +428,13 @@
       "depends": [
         "com.intellij.modules.platform"
       ],
-      "download": "strings-0.1.0/strings-0.1.0.zip",
+      "download": "strings-0.1.1/strings-0.1.1.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.rainbow",
       "name": "Phantom Rainbow",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "rainbow",
       "description": "Brackets colored by nesting depth, (), [] and {} each counted on their own, in every language whose brackets the IDE matches; each line's indentation colored by level, as wide as the file's indent size. Either can be turned off under Settings | Editor | Rainbow; the colors are under Editor | Color Scheme | Rainbow. Replaces Rainbow Brackets and Indent Rainbow: turn those off.",
       "vendor": "Phantom",
@@ -444,13 +444,13 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "rainbow-0.1.0/rainbow-0.1.0.zip",
+      "download": "rainbow-0.1.1/rainbow-0.1.1.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.ignore",
       "name": "Phantom Ignore Files",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "ignore",
       "description": ".dockerignore, .npmignore, .helmignore, .prettierignore, .eslintignore, .stylelintignore, .gcloudignore and .vscodeignore edited like .gitignore: highlighting, path completion and navigation, comments, duplicate entry checks. New | Ignore File from Template adds templates (Java, Kotlin, Gradle, Maven, IntelliJ, VS Code, macOS, Windows, Linux, Node, Python, Go, Rust, Docker) to any of these files or .gitignore, skipping lines the file already has. Replaces the .ignore plugin: turn that one off.",
       "vendor": "Phantom",
@@ -461,13 +461,13 @@
         "com.intellij.modules.lang",
         "com.intellij.modules.vcs"
       ],
-      "download": "ignore-0.1.0/ignore-0.1.0.zip",
+      "download": "ignore-0.1.1/ignore-0.1.1.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.bytecode",
       "name": "Phantom Bytecode Viewer",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "bytecode",
       "description": "The bytecode of a compiled Java or Kotlin class in the ASM format: select a .java, .kt or .class file, or put the caret in a class, and open View | Show Bytecode. The Bytecode tool window follows the editor's caret and selection to the matching instructions and can hide debug information. Ported from the IntelliJ Community Bytecode Viewer (Apache 2.0) so it updates without a new Phantom build; turn the bundled Bytecode Viewer off if your Phantom still bundles it.",
       "vendor": "Phantom",
@@ -477,7 +477,7 @@
       "depends": [
         "com.intellij.java"
       ],
-      "download": "bytecode-0.1.0/bytecode-0.1.0.zip",
+      "download": "bytecode-0.1.1/bytecode-0.1.1.zip",
       "detect": []
     },
     {
@@ -499,7 +499,7 @@
     {
       "id": "dev.phantom.modalcommit",
       "name": "Phantom Modal Commit",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "modal-commit",
       "description": "The modal commit dialog for Git and Mercurial instead of the Commit tool window: Settings | Advanced Settings | Version Control | Use modal commit interface. Ported from the IntelliJ Community Modal Commit Interface (Apache 2.0) so it updates without a new Phantom build; turn the bundled one off if your Phantom still bundles it.",
       "vendor": "Phantom",
@@ -509,7 +509,7 @@
       "depends": [
         "com.intellij.modules.vcs"
       ],
-      "download": "modal-commit-0.1.0/modal-commit-0.1.0.zip",
+      "download": "modal-commit-0.1.1/modal-commit-0.1.1.zip",
       "detect": []
     }
   ]

@@ -46,6 +46,7 @@ internal class ShowBytecodeAction : DumbAwareAction() {
                        anchor = ToolWindowAnchor.RIGHT
                        hideOnEmptyContent = true
                        canCloseContent = true
+                       stripeTitle = BytecodeViewerBundle.messagePointer("toolwindow.stripe.title")
                      }
     BytecodeToolWindowService.getInstance(project).ensureContentManagerListenerRegistered(toolWindow)
 
@@ -86,17 +87,18 @@ internal class ShowBytecodeAction : DumbAwareAction() {
     }
 
 
-    val panel = BytecodeToolWindowPanel(project, psiClass, classFile)
-
+    // An open tab for this class is reused as is: a second panel would take over its disposer and leak the first one's editor
     val content = toolWindow.contentManager.contents.firstOrNull { it.getUserData(JAVA_CLASS_FILE) == classFile }
-                  ?: ContentFactory.getInstance().createContent(panel, classFile.presentableName, false).apply {
-                    description = classFile.presentableUrl // appears on tab hover
-                    putUserData(JAVA_CLASS_FILE, classFile)
+                  ?: BytecodeToolWindowPanel(project, psiClass, classFile).let { panel ->
+                    ContentFactory.getInstance().createContent(panel, classFile.presentableName, false).apply {
+                      description = classFile.presentableUrl // appears on tab hover
+                      putUserData(JAVA_CLASS_FILE, classFile)
+                      setDisposer(panel)
+                      toolWindow.contentManager.addContent(this)
+                    }
                   }
+    val panel = content.component
 
-
-    toolWindow.contentManager.addContent(content)
-    content.setDisposer(panel)
     toolWindow.contentManager.setSelectedContent(content)
     toolWindow.setAdditionalGearActions(createActionGroup())
     toolWindow.activate {

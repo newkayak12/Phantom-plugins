@@ -57,11 +57,21 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
   var front: StackedWindow? = null
     private set
 
-  /** Only the window in front is shown. Turning it off shows every window again. */
+  /**
+   * Only the window in front is shown. Turning it off shows every window again; the OS puts a window it shows on top, so
+   * the one in front is brought back over them.
+   */
   var single: Boolean = false
     set(value) {
       field = value
-      if (value) hideBehind() else windows.filter { !it.isShown }.forEach { it.show(true) }
+      if (value) {
+        hideBehind()
+        return
+      }
+      val hidden = windows.filter { !it.isShown }
+      if (hidden.isEmpty()) return
+      hidden.forEach { it.show(true) }
+      front?.activate()
     }
 
   /** A move of the window in front is still to be pushed: [flush] again later. */
@@ -175,12 +185,17 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
     if (single) hideBehind()
   }
 
-  /** The stack is switched back on: [window] in front leads as it is now, the others follow. */
+  /**
+   * The stack is switched back on: [window] in front leads as it is now, the others follow. While [single] it is the one
+   * shown: turning single on hid every window but the one in front before, which the stack stops following while off.
+   */
   fun lead(window: StackedWindow) {
     if (!contains(window)) return
     toFront(window)
+    if (!window.isShown) window.show(true)
     pending = true
     flush()
+    if (single) hideBehind()
   }
 
   /**

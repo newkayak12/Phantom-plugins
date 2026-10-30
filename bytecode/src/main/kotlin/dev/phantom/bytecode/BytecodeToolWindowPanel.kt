@@ -123,7 +123,8 @@ internal class BytecodeToolWindowPanel(
   }
 
   companion object {
-    const val TOOL_WINDOW_ID: String = "Bytecode"
+    // Not "Bytecode": that is the bundled Bytecode Viewer's tool window, whose tabs this plugin's code can't read
+    const val TOOL_WINDOW_ID: String = "Phantom Bytecode"
 
     private val LOG = Logger.getInstance(BytecodeToolWindowPanel::class.java)
 

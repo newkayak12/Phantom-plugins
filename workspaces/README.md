@@ -12,6 +12,8 @@ All open projects as tabs of one window.
 
 Until 2026-10-26 this was bundled with Phantom (`phantom-workspaces`); it is a plugin now so it updates without a new Phantom build.
 
+**0.4.1**: turning Phantom Workspaces off keeps the project you were looking at in front instead of covering it with another project's window, and turning it back on keeps the active project's window on screen instead of hiding it.
+
 **0.4.0**: project tabs can be dragged to a new place. A line shows where the tab goes; the order is the same in every window and is the order Next/Previous Project Window goes through.
 
 **0.3.0**: every project tab shows its tool windows in the same place. Each project keeps its tool window layout in its own workspace.xml, so switching tabs moved the Project, Terminal and other tool windows to where that project had them; now the project switched to takes the layout of the one in front.

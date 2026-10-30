@@ -67,30 +67,38 @@ class TransformAction(private val transform: Transform) : DumbAwareAction(Phanto
     var failed = false
     WriteCommandAction.runWriteCommandAction(e.project, templateText, null, {
       // last caret first, so a replacement does not move the ranges of the carets before it
+      var lastStart = -1
       for (caret in editor.caretModel.allCarets.asReversed()) {
-        if (!apply(editor, caret)) failed = true
+        val start = apply(editor, caret, lastStart)
+        if (start == null) failed = true else lastStart = start
       }
     })
     if (failed) HintManager.getInstance().showErrorHint(editor, PhantomStringsBundle.message("transform.failed"))
   }
 
-  private fun apply(editor: Editor, caret: Caret): Boolean {
+  /**
+   * Converts the caret's range unless it starts at [doneStart], the range converted for the caret after it (two carets in
+   * one identifier). Returns the range's start, or null if the transform rejected the text.
+   */
+  private fun apply(editor: Editor, caret: Caret, doneStart: Int): Int? {
     val text = editor.document.charsSequence
+    val selected = caret.hasSelection()
     val (start, end) = when {
-      caret.hasSelection() -> caret.selectionStart to caret.selectionEnd
-      transform.kind == Kind.WORD -> wordAt(text, caret.offset) ?: return true
-      else -> return true
+      selected -> caret.selectionStart to caret.selectionEnd
+      transform.kind == Kind.WORD -> wordAt(text, caret.offset) ?: return doneStart
+      else -> return doneStart
     }
+    if (start == doneStart) return start
     val result = try {
       transform.apply(text.subSequence(start, end).toString())
     }
     catch (_: IllegalArgumentException) {
-      return false
+      return null
     }
     editor.document.replaceString(start, end, result)
-    if (caret.hasSelection() || transform.kind != Kind.WORD) caret.setSelection(start, start + result.length)
+    if (selected) caret.setSelection(start, start + result.length)
     else caret.moveToOffset(start + result.length)
-    return true
+    return start
   }
 
   private fun wordAt(text: CharSequence, offset: Int): Pair<Int, Int>? {

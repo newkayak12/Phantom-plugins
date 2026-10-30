@@ -559,6 +559,36 @@ class WindowStackTest {
     assertTrue(b.isShown)
   }
 
+  // the OS puts a window it shows on top: the one in front is brought back over them, so the project on screen stays
+  @Test
+  fun `turning single mode off keeps the window in front on top`() {
+    stack.single = true
+    val a = window("a")
+    val b = window("b")
+    stack.add(a)
+    stack.add(b)
+    log.clear()
+    stack.single = false
+    assertEquals(listOf("show a", "activate b"), log)
+  }
+
+  // the stack is turned back on while a window other than the last one in front is active (the stack does not follow
+  // activations while off): turning single on hid that window, and it must be the one left on screen
+  @Test
+  fun `turning the stack back on in single mode shows the window that leads and hides the others`() {
+    val a = window("a")
+    val b = window("b")
+    stack.add(a)
+    stack.add(b)
+    stack.switchTo(b)
+    stack.single = true
+    assertFalse(a.isShown)
+    stack.lead(a)
+    assertSame(a, stack.front)
+    assertTrue(a.isShown)
+    assertFalse(b.isShown)
+  }
+
   @Test
   fun `a window activated some other way comes to front and hides the others in single mode`() {
     stack.single = true

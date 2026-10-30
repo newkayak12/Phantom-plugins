@@ -62,4 +62,27 @@ class StringTransformsTest {
     assertEquals("a\nb", StringTransforms.trimLines("  a \n\tb"))
     assertEquals(setOf("a", "b", "c"), StringTransforms.shuffleLines("a\nb\nc", Random(1)).split("\n").toSet())
   }
+
+  @Test
+  fun `case conversions keep leading and trailing separators`() {
+    assertEquals("_foo_bar", StringTransforms.snake("_fooBar"))
+    assertEquals("__init__", StringTransforms.camel("__init__"))
+    assertEquals("\$user_name", StringTransforms.snake("\$userName"))
+    assertEquals("_FOO_", StringTransforms.screamingSnake("_foo_"))
+    assertEquals(" user id ", StringTransforms.spaced(" userId "))
+    assertEquals("---", StringTransforms.camel("---"))
+    assertEquals("_user_id", StringTransforms.cycleCase("_userId"))
+    assertEquals("_userId", StringTransforms.cycleCase("_UserId"))
+  }
+
+  @Test
+  fun `numeric character references are unescaped`() {
+    assertEquals("'' <&lt;😀", StringTransforms.unescapeHtml("&#39;&#x27; &lt;&amp;lt;&#128512;"))
+    assertEquals("&#xZZ; &#99999999; &bogus;", StringTransforms.unescapeHtml("&#xZZ; &#99999999; &bogus;"))
+  }
+
+  @Test(expected = IllegalArgumentException::class)
+  fun `base64 that is not UTF-8 text throws instead of inserting replacement characters`() {
+    StringTransforms.decodeBase64("test")
+  }
 }

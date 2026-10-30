@@ -13,6 +13,7 @@ import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
+import com.intellij.openapi.vfs.ReadonlyStatusHandler
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.CheckBoxList
 import com.intellij.ui.components.JBScrollPane
@@ -29,7 +30,7 @@ class AddIgnoreTemplateAction : DumbAwareAction() {
   override fun getActionUpdateThread() = ActionUpdateThread.BGT
 
   override fun update(e: AnActionEvent) {
-    e.presentation.isEnabledAndVisible = e.project != null && directory(e) != null
+    e.presentation.isEnabledAndVisible = e.project != null && directory(e)?.fileSystem?.isReadOnly == false
   }
 
   override fun actionPerformed(e: AnActionEvent) {
@@ -40,15 +41,25 @@ class AddIgnoreTemplateAction : DumbAwareAction() {
     val chosen = dialog.templates()
     if (chosen.isEmpty()) return
     val fileName = dialog.fileName()
-    val templates = chosen.map { it to IgnoreTemplates.load(it) }
-    val file = WriteCommandAction.writeCommandAction(project).withName(PhantomIgnoreBundle.message("action.command")).compute<VirtualFile, Exception> {
-      val file = dir.findChild(fileName) ?: dir.createChildData(this, fileName)
-      val document = FileDocumentManager.getInstance().getDocument(file)
-      if (document != null) document.setText(IgnoreTemplates.merge(document.text, templates))
-      else file.setBinaryContent(IgnoreTemplates.merge(String(file.contentsToByteArray(), Charsets.UTF_8), templates).toByteArray())
-      file
-    }
+    val file = addTemplates(project, dir, fileName, chosen.map { it to IgnoreTemplates.load(it) }) ?: return
     FileEditorManager.getInstance(project).openFile(file, true)
+  }
+
+  companion object {
+    /** Appends [templates] to [fileName] in [dir], creating it; null if the file stays read-only. */
+    fun addTemplates(project: Project, dir: VirtualFile, fileName: String, templates: List<Pair<String, String>>): VirtualFile? {
+      val existing = dir.findChild(fileName)
+      if (existing != null && ReadonlyStatusHandler.getInstance(project).ensureFilesWritable(listOf(existing)).hasReadonlyFiles()) {
+        return null
+      }
+      return WriteCommandAction.writeCommandAction(project).withName(PhantomIgnoreBundle.message("action.command")).compute<VirtualFile, Exception> {
+        val file = existing ?: dir.createChildData(this, fileName)
+        val document = FileDocumentManager.getInstance().getDocument(file)
+        if (document != null) document.setText(IgnoreTemplates.merge(document.text, templates))
+        else file.setBinaryContent(IgnoreTemplates.merge(String(file.contentsToByteArray(), Charsets.UTF_8), templates).toByteArray())
+        file
+      }
+    }
   }
 
   private fun directory(e: AnActionEvent): VirtualFile? {
