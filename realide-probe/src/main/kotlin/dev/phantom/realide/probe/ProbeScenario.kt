@@ -54,6 +54,7 @@ object ProbeScenarios {
     all["tabs"] = TabsScenario
     all["tabs-restart"] = TabsRestartScenario
     all["workspaces"] = WorkspacesScenario
+    all["workspaces-layout"] = WorkspacesLayoutScenario
     all["ai-integrations"] = AiIntegrationsScenario
     all["ai-visualization"] = AiVisualizationScenario
   }

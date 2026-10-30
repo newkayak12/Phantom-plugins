@@ -18,6 +18,8 @@
     <ideRootPaneNorth implementation="dev.phantom.workspaces.core.ProjectTabsNorthExtension" order="last"/>
     <advancedSetting id="phantom.workspaces.project.tabs" default="true"
                      bundle="messages.PhantomWorkspacesBundle" groupKey="advanced.settings.phantom.workspaces"/>
+    <advancedSetting id="phantom.workspaces.sync.tool.windows" default="true"
+                     bundle="messages.PhantomWorkspacesBundle" groupKey="advanced.settings.phantom.workspaces"/>
   </extensions>
   <actions>
     <action id="NextProjectWindow" class="dev.phantom.workspaces.core.NextProjectAction" overrides="true" text="Next Project Window"/>

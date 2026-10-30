@@ -123,7 +123,14 @@ class ProjectTabsService : Disposable {
   @RequiresEdt
   fun switchTo(project: Project): Boolean {
     val window = strips.firstOrNull { it.project === project }?.window ?: return false
-    if (isEnabled) stack.switchTo(window) else window.activate()
+    if (isEnabled) {
+      // before the window comes to front, so it shows with the layout already
+      strips.firstOrNull { it.window === stack.front }?.project?.let { ToolWindowLayoutSync.copy(it, project) }
+      stack.switchTo(window)
+    }
+    else {
+      window.activate()
+    }
     return true
   }
 
