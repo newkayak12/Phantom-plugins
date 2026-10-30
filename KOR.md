@@ -44,6 +44,9 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom Strings | [strings](./strings/KOR.md) · [English](./strings/README.md) | 선택 영역이나 캐럿의 단어에 대소문자 전환·변환, 이스케이프/인코딩, 줄 정렬·정리 (Alt+M) |
 | Phantom Rainbow | [rainbow](./rainbow/KOR.md) · [English](./rainbow/README.md) | 모든 언어에서 괄호를 중첩 깊이별로, 들여쓰기를 단계별로 색칠 |
 | Phantom Ignore Files | [ignore](./ignore/KOR.md) · [English](./ignore/README.md) | .dockerignore, .npmignore, .helmignore 등을 .gitignore처럼 편집; ignore 파일 템플릿 |
+| Phantom Bytecode Viewer | [bytecode](./bytecode/KOR.md) · [English](./bytecode/README.md) | 컴파일된 Java·Kotlin 클래스의 ASM 바이트코드, 에디터 캐럿과 동기화 |
+| Phantom WebP | [webp](./webp/KOR.md) · [English](./webp/README.md) | 네이티브 라이브러리 없이 Java로 디코딩하는 WebP 이미지 보기 |
+| Phantom Modal Commit | [modal-commit](./modal-commit/KOR.md) · [English](./modal-commit/README.md) | Git·Mercurial에서 Commit 도구 창 대신 모달 커밋 대화상자 |
 
 ## 저장소 형식
 

@@ -1,0 +1,21 @@
+<idea-plugin>
+  <id>dev.phantom.webp</id>
+  <name>Phantom WebP</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Images</category>
+  <description><![CDATA[
+  Opens <a href="https://developers.google.com/speed/webp">WebP</a> images (lossy, lossless, with alpha) in the image
+  editor and in thumbnails, like PNG. Decoding is done in Java by the TwelveMonkeys ImageIO WebP reader (BSD), with no
+  native library, so it works the same on every OS. Reading only: the IDE does not save WebP files. Replaces the bundled
+  WebP plugin; turn that one off if your Phantom still bundles it.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.platform.images"/>
+  </dependencies>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <fileType name="Image" extensions="webp"/>
+    <imageReaderWriterSpi type="read" implementationClass="com.twelvemonkeys.imageio.plugins.webp.WebPImageReaderSpi"/>
+  </extensions>
+</idea-plugin>

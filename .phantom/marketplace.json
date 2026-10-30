@@ -463,6 +463,54 @@
       ],
       "download": "ignore-0.1.0/ignore-0.1.0.zip",
       "detect": []
+    },
+    {
+      "id": "dev.phantom.bytecode",
+      "name": "Phantom Bytecode Viewer",
+      "version": "0.1.0",
+      "source": "bytecode",
+      "description": "The bytecode of a compiled Java or Kotlin class in the ASM format: select a .java, .kt or .class file, or put the caret in a class, and open View | Show Bytecode. The Bytecode tool window follows the editor's caret and selection to the matching instructions and can hide debug information. Ported from the IntelliJ Community Bytecode Viewer (Apache 2.0) so it updates without a new Phantom build; turn the bundled Bytecode Viewer off if your Phantom still bundles it.",
+      "vendor": "Phantom",
+      "category": "JVM Tools",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.java"
+      ],
+      "download": "bytecode-0.1.0/bytecode-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.webp",
+      "name": "Phantom WebP",
+      "version": "0.1.0",
+      "source": "webp",
+      "description": "WebP images (lossy, lossless, alpha) open in the image editor and as thumbnails, decoded in Java by the TwelveMonkeys ImageIO reader (BSD) with no native library. Reading only. Replaces the bundled WebP plugin; turn that one off if your Phantom still bundles it.",
+      "vendor": "Phantom",
+      "category": "Images",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.platform.images"
+      ],
+      "download": "webp-0.1.0/webp-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.modalcommit",
+      "name": "Phantom Modal Commit",
+      "version": "0.1.0",
+      "source": "modal-commit",
+      "description": "The modal commit dialog for Git and Mercurial instead of the Commit tool window: Settings | Advanced Settings | Version Control | Use modal commit interface. Ported from the IntelliJ Community Modal Commit Interface (Apache 2.0) so it updates without a new Phantom build; turn the bundled one off if your Phantom still bundles it.",
+      "vendor": "Phantom",
+      "category": "Version Controls",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.vcs"
+      ],
+      "download": "modal-commit-0.1.0/modal-commit-0.1.0.zip",
+      "detect": []
     }
   ]
 }

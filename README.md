@@ -44,6 +44,9 @@ Public repositories need no token.
 | Phantom Strings | [strings](./strings/README.md) · [한국어](./strings/KOR.md) | Case switching and conversion, escape/encode, line sort and cleanup on selections or the word at the caret (Alt+M) |
 | Phantom Rainbow | [rainbow](./rainbow/README.md) · [한국어](./rainbow/KOR.md) | Brackets colored by nesting depth and indentation colored by level, in every language |
 | Phantom Ignore Files | [ignore](./ignore/README.md) · [한국어](./ignore/KOR.md) | .dockerignore, .npmignore, .helmignore and more edited like .gitignore; ignore file templates |
+| Phantom Bytecode Viewer | [bytecode](./bytecode/README.md) · [한국어](./bytecode/KOR.md) | ASM bytecode of a compiled Java or Kotlin class, synced with the editor's caret |
+| Phantom WebP | [webp](./webp/README.md) · [한국어](./webp/KOR.md) | WebP images in the image editor, decoded in Java with no native library |
+| Phantom Modal Commit | [modal-commit](./modal-commit/README.md) · [한국어](./modal-commit/KOR.md) | The modal commit dialog for Git and Mercurial instead of the Commit tool window |
 
 ## Repository format
 
