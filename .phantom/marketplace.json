@@ -414,6 +414,55 @@
       ],
       "download": "workspaces-0.2.0/workspaces-0.2.0.zip",
       "detect": []
+    },
+    {
+      "id": "dev.phantom.strings",
+      "name": "Phantom Strings",
+      "version": "0.1.0",
+      "source": "strings",
+      "description": "Text conversions on each selection, or on the identifier at the caret: switch case (camelCase, snake_case, SCREAMING_SNAKE_CASE, kebab-case, PascalCase in turn) or convert to one of them, dot.case, words, upper and lower case; escape and unescape Java/Kotlin strings and HTML/XML, URL and Base64 encode and decode; sort, reverse, shuffle, deduplicate and trim lines, remove blank ones. Alt+M opens them in a popup with speed search; also under Edit and the editor's context menu. Works with several carets. Replaces the StringManipulation plugin: turn that one off.",
+      "vendor": "Phantom",
+      "category": "Editor",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.platform"
+      ],
+      "download": "strings-0.1.0/strings-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.rainbow",
+      "name": "Phantom Rainbow",
+      "version": "0.1.0",
+      "source": "rainbow",
+      "description": "Brackets colored by nesting depth, (), [] and {} each counted on their own, in every language whose brackets the IDE matches; each line's indentation colored by level, as wide as the file's indent size. Either can be turned off under Settings | Editor | Rainbow; the colors are under Editor | Color Scheme | Rainbow. Replaces Rainbow Brackets and Indent Rainbow: turn those off.",
+      "vendor": "Phantom",
+      "category": "Editor",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "rainbow-0.1.0/rainbow-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.ignore",
+      "name": "Phantom Ignore Files",
+      "version": "0.1.0",
+      "source": "ignore",
+      "description": ".dockerignore, .npmignore, .helmignore, .prettierignore, .eslintignore, .stylelintignore, .gcloudignore and .vscodeignore edited like .gitignore: highlighting, path completion and navigation, comments, duplicate entry checks. New | Ignore File from Template adds templates (Java, Kotlin, Gradle, Maven, IntelliJ, VS Code, macOS, Windows, Linux, Node, Python, Go, Rust, Docker) to any of these files or .gitignore, skipping lines the file already has. Replaces the .ignore plugin: turn that one off.",
+      "vendor": "Phantom",
+      "category": "Editor",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang",
+        "com.intellij.modules.vcs"
+      ],
+      "download": "ignore-0.1.0/ignore-0.1.0.zip",
+      "detect": []
     }
   ]
 }

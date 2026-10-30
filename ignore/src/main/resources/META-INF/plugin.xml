@@ -1,0 +1,88 @@
+<idea-plugin>
+  <id>dev.phantom.ignore</id>
+  <name>Phantom Ignore Files</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Editor</category>
+  <description><![CDATA[
+  .dockerignore, .npmignore, .helmignore, .prettierignore, .eslintignore, .stylelintignore, .gcloudignore and
+  .vscodeignore edited like .gitignore: highlighting, path completion and navigation, comments, duplicate entry checks.
+  New | Ignore File from Template adds templates (Java, Kotlin, Gradle, Maven, IntelliJ, VS Code, macOS, Windows, Linux,
+  Node, Python, Go, Rust, Docker; adapted from github/gitignore, CC0) to any of these files or .gitignore, skipping
+  lines the file already has. Replaces the .ignore plugin.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+    <plugin id="com.intellij.modules.vcs"/>
+  </dependencies>
+  <incompatible-with>mobi.hsz.idea.gitignore</incompatible-with>
+
+  <resource-bundle>messages.PhantomIgnoreBundle</resource-bundle>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <fileType language="DockerIgnore" extensions="dockerignore" fieldName="INSTANCE" name="DockerIgnore file"
+              implementationClass="dev.phantom.ignore.lang.DockerIgnoreFileType"/>
+    <lang.parserDefinition language="DockerIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreParserDefinition"/>
+    <lang.braceMatcher language="DockerIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreBraceMatcher"/>
+    <lang.commenter language="DockerIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreCommenter"/>
+    <codeInsight.lineMarkerProvider language="DockerIgnore"
+                                    implementationClass="com.intellij.openapi.vcs.changes.ignore.codeInsight.IgnoreDirectoryMarkerProvider"/>
+    <fileType language="NpmIgnore" extensions="npmignore" fieldName="INSTANCE" name="NpmIgnore file"
+              implementationClass="dev.phantom.ignore.lang.NpmIgnoreFileType"/>
+    <lang.parserDefinition language="NpmIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreParserDefinition"/>
+    <lang.braceMatcher language="NpmIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreBraceMatcher"/>
+    <lang.commenter language="NpmIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreCommenter"/>
+    <codeInsight.lineMarkerProvider language="NpmIgnore"
+                                    implementationClass="com.intellij.openapi.vcs.changes.ignore.codeInsight.IgnoreDirectoryMarkerProvider"/>
+    <fileType language="HelmIgnore" extensions="helmignore" fieldName="INSTANCE" name="HelmIgnore file"
+              implementationClass="dev.phantom.ignore.lang.HelmIgnoreFileType"/>
+    <lang.parserDefinition language="HelmIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreParserDefinition"/>
+    <lang.braceMatcher language="HelmIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreBraceMatcher"/>
+    <lang.commenter language="HelmIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreCommenter"/>
+    <codeInsight.lineMarkerProvider language="HelmIgnore"
+                                    implementationClass="com.intellij.openapi.vcs.changes.ignore.codeInsight.IgnoreDirectoryMarkerProvider"/>
+    <fileType language="PrettierIgnore" extensions="prettierignore" fieldName="INSTANCE" name="PrettierIgnore file"
+              implementationClass="dev.phantom.ignore.lang.PrettierIgnoreFileType"/>
+    <lang.parserDefinition language="PrettierIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreParserDefinition"/>
+    <lang.braceMatcher language="PrettierIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreBraceMatcher"/>
+    <lang.commenter language="PrettierIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreCommenter"/>
+    <codeInsight.lineMarkerProvider language="PrettierIgnore"
+                                    implementationClass="com.intellij.openapi.vcs.changes.ignore.codeInsight.IgnoreDirectoryMarkerProvider"/>
+    <fileType language="EslintIgnore" extensions="eslintignore" fieldName="INSTANCE" name="EslintIgnore file"
+              implementationClass="dev.phantom.ignore.lang.EslintIgnoreFileType"/>
+    <lang.parserDefinition language="EslintIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreParserDefinition"/>
+    <lang.braceMatcher language="EslintIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreBraceMatcher"/>
+    <lang.commenter language="EslintIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreCommenter"/>
+    <codeInsight.lineMarkerProvider language="EslintIgnore"
+                                    implementationClass="com.intellij.openapi.vcs.changes.ignore.codeInsight.IgnoreDirectoryMarkerProvider"/>
+    <fileType language="StylelintIgnore" extensions="stylelintignore" fieldName="INSTANCE" name="StylelintIgnore file"
+              implementationClass="dev.phantom.ignore.lang.StylelintIgnoreFileType"/>
+    <lang.parserDefinition language="StylelintIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreParserDefinition"/>
+    <lang.braceMatcher language="StylelintIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreBraceMatcher"/>
+    <lang.commenter language="StylelintIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreCommenter"/>
+    <codeInsight.lineMarkerProvider language="StylelintIgnore"
+                                    implementationClass="com.intellij.openapi.vcs.changes.ignore.codeInsight.IgnoreDirectoryMarkerProvider"/>
+    <fileType language="GcloudIgnore" extensions="gcloudignore" fieldName="INSTANCE" name="GcloudIgnore file"
+              implementationClass="dev.phantom.ignore.lang.GcloudIgnoreFileType"/>
+    <lang.parserDefinition language="GcloudIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreParserDefinition"/>
+    <lang.braceMatcher language="GcloudIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreBraceMatcher"/>
+    <lang.commenter language="GcloudIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreCommenter"/>
+    <codeInsight.lineMarkerProvider language="GcloudIgnore"
+                                    implementationClass="com.intellij.openapi.vcs.changes.ignore.codeInsight.IgnoreDirectoryMarkerProvider"/>
+    <fileType language="VscodeIgnore" extensions="vscodeignore" fieldName="INSTANCE" name="VscodeIgnore file"
+              implementationClass="dev.phantom.ignore.lang.VscodeIgnoreFileType"/>
+    <lang.parserDefinition language="VscodeIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreParserDefinition"/>
+    <lang.braceMatcher language="VscodeIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreBraceMatcher"/>
+    <lang.commenter language="VscodeIgnore" implementationClass="com.intellij.openapi.vcs.changes.ignore.lang.IgnoreCommenter"/>
+    <codeInsight.lineMarkerProvider language="VscodeIgnore"
+                                    implementationClass="com.intellij.openapi.vcs.changes.ignore.codeInsight.IgnoreDirectoryMarkerProvider"/>
+  </extensions>
+
+  <actions>
+    <action id="Phantom.Ignore.AddTemplate" class="dev.phantom.ignore.templates.AddIgnoreTemplateAction"
+            text="Ignore File from Template…" description="Add templates to a .gitignore or another ignore file"
+            icon="AllIcons.Vcs.Ignore_file">
+      <add-to-group group-id="NewGroup" anchor="last"/>
+    </action>
+  </actions>
+</idea-plugin>

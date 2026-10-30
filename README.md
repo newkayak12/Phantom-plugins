@@ -41,6 +41,9 @@ Public repositories need no token.
 | Phantom Workspaces | [workspaces](./workspaces/README.md) · [한국어](./workspaces/KOR.md) | All open projects as tabs of one window: a project tab strip above the editor, project windows stacked at one size and position |
 | Phantom AI Integration | [ai-integrations](./ai-integrations/README.md) · [한국어](./ai-integrations/KOR.md) | Claude Code and Codex next to your projects: worktree and session tree with agent terminals in one tool window, board editor tab, dashboard, usage, and remote control from another device's browser |
 | Phantom AI Visualization | [ai-visualization](./ai-visualization/README.md) · [한국어](./ai-visualization/KOR.md) | The agent sessions of Phantom AI Integration as an isometric pixel-art office: a floor per project, a desk area per worktree, a person per session who types, waits, has a coffee or sleeps |
+| Phantom Strings | [strings](./strings/README.md) · [한국어](./strings/KOR.md) | Case switching and conversion, escape/encode, line sort and cleanup on selections or the word at the caret (Alt+M) |
+| Phantom Rainbow | [rainbow](./rainbow/README.md) · [한국어](./rainbow/KOR.md) | Brackets colored by nesting depth and indentation colored by level, in every language |
+| Phantom Ignore Files | [ignore](./ignore/README.md) · [한국어](./ignore/KOR.md) | .dockerignore, .npmignore, .helmignore and more edited like .gitignore; ignore file templates |
 
 ## Repository format
 

@@ -41,6 +41,9 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom Workspaces | [workspaces](./workspaces/KOR.md) · [English](./workspaces/README.md) | 열린 프로젝트를 한 창의 탭처럼: 에디터 위 프로젝트 탭 줄, 같은 크기·위치로 겹친 프로젝트 창 |
 | Phantom AI Integration | [ai-integrations](./ai-integrations/KOR.md) · [English](./ai-integrations/README.md) | 프로젝트 옆의 Claude Code와 Codex: 한 도구 창의 worktree·세션 트리와 에이전트 터미널, 보드 에디터 탭, 대시보드, 사용량, 다른 기기 브라우저에서의 원격 제어 |
 | Phantom AI Visualization | [ai-visualization](./ai-visualization/KOR.md) · [English](./ai-visualization/README.md) | Phantom AI Integration의 에이전트 세션을 아이소메트릭 픽셀 아트 사무실로: 프로젝트는 한 층, worktree는 책상 구역, 세션은 타이핑하고 기다리고 커피를 들고 자는 사람 한 명 |
+| Phantom Strings | [strings](./strings/KOR.md) · [English](./strings/README.md) | 선택 영역이나 캐럿의 단어에 대소문자 전환·변환, 이스케이프/인코딩, 줄 정렬·정리 (Alt+M) |
+| Phantom Rainbow | [rainbow](./rainbow/KOR.md) · [English](./rainbow/README.md) | 모든 언어에서 괄호를 중첩 깊이별로, 들여쓰기를 단계별로 색칠 |
+| Phantom Ignore Files | [ignore](./ignore/KOR.md) · [English](./ignore/README.md) | .dockerignore, .npmignore, .helmignore 등을 .gitignore처럼 편집; ignore 파일 템플릿 |
 
 ## 저장소 형식
 

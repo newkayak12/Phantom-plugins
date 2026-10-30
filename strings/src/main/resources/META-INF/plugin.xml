@@ -1,0 +1,31 @@
+<idea-plugin>
+  <id>dev.phantom.strings</id>
+  <name>Phantom Strings</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Editor</category>
+  <description><![CDATA[
+  Text conversions on each selection, or on the identifier at the caret: switch case (camelCase, snake_case,
+  SCREAMING_SNAKE_CASE, kebab-case, PascalCase in turn) or convert to one of them, dot.case, words, upper and lower case;
+  escape and unescape Java/Kotlin strings and HTML/XML, URL and Base64 encode and decode; sort, reverse, shuffle,
+  deduplicate, trim lines and remove blank ones. Alt+M opens them in a popup with speed search; they are also under
+  Edit and the editor's context menu. Works with several carets. Replaces the StringManipulation plugin.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.platform"/>
+  </dependencies>
+  <incompatible-with>String Manipulation</incompatible-with>
+
+  <resource-bundle>messages.PhantomStringsBundle</resource-bundle>
+
+  <actions>
+    <group id="Phantom.Strings" class="dev.phantom.strings.core.StringsActionGroup" popup="true" text="Strings">
+      <add-to-group group-id="EditMenu" anchor="last"/>
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </group>
+    <action id="Phantom.Strings.Popup" class="dev.phantom.strings.core.StringsPopupAction" text="Strings…"
+            description="Show the text conversions in a popup">
+      <keyboard-shortcut keymap="$default" first-keystroke="alt M"/>
+    </action>
+  </actions>
+</idea-plugin>

@@ -1,0 +1,30 @@
+<idea-plugin>
+  <id>dev.phantom.rainbow</id>
+  <name>Phantom Rainbow</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Editor</category>
+  <description><![CDATA[
+  Brackets colored by how deeply they are nested, (), [] and {} each counted on their own, in every language whose
+  brackets the IDE matches; and each line's indentation colored by level, as wide as the file's indent size. Either can
+  be turned off under Settings | Editor | Rainbow, and the colors changed under Editor | Color Scheme | Rainbow.
+  Replaces the Rainbow Brackets and Indent Rainbow plugins.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+  </dependencies>
+  <incompatible-with>izhangzhihao.rainbow.brackets</incompatible-with>
+  <incompatible-with>izhangzhihao.rainbow.brackets.lite</incompatible-with>
+  <incompatible-with>indent-rainbow.indent-rainbow</incompatible-with>
+
+  <resource-bundle>messages.PhantomRainbowBundle</resource-bundle>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <highlightVisitor implementation="dev.phantom.rainbow.core.RainbowHighlightVisitor"/>
+    <colorSettingsPage implementation="dev.phantom.rainbow.core.RainbowColorSettingsPage"/>
+    <additionalTextAttributes scheme="Default" file="colorSchemes/RainbowDefault.xml"/>
+    <additionalTextAttributes scheme="Darcula" file="colorSchemes/RainbowDarcula.xml"/>
+    <applicationConfigurable parentId="editor" id="dev.phantom.rainbow" instance="dev.phantom.rainbow.core.RainbowConfigurable"
+                             key="settings.title"/>
+  </extensions>
+</idea-plugin>
