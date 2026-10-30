@@ -69,6 +69,8 @@ class AgentDashboardPanel(
   @Volatile private var sidebar: List<SidebarModel>? = null
   private var model: DashboardModel = DashboardModel(emptyList(), emptyList())
   private var updatingFilters = false
+  private var rendered = false
+  private val whenShown = dev.phantom.ai.core.WhenShown(this, ::refresh)
 
   init {
     val top = JPanel(FlowLayout(FlowLayout.LEFT, 8, 4))
@@ -83,15 +85,17 @@ class AgentDashboardPanel(
     AgentKind.entries.forEach { agentFilter.addItem(it) }
     agentFilter.addItemListener { if (it.stateChange == ItemEvent.SELECTED) rebuild() }
     projectFilter.addItemListener { if (it.stateChange == ItemEvent.SELECTED && !updatingFilters) rebuild() }
+    // the cards are rebuilt once typing pauses, not per key
+    val typed = javax.swing.Timer(150) { rebuild() }.apply { isRepeats = false }
     search.textEditor.document.addDocumentListener(object : DocumentListener {
-      override fun insertUpdate(e: DocumentEvent) = rebuild()
-      override fun removeUpdate(e: DocumentEvent) = rebuild()
-      override fun changedUpdate(e: DocumentEvent) = rebuild()
+      override fun insertUpdate(e: DocumentEvent) = typed.restart()
+      override fun removeUpdate(e: DocumentEvent) = typed.restart()
+      override fun changedUpdate(e: DocumentEvent) = typed.restart()
     })
     ApplicationManager.getApplication().messageBus.connect(this)
-      .subscribe(SessionStore.TOPIC, SessionListener { _, _ -> refresh() })
-    ApplicationManager.getApplication().messageBus.connect(this).subscribe(AiState.TOPIC, dev.phantom.ai.core.AiStateListener { refresh() })
-    refresh()
+      .subscribe(SessionStore.TOPIC, SessionListener { _, _ -> whenShown.request() })
+    ApplicationManager.getApplication().messageBus.connect(this).subscribe(AiState.TOPIC, dev.phantom.ai.core.AiStateListener { whenShown.request() })
+    whenShown.request()
   }
 
   override fun dispose() = Unit
@@ -101,6 +105,7 @@ class AgentDashboardPanel(
   /** Sets the search text (tests and callers). */
   fun setSearch(text: String) {
     search.text = text
+    rebuild()
   }
 
   /** Builds one sidebar model per open project: git and the PR lookup run here, so call off the EDT. */
@@ -111,7 +116,8 @@ class AgentDashboardPanel(
       SidebarModel.build(
         reposOf(p).roots(), worktrees, SessionStore.getInstance().all(),
         state.state.sessions.mapNotNull(SidebarModel::saved), prTitles,
-        { state.findWorktree(it)?.userName }, System.currentTimeMillis(),
+        // whole 30 s steps: elapsed times then do not make every refresh a new model
+        { state.findWorktree(it)?.userName }, System.currentTimeMillis() / 30_000 * 30_000,
       )
     }
   }
@@ -127,6 +133,7 @@ class AgentDashboardPanel(
 
   /** Shows [built] under the current search and filters (EDT). */
   fun show(built: List<SidebarModel>) {
+    if (built == sidebar) return
     sidebar = built
     val keep = (projectFilter.selectedItem as? ProjectItem)?.path
     val projects = DashboardModel.of(built).projects
@@ -147,11 +154,14 @@ class AgentDashboardPanel(
       agentFilter.selectedItem as? AgentKind,
       (projectFilter.selectedItem as? ProjectItem)?.path,
     )
-    model = DashboardModel.of(sb, query)
+    val next = DashboardModel.of(sb, query)
+    if (next == model && rendered) return
+    model = next
     render()
   }
 
   private fun render() {
+    rendered = true
     totalLabel.text = PhantomAiBundle.message("dashboard.total", model.total)
     columnsPanel.removeAll()
     model.columns.forEach { col -> columnsPanel.add(columnView(col)) }

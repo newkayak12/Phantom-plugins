@@ -36,6 +36,7 @@ fun interface StatuslineListener {
 class HookServer : Disposable {
   val token: String = ByteArray(32).also { SecureRandom().nextBytes(it) }.let { Base64.getUrlEncoder().withoutPadding().encodeToString(it) }
   private var server: HttpServer? = null
+  private var executor: java.util.concurrent.ExecutorService? = null
   val statuslineListeners = CopyOnWriteArrayList<StatuslineListener>()
   @Volatile var mcp: PhantomMcp = PhantomMcp(IdeEditorBridge()) { tab -> tab?.let { SessionStore.getInstance().get(it)?.worktree } }
     @TestOnly set
@@ -48,9 +49,11 @@ class HookServer : Disposable {
     val s = HttpServer.create(InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0)
     s.createContext("/") { handle(it) }
     // an MCP call may wait on the EDT; hooks keep their own threads meanwhile
-    s.executor = Executors.newFixedThreadPool(4) { r -> Thread(r, "Phantom AI hook server").apply { isDaemon = true } }
+    val pool = Executors.newFixedThreadPool(4) { r -> Thread(r, "Phantom AI hook server").apply { isDaemon = true } }
+    s.executor = pool
     s.start()
     server = s
+    executor = pool
   }
 
   private class Reply(val code: Int, val json: String? = null)
@@ -106,6 +109,8 @@ class HookServer : Disposable {
   override fun dispose() {
     server?.stop(0)
     server = null
+    executor?.shutdownNow()
+    executor = null
   }
 
   companion object {

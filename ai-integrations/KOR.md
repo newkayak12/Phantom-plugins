@@ -13,7 +13,7 @@
 - **에이전트가 편집기를 다룸:** 에이전트 터미널은 설정 없이 Phantom 전용 MCP 서버(`phantom`, 루프백 훅 서버, 실행마다 새 토큰)에 연결됩니다. "그거 어디야?"라고 물으면 에이전트가 그 파일을 해당 줄에서 편집기로 열고, 블록을 선택하고, 창을 앞으로 가져옵니다(`open_in_editor`). worktree가 열려 있지 않으면 프로젝트 탭으로 엽니다. "이거"라고 하면 지금 보고 있는 파일, 커서 위치, 선택 영역을 읽습니다(`get_editor_context`).
 - **보드:** Board(버튼 또는 Find Action의 Open Board)가 에디터 탭을 열고, 모든 worktree를 카드로 열(Todo, In progress, In review, Done)에 보여 주고, 카드를 끌어 옮깁니다. 카드에는 브랜치, 세션 상태 점, 프롬프트가 나옵니다.
 - **대시보드:** Open Agent Dashboard(Find Action)가 별도 창을 엽니다. 세션을 Needs attention, Working, Done으로 나누고 마지막 프롬프트와 답, 서브에이전트, 검색, 에이전트/프로젝트 필터를 보여 줍니다. 세션을 누르면 그 터미널로 갑니다.
-- **상태 표시줄:** 사용량 위젯이 Claude의 `5h`, `wk`(와 Fable), Codex의 `5h`, `wk`를 보여 주고, 초기화 시각은 툴팁에 나옵니다.
+- **상태 표시줄:** 사용량 위젯이 Claude의 `5h`, `wk`(와 Fable), Codex의 `5h`, `wk`를 보여 주고, 초기화 시각은 툴팁에 나옵니다. Phantom 창이 활성일 때만 확인하며, Claude는 1분마다(실행 중인 세션이 status line으로 사용량을 보냈으면 건너뜀), Codex는 5분마다 확인합니다(확인할 때마다 `codex app-server`를 띄우기 때문).
 - **원격 제어:** 기본은 꺼져 있습니다. Settings | Tools | Phantom AI Integration | Remote Control에서 고른 주소와 포트(이 컴퓨터, Tailscale, 로컬 네트워크 주소)로 작은 웹 서버를 시작합니다. Generate link가 페어링 링크와 QR 코드를 만들고, 다른 기기의 브라우저에서 열면 worktree와 세션 목록, 에이전트 터미널 화면을 보고 입력할 수 있고, 목록에 있는 worktree에서 Claude나 Codex를 시작하거나 이어갈 수 있습니다.
 - **계정:** Settings | Tools | Phantom AI Integration에 에이전트별로 System default와 추가한 계정이 나옵니다. 계정을 추가하면 전용 설정 폴더(`CLAUDE_CONFIG_DIR` 또는 `CODEX_HOME`)를 만들고, 거기에 훅을 설치하고, CLI 로그인을 터미널로 엽니다. 활성으로 표시한 계정이 새 터미널에 쓰입니다. 토큰은 Phantom이 저장하지 않고 CLI가 로그인을 관리합니다.
 

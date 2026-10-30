@@ -130,10 +130,12 @@ class AgentTerminalService(private val project: Project) {
 
   /** While a hook-less tab is open, looks for its .jsonl every few seconds; stops once bound or when the tab is disposed. */
   private fun pollBinding(tabId: String, parent: Disposable) {
-    val future = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({
+    lateinit var future: java.util.concurrent.ScheduledFuture<*>
+    future = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({
       val session = SessionStore.getInstance().get(tabId)
       if (session == null) return@scheduleWithFixedDelay
-      if (session.sessionId == null) bindOpenSessions()
+      // bound: no more directory scans for this tab
+      if (session.sessionId != null) future.cancel(false) else bindOpenSessions()
     }, POLL_MS, POLL_MS, TimeUnit.MILLISECONDS)
     Disposer.register(parent) { future.cancel(false) }
   }

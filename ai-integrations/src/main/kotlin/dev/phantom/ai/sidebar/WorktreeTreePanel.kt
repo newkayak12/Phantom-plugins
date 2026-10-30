@@ -85,6 +85,7 @@ class WorktreeTreePanel(
   private var repoOfWorktree: Map<String, RepoNode> = emptyMap()
   private val known = HashSet<String>() // rows seen before: a new row opens, an old one keeps what the user chose
   private var shown: SidebarModel? = null
+  private val whenShown = dev.phantom.ai.core.WhenShown(this, ::refresh)
 
   init {
     tree.isRootVisible = false
@@ -110,11 +111,11 @@ class WorktreeTreePanel(
       }
     })
     ApplicationManager.getApplication().messageBus.connect(this)
-      .subscribe(SessionStore.TOPIC, SessionListener { _, _ -> refresh() })
+      .subscribe(SessionStore.TOPIC, SessionListener { _, _ -> whenShown.request() })
     // worktree names and sessions are shared by every window: a change in another window shows here too
     ApplicationManager.getApplication().messageBus.connect(this)
-      .subscribe(AiState.TOPIC, dev.phantom.ai.core.AiStateListener { refresh() })
-    refresh()
+      .subscribe(AiState.TOPIC, dev.phantom.ai.core.AiStateListener { whenShown.request() })
+    whenShown.request()
     ticker.start()
   }
 
@@ -154,7 +155,8 @@ class WorktreeTreePanel(
         SidebarModel.build(
           repos.roots(), worktrees, SessionStore.getInstance().all(),
           state.state.sessions.mapNotNull(SidebarModel::saved), prTitles,
-          { state.findWorktree(it)?.userName }, System.currentTimeMillis(),
+          // whole 30 s steps, as the ticker: elapsed times then do not make every refresh a new model
+          { state.findWorktree(it)?.userName }, System.currentTimeMillis() / 30_000 * 30_000,
           { state.findWorktree(it)?.parentPath },
         )
       }.getOrNull() ?: return@Runnable

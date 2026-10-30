@@ -27,10 +27,12 @@ class SessionStore {
     publish(session.tabId, session)
   }
 
-  /** Applies [change] to the session of [tabId]; null if there is none. */
+  /** Applies [change] to the session of [tabId]; null if there is none. Tells the listeners only when it changed. */
   fun update(tabId: String, change: (AgentSession) -> AgentSession): AgentSession? {
-    val next = sessions.computeIfPresent(tabId) { _, old -> change(old) } ?: return null
-    publish(tabId, next)
+    var old: AgentSession? = null
+    val next = sessions.computeIfPresent(tabId) { _, o -> old = o; change(o) } ?: return null
+    // hook events come several a second while an agent works; most leave the session as it was
+    if (next != old) publish(tabId, next)
     return next
   }
 

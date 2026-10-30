@@ -44,8 +44,12 @@ class UsagePoller(
   },
   private val now: () -> Long = System::currentTimeMillis,
   private val periodSeconds: Long = 60,
+  private val codexEvery: Int = 5,
+  private val active: () -> Boolean = { ApplicationManager.getApplication().isActive },
 ) {
   @Volatile private var statusLine: ClaudeUsage? = null
+  @Volatile private var statusLineAt = 0L
+  private var ticks = 0
   @Volatile private var claudePoll: ClaudeUsage? = null
   @Volatile private var codex: CodexUsage? = null
   @Volatile var snapshot: UsageSnapshot = UsageSnapshot(null, null)
@@ -62,7 +66,7 @@ class UsagePoller(
       registered = true
       HookServer.getInstance().statuslineListeners.add { _, body -> onStatusLine(body) }
     }
-    task = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({ pollOnce() }, 0, periodSeconds, TimeUnit.SECONDS)
+    task = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({ tick() }, 0, periodSeconds, TimeUnit.SECONDS)
   }
 
   @Synchronized
@@ -75,14 +79,36 @@ class UsagePoller(
   fun onStatusLine(body: String) {
     val u = StatusLineUsage.parse(body, now()) ?: return
     statusLine = u
+    statusLineAt = now()
     publish()
   }
 
   /** One poll of both sources for the active accounts; a failed source becomes null (shown as an em dash). */
   fun pollOnce() {
-    claudePoll = bestEffort { sources.claude(claudeDir()) }.onFailure { LOG.debug("claude usage failed", it) }.getOrNull()
-    codex = bestEffort { sources.codex(codexHome()) }.onFailure { LOG.debug("codex usage failed", it) }.getOrNull()
+    pollClaude()
+    pollCodex()
     publish()
+  }
+
+  /**
+   * One timer tick, cheaper than [pollOnce]: nothing while no IDE window is active; Claude only when no statusLine payload
+   * came in the last two periods (a running Claude session sends its usage itself); Codex every [codexEvery] ticks, as
+   * each look starts a `codex app-server` process.
+   */
+  fun tick() {
+    if (!active()) return
+    val n = ticks++
+    if (now() - statusLineAt >= periodSeconds * 2_000) pollClaude()
+    if (n % codexEvery == 0) pollCodex()
+    publish()
+  }
+
+  private fun pollClaude() {
+    claudePoll = bestEffort { sources.claude(claudeDir()) }.onFailure { LOG.debug("claude usage failed", it) }.getOrNull()
+  }
+
+  private fun pollCodex() {
+    codex = bestEffort { sources.codex(codexHome()) }.onFailure { LOG.debug("codex usage failed", it) }.getOrNull()
   }
 
   private fun publish() {

@@ -55,13 +55,16 @@ class WorkspaceBoardPanel(
   private var cards: Map<String, BoardCard> = emptyMap()
   private var boardLayout: BoardLayout = BoardLayout.of(AiState.getInstance().boardColumns(), emptyList()) { null }
 
+  private val whenShown = dev.phantom.ai.core.WhenShown(this, ::refresh)
+  private var rendered = false
+
   init {
     columnsPanel.border = JBUI.Borders.empty(8)
     add(ScrollPaneFactory.createScrollPane(columnsPanel), BorderLayout.CENTER)
     ApplicationManager.getApplication().messageBus.connect(this)
-      .subscribe(SessionStore.TOPIC, SessionListener { _, _ -> refresh() })
-    ApplicationManager.getApplication().messageBus.connect(this).subscribe(AiState.TOPIC, dev.phantom.ai.core.AiStateListener { refresh() })
-    refresh()
+      .subscribe(SessionStore.TOPIC, SessionListener { _, _ -> whenShown.request() })
+    ApplicationManager.getApplication().messageBus.connect(this).subscribe(AiState.TOPIC, dev.phantom.ai.core.AiStateListener { whenShown.request() })
+    whenShown.request()
   }
 
   override fun dispose() = Unit
@@ -94,10 +97,14 @@ class WorkspaceBoardPanel(
   /** Lays [list] out in the stored columns and order (EDT). */
   fun showCards(list: List<BoardCard>) {
     val state = AiState.getInstance()
-    cards = list.associateBy { it.path }
-    boardLayout = BoardLayout.of(state.boardColumns(), list.map { it.path }) { path ->
+    val nextCards = list.associateBy { it.path }
+    val next = BoardLayout.of(state.boardColumns(), list.map { it.path }) { path ->
       state.findWorktree(path)?.let { Placement(it.column, it.order) }
     }
+    // most events change nothing on the board; it is rebuilt only when a card or its place did
+    if (rendered && nextCards == cards && next.columns == boardLayout.columns && next.placements() == boardLayout.placements()) return
+    cards = nextCards
+    boardLayout = next
     render()
   }
 
@@ -110,6 +117,7 @@ class WorkspaceBoardPanel(
   }
 
   private fun render() {
+    rendered = true
     columnsPanel.removeAll()
     columnPanels.clear()
     cardViews.clear()

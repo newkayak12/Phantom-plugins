@@ -69,6 +69,7 @@ class AgentToolWindowPanel(
   private val center = JPanel(BorderLayout())
   private var splitter: OnePixelSplitter? = null
   private var orientation: SplitOrientation? = null
+  private var laidOut: Triple<Boolean, Boolean, SplitOrientation>? = null
 
   private val claudeButton = button("toolwindow.new.claude", "btn.claude") { newSession(AgentKind.CLAUDE) }.apply {
     icon = dev.phantom.ai.core.AgentIcons.CLAUDE
@@ -116,6 +117,11 @@ class AgentToolWindowPanel(
   fun relayout() {
     val type = typeOf()
     val inHeader = SplitLayout.buttonsInHeader(type, fold.hidden)
+    val wanted = SplitLayout.orientation(type, width, height)
+    // a resize sends this for every pixel; only a change of place, fold or orientation moves anything
+    val key = Triple(inHeader, fold.hidden, wanted)
+    if (splitter != null && key == laidOut) return
+    laidOut = key
     topRow.removeAll()
     treeHeader.removeAll()
     treeFooter.removeAll()
@@ -130,7 +136,6 @@ class AgentToolWindowPanel(
     treeFooter.isVisible = !inHeader
     treeColumn.isVisible = !fold.hidden
     strip.isVisible = fold.hidden
-    val wanted = SplitLayout.orientation(type, width, height)
     if (splitter == null || orientation != wanted) rebuildSplitter(wanted)
     revalidate()
     repaint()
