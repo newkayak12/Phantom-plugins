@@ -96,6 +96,26 @@ class OfficeCanvasTest {
   }
 
   @Test
+  fun trackpadWheelZoomsByWholeNotchesAndItsTailDoesNotZoomBack() {
+    val c = canvas()
+    repeat(20) { c.zoomBy(-1) }
+    fun wheel(precise: Double) = c.dispatchEvent(
+      MouseWheelEvent(c, MouseEvent.MOUSE_WHEEL, 0, InputEvent.META_DOWN_MASK, 600, 400, 600, 400, 0, false,
+        MouseWheelEvent.WHEEL_UNIT_SCROLL, 1, precise.toInt(), precise),
+    )
+    // a trackpad swipe up: small fractions, wheelRotation 0, adding up to two notches
+    repeat(8) { wheel(-0.25) }
+    assertEquals(3, c.zoom)
+    // the swipe's inertia tail: tiny or zero deltas, never a zoom out
+    repeat(10) { wheel(-0.01) }
+    wheel(0.0)
+    assertEquals(3, c.zoom)
+    // swiping down zooms out by the notches it adds up to
+    repeat(4) { wheel(0.25) }
+    assertEquals(2, c.zoom)
+  }
+
+  @Test
   fun dragPans() {
     val c = canvas()
     fun ev(id: Int, x: Int, y: Int) = MouseEvent(c, id, 0, 0, x, y, 1, false, MouseEvent.BUTTON1)

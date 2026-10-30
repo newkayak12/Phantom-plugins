@@ -67,6 +67,8 @@ class OfficeCanvas(
   var panY = 0
     private set
   private var userZoomed = false
+  /** Wheel rotation not yet turned into a zoom step (zoom in is positive). */
+  private var wheel = 0.0
   private var last: PaintResult = PaintResult(emptyList(), emptyList())
 
   val animation = Animation(this, { this.theme.animationPhases }, { this.theme.animationPeriodMs }) {
@@ -112,7 +114,15 @@ class OfficeCanvas(
 
       override fun mouseWheelMoved(e: MouseWheelEvent) {
         if (!(e.isControlDown || e.isMetaDown)) return
-        zoomBy(if (e.wheelRotation < 0) 1 else -1, e.x, e.y)
+        // a trackpad sends fractions of a notch (wheelRotation 0) and an inertia tail: add them up, one step per whole notch
+        // turning the other way drops what was left of the last swipe
+        val delta = -e.preciseWheelRotation
+        if (delta * wheel < 0) wheel = 0.0
+        wheel += delta
+        val steps = wheel.toInt()
+        if (steps == 0) return
+        wheel -= steps
+        zoomBy(steps, e.x, e.y)
       }
     }
     addMouseListener(mouse)
