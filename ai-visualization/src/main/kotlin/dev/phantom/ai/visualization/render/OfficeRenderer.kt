@@ -396,8 +396,8 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
   fun activityText(activity: String?, state: VizState): String = ellipsize(activity?.takeIf { it.isNotBlank() } ?: DEFAULT_ACTIVITY.getValue(state), 28)
 
   /**
-   * Every tag in one layout pass so none covers another: below each person its session tag ("\ud300\uc7a5 \u00b7 " first when it leads
-   * subordinates); above each head (over the bubble) an activity label, a subordinate's led by its name; a "+N" beside the last
+   * Every tag in one layout pass so none covers another: below each person its session tag ("CEO \u00b7 " first for the CEO, "\ud300\uc7a5 \u00b7 "
+   * when it leads subordinates); above each head (over the bubble) an activity label, a subordinate's led by its role and name; a "+N" beside the last
    * subordinate drawn.
    */
   private fun drawTags(g: Graphics2D, scene: Scene, zoom: Int, ox: Int, oy: Int): Tags {
@@ -417,7 +417,7 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
     }
     for (p in scene.people) {
       val s = p.person.session
-      val lead = if (p.person.helperCount > 0) "\ud300\uc7a5 \u00b7 " else ""
+      val lead = if (p.person.ceo) "CEO \u00b7 " else if (p.person.helperCount > 0) "\ud300\uc7a5 \u00b7 " else ""
       val text = ellipsize("$lead${s.agent.name.lowercase()} \u00b7 ${s.title}", 34)
       val w = big.stringWidth(text) + dot + 16
       requests += TagRequest(p.tabId, ox + p.x * zoom - w / 2, oy + p.y * zoom + p.tagDy, w, big.height + 4)
@@ -428,7 +428,7 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
     val lastHelper = HashMap<String, HelperPlacement>()
     for (h in scene.helpers) {
       // one label above the head, its name and what it does side by side, so the two never drift apart
-      val name = ellipsize(h.helper.name, 18)
+      val name = ellipsize("${h.helper.role.label} \u00b7 ${h.helper.name}", 24)
       activity(h.key, h.parent, activityText(h.helper.activity, VizState.WORKING), VizState.WORKING, h.x, h.bounds.y - 1, name, h.helper.id)
       lastHelper[h.tabId] = h
     }
@@ -525,7 +525,7 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
     }
   }
 
-  /** "1F colo-backend · 6 sessions · 3 worktrees" at ([x], [y]) (baseline). */
+  /** "1F feat/login · 6 sessions · colo-backend" at ([x], [y]) (baseline). */
   fun drawHeader(g: Graphics2D, floor: Floor?, x: Int, y: Int) {
     textHints(g)
     g.font = Fonts.font(13f, bold = true)
@@ -536,7 +536,7 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
       val w = g.fontMetrics.stringWidth(title)
       g.font = Fonts.font(12f)
       g.color = palette.dim
-      g.drawString("\u00b7  ${floor.sessionCount} sessions  \u00b7  ${floor.worktreeCount} worktrees", (x + w + 14).toFloat(), y.toFloat())
+      g.drawString("\u00b7  ${floor.sessionCount} sessions  \u00b7  ${floor.projectName}", (x + w + 14).toFloat(), y.toFloat())
     }
   }
 
@@ -578,7 +578,7 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
     textHints(g)
     g.font = Fonts.font(11f, bold = true)
     g.color = palette.dim
-    g.drawString("FLOORS \u00b7 \ud504\ub85c\uc81d\ud2b8", PickerLayout.MARGIN.toFloat() + 6, 22f)
+    g.drawString("FLOORS \u00b7 worktree", PickerLayout.MARGIN.toFloat() + 6, 22f)
     val rects = LinkedHashMap<String, Rect>()
     floorsTopDown.forEachIndexed { i, f ->
       val r = PickerLayout.card(i, width)

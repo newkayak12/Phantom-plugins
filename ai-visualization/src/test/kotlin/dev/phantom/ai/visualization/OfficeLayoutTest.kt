@@ -1,9 +1,13 @@
 // Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.ai.visualization
 
+import dev.phantom.ai.api.AiSessionStatus
+import dev.phantom.ai.visualization.model.AreaKind
 import dev.phantom.ai.visualization.model.ItemKind
 import dev.phantom.ai.visualization.model.OfficeLayout
+import dev.phantom.ai.visualization.model.OfficeModel
 import dev.phantom.ai.visualization.model.Orientation
+import dev.phantom.ai.visualization.model.ProjectData
 import dev.phantom.ai.visualization.model.VizState
 import dev.phantom.ai.visualization.theme.Atlas
 import dev.phantom.ai.visualization.theme.ThemeA
@@ -102,7 +106,7 @@ class OfficeLayoutTest {
   @Test
   fun peopleBeyondTheDesksStandOnTheRug() {
     val sessions = (0 until 5).map { Fixtures.session("x$it", "/repo/wt0", dev.phantom.ai.api.AiSessionStatus.WORKING, it.toLong()) }
-    val model = dev.phantom.ai.visualization.model.OfficeModel.build(
+    val model = Fixtures.byWorktree(
       listOf(dev.phantom.ai.visualization.model.ProjectData("/repo", "repo", listOf(Fixtures.wt(0, true), Fixtures.wt(1), Fixtures.wt(2)), sessions)),
     )
     val scene = layout.layout(model.floors[0].areas)
@@ -110,6 +114,33 @@ class OfficeLayoutTest {
     assertEquals(listOf(0, 1, -1, -1, -1), scene.people.map { it.seat })
     assertEquals(2, scene.desks.count { it.occupiedBy != null })
     assertEquals(setOf("x0", "x1"), scene.desks.mapNotNull { it.occupiedBy }.toSet())
+  }
+
+  @Test
+  fun theCeoHasOneDeskAndWhoeverWaitsLinesUpBeforeIt() {
+    val lead = Fixtures.session("lead", "/repo/wt0", AiSessionStatus.WAITING, 3)
+      .copy(subagents = listOf(dev.phantom.ai.api.AiSubagent("a", "Explore", true)))
+    val sessions = listOf(
+      Fixtures.session("ceo", "/repo/wt0", AiSessionStatus.WORKING, 1),
+      Fixtures.session("ask", "/repo/wt0", AiSessionStatus.WAITING, 2),
+      lead,
+      Fixtures.session("busy", "/repo/wt0", AiSessionStatus.WORKING, 4),
+    )
+    val floor = OfficeModel.build(listOf(ProjectData("/repo", "repo", listOf(Fixtures.wt(0, true)), sessions))).floors.single()
+    val scene = layout.layout(floor.areas)
+    val ceo = scene.areas.single { it.area.kind == AreaKind.CEO }
+    assertEquals(1, scene.desks.count { it.areaIndex == ceo.index })
+    assertEquals("CEO \u00b7 \uacb0\uc7ac 2", scene.items.single { it.kind == ItemKind.NAMEPLATE && it.x == ceo.plateX && it.y == ceo.plateY }.label)
+    val byTab = scene.people.associateBy { it.tabId }
+    val boss = byTab.getValue("ceo")
+    for (tab in listOf("ask", "lead")) {
+      val p = byTab.getValue(tab)
+      // in front of the CEO, close by
+      assertTrue("$tab before the CEO at ${p.u},${p.v}", p.u + p.v > boss.u + boss.v && Math.abs(p.u - boss.u) <= 30 && p.v - boss.v in 0.0..36.0)
+      // its own desk stays its
+      assertEquals(1, scene.desks.count { it.occupiedBy == tab })
+    }
+    assertTrue(byTab.getValue("ceo").sitting && byTab.getValue("busy").sitting)
   }
 
   @Test

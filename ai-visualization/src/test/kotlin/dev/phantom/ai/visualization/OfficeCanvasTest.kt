@@ -38,7 +38,7 @@ class OfficeCanvasTest {
       "/repo", "repo", (0 until worktrees).map { Fixtures.wt(it, it == 0) },
       AiSessionStatus.values().mapIndexed { i, s -> Fixtures.session("t$i", "/repo/wt0", s, 100L + i) },
     )
-    c.setFloor(OfficeModel.build(listOf(data)).floors[0])
+    c.setFloor(Fixtures.byWorktree(listOf(data)).floors[0])
     return c
   }
 

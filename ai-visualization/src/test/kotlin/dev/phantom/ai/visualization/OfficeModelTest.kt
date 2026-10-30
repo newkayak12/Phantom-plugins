@@ -2,10 +2,14 @@
 package dev.phantom.ai.visualization
 
 import dev.phantom.ai.api.AiSessionStatus
+import dev.phantom.ai.api.AiSubagent
 import dev.phantom.ai.api.AiWorktree
+import dev.phantom.ai.visualization.model.AreaKind
 import dev.phantom.ai.visualization.model.Elapsed
 import dev.phantom.ai.visualization.model.OfficeModel
+import dev.phantom.ai.visualization.model.PathKey
 import dev.phantom.ai.visualization.model.ProjectData
+import dev.phantom.ai.visualization.model.Role
 import dev.phantom.ai.visualization.model.VizState
 import dev.phantom.ai.visualization.settings.VizSettingsState
 import dev.phantom.ai.visualization.theme.Themes
@@ -25,29 +29,55 @@ class OfficeModelTest {
   }
 
   @Test
-  fun floorsAreNumberedFromTheFirstProjectAndListedTopDown() {
-    val ps = listOf("a", "b", "c").map { ProjectData("/p/$it", it, listOf(Fixtures.wt(0, true)), emptyList()) }
+  fun aFloorPerWorktreeTheMainOneFirstProjectsInOpenOrder() {
+    val ps = listOf("a", "b").map { ProjectData("/p/$it", it, listOf(AiWorktree("/p/$it/x", "x", null, 7, false), AiWorktree("/p/$it", it, null, null, true)), emptyList()) }
     val m = OfficeModel.build(ps)
-    assertEquals(listOf("1F", "2F", "3F"), m.floors.map { it.label })
-    assertEquals(listOf("3F", "2F", "1F"), m.floorsTopDown.map { it.label })
-    assertEquals("b", m.floor("/p/b")!!.name)
+    assertEquals(listOf("1F", "2F", "1F", "2F"), m.floors.map { it.label })
+    assertEquals(listOf("a", "x #7", "b", "x #7"), m.floors.map { it.name })
+    assertEquals(listOf("/p/a", "/p/a", "/p/b", "/p/b"), m.floors.map { it.projectKey })
+    assertEquals("b", m.floor(PathKey.of("/p/b"))!!.name)
+    assertEquals(m.floors.reversed(), m.floorsTopDown)
   }
 
   @Test
-  fun countsPerStateAndAreas() {
+  fun theFirstSessionOpenedIsTheCeoLeadsGetATeamTheRestTheOpenDesks() {
+    val ws = listOf(Fixtures.wt(1), Fixtures.wt(0, true))
+    val lead = Fixtures.session("lead", "/repo/wt0", AiSessionStatus.WORKING, 300).copy(subagents = listOf(AiSubagent("r", "reviewer", true), AiSubagent("e", "Explore", true)))
     val sessions = listOf(
-      Fixtures.session("1", "/repo/wt0", AiSessionStatus.WORKING),
-      Fixtures.session("2", "/repo/wt0", AiSessionStatus.WORKING),
-      Fixtures.session("3", "/repo/wt1/", AiSessionStatus.WAITING),
-      Fixtures.session("4", "/repo/wt1", AiSessionStatus.NONE),
-      Fixtures.session("5", "/repo/wt1", AiSessionStatus.DONE),
+      Fixtures.session("2", "/repo/wt0", AiSessionStatus.WAITING, 200),
+      Fixtures.session("1", "/repo/wt0/", AiSessionStatus.WORKING, 100),
+      lead,
+      Fixtures.session("4", "/repo/wt1", AiSessionStatus.DONE, 50),
+      Fixtures.session("stray", "/elsewhere", AiSessionStatus.NONE, 400),
     )
-    val f = OfficeModel.build(listOf(ProjectData("/repo", "repo", listOf(Fixtures.wt(1), Fixtures.wt(0, true)), sessions))).floors.single()
-    assertEquals(mapOf(VizState.WORKING to 2, VizState.WAITING to 1, VizState.DONE to 1, VizState.IDLE to 1), f.counts)
-    assertEquals(5, f.sessionCount)
-    assertEquals(2, f.worktreeCount)
-    assertEquals(listOf("wt0", "wt1"), f.areas.map { it.worktree.title }) // main first
-    assertEquals(listOf(2, 3), f.areas.map { it.people.size })
+    val (main, other) = OfficeModel.build(listOf(ProjectData("/repo", "repo", ws, sessions))).floors
+    assertEquals(listOf(AreaKind.CEO, AreaKind.TEAM, AreaKind.OPEN), main.areas.map { it.kind })
+    assertEquals(listOf(listOf("1"), listOf("lead"), listOf("2", "stray")), main.areas.map { a -> a.people.map { it.session.tabId } })
+    assertTrue(main.areas[0].people.single().ceo)
+    assertTrue(main.areas.drop(1).flatMap { it.people }.none { it.ceo })
+    assertEquals(listOf(OfficeModel.CEO_LABEL, "\ud300 \u00b7 title lead", OfficeModel.OPEN_LABEL), main.areas.map { it.label })
+    // its subordinates sit by role
+    assertEquals(listOf(Role.RESEARCH, Role.REVIEW), main.areas[1].people.single().helpers.map { it.role })
+    assertEquals(mapOf(VizState.WORKING to 2, VizState.WAITING to 1, VizState.DONE to 0, VizState.IDLE to 1), main.counts)
+    // a worktree with one session: its CEO, and the open desks, empty
+    assertEquals(listOf(listOf("4"), emptyList()), other.areas.map { a -> a.people.map { it.session.tabId } })
+    assertEquals(1, other.sessionCount)
+  }
+
+  @Test
+  fun aFloorWithNoSessionIsOpenDesksOnly() {
+    val f = OfficeModel.build(listOf(ProjectData("/repo", "repo", listOf(Fixtures.wt(0, true)), emptyList()))).floors.single()
+    assertEquals(listOf(AreaKind.OPEN), f.areas.map { it.kind })
+    assertTrue(f.areas.single().people.isEmpty())
+  }
+
+  @Test
+  fun rolesComeFromTheAgentName() {
+    assertEquals(Role.RESEARCH, Role.of("Explore"))
+    assertEquals(Role.PLAN, Role.of("Plan"))
+    assertEquals(Role.REVIEW, Role.of("code-reviewer"))
+    assertEquals(Role.TEST, Role.of("test-runner"))
+    assertEquals(Role.BUILD, Role.of("general-purpose"))
   }
 
   @Test
@@ -59,10 +89,10 @@ class OfficeModelTest {
       val w = AiWorktree(real.toString(), "w", null, null, true)
       val sessions = listOf(
         Fixtures.session("a", real.toString() + "/", AiSessionStatus.WORKING),
-        Fixtures.session("b", link.toString(), AiSessionStatus.DONE),
+        Fixtures.session("b", link.toString(), AiSessionStatus.DONE, 2000),
       )
-      val area = OfficeModel.build(listOf(ProjectData("k", "n", listOf(w), sessions))).floors.single().areas.single()
-      assertEquals(listOf("a", "b"), area.people.map { it.session.tabId })
+      val f = OfficeModel.build(listOf(ProjectData("k", "n", listOf(w), sessions))).floors.single()
+      assertEquals(listOf("a", "b"), f.areas.flatMap { it.people }.map { it.session.tabId })
     } finally {
       real.toFile().deleteRecursively()
     }
@@ -71,11 +101,11 @@ class OfficeModelTest {
   @Test
   fun peopleAreOrderedByStartAndLookIsStablePerTab() {
     val ss = listOf(Fixtures.session("z", "/repo/wt0", AiSessionStatus.NONE, 5), Fixtures.session("a", "/repo/wt0", AiSessionStatus.NONE, 9))
-    val a1 = OfficeModel.build(listOf(ProjectData("/repo", "r", listOf(Fixtures.wt(0)), ss))).floors[0].areas[0]
-    val a2 = OfficeModel.build(listOf(ProjectData("/repo", "r", listOf(Fixtures.wt(0)), ss.reversed()))).floors[0].areas[0]
-    assertEquals(listOf("z", "a"), a1.people.map { it.session.tabId })
-    assertEquals(a1.people.map { it.seed }, a2.people.map { it.seed })
-    assertTrue(a1.people.all { it.seed >= 0 })
+    val a1 = OfficeModel.build(listOf(ProjectData("/repo", "r", listOf(Fixtures.wt(0)), ss))).floors[0].areas.flatMap { it.people }
+    val a2 = OfficeModel.build(listOf(ProjectData("/repo", "r", listOf(Fixtures.wt(0)), ss.reversed()))).floors[0].areas.flatMap { it.people }
+    assertEquals(listOf("z", "a"), a1.map { it.session.tabId })
+    assertEquals(a1.map { it.seed }, a2.map { it.seed })
+    assertTrue(a1.all { it.seed >= 0 })
   }
 
   @Test

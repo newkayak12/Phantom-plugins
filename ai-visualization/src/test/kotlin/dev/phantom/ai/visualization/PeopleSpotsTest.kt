@@ -30,7 +30,7 @@ class PeopleSpotsTest {
         AiSession("t$w-$k", "/repo/wt$w", AiAgent.CLAUDE, states[(w + k) % states.size], "한글 제목 $w-$k", 100L + k)
       }
     }
-    val model = OfficeModel.build(listOf(ProjectData("/repo", "repo", (0 until worktrees).map { Fixtures.wt(it, it == 0) }, sessions)))
+    val model = Fixtures.byWorktree(listOf(ProjectData("/repo", "repo", (0 until worktrees).map { Fixtures.wt(it, it == 0) }, sessions)))
     return layout.layout(model.floors[0].areas)
   }
 

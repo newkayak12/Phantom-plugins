@@ -25,7 +25,7 @@ class OfficeRendererTest {
   private val renderer = OfficeRenderer(ThemeA, atlas)
   private val layout = OfficeLayout(ThemeA, atlas)
 
-  private fun floorOf(status: AiSessionStatus) = OfficeModel.build(
+  private fun floorOf(status: AiSessionStatus) = Fixtures.byWorktree(
     listOf(ProjectData("/repo", "repo", listOf(Fixtures.wt(0, true)), listOf(Fixtures.session("t0", "/repo/wt0", status)))),
   ).floors[0]
 
@@ -153,7 +153,7 @@ class OfficeRendererTest {
   @Test
   fun writesTheSampleRenderWhenAskedTo() {
     val dir = System.getProperty("phantom.aiviz.renderOut") ?: return
-    val model = OfficeModel.build(
+    val model = Fixtures.byWorktree(
       listOf(
         ProjectData(
           "/repo", "colo-backend", (0 until 3).map { Fixtures.wt(it, it == 0) },

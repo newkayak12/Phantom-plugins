@@ -93,7 +93,7 @@ class AnimationTest {
       "/repo", "repo", listOf(Fixtures.wt(0, true)),
       listOf(Fixtures.session("w", "/repo/wt0", AiSessionStatus.WORKING), Fixtures.session("a", "/repo/wt0", AiSessionStatus.WAITING, 2000L)),
     )
-    c.setFloor(OfficeModel.build(listOf(data)).floors[0])
+    c.setFloor(Fixtures.byWorktree(listOf(data)).floors[0])
     @Suppress("UNCHECKED_CAST")
     fun pose() = (c.getClientProperty(OfficeCanvas.PEOPLE_PROPERTY) as List<Map<String, Any?>>).first { it["tabId"] == "w" }
       .let { it["personFrame"] to it["screen"] }

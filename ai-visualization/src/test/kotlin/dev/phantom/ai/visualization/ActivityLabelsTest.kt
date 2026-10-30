@@ -32,7 +32,7 @@ class ActivityLabelsTest {
   private fun session(tab: String, wt: Int, status: AiSessionStatus, activity: String?, subs: List<AiSubagent> = emptyList(), agent: AiAgent = AiAgent.CLAUDE) =
     AiSession(tab, "/repo/wt$wt", agent, status, "title $tab", 100L + tab.hashCode() % 50, subs, activity)
 
-  private fun floor(): Floor = OfficeModel.build(
+  private fun floor(): Floor = Fixtures.byWorktree(
     listOf(
       ProjectData(
         // two sessions per worktree, so every one has a desk or a spot on its own rug in every theme
@@ -116,10 +116,11 @@ class ActivityLabelsTest {
     val tags = res.tags.associateBy { it.tabId }
     assertTrue(tags.getValue("lead").text.startsWith("팀장 · claude"))
     assertFalse(tags.getValue("wait").text.startsWith("팀장"))
+    // a subordinate's tag says its role, then its name
     val names = res.helperTags.filter { it.tabId == "lead" && !it.text.startsWith("+") }.map { it.text }
-    assertEquals(res.helpers.filter { it.placement.tabId == "lead" }.map { it.placement.helper.name }.sorted(), names.sorted())
-    assertTrue("Explore" in names)
-    assertTrue(res.helperTags.any { it.tabId == "codex" && it.text == "reviewer" })
+    assertEquals(res.helpers.filter { it.placement.tabId == "lead" }.map { "${it.placement.helper.role.label} \u00b7 ${it.placement.helper.name}" }.sorted(), names.sorted())
+    assertTrue("\ub9ac\uc11c\uce58 \u00b7 Explore" in names)
+    assertTrue(res.helperTags.any { it.tabId == "codex" && it.text == "\ub9ac\ubdf0 \u00b7 reviewer" })
     // the stopped one is gone
     assertTrue(res.helpers.none { it.placement.helper.id == "a0" })
   }

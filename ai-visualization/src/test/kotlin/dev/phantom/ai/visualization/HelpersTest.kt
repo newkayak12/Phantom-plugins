@@ -34,7 +34,7 @@ class HelpersTest {
     AiSession(tab, path, AiAgent.CLAUDE, status, "title $tab", at, subs)
 
   /** [n] worktrees; worktree 0 has a session per state, each with [subs] running subagents, every other worktree one working session with 2. */
-  private fun floor(n: Int, subs: Int) = OfficeModel.build(
+  private fun floor(n: Int, subs: Int) = Fixtures.byWorktree(
     listOf(
       ProjectData(
         "/repo", "repo", (0 until n).map { Fixtures.wt(it, it == 0) },
@@ -44,7 +44,7 @@ class HelpersTest {
     ),
   ).floors[0]
 
-  private fun oneSession(status: AiSessionStatus, subs: List<AiSubagent>): List<DeskArea> = OfficeModel.build(
+  private fun oneSession(status: AiSessionStatus, subs: List<AiSubagent>): List<DeskArea> = Fixtures.byWorktree(
     listOf(ProjectData("/repo", "repo", listOf(Fixtures.wt(0, true)), listOf(session("t0", "/repo/wt0", status, subs)))),
   ).floors[0].areas
 
@@ -161,7 +161,7 @@ class HelpersTest {
     } finally {
       g.dispose()
     }
-    assertEquals(setOf("Explore", "Plan", "general-purpose", "Review", "+2"), res.helperTags.map { it.text }.toSet())
+    assertEquals(setOf("\ub9ac\uc11c\uce58 \u00b7 Explore", "\uae30\ud68d \u00b7 Plan", "\uac1c\ubc1c \u00b7 general-purpose", "\ub9ac\ubdf0 \u00b7 Review", "+2"), res.helperTags.map { it.text }.toSet())
     assertTrue(res.helperTags.all { it.tabId == "t0" && it.state == VizState.WORKING })
     // helper tags keep clear of the session tags and of each other
     val all = res.tags.map { it.rect } + res.helperTags.map { it.rect }
@@ -219,7 +219,7 @@ class HelpersTest {
     val rec = Recorder()
     val c = OfficeCanvas(ThemeA, rec, clock = { 100L + 5 * 60_000 })
     c.setSize(1440, 900)
-    val f = OfficeModel.build(
+    val f = Fixtures.byWorktree(
       listOf(ProjectData("/repo", "repo", listOf(Fixtures.wt(0, true)), listOf(session("t0", "/repo/wt0", AiSessionStatus.WORKING, listOf(sub(0), sub(1)))))),
     ).floors[0]
     c.setFloor(f)

@@ -20,8 +20,11 @@ data class URect(val u: Int, val v: Int, val w: Int, val d: Int) {
 
 enum class ItemKind { FLOOR_BASE, SPRITE, RUG, NAMEPLATE, PERSON, HELPER }
 
-/** A person that still needs a spot: [seat] is its desk index (or -1), ([u], [v]) the spot it would like. */
-private class Standing(val ai: Int, val person: Person, val seat: Int, val u: Double, val v: Double, val rug: URect)
+/**
+ * A person that still needs a spot: [seat] is its desk index (or -1), ([u], [v]) the spot it would like. [queue]: it waits for
+ * the CEO's sign-off and lines up in front of the CEO's chair at ([u], [v]), on or before the CEO's rug [rug], not by its desk.
+ */
+private class Standing(val ai: Int, val person: Person, val seat: Int, val u: Double, val v: Double, val rug: URect, val queue: Boolean = false)
 
 /**
  * One thing to draw. ([x], [y]) is the scene pixel the frame's anchor goes to; the list is sorted back to front by ([layer], [key]).
@@ -173,22 +176,35 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
     val desks = ArrayList<DeskPlacement>()
     val people = ArrayList<PersonPlacement>()
     val standing = ArrayList<Standing>()
+    // what the others ask the CEO to sign off, on the whole floor
+    val approvals = areas.filter { it.kind != AreaKind.CEO }.sumOf { a -> a.people.count { it.state == VizState.WAITING } }
     shown.forEachIndexed { ai, area ->
       val slot = slots[ai]
       val r = slot.rug
       items += rugTiles(ai, r, theme.rugFrame(slot.rugStyle))
       val px = proj(slot.plateU, slot.plateV)
       val py = projY(slot.plateU, slot.plateV)
-      val label = area.worktree.title + (area.worktree.prNumber?.let { " #$it" } ?: "")
+      val label = if (area.kind == AreaKind.CEO && approvals > 0) "${area.label} \u00b7 \uacb0\uc7ac $approvals" else area.label
       items += DrawItem(5, (slot.plateU + slot.plateV).toDouble(), ItemKind.NAMEPLATE, theme.nameplate, px, py, label = label)
       placements += AreaPlacement(ai, area, slot, rugBounds(r), px, py)
 
-      slot.seats.forEachIndexed { si, seat -> items += seatItems(ai, area, si, seat, desks, people, standing, r) }
+      val seats = seatIndices(area.kind, slot)
+      seats.forEachIndexed { pi, si -> items += seatItems(ai, area, si, pi, slot.seats[si], desks, people, standing, r) }
       // people without a desk stand on the rug
-      area.people.drop(slot.seats.size).forEach { p -> standing += Standing(ai, p, -1, 0.0, 0.0, r) }
+      area.people.drop(seats.size).forEach { p -> standing += Standing(ai, p, -1, 0.0, 0.0, r) }
+    }
+    // whoever waits for an answer takes it to the CEO: they line up on the CEO's rug, their desk kept
+    val ceo = shown.indexOfFirst { it.kind == AreaKind.CEO }
+    if (ceo >= 0) {
+      val seat = slots[ceo].seats[seatIndices(AreaKind.CEO, slots[ceo]).single()]
+      val (cu, cv) = chairOf(seat)
+      standing.replaceAll { st ->
+        if (st.person.state != VizState.WAITING || shown[st.ai].kind == AreaKind.CEO) st
+        else Standing(st.ai, st.person, st.seat, cu, cv, slots[ceo].rug, queue = true)
+      }
     }
     // standing people go last: each takes the first free spot (its own by the desk, else a grid over its rug, else anywhere in the room)
-    for (st in standing.sortedBy { if (it.seat >= 0) 0 else 1 }) {
+    for (st in standing.sortedBy { if (it.queue) 0 else if (it.seat >= 0) 1 else 2 }) {
       val spots = candidates(st)
       val pick = spots.firstOrNull { (u, v) -> fits(placementFor(st.ai, st.person, st.seat, u, v, false, 0), people, strict = true) }
         ?: spots.firstOrNull { (u, v) -> fits(placementFor(st.ai, st.person, st.seat, u, v, false, 0), people, strict = false) }
@@ -296,7 +312,7 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
   private fun boundsOf(frame: String, x: Int, y: Int, scale: Int): Rect = atlas.scaled(frame, scale).let { Rect(x - it.anchorX, y - it.anchorY, it.w, it.h) }
 
   private fun seatItems(
-    ai: Int, area: DeskArea, si: Int, seat: SeatSlot,
+    ai: Int, area: DeskArea, si: Int, pi: Int, seat: SeatSlot,
     desks: MutableList<DeskPlacement>, people: MutableList<PersonPlacement>, standing: MutableList<Standing>, rug: URect,
   ): List<DrawItem> {
     val o = seat.orientation
@@ -306,14 +322,12 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
     val deskFrame = theme.desk(o)
     val deskItem = sprite(5, (u + v + 15).toDouble(), deskFrame, u, v)
     res += deskItem
-    // chair centre; the desk spans 20x10 (rw) or 10x20 (lw) units from (u, v)
-    val cu = if (o == Orientation.RW) u + 10.0 else u + 12.5
-    val cv = if (o == Orientation.RW) v + 12.5 else v + 10.0
+    val (cu, cv) = chairOf(seat)
     val base = cu + cv
     val chair = theme.chair(o)
     res += sprite(5, base, chair.seat, cu, cv)
     chair.back?.let { res += sprite(5, base + 0.2, it, cu, cv) }
-    val p = area.people.getOrNull(si)
+    val p = area.people.getOrNull(pi)
     val f = atlas[deskFrame]
     desks += DeskPlacement(ai, area.worktree.path, si, Rect(deskItem.x - f.anchorX, deskItem.y - f.anchorY, f.w, f.h), p?.session?.tabId)
     if (p != null) {
@@ -329,6 +343,24 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
       }
     }
     return res
+  }
+
+  /** The centre of the chair at [seat]'s desk; the desk spans 20 x 10 (rw) or 10 x 20 (lw) units from the seat point. */
+  private fun chairOf(seat: SeatSlot): Pair<Double, Double> =
+    if (seat.orientation == Orientation.RW) seat.u + 10.0 to seat.v + 12.5 else seat.u + 12.5 to seat.v + 10.0
+
+  /**
+   * The desks of [slot] an area of [kind] uses, as indexes into its seats: the CEO and a team lead get the one desk nearest the
+   * middle of the rug (the lead's subordinates sit around it), the open desks all of them.
+   */
+  private fun seatIndices(kind: AreaKind, slot: AreaSlot): List<Int> {
+    if (kind == AreaKind.OPEN) return slot.seats.indices.toList()
+    val r = slot.rug
+    val cu = r.u + r.w / 2.0
+    val cv = r.v + r.d / 2.0
+    // a desk spans 20 x 10 (rw) or 10 x 20 (lw) units from its seat point
+    fun centre(s: SeatSlot) = if (s.orientation == Orientation.RW) s.u + 10.0 to s.v + 5.0 else s.u + 5.0 to s.v + 10.0
+    return listOf(slot.seats.indices.minBy { i -> centre(slot.seats[i]).let { (u, v) -> (u - cu) * (u - cu) + (v - cv) * (v - cv) } })
   }
 
   private fun placementFor(ai: Int, p: Person, seat: Int, u: Double, v: Double, sitting: Boolean, z: Int, facing: Orientation? = null): PersonPlacement {
@@ -352,7 +384,16 @@ class OfficeLayout(private val theme: Theme, private val atlas: Atlas) {
   private fun candidates(st: Standing): List<Pair<Double, Double>> {
     val r = st.rug
     val out = ArrayList<Pair<Double, Double>>()
-    if (st.seat >= 0) out += st.u to st.v
+    if (st.queue) {
+      // a line before the CEO's chair, nearest first; never behind the desk
+      val q = ArrayList<Pair<Double, Double>>()
+      for (du in -30..30 step 6) for (dv in 6..36 step 6) {
+        val u = st.u + du
+        val v = st.v + dv
+        if (u >= 6 && v >= 6 && u <= ROOM - 6 && v <= ROOM - 6 && u + v > st.u + st.v + 4) q += u to v
+      }
+      out += q.sortedBy { (u, v) -> (u - st.u) * (u - st.u) + (v - st.v - 12) * (v - st.v - 12) }
+    } else if (st.seat >= 0) out += st.u to st.v
     fun grid(u0: Int, u1: Int, v0: Int, v1: Int, du: Int, dv: Int) {
       var v = v1
       while (v >= v0) {

@@ -124,10 +124,14 @@ class OfficePanel(theme: Theme, actions: OfficeActions, clock: () -> Long = Syst
     add(canvas, BorderLayout.CENTER)
   }
 
-  /** Replaces the data; keeps the selected floor when it still exists, else [preferredKey], else the lowest floor. */
+  /**
+   * Replaces the data; keeps the selected floor when it still exists, else the floor (or the project's main floor) [preferredKey]
+   * names, else the lowest floor.
+   */
   fun setModel(m: OfficeModel, preferredKey: String? = null) {
     model = m
-    val key = listOf(selectedKey, preferredKey).firstOrNull { it != null && m.floor(it) != null } ?: m.floors.firstOrNull()?.key
+    val key = listOf(selectedKey, preferredKey).firstOrNull { it != null && m.floor(it) != null }
+      ?: m.floors.firstOrNull { it.projectKey == preferredKey }?.key ?: m.floors.firstOrNull()?.key
     selectedKey = key
     picker.setFloors(m.floorsTopDown, key)
     canvas.setFloor(m.floor(key))

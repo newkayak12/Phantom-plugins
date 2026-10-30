@@ -17,7 +17,7 @@ class ThemeSeamRenderTest {
 
   @Test
   fun fakeAtlasPixelAppearsAtAPersonAnchor() {
-    val floor = OfficeModel.build(
+    val floor = Fixtures.byWorktree(
       listOf(ProjectData("/repo", "repo", listOf(Fixtures.wt(0, true)), listOf(Fixtures.session("t0", "/repo/wt0", AiSessionStatus.WAITING)))),
     ).floors[0]
     val scene = OfficeLayout(FakeTheme, atlas).layout(floor.areas)
