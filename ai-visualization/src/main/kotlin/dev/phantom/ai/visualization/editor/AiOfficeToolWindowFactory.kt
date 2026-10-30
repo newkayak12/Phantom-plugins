@@ -11,7 +11,7 @@ import com.intellij.ui.content.ContentFactory
 import dev.phantom.ai.visualization.actions.ApiCheck
 import javax.swing.SwingConstants
 
-/** The "AI Office" tool window: the same office as the editor tab, reachable from its stripe icon like AI Integration's. */
+/** The "AI Visualization" tool window: the same office as the editor tab, reachable from its stripe icon like AI Integration's. */
 class AiOfficeToolWindowFactory : ToolWindowFactory, DumbAware {
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
     val component = if (ApiCheck.available) {

@@ -8,7 +8,7 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 
-/** Opens [AiOfficeFile] (and nothing else) as the AI Office editor. */
+/** Opens [AiOfficeFile] (and nothing else) as the AI Visualization editor. */
 class AiOfficeEditorProvider : FileEditorProvider, DumbAware {
   // with an AI Integration older than 0.3.8 (no public API, no AiSubagent or no activity) a tab left open is not restored instead of failing
   override fun accept(project: Project, file: VirtualFile): Boolean = file is AiOfficeFile && dev.phantom.ai.visualization.actions.ApiCheck.available

@@ -4,19 +4,19 @@
 
 The agent sessions of Phantom AI Integration as an isometric pixel-art office. Needs Phantom AI Integration 0.3.1 or later (`dev.phantom.ai`), whose public API `dev.phantom.ai.api` it uses.
 
-![AI Office, theme A (Warm Wood)](docs/screenshots/office.png)
+![AI Visualization, theme A (Warm Wood)](docs/screenshots/office.png)
 ![Zoomed in](docs/screenshots/office-zoom.png)
-![AI Office, theme B (Modern Bright)](docs/screenshots/office-b.png)
-![AI Office, theme C (Night Shift)](docs/screenshots/office-c.png)
+![AI Visualization, theme B (Modern Bright)](docs/screenshots/office-b.png)
+![AI Visualization, theme C (Night Shift)](docs/screenshots/office-c.png)
 ![Subagents as helpers](docs/screenshots/office-subagents.png)
 
 
-- **The office:** Tools | Open AI Office (or Open AI Office in Find Action) opens an "AI Office" editor tab for the current project. Each open project is a floor, each worktree a desk area with a rug and a name plate, and each live agent session a person at a desk. Several sessions in one worktree are several people in its desk area. Saved sessions that are not running are not drawn. The floor picker lists floors top-down, with the number of sessions per state; the first open project is 1F and the current project's floor is selected on open. More than 6 worktrees on a floor are paged, 6 desk areas per page.
+- **The office:** Tools | Open AI Visualization (or Open AI Visualization in Find Action) opens an "AI Visualization" editor tab for the current project. Each open project is a floor, each worktree a desk area with a rug and a name plate, and each live agent session a person at a desk. Several sessions in one worktree are several people in its desk area. Saved sessions that are not running are not drawn. The floor picker lists floors top-down, with the number of sessions per state; the first open project is 1F and the current project's floor is selected on open. More than 6 worktrees on a floor are paged, 6 desk areas per page.
 - **States:** working is a person typing at the desk; waiting for you is a person standing with a raised hand and a `!` bubble; done is a person with a coffee and a check bubble; a session started with no hook event yet is a person asleep with a `zzz` bubble.
 - **Subagents:** the running subagents a session started (Claude's Task tool, agent teams) are smaller helpers, each working on a stool beside its person in the same desk area, with a small name tag ("Explore", "Plan") whose dot has the person's state color. At most 4 per session are drawn, more show as "+N"; stopped subagents are not drawn. Hover a helper for its name and its session's title; click it to focus that session's terminal. Floor counts and the legend stay per session; a person's tooltip adds its helper count.
 - **Interactions:** click a person to focus that session's terminal tab; click an empty desk for New Claude / New Codex in that worktree; Ctrl+wheel zooms in whole steps (1 to 6), drag pans; hover a person for title, agent and elapsed time. The animation (typing, bubbles bobbing) runs only while the tab is showing.
 - **Look:** sprites are drawn with nearest-neighbour integer scaling on a 2:1 iso grid, depth sorted back to front; all text is drawn after scaling, crisp at screen resolution, and Korean renders.
-- **Themes:** three, picked in Settings | Tools | Phantom AI Visualization; open AI Office tabs switch at once, without reopening.
+- **Themes:** three, picked in Settings | Tools | Phantom AI Visualization; open AI Visualization tabs switch at once, without reopening.
   - **A, Warm Wood** (default): wooden floor, brick walls, a cosy dark office.
   - **B, Modern Bright:** light gray tiles, white plaster walls with teal trim and tall windows, white desks and teal chairs, clear glass partitions with a frosted teal band between desk areas, teal rugs, and a light canvas with teal accents in the floor picker and legend.
   - **C, Night Shift:** theme A's office at night. The windows show a starry sky, the moon and a lit city skyline; the room is dark, the monitors cast cool light and the floor lamp, the coffee machine and the backlit name plates warm pools, all with a dithered falloff. Bubbles, tags and plate labels are not dimmed. Dark chrome with an indigo accent.

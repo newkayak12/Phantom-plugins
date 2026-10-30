@@ -42,7 +42,7 @@ class AiOfficeInIdeTest : BasePlatformTestCase() {
     val editor = providers.filterIsInstance<AiOfficeEditorProvider>().single().createEditor(project, AiOfficeFile.of(project))
     try {
       assertTrue(editor is AiOfficeEditor)
-      assertEquals("AI Office", editor.name)
+      assertEquals("AI Visualization", editor.name)
       assertSame(AiOfficeFile.of(project), editor.file)
     } finally {
       com.intellij.openapi.util.Disposer.dispose(editor)

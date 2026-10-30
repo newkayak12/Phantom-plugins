@@ -103,7 +103,7 @@ class LegendView(private var renderer: OfficeRenderer) : JComponent() {
   }
 }
 
-/** The AI Office: floor picker and legend in a column on the left, the canvas of the selected floor on the right. */
+/** The AI Visualization: floor picker and legend in a column on the left, the canvas of the selected floor on the right. */
 class OfficePanel(theme: Theme, actions: OfficeActions, clock: () -> Long = System::currentTimeMillis) : JPanel(BorderLayout()) {
   private var renderer = OfficeRenderer(theme)
   val canvas = OfficeCanvas(theme, actions, clock)

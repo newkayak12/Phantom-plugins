@@ -5,8 +5,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.testFramework.LightVirtualFile
 
-/** The one "AI Office" file of a project; never on disk, never editable. */
-class AiOfficeFile : LightVirtualFile("AI Office") {
+/** The one "AI Visualization" file of a project; never on disk, never editable. */
+class AiOfficeFile : LightVirtualFile("AI Visualization") {
   init {
     isWritable = false
   }

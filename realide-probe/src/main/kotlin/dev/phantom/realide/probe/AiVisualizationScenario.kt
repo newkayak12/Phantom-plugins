@@ -30,7 +30,7 @@ private const val HELPERS = "phantom.aiviz.helpers"
 private const val AI_TOOL_WINDOW = "Phantom AI Integration"
 
 /**
- * Phantom AI Visualization in a real IDE, through the UI only: no ai-visualization or ai-integrations class is imported. The AI Office
+ * Phantom AI Visualization in a real IDE, through the UI only: no ai-visualization or ai-integrations class is imported. The AI Visualization
  * canvas is found by its read-only client property "phantom.aiviz.people"; fake sessions in all four states are put into the
  * SessionStore of the dev.phantom.ai plugin through that plugin's class loader (reflection), one real stub-CLI terminal tab is
  * launched the same way, and nothing goes through real hooks or the real home (the task redirects the agent dirs and CLIs).
@@ -47,10 +47,10 @@ internal object AiVisualizationScenario : ProbeScenario {
       return out
     }
     fun editor(): FileEditor? = FileEditorManager.getInstance(ctx.project).selectedEditor
-    fun officeEditorOpen(): Boolean = editor()?.name == "AI Office"
-    fun canvas(): JComponent? = FileEditorManager.getInstance(ctx.project).allEditors.firstOrNull { it.name == "AI Office" }
+    fun officeEditorOpen(): Boolean = editor()?.name == "AI Visualization"
+    fun canvas(): JComponent? = FileEditorManager.getInstance(ctx.project).allEditors.firstOrNull { it.name == "AI Visualization" }
       ?.component?.let { r -> walk(r).filterIsInstance<JComponent>().firstOrNull { it.getClientProperty(PEOPLE) != null } }
-    fun simple(name: String): Component? = FileEditorManager.getInstance(ctx.project).allEditors.firstOrNull { it.name == "AI Office" }
+    fun simple(name: String): Component? = FileEditorManager.getInstance(ctx.project).allEditors.firstOrNull { it.name == "AI Visualization" }
       ?.component?.let { r -> walk(r).firstOrNull { it.javaClass.simpleName == name } }
     @Suppress("UNCHECKED_CAST")
     fun people(): List<Map<String, Any?>> = (canvas()?.getClientProperty(PEOPLE) as? List<Map<String, Any?>>).orEmpty()
@@ -98,7 +98,7 @@ internal object AiVisualizationScenario : ProbeScenario {
     }
     report.step("office.seed", expected = mapOf("seeded" to true), observed = mapOf("seeded" to (seeded as? String)?.startsWith("ok tab="), "result" to seeded))
 
-    // Open AI Office from its Tools-menu action
+    // Open AI Visualization from its Tools-menu action
     val rootComponent = ctx.edt { ProbeSnapshot.frame(ctx.project)?.rootPane }
     val actionFound = ctx.edt { ActionManager.getInstance().getAction(OFFICE_ACTION) != null }
     ctx.edt {
@@ -252,7 +252,7 @@ internal object AiVisualizationScenario : ProbeScenario {
     )
     // back to the office tab if the click moved focus, side windows hidden again
     hideSideWindows()
-    ctx.edt { FileEditorManager.getInstance(ctx.project).allEditors.firstOrNull { it.name == "AI Office" }?.let { e -> e.file?.let { FileEditorManager.getInstance(ctx.project).openFile(it, true) } } }
+    ctx.edt { FileEditorManager.getInstance(ctx.project).allEditors.firstOrNull { it.name == "AI Visualization" }?.let { e -> e.file?.let { FileEditorManager.getInstance(ctx.project).openFile(it, true) } } }
     ctx.waitUntil(10_000) { officeEditorOpen() && canvas()?.isShowing == true }
 
     // pan by dragging: the people move with the drag
@@ -319,8 +319,8 @@ internal object AiVisualizationScenario : ProbeScenario {
       observed = mapOf("otherEditorSelected" to hidden, "canvasHidden" to (ctx.edt { canvas()?.isShowing == false }), "ticking" to stillTicking),
     )
 
-    // back on the AI Office tab: the timer restarts
-    ctx.edt { FileEditorManager.getInstance(ctx.project).allEditors.firstOrNull { it.name == "AI Office" }?.file?.let { FileEditorManager.getInstance(ctx.project).openFile(it, true) } }
+    // back on the AI Visualization tab: the timer restarts
+    ctx.edt { FileEditorManager.getInstance(ctx.project).allEditors.firstOrNull { it.name == "AI Visualization" }?.file?.let { FileEditorManager.getInstance(ctx.project).openFile(it, true) } }
     val back = ctx.waitUntil(15_000) { officeEditorOpen() && canvas()?.isShowing == true }
     val again = if (back) ticks(1_200) else false
     report.step("office.timer.restarts", expected = mapOf("tabShowing" to true, "ticking" to true), observed = mapOf("tabShowing" to back, "ticking" to again))

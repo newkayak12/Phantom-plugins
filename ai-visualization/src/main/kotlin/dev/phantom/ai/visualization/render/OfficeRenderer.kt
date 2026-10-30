@@ -499,7 +499,7 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
     textHints(g)
     g.font = Fonts.font(13f, bold = true)
     g.color = palette.text
-    val title = if (floor == null) "AI Office" else "${floor.label}  ${floor.name}"
+    val title = if (floor == null) "AI Visualization" else "${floor.label}  ${floor.name}"
     g.drawString(title, x.toFloat(), y.toFloat())
     if (floor != null) {
       val w = g.fontMetrics.stringWidth(title)

@@ -26,7 +26,7 @@ import java.beans.PropertyChangeListener
 import javax.swing.JComponent
 
 /**
- * The AI Office editor tab. Reads everything through [PhantomAiApi]: a change listener (disposed with the editor) debounces,
+ * The AI Visualization editor tab. Reads everything through [PhantomAiApi]: a change listener (disposed with the editor) debounces,
  * worktrees and sessions of the open projects are read on a pooled thread, the result is painted on the EDT.
  */
 class AiOfficeEditor(
@@ -86,7 +86,7 @@ class AiOfficeEditor(
       } catch (e: ProcessCanceledException) {
         throw e
       } catch (e: Exception) {
-        LOG.warn("AI Office: could not read ${p.name}", e)
+        LOG.warn("AI Visualization: could not read ${p.name}", e)
         ProjectData(keyOf(p), p.name, emptyList(), emptyList())
       }
     }
@@ -94,7 +94,7 @@ class AiOfficeEditor(
 
   override fun getComponent(): JComponent = panel
   override fun getPreferredFocusedComponent(): JComponent = panel.canvas
-  override fun getName(): String = "AI Office"
+  override fun getName(): String = "AI Visualization"
   override fun getFile(): VirtualFile = file
   override fun setState(state: FileEditorState) = Unit
   override fun isModified(): Boolean = false

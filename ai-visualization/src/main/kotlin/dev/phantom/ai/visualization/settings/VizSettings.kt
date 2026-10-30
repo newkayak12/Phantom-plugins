@@ -16,7 +16,7 @@ class VizSettingsState : BaseState() {
   var themeId by string("A")
 }
 
-/** Told when the chosen theme changes; open AI Office tabs listen and re-render. */
+/** Told when the chosen theme changes; open AI Visualization tabs listen and re-render. */
 fun interface VizThemeListener {
   fun themeChanged(theme: Theme)
 }

@@ -8,7 +8,7 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.ui.Messages
 import dev.phantom.ai.visualization.editor.AiOfficeFile
 
-/** Tools | Open AI Office (also in Find Action): opens the "AI Office" tab of the project, or selects it when it is open. */
+/** Tools | Open AI Visualization (also in Find Action): opens the "AI Visualization" tab of the project, or selects it when it is open. */
 class OpenAiOfficeAction : AnAction(), DumbAware {
   override fun actionPerformed(e: AnActionEvent) {
     val project = e.project ?: return
@@ -16,7 +16,7 @@ class OpenAiOfficeAction : AnAction(), DumbAware {
       Messages.showWarningDialog(
         project,
         "Phantom AI Visualization needs Phantom AI Integration 0.3.8 or later. Update it in Settings | Plugins and restart.",
-        "Open AI Office",
+        "Open AI Visualization",
       )
       return
     }
