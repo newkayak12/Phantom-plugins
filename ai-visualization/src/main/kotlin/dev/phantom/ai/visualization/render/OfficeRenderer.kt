@@ -115,7 +115,38 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
   private val frameImages = HashMap<String, BufferedImage>()
   private val scaledImages = HashMap<Pair<String, Int>, BufferedImage>()
 
-  private fun frame(name: String) = frameImages.getOrPut(name) { atlas.sub(name) }
+  /** [name] copied out of the sheet: a sub-image of the whole sheet draws about a fifth slower than an image of its own. */
+  private fun frame(name: String) = frameImages.getOrPut(name) {
+    val sub = atlas.sub(name)
+    BufferedImage(sub.width, sub.height, BufferedImage.TYPE_INT_ARGB).also { img ->
+      val g = img.createGraphics()
+      try {
+        g.composite = java.awt.AlphaComposite.Src
+        g.drawImage(sub, 0, 0, null)
+      } finally {
+        g.dispose()
+      }
+    }
+  }
+
+  /** The room composed for the last scene, zoom and compose scale, per animation phase, while it fits [COMPOSED_BUDGET]. */
+  private val composed = HashMap<Int, BufferedImage>()
+  private var composedFor: Triple<Scene, Int, Int>? = null
+
+  /** [composeImage], reused while [scene] (the same instance), [zoom] and [k] stay: drags, hovers and later animation cycles compose nothing. */
+  private fun composedImage(scene: Scene, phase: Int, zoom: Int, k: Int): BufferedImage {
+    val key = Triple(scene, zoom, k)
+    if (composedFor != key) {
+      composed.clear()
+      composedFor = key
+    }
+    composed[phase]?.let { return it }
+    val img = composeImage(scene, phase, zoom, k)
+    val bytes = img.width.toLong() * img.height * 4
+    if (bytes * theme.animationPhases.coerceIn(2, 4) <= COMPOSED_BUDGET) composed[phase] = img
+    else composed.apply { clear() }[phase] = img
+    return img
+  }
 
   /** [name] shrunk by [scale], sampled as [Atlas.scaledPixel] does, so hit-testing sees the pixels drawn. */
   private fun scaledFrame(name: String, scale: Int): BufferedImage = scaledImages.getOrPut(name to scale) {
@@ -297,7 +328,7 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
 
   /** The whole canvas content: background dots, the scaled room at ([ox], [oy]), then every text at screen resolution. */
   fun paintScene(g: Graphics2D, scene: Scene, zoom: Int, ox: Int, oy: Int, phase: Int): PaintResult {
-    val native = composeImage(scene, phase, zoom, composeScale(zoom))
+    val native = composedImage(scene, phase, zoom, composeScale(zoom))
     val old = g.getRenderingHint(RenderingHints.KEY_INTERPOLATION)
     g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR)
     g.drawImage(native, ox, oy, scene.width * zoom, scene.height * zoom, null)
@@ -647,6 +678,9 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
 
     /** An activity label ends this many screen pixels (not scaled) above the bubble (or a subordinate's head). */
     const val ACTIVITY_DY = 3
+
+    /** Bytes the composed rooms of every phase may take together; past it only the last phase's is kept. */
+    const val COMPOSED_BUDGET = 48L * 1024 * 1024
 
     /** What an activity label says when the hooks reported nothing. */
     val DEFAULT_ACTIVITY = mapOf(

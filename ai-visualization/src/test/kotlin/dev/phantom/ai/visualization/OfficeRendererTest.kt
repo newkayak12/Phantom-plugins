@@ -168,4 +168,21 @@ class OfficeRendererTest {
     assertTrue(ImageIO.write(img, "png", File(dir, "render-zoom3.png")))
     assertNotEquals(0, File(dir, "render-zoom3.png").length())
   }
+
+  @Test
+  fun aReusedRoomPaintsTheSameAsAFreshOneAndANewSceneIsComposedAgain() {
+    fun pixels(img: BufferedImage) = img.getRGB(0, 0, img.width, img.height, null, 0, img.width)
+    val working = floorOf(AiSessionStatus.WORKING)
+    val waiting = floorOf(AiSessionStatus.WAITING)
+    val a = layout.layout(working.areas)
+    val b = layout.layout(waiting.areas)
+    for (zoom in 1..5) {
+      // twice through every phase, then another scene: each paint equals what a renderer that never painted draws
+      val runs = (0 until 2).flatMap { (0 until ThemeA.animationPhases).map { ph -> Triple(a, working, ph) } } + Triple(b, waiting, 0)
+      for ((scene, floor, phase) in runs) {
+        val fresh = OfficeRenderer(ThemeA, atlas).render(scene, floor, zoom, phase)
+        assertTrue("zoom $zoom phase $phase", pixels(fresh).contentEquals(pixels(renderer.render(scene, floor, zoom, phase))))
+      }
+    }
+  }
 }
