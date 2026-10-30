@@ -41,6 +41,24 @@ class ProjectTabsTest {
   }
 
   @Test
+  fun `a tab dropped at a gap moves there`() {
+    val order = listOf("a", "b", "c", "d")
+    assertEquals(listOf("b", "c", "a", "d"), ProjectTabs.moved(order, from = 0, gap = 3))
+    assertEquals(listOf("b", "c", "d", "a"), ProjectTabs.moved(order, from = 0, gap = 4))
+    assertEquals(listOf("d", "a", "b", "c"), ProjectTabs.moved(order, from = 3, gap = 0))
+    assertEquals(listOf("a", "c", "b", "d"), ProjectTabs.moved(order, from = 2, gap = 1))
+  }
+
+  @Test
+  fun `a tab dropped next to itself or out of range stays`() {
+    val order = listOf("a", "b", "c")
+    assertEquals(order, ProjectTabs.moved(order, from = 1, gap = 1))
+    assertEquals(order, ProjectTabs.moved(order, from = 1, gap = 2))
+    assertEquals(order, ProjectTabs.moved(order, from = 3, gap = 0))
+    assertEquals(order, ProjectTabs.moved(order, from = 0, gap = 4))
+  }
+
+  @Test
   fun `the strip shows only when it is on and there is another project to switch to`() {
     assertTrue(ProjectTabs.isStripVisible(enabled = true, tabCount = 2))
     assertFalse(ProjectTabs.isStripVisible(enabled = true, tabCount = 1))

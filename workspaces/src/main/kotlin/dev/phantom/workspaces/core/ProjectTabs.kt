@@ -22,6 +22,18 @@ object ProjectTabs {
     }
   }
 
+  /**
+   * [order] with the item at [from] dropped at [gap]: the gap before the item at that index, [order].size after the last.
+   * Unchanged when [from] or [gap] is out of range, or the gap is on either side of the item.
+   */
+  fun <T> moved(order: List<T>, from: Int, gap: Int): List<T> {
+    if (from !in order.indices || gap !in 0..order.size || gap == from || gap == from + 1) return order
+    val result = order.toMutableList()
+    val item = result.removeAt(from)
+    result.add(if (gap > from) gap - 1 else gap, item)
+    return result
+  }
+
   /** The strip is only worth its height when there is another project to switch to. */
   fun isStripVisible(enabled: Boolean, tabCount: Int): Boolean = enabled && tabCount > 1
 

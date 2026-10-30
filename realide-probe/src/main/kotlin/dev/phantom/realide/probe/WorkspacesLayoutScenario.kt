@@ -14,12 +14,18 @@ import com.intellij.openapi.project.ex.ProjectManagerEx
 import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.openapi.wm.WindowManager
+import com.intellij.ui.components.JBLabel
+import java.awt.Component
+import java.awt.Container
+import java.awt.Point
+import javax.swing.JComponent
 import kotlinx.coroutines.delay
 
 /**
  * Workspaces 0.3.0: a project switched to takes the tool window layout of the one in front.
  * Opens beta next to alpha, moves beta's Project tool window to the right, switches to alpha (Next Project Window) and
  * expects alpha's Project tool window on the right too; then with the setting off, a change in alpha stays in alpha.
+ * Workspaces 0.4.0: dragging beta's tab onto the left edge of alpha's moves it first, in both windows' strips.
  */
 internal object WorkspacesLayoutScenario : ProbeScenario {
   private const val SYNC = "phantom.workspaces.sync.tool.windows"
@@ -60,7 +66,34 @@ internal object WorkspacesLayoutScenario : ProbeScenario {
     delay(1000)
     report.step("switch.off.keeps", mapOf("alpha" to "left", "beta" to "right"), mapOf("alpha" to ctx.edt { anchor(alpha) }, "beta" to ctx.edt { anchor(beta) }))
     ctx.edt { AdvancedSettings.setBoolean(SYNC, true) }
+
+    val dragged = ctx.edt {
+      val strip = strip(beta) ?: return@edt mapOf("strip" to false)
+      val tabs = tabs(strip)
+      val from = tabs[beta.name] ?: return@edt mapOf("tabs" to tabs.keys.toList())
+      val onto = tabs[alpha.name] ?: return@edt mapOf("tabs" to tabs.keys.toList())
+      val y = from.height / 2
+      ProbeInput.drag(from, Point(from.width / 2, y), Point(onto.x - from.x + 2, y))
+      mapOf("before" to tabs.keys.toList(), "stripSize" to listOf(strip.width, strip.height))
+    }
+    delay(1000)
+    report.step("drag.reorders", mapOf("beta" to listOf(beta.name, alpha.name), "alpha" to listOf(beta.name, alpha.name)),
+                dragged + ctx.edt { mapOf("beta" to strip(beta)?.let { tabs(it).keys.toList() }, "alpha" to strip(alpha)?.let { tabs(it).keys.toList() }) })
   }
+
+  private fun strip(p: Project): JComponent? {
+    fun walk(c: Component): JComponent? {
+      if (c.javaClass.name == "dev.phantom.workspaces.core.ProjectTabStrip") return c as JComponent
+      if (c is Container) for (child in c.components) walk(child)?.let { return it }
+      return null
+    }
+    return WindowManager.getInstance().getFrame(p)?.rootPane?.let(::walk)
+  }
+
+  /** Tab title to tab component, in strip order. */
+  private fun tabs(strip: JComponent): Map<String, JComponent> = strip.components.filterIsInstance<JComponent>().mapNotNull { c ->
+    c.components.filterIsInstance<JBLabel>().firstOrNull()?.let { it.text to c }
+  }.toMap()
 
 
   private fun anchor(p: Project): String? = ToolWindowManager.getInstance(p).getToolWindow(TW)?.anchor?.toString()?.lowercase()

@@ -147,11 +147,26 @@ class ProjectTabsService : Disposable {
   /** Switches to the project [offset] tabs away from [project], wrapping around. */
   @RequiresEdt
   fun switchBy(project: Project?, offset: Int) {
-    val open = openOrder.filter { p -> !p.isDisposed && strips.any { it.project === p } }
+    val open = openTabs()
     if (open.size < 2) return
     val index = open.indexOfFirst { it === project }.coerceAtLeast(0)
     switchTo(open[Math.floorMod(index + offset, open.size)])
   }
+
+  /** Moves the tab of [project] to [gap] between the tabs (0 before the first), in every window. */
+  @RequiresEdt
+  fun move(project: Project, gap: Int) {
+    val open = openTabs()
+    val moved = ProjectTabs.moved(open, open.indexOfFirst { it === project }, gap)
+    if (moved == open) return
+    val rest = openOrder.filter { p -> moved.none { it === p } }
+    openOrder.clear()
+    openOrder += moved
+    openOrder += rest
+    refresh()
+  }
+
+  private fun openTabs(): List<Project> = openOrder.filter { p -> !p.isDisposed && strips.any { it.project === p } }
 
   /** Closes [project] the way File | Close Project does (the welcome screen comes back after the last one). */
   @RequiresEdt
@@ -173,9 +188,7 @@ class ProjectTabsService : Disposable {
 
   @RequiresEdt
   private fun refresh() {
-    val open = openOrder
-      .filter { project -> !project.isDisposed && strips.any { it.project === project } }
-      .map { OpenProject(it, it.name, it.presentableUrl) }
+    val open = openTabs().map { OpenProject(it, it.name, it.presentableUrl) }
     val visible = ProjectTabs.isStripVisible(isEnabled, open.size)
     val home = SystemProperties.getUserHome()
     for (strip in strips) {

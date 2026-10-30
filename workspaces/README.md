@@ -4,13 +4,15 @@
 
 All open projects as tabs of one window.
 
-- **Project tab strip:** a strip above the editor lists every open project. Click a tab to switch, middle-click or × to close; renamed projects update their tab.
+- **Project tab strip:** a strip above the editor lists every open project. Click a tab to switch, middle-click or × to close, drag it left or right to put it elsewhere (in every window, and for Next Project Window too); renamed projects update their tab.
 - **One window:** only the project in front has a window on screen; the others are hidden behind it, so there is one window in the Dock menu, Mission Control and the window switcher. A project you open comes in as a new tab of that window, and closing the tab in front shows the one before it. Project windows share one size, position and maximized state; a project switched to also takes full screen.
 - **Keys:** next/previous project with Window | Next Project Window. The Window menu and Open Recent on an open project switch tabs too.
 - **Same tool windows in every tab:** a project switched to takes the tool window layout of the one in front: which side and order the stripe buttons have, which tool windows are open, their sizes, docked or floating. Tool windows only that project has (Gradle in a Gradle project, say) keep their place. Off in Settings | Advanced Settings | Phantom Workspaces.
 - Works on every OS and does not use macOS native window tabs. Turn it off in Settings | Advanced Settings | Phantom Workspaces.
 
 Until 2026-10-26 this was bundled with Phantom (`phantom-workspaces`); it is a plugin now so it updates without a new Phantom build.
+
+**0.4.0**: project tabs can be dragged to a new place. A line shows where the tab goes; the order is the same in every window and is the order Next/Previous Project Window goes through.
 
 **0.3.0**: every project tab shows its tool windows in the same place. Each project keeps its tool window layout in its own workspace.xml, so switching tabs moved the Project, Terminal and other tool windows to where that project had them; now the project switched to takes the layout of the one in front.
 

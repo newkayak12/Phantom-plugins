@@ -101,6 +101,18 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
     assertFalse(first.isVisible)
   }
 
+  fun testAMovedTabMovesInEveryFrame() {
+    val first = stripOf(project)
+    val other = openSecondProject("moving")
+    val second = stripOf(other)
+    settle()
+
+    ProjectTabsService.getInstance().move(other, 0)
+    assertEquals(listOf(other.name, project.name), first.tabs.map { it.title })
+    assertEquals(listOf(other.name, project.name), second.tabs.map { it.title })
+    assertEquals(listOf(false, true), first.tabs.map { it.isCurrent })
+  }
+
   fun testARenamedProjectIsRenamedInTheStrip() {
     val first = stripOf(project)
     val other = openSecondProject("renaming")

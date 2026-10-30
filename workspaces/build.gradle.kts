@@ -2,7 +2,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.3.0"
+version = "0.4.0"
 
 // Real-IDE probe: ./gradlew -PrealIde -PprobeScenario=smoke :workspaces:runIdeProbe [-PprobeOut=dir]; not part of CI or the zip
 if (providers.gradleProperty("realIde").isPresent) {

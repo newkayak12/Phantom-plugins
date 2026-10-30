@@ -14,7 +14,9 @@ import com.intellij.ui.components.panels.HorizontalLayout
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import java.awt.BorderLayout
+import java.awt.Cursor
 import java.awt.Graphics
+import java.awt.dnd.DragSource
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
 import java.awt.event.MouseAdapter
@@ -27,6 +29,7 @@ import javax.swing.JFrame
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
 import javax.swing.Timer
+import kotlin.math.abs
 
 /** Adds the project tab strip to every project frame, under the main toolbar and above the editor and tool windows. */
 internal class ProjectTabsNorthExtension : IdeRootPaneNorthExtension {
@@ -40,7 +43,7 @@ private const val SYNC_DELAY_MS = 300
 
 /**
  * One tab per open project; the tab of this frame's [project] is the current one. Click switches, middle-click or
- * the close button closes. Also watches its frame for [WindowStack] (activation, and moves/resizes, debounced).
+ * the close button closes, dragging moves the tab. Also watches its frame for [WindowStack] (activation, and moves/resizes, debounced).
  */
 class ProjectTabStrip(val project: Project) : JPanel(HorizontalLayout(0)) {
   var tabs: List<ProjectTab> = emptyList()
@@ -149,6 +152,33 @@ class ProjectTabStrip(val project: Project) : JPanel(HorizontalLayout(0)) {
     service.close(tab.key as Project)
   }
 
+  // the gap between tabs a dragged tab would drop at (0 before the first), -1 when no tab is dragged
+  private var dropGap = -1
+
+  private fun dragTo(x: Int) {
+    val gap = components.count { it.x + it.width / 2 < x }
+    if (gap != dropGap) {
+      dropGap = gap
+      repaint()
+    }
+  }
+
+  private fun drop(tab: ProjectTab) {
+    val gap = dropGap
+    dropGap = -1
+    repaint()
+    if (gap >= 0) service.move(tab.key as Project, gap)
+  }
+
+  override fun paintChildren(g: Graphics) {
+    super.paintChildren(g)
+    if (dropGap < 0 || componentCount == 0) return
+    val width = JBUI.scale(2)
+    val x = if (dropGap < componentCount) getComponent(dropGap).x else getComponent(componentCount - 1).let { it.x + it.width }
+    g.color = JBUI.CurrentTheme.EditorTabs.underlineColor()
+    g.fillRect((x - width / 2).coerceIn(0, this.width - width), 0, width, height)
+  }
+
   private inner class TabComponent(private val tab: ProjectTab) : JPanel(BorderLayout()) {
     private var hovered = false
 
@@ -162,8 +192,32 @@ class ProjectTabStrip(val project: Project) : JPanel(HorizontalLayout(0)) {
       val closeButton = InplaceButton(PhantomWorkspacesBundle.message("tab.close.tooltip"), AllIcons.Actions.Close) { close(tab) }
       closeButton.border = JBUI.Borders.emptyLeft(6)
       add(closeButton, BorderLayout.EAST)
-      addMouseListener(object : MouseAdapter() {
+      val mouse = object : MouseAdapter() {
+        private var pressX: Int? = null
+        private var dragging = false
+
+        override fun mousePressed(e: MouseEvent) {
+          pressX = if (SwingUtilities.isLeftMouseButton(e)) e.xOnScreen else null
+        }
+
+        override fun mouseDragged(e: MouseEvent) {
+          val start = pressX ?: return
+          if (!dragging && abs(e.xOnScreen - start) < DragSource.getDragThreshold()) return
+          if (!dragging) {
+            dragging = true
+            cursor = Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR)
+          }
+          dragTo(SwingUtilities.convertPoint(this@TabComponent, e.point, this@ProjectTabStrip).x)
+        }
+
         override fun mouseReleased(e: MouseEvent) {
+          pressX = null
+          if (dragging) {
+            dragging = false
+            cursor = Cursor.getDefaultCursor()
+            drop(tab)
+            return
+          }
           if (!contains(e.point)) return
           when {
             SwingUtilities.isMiddleMouseButton(e) -> close(tab)
@@ -180,7 +234,9 @@ class ProjectTabStrip(val project: Project) : JPanel(HorizontalLayout(0)) {
           hovered = false
           repaint()
         }
-      })
+      }
+      addMouseListener(mouse)
+      addMouseMotionListener(mouse)
     }
 
     override fun paintComponent(g: Graphics) {
