@@ -18,7 +18,25 @@ data class WorktreeNode(
 )
 
 /** A worktree with the worktrees made from it. */
-data class NestedWorktree(val node: WorktreeNode, val children: List<NestedWorktree>)
+data class NestedWorktree(val node: WorktreeNode, val children: List<NestedWorktree>) {
+  /** This worktree and every one below it, each before the ones made from it. */
+  fun lineage(): List<String> = listOf(node.path) + children.flatMap { it.lineage() }
+}
+
+/** Where a prompt sent down a lineage goes in one worktree: typed into an open agent tab, or a new Claude started on it. */
+sealed interface PromptTarget {
+  data class Type(val tabId: String) : PromptTarget
+  data class Start(val worktree: String) : PromptTarget
+}
+
+object PromptPropagation {
+  /** Every open agent tab of each worktree of [root]'s lineage ([openTabs]); a worktree with none starts Claude. */
+  fun targets(root: NestedWorktree, openTabs: (String) -> List<String>): List<PromptTarget> =
+    root.lineage().flatMap { w ->
+      val tabs = openTabs(w)
+      if (tabs.isEmpty()) listOf(PromptTarget.Start(w)) else tabs.map { PromptTarget.Type(it) }
+    }
+}
 
 data class RepoNode(val path: String, val name: String, val worktrees: List<WorktreeNode>)
 

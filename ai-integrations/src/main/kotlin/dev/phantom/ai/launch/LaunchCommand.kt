@@ -19,9 +19,13 @@ object LaunchCommand {
   /** The CLI word: bare `claude`/`codex`, or the quoted stub path with -Dphantom.ai.agentBinDir. */
   private fun cli(kind: AgentKind): String = SystemDirs.cli(kind).let { if (it == "claude" || it == "codex") it else quote(it) }
 
-  fun launch(kind: AgentKind, mcp: McpLink? = null): String = when (kind) {
-    AgentKind.CLAUDE -> "${cli(kind)} '--dangerously-skip-permissions'${mcpArgs(kind, mcp)}"
-    AgentKind.CODEX -> "${cli(kind)}${mcpArgs(kind, mcp)} '--dangerously-bypass-approvals-and-sandbox'"
+  /**
+   * A new agent; with [prompt], the agent starts on it as its first message. Claude takes it before its options, as
+   * --mcp-config would take a word after it as one more config file.
+   */
+  fun launch(kind: AgentKind, mcp: McpLink? = null, prompt: String? = null): String = when (kind) {
+    AgentKind.CLAUDE -> "${cli(kind)}${prompt?.let { " " + quote(it) } ?: ""} '--dangerously-skip-permissions'${mcpArgs(kind, mcp)}"
+    AgentKind.CODEX -> "${cli(kind)}${mcpArgs(kind, mcp)} '--dangerously-bypass-approvals-and-sandbox'${prompt?.let { " " + quote(it) } ?: ""}"
   }
 
   fun resume(kind: AgentKind, id: String, mcp: McpLink? = null): String = when (kind) {

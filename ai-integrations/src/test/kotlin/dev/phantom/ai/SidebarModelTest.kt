@@ -4,12 +4,16 @@ package dev.phantom.ai
 import dev.phantom.ai.core.AgentKind
 import dev.phantom.ai.core.AgentSession
 import dev.phantom.ai.core.AgentStatus
+import dev.phantom.ai.sidebar.NestedWorktree
 import dev.phantom.ai.sidebar.PrTitles
+import dev.phantom.ai.sidebar.PromptPropagation
+import dev.phantom.ai.sidebar.PromptTarget
 import dev.phantom.ai.sidebar.SidebarModel
 import dev.phantom.ai.sidebar.Worktree
 import dev.phantom.ai.sidebar.WorktreeNode
 import dev.phantom.ai.sidebar.WorktreePorcelain
 import dev.phantom.ai.sidebar.WorktreeSource
+import dev.phantom.ai.terminal.submit
 import junit.framework.TestCase
 
 class SidebarModelTest : TestCase() {
@@ -93,6 +97,31 @@ class SidebarModelTest : TestCase() {
     val nested = SidebarModel.nest(listOf(wt("/a", "/b"), wt("/b", "/a"), wt("/c", "/a"), wt("/d", "/d")))
     assertEquals(listOf("/a", "/b", "/d"), nested.map { it.node.path })
     assertEquals(listOf("/c"), nested[0].children.map { it.node.path })
+  }
+
+  fun testAPromptGoesDownTheLineageToOpenTabsOrANewClaude() {
+    fun wt(p: String) = WorktreeNode(p, p, null, false, emptyList())
+    val tree = NestedWorktree(wt("/a"), listOf(NestedWorktree(wt("/b"), listOf(NestedWorktree(wt("/c"), emptyList()))), NestedWorktree(wt("/d"), emptyList())))
+    assertEquals(listOf("/a", "/b", "/c", "/d"), tree.lineage())
+    val tabs = mapOf("/a" to listOf("t1"), "/c" to listOf("t2", "t3"))
+    assertEquals(
+      listOf(PromptTarget.Type("t1"), PromptTarget.Start("/b"), PromptTarget.Type("t2"), PromptTarget.Type("t3"), PromptTarget.Start("/d")),
+      PromptPropagation.targets(tree) { tabs[it].orEmpty() },
+    )
+  }
+
+  fun testSubmitPastesThePromptThenSendsEnterApart() {
+    val sent = ArrayList<String>()
+    val later = ArrayList<Runnable>()
+    val io = object : dev.phantom.ai.terminal.TerminalIo {
+      override fun snapshot() = throw UnsupportedOperationException()
+      override fun send(text: String) { sent += text }
+      override fun onChange(parent: com.intellij.openapi.Disposable, listener: () -> Unit) = Unit
+    }
+    io.submit("a\nb") { later += it }
+    assertEquals(listOf("\u001b[200~a\nb\u001b[201~"), sent)
+    later.single().run()
+    assertEquals("\r", sent.last())
   }
 
   fun testPorcelainParserListsMainLinkedAndDetached() {

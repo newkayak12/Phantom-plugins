@@ -41,6 +41,16 @@ class LaunchCommandTest {
     assertEquals("codex $mcp resume '--dangerously-bypass-approvals-and-sandbox' 'abc-1'", LaunchCommand.resume(AgentKind.CODEX, "abc-1", link))
   }
 
+  @Test fun aPromptStartsTheAgentOnIt() {
+    val link = dev.phantom.ai.launch.McpLink("http://127.0.0.1:9/mcp?tabId=t", "PHANTOM_AGENT_HOOK_TOKEN", "/tmp/t.json")
+    // before Claude's options: --mcp-config would take it as another config file
+    assertEquals(
+      "claude 'fix it'\\''s tests' '--dangerously-skip-permissions' '--mcp-config' '/tmp/t.json'",
+      LaunchCommand.launch(AgentKind.CLAUDE, link, "fix it's tests"),
+    )
+    assertEquals("codex '--dangerously-bypass-approvals-and-sandbox' 'a\nb'", LaunchCommand.launch(AgentKind.CODEX, prompt = "a\nb"))
+  }
+
   @Test fun idIsSingleQuoteEscaped() {
     assertEquals("'a'\\''b'", LaunchCommand.quote("a'b"))
     assertEquals("claude '--dangerously-skip-permissions' '--resume' ''\\''; rm -rf ~'\\'''", LaunchCommand.resume(AgentKind.CLAUDE, "'; rm -rf ~'"))

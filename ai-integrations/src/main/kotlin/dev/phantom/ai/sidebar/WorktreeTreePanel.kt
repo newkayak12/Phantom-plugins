@@ -16,6 +16,7 @@ import dev.phantom.ai.core.PhantomAiBundle
 import dev.phantom.ai.core.SessionListener
 import dev.phantom.ai.core.SessionStore
 import dev.phantom.ai.core.bestEffort
+import dev.phantom.ai.terminal.submit
 import org.jetbrains.annotations.TestOnly
 import java.awt.BorderLayout
 import java.awt.Color
@@ -83,6 +84,7 @@ class WorktreeTreePanel(
   // the elapsed times move on while shown
   private val ticker = javax.swing.Timer(30_000) { if (isShowing) refresh() }
   private var repoOfWorktree: Map<String, RepoNode> = emptyMap()
+  private var nestedOf: Map<String, NestedWorktree> = emptyMap()
   private val known = HashSet<String>() // rows seen before: a new row opens, an old one keeps what the user chose
   private var shown: SidebarModel? = null
   private val whenShown = dev.phantom.ai.core.WhenShown(this, ::refresh)
@@ -172,9 +174,11 @@ class WorktreeTreePanel(
     val selected = tree.selectionPath?.let { key(it) }
     root.removeAllChildren()
     val toExpand = ArrayList<DefaultMutableTreeNode>()
+    val nestedByPath = HashMap<String, NestedWorktree>()
     // the sessions of a worktree, then the worktrees made from it
     fun worktree(parent: DefaultMutableTreeNode, n: NestedWorktree) {
       val w = n.node
+      nestedByPath[w.path] = n
       val wn = DefaultMutableTreeNode(w).also(parent::add)
       w.sessions.forEach { wn.add(DefaultMutableTreeNode(it)) }
       n.children.forEach { worktree(wn, it) }
@@ -191,6 +195,7 @@ class WorktreeTreePanel(
       }
     }
     repoOfWorktree = m.repos.flatMap { r -> r.worktrees.map { it.path to r } }.toMap()
+    nestedOf = nestedByPath
     model.reload()
     for (n in toExpand) {
       val p = TreePath(n.path)
@@ -227,6 +232,7 @@ class WorktreeTreePanel(
       PhantomAiBundle.message("sidebar.open.phantom") to { actions.openInPhantom(o.path) },
       PhantomAiBundle.message("action.new.claude") to { actions.newSession(o.path, AgentKind.CLAUDE) },
       PhantomAiBundle.message("action.new.codex") to { actions.newSession(o.path, AgentKind.CODEX) },
+      PhantomAiBundle.message("worktree.send") to (nestedOf[o.path]?.let { n -> { sendDown(n) } }),
       PhantomAiBundle.message("sidebar.rename") to { renameWorktree(o) },
       PhantomAiBundle.message("worktree.new") to (repoOfWorktree[o.path]?.let { r -> { newWorktree(r, o.path) } }),
       PhantomAiBundle.message("worktree.remove") to (if (o.isMain) null else ({ removeWorktree(o) })),
@@ -241,6 +247,24 @@ class WorktreeTreePanel(
   private fun activateSelected() {
     val row = (tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject as? SessionRow ?: return
     if (actions.canActivate(row.session)) actions.activate(row.session)
+  }
+
+  /**
+   * One prompt for a worktree and every worktree below it: typed into each one's open agent tabs, and a worktree without
+   * one starts Claude on it. The dialog says how many of each before anything is sent.
+   */
+  private fun sendDown(n: NestedWorktree) {
+    val sessions = SessionStore.getInstance()
+    val targets = PromptPropagation.targets(n) { w -> sessions.forWorktree(w).map { it.tabId }.filter { actions.terminalOf(it) != null } }
+    val typed = targets.count { it is PromptTarget.Type }
+    val prompt = Messages.showMultilineInputDialog(
+      project, PhantomAiBundle.message("worktree.send.message", n.lineage().size, typed, targets.size - typed),
+      PhantomAiBundle.message("worktree.send.title"), "", null, null,
+    )?.trim()?.ifEmpty { null } ?: return
+    for (t in targets) when (t) {
+      is PromptTarget.Type -> actions.terminalOf(t.tabId)?.submit(prompt)
+      is PromptTarget.Start -> actions.newSession(t.worktree, AgentKind.CLAUDE, prompt)
+    }
   }
 
   private fun renameWorktree(w: WorktreeNode) {

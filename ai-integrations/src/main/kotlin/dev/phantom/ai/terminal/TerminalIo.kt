@@ -3,12 +3,14 @@ package dev.phantom.ai.terminal
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
+import com.intellij.util.concurrency.AppExecutorUtil
 import com.jediterm.terminal.TerminalColor
 import com.jediterm.terminal.TextStyle
 import com.jediterm.terminal.model.TerminalModelListener
 import com.jediterm.terminal.ui.JediTermWidget
 import dev.phantom.ai.remote.AnsiColor
 import dev.phantom.ai.remote.Run
+import java.util.concurrent.TimeUnit
 
 /** A terminal screen at one moment: styled lines, its size and the 0-based cursor cell. */
 class ScreenSnapshot(val lines: List<List<Run>>, val cols: Int, val rows: Int, val cursorX: Int, val cursorY: Int)
@@ -20,6 +22,18 @@ interface TerminalIo {
 
   /** Calls [listener] on every change of the screen until [parent] is disposed. */
   fun onChange(parent: Disposable, listener: () -> Unit)
+}
+
+/**
+ * Sends [prompt] to the agent of this terminal as one bracketed paste, so its newlines stay in the message, and Enter a
+ * moment later: Claude and Codex take an Enter that arrives with the paste as part of it.
+ */
+fun TerminalIo.submit(
+  prompt: String,
+  later: (Runnable) -> Unit = { AppExecutorUtil.getAppScheduledExecutorService().schedule(it, 300, TimeUnit.MILLISECONDS) },
+) {
+  send("\u001b[200~$prompt\u001b[201~")
+  later(Runnable { send("\r") })
 }
 
 /** [TerminalIo] of a JediTerm widget: the screen is read under the text buffer's lock. */

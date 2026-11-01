@@ -46,10 +46,13 @@ class AgentTerminalService(private val project: Project) {
     starter = next
   }
 
-  /** Starts a new agent in [worktreePath], the tab titled by [label], else the worktree's branch, else its folder; returns the tab id, or null. */
+  /**
+   * Starts a new agent in [worktreePath], the tab titled by [label], else the worktree's branch, else its folder, working
+   * on [prompt] from the start when given; returns the tab id, or null.
+   */
   @RequiresEdt
-  fun launch(worktreePath: String, kind: AgentKind, label: String? = null): String? =
-    open(worktreePath, kind, { LaunchCommand.launch(kind, it) }, sessionId = null, account = AccountsService.getInstance().active(kind), label = label)
+  fun launch(worktreePath: String, kind: AgentKind, label: String? = null, prompt: String? = null): String? =
+    open(worktreePath, kind, { LaunchCommand.launch(kind, it, prompt) }, sessionId = null, account = AccountsService.getInstance().active(kind), label = label)
 
   /**
    * Starts the agent resuming [session] (hook session_id, else Claude's earliest-created .jsonl no other session owns); null and nothing run when
