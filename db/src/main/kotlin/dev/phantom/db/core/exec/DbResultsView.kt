@@ -4,6 +4,8 @@ package dev.phantom.db.core.exec
 import com.intellij.database.datagrid.*
 import com.intellij.database.datagrid.color.GridColorModelImpl
 import com.intellij.database.datagrid.color.MutationsColorLayer
+import com.intellij.database.extractors.DataExtractorFactories
+import com.intellij.database.extractors.DataExtractorProperties
 import dev.phantom.db.core.dialect
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.Disposable
@@ -260,6 +262,20 @@ class DbResultPanel(val project: Project) : JPanel(BorderLayout()), Disposable {
     val rows = DbGridSelection.rows(grid, holder.rows.columns, holder.rows.sql)
     val target = if (format.needsTable) insertTarget(holder.rows, dbms) ?: DbExportUi.askTable(project) ?: return null else null
     return format.render(rows, target, dbms, updateKeys(DbGridSelection.columns(grid)))
+  }
+
+  /** The Copy As format Copy (⌘C) uses in [grid]; null when it is one of the grid's own (CSV, TSV, Excel…). */
+  internal fun copyFormat(grid: DataGrid): DbExportFormat? {
+    val id = DataExtractorFactories.getExtractorFactory(grid, null).id
+    return DbExportFormat.entries.firstOrNull { it.text && DbExtractorFactory.id(it) == id }
+  }
+
+  /** Makes [format] what Copy (⌘C) uses in [grid] and, like the grid's own Data Extractor list, in new results too. */
+  internal fun chooseCopyFormat(grid: DataGrid, format: DbExportFormat) {
+    val factory = DataExtractorFactories.getBuiltInFactories(grid).firstOrNull { it.id == DbExtractorFactory.id(format) } ?: return
+    DataExtractorFactories.setExtractorFactory(grid, factory)
+    DataExtractorProperties.setCurrentExportExtractorFactory(project, factory)
+    DataExtractorProperties.setCurrentExtractorFactory(project, factory)
   }
 
   /** What a Data Extractor needs to write [grid]'s rows; null for a grid this panel does not show. */
@@ -529,17 +545,27 @@ class DbResultPanel(val project: Project) : JPanel(BorderLayout()), Disposable {
           valueViewer = state
         }
       },
+      // the format chosen here is the grid's Data Extractor, so Copy (⌘C) keeps using it, as in DataGrip
       object : DefaultActionGroup(PhantomDbBundle.message("db.copy.as"), true) {
         init {
           templatePresentation.icon = AllIcons.Actions.Copy
           DbExportFormat.entries.filter { it.text }.forEach { format ->
-            add(object : DumbAwareAction(format.title) {
-              override fun actionPerformed(e: AnActionEvent) {
+            add(object : DumbAwareToggleAction(format.title) {
+              override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+              override fun isSelected(e: AnActionEvent): Boolean = shownGrid?.let(::copyFormat) == format
+              override fun setSelected(e: AnActionEvent, state: Boolean) {
                 val grid = shownGrid ?: return
+                chooseCopyFormat(grid, format)
                 copyText(grid, format)?.let { CopyPasteManager.getInstance().setContents(StringSelection(it)) }
               }
             })
           }
+        }
+
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+        override fun update(e: AnActionEvent) {
+          val format = shownGrid?.let(::copyFormat)
+          e.presentation.text = if (format == null) PhantomDbBundle.message("db.copy.as") else PhantomDbBundle.message("db.copy.as.format", format.title)
         }
       },
     )

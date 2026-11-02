@@ -43,10 +43,14 @@ class DbExtractorConfig(formatter: ObjectFormatter, grid: CoreGrid<GridRow, Grid
 
 class DbExtractorFactory(private val format: DbExportFormat) : DataExtractorFactory {
   override fun getName(): String = format.title
-  override fun getId(): String = "PhantomDb.${format.name}"
+  override fun getId(): String = id(format)
   override fun supportsText(): Boolean = true
   override fun getFileExtension(): String = format.extension
   override fun createExtractor(config: ExtractorConfig): DataExtractor = DbDataExtractor(format, (config as? DbExtractorConfig)?.context)
+
+  companion object {
+    fun id(format: DbExportFormat): String = "PhantomDb.${format.name}"
+  }
 }
 
 /** Takes the rows the grid hands over and writes them in [format] once they are all there. */

@@ -285,6 +285,27 @@ class DbResultsGridTest : BasePlatformTestCase() {
     assertEquals("INSERT INTO T (a, `b b`)\nVALUES ('x,\"y\"', NULL),\n       ('line1\nline2', 2);\n", copyWith("SQL INSERT Multirow"))
   }
 
+  /** A format chosen in the toolbar's Copy As stays what Copy (⌘C) uses, in this result and in the next one. */
+  fun testCopyAsInTheToolbarChoosesTheFormatOfCopy() {
+    val panel = DbResultPanel(project)
+    Disposer.register(testRootDisposable, panel)
+    panel.showOutcomes(listOf(sample))
+    val grid = panel.shownGrid!!
+    assertNull(panel.copyFormat(grid)) // the grid's own default
+    try {
+      panel.chooseCopyFormat(grid, DbExportFormat.JSON)
+      assertEquals(DbExportFormat.JSON, panel.copyFormat(grid))
+
+      val next = DbResultPanel(project)
+      Disposer.register(testRootDisposable, next)
+      next.showOutcomes(listOf(sample))
+      assertEquals(DbExportFormat.JSON, next.copyFormat(next.shownGrid!!))
+    }
+    finally {
+      com.intellij.ide.util.PropertiesComponent.getInstance(project).let { p -> p.unsetValue("database.data.extractors.current.id"); p.unsetValue("database.data.extractors.current.export.id") }
+    }
+  }
+
   fun testTableExportStreamsEveryRowPageByPage() {
     val ds = h2()
     exec(ds, "CREATE TABLE big (id INT PRIMARY KEY, name VARCHAR(20))", "INSERT INTO big SELECT X, 'n' || X FROM SYSTEM_RANGE(1, 150)")
