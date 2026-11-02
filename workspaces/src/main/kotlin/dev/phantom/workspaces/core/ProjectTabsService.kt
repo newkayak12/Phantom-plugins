@@ -24,6 +24,8 @@ import com.intellij.util.SystemProperties
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import java.awt.AWTEvent
 import java.awt.Component
+import java.awt.Point
+import java.awt.Rectangle
 import java.awt.Toolkit
 import java.awt.event.AWTEventListener
 import java.awt.event.HierarchyEvent
@@ -36,12 +38,18 @@ import javax.swing.JFrame
  * The platform shows a new project frame at its own saved bounds and adds the strip only after that, once the project
  * is set. So a project frame about to be shown is put where the stack is when it gets its native window, right before
  * it is shown ([placeNewFrame]); it joins later, with its strip.
+ *
+ * A [detachProject]ed project leaves the stack and the tabs: its window is free (never hidden, moved or resized by the
+ * stack) and its strip is hidden, until [attachProject] puts it back as the last tab.
  */
 @Service(Service.Level.APP)
 class ProjectTabsService : Disposable {
   private val stack = WindowStack()
   private val strips = ArrayList<ProjectTabStrip>()
   private val openOrder = ArrayList<Project>()
+
+  // projects taken out of the stack into a window of their own, until attached again or closed (not kept on restart)
+  private val detached = ArrayList<Project>()
 
   // Window.show() makes the frame displayable (addNotify) and only then shows it; the event comes in between
   private val newFrameListener = AWTEventListener { e ->
@@ -80,6 +88,7 @@ class ProjectTabsService : Disposable {
   @RequiresEdt
   internal fun detach(strip: ProjectTabStrip) {
     if (!strips.removeIf { it === strip }) return
+    if (strips.none { it.project === strip.project }) detached.removeIf { it === strip.project }
     val next = strip.window?.let(stack::remove)
     // the window in front closed: the one before it comes back in its place, unless the IDE is quitting
     if (next != null && !ApplicationManager.getApplication().isExitInProgress) {
@@ -112,7 +121,7 @@ class ProjectTabsService : Disposable {
   internal fun settingChanged() {
     stack.single = isEnabled
     if (isEnabled) {
-      val windows = strips.mapNotNull { it.window }
+      val windows = strips.filter { !isDetached(it.project) }.mapNotNull { it.window }
       val leader = windows.firstOrNull { it.isActive } ?: windows.firstOrNull { it === stack.front } ?: windows.firstOrNull()
       leader?.let(stack::lead)
     }
@@ -123,7 +132,7 @@ class ProjectTabsService : Disposable {
   @RequiresEdt
   fun switchTo(project: Project): Boolean {
     val window = strips.firstOrNull { it.project === project }?.window ?: return false
-    if (isEnabled) {
+    if (isEnabled && !isDetached(project)) {
       // before the window comes to front, so it shows with the layout already
       strips.firstOrNull { it.window === stack.front }?.project?.let { ToolWindowLayoutSync.copy(it, project) }
       stack.switchTo(window)
@@ -166,7 +175,57 @@ class ProjectTabsService : Disposable {
     refresh()
   }
 
-  private fun openTabs(): List<Project> = openOrder.filter { p -> !p.isDisposed && strips.any { it.project === p } }
+  private fun openTabs(): List<Project> =
+    openOrder.filter { p -> !p.isDisposed && strips.any { it.project === p } && !isDetached(p) }
+
+  fun isDetached(project: Project): Boolean = detached.any { it === project }
+
+  /** Whether [project] is one of the project tabs and another tab is left when it is detached. */
+  fun canDetach(project: Project): Boolean = isEnabled && openTabs().let { tabs -> tabs.size > 1 && tabs.any { it === project } }
+
+  /**
+   * Takes [project] out of the tabs into a window of its own: the stack lets go of its window, which is shown, put
+   * [DETACH_STEP][WindowStack.DETACH_STEP] apart from the stack (moved by [moveBy] instead when a tab is dragged out) and
+   * brought to front. When it was the tab in front, the next tab comes to front in the stack.
+   */
+  @RequiresEdt
+  fun detachProject(project: Project, moveBy: Point? = null) {
+    if (!canDetach(project)) return
+    val tabs = openTabs()
+    val window = strips.firstOrNull { it.project === project }?.window
+    val wasFront = window != null && window === stack.front
+    detached += project
+    if (window != null) {
+      stack.remove(window)
+      if (!window.isShown) window.show(true)
+      val state = window.state
+      if (!state.fullScreen && !window.isInTransition) {
+        val bounds = if (moveBy != null) Rectangle(state.bounds).apply { translate(moveBy.x, moveBy.y) }
+        else WindowStack.cascaded(state.bounds, WindowStack.DETACH_STEP * detached.size, window.screen)
+        window.apply(WindowState(bounds, maximized = false, fullScreen = false))
+      }
+    }
+    if (wasFront) ProjectTabs.neighbor(tabs, project)?.let(::switchTo)
+    window?.activate()
+    refresh()
+  }
+
+  /** Puts a detached [project] back into the tabs, as the last one, and brings it to front in the stack. */
+  @RequiresEdt
+  fun attachProject(project: Project) {
+    if (!isEnabled || !detached.removeIf { it === project }) return
+    val order = ProjectTabs.attached(openOrder, project)
+    openOrder.clear()
+    openOrder += order
+    val window = strips.firstOrNull { it.project === project }?.window
+    if (window != null) {
+      // the layout of the tab in front, before the window joins and becomes the front itself
+      strips.firstOrNull { it.window === stack.front }?.project?.let { ToolWindowLayoutSync.copy(it, project) }
+      stack.add(window)
+      stack.switchTo(window)
+    }
+    refresh()
+  }
 
   /** Closes [project] the way File | Close Project does (the welcome screen comes back after the last one). */
   @RequiresEdt
@@ -179,7 +238,10 @@ class ProjectTabsService : Disposable {
   }
 
   internal fun projectClosed(project: Project) {
-    refreshLater { openOrder.removeIf { it === project } }
+    refreshLater {
+      openOrder.removeIf { it === project }
+      detached.removeIf { it === project }
+    }
   }
 
   internal fun refreshLater(before: () -> Unit = {}) {
@@ -192,7 +254,13 @@ class ProjectTabsService : Disposable {
     val visible = ProjectTabs.isStripVisible(isEnabled, open.size)
     val home = SystemProperties.getUserHome()
     for (strip in strips) {
-      strip.display(ProjectTabs.tabs(open, strip.project, home), visible)
+      if (isDetached(strip.project)) {
+        // a window of its own: no strip; Window | Attach to Project Tabs takes it back
+        strip.display(ProjectTabs.tabs(listOf(OpenProject(strip.project, strip.project.name, strip.project.presentableUrl)), strip.project, home), false)
+      }
+      else {
+        strip.display(ProjectTabs.tabs(open, strip.project, home), visible)
+      }
     }
   }
 

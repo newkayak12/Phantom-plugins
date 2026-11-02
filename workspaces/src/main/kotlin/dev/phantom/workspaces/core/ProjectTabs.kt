@@ -1,6 +1,8 @@
 // Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.workspaces.core
 
+import kotlin.math.abs
+
 /** An open project as the tab strip sees it. [key] identifies it (the [com.intellij.openapi.project.Project] in the IDE). */
 data class OpenProject(val key: Any, val name: String, val location: String?)
 
@@ -33,6 +35,22 @@ object ProjectTabs {
     result.add(if (gap > from) gap - 1 else gap, item)
     return result
   }
+
+  /** [order] with [item] moved to the end: a project attached back to the tabs comes in as the last tab. */
+  fun <T> attached(order: List<T>, item: T): List<T> = order.filter { it !== item } + item
+
+  /**
+   * The tab to show in place of [leaving] when it leaves the [tabs] (detached to its own window): the one after it, or
+   * the one before when it is the last. Null when there is no other tab.
+   */
+  fun <T> neighbor(tabs: List<T>, leaving: T): T? {
+    val index = tabs.indexOfFirst { it === leaving }
+    if (index < 0 || tabs.size < 2) return null
+    return if (index + 1 < tabs.size) tabs[index + 1] else tabs[index - 1]
+  }
+
+  /** A tab dragged [dy] up or down from where it was pressed is torn out of a strip [stripHeight] high. */
+  fun isDetachDrag(dy: Int, stripHeight: Int, threshold: Int): Boolean = abs(dy) > stripHeight + threshold
 
   /** The strip is only worth its height when there is another project to switch to. */
   fun isStripVisible(enabled: Boolean, tabCount: Int): Boolean = enabled && tabCount > 1

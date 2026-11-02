@@ -65,4 +65,28 @@ class ProjectTabsTest {
     assertFalse(ProjectTabs.isStripVisible(enabled = true, tabCount = 0))
     assertFalse(ProjectTabs.isStripVisible(enabled = false, tabCount = 3))
   }
+
+  @Test
+  fun `a project attached back comes in as the last tab`() {
+    assertEquals(listOf("shop", "tools", "blog"), ProjectTabs.attached(listOf("shop", "blog", "tools"), "blog"))
+    assertEquals(listOf("shop", "tools", "blog"), ProjectTabs.attached(listOf("shop", "tools"), "blog"))
+  }
+
+  @Test
+  fun `a tab detached from the front gives its place to the tab after it, or before it when last`() {
+    val tabs = listOf("shop", "blog", "tools")
+    assertEquals("tools", ProjectTabs.neighbor(tabs, "blog"))
+    assertEquals("blog", ProjectTabs.neighbor(tabs, "shop"))
+    assertEquals("blog", ProjectTabs.neighbor(tabs, "tools"))
+    assertEquals(null, ProjectTabs.neighbor(listOf("shop"), "shop"))
+    assertEquals(null, ProjectTabs.neighbor(tabs, "other"))
+  }
+
+  @Test
+  fun `a tab is torn out only when dragged well beyond the strip's height, up or down`() {
+    assertFalse(ProjectTabs.isDetachDrag(dy = 30, stripHeight = 28, threshold = 5))
+    assertFalse(ProjectTabs.isDetachDrag(dy = 33, stripHeight = 28, threshold = 5))
+    assertTrue(ProjectTabs.isDetachDrag(dy = 34, stripHeight = 28, threshold = 5))
+    assertTrue(ProjectTabs.isDetachDrag(dy = -34, stripHeight = 28, threshold = 5))
+  }
 }

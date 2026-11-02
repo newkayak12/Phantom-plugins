@@ -26,6 +26,8 @@ import kotlinx.coroutines.delay
  * Opens beta next to alpha, moves beta's Project tool window to the right, switches to alpha (Next Project Window) and
  * expects alpha's Project tool window on the right too; then with the setting off, a change in alpha stays in alpha.
  * Workspaces 0.4.0: dragging beta's tab onto the left edge of alpha's moves it first, in both windows' strips.
+ * Workspaces 0.5.0: Detach to Separate Window on beta's tab frees beta's window 40 px off the stack with alpha back in
+ * front; Window | Attach to Project Tabs puts beta back onto the stack.
  */
 internal object WorkspacesLayoutScenario : ProbeScenario {
   private const val SYNC = "phantom.workspaces.sync.tool.windows"
@@ -79,6 +81,47 @@ internal object WorkspacesLayoutScenario : ProbeScenario {
     delay(1000)
     report.step("drag.reorders", mapOf("beta" to listOf(beta.name, alpha.name), "alpha" to listOf(beta.name, alpha.name)),
                 dragged + ctx.edt { mapOf("beta" to strip(beta)?.let { tabs(it).keys.toList() }, "alpha" to strip(alpha)?.let { tabs(it).keys.toList() }) })
+
+    detachAndAttach(ctx, alpha, beta)
+  }
+
+  private suspend fun detachAndAttach(ctx: ProbeContext, alpha: Project, beta: Project) {
+    val report = ctx.report
+    // beta is in front since switch.off.keeps
+    val opened = ctx.edt {
+      val strip = strip(beta) ?: return@edt false
+      val tab = tabs(strip)[beta.name] ?: return@edt false
+      ProbeInput.popupTrigger(tab, Point(tab.width / 2, tab.height / 2))
+      true
+    }
+    delay(500)
+    val clicked = ctx.edt {
+      val item = ProbeInput.openPopup()?.let(ProbeInput::items)?.firstOrNull { it.text == "Detach to Separate Window" } ?: return@edt false
+      ProbeInput.doClick(item)
+      true
+    }
+    ctx.waitUntil(10_000) { WindowManager.getInstance().getFrame(alpha)?.isShowing == true }
+    delay(1000)
+    report.step("detach.menu", mapOf("clicked" to true, "alphaShown" to true, "betaShown" to true, "offset" to listOf(40, 40)),
+                mapOf("opened" to opened, "clicked" to clicked) + ctx.edt { frames(alpha, beta) })
+
+    ctx.edt {
+      val action = ActionManager.getInstance().getAction("PhantomWorkspaces.AttachProject")
+      val event = AnActionEvent.createEvent(action, SimpleDataContext.getProjectContext(beta), null, ActionPlaces.UNKNOWN, ActionUiKind.NONE, null)
+      ActionUtil.performAction(action, event)
+    }
+    delay(1500)
+    report.step("attach.action", mapOf("alphaShown" to false, "betaShown" to true, "offset" to listOf(0, 0)), ctx.edt { frames(alpha, beta) })
+  }
+
+  private fun frames(alpha: Project, beta: Project): Map<String, Any?> {
+    val a = WindowManager.getInstance().getFrame(alpha)
+    val b = WindowManager.getInstance().getFrame(beta)
+    return mapOf(
+      "alphaShown" to a?.isShowing, "betaShown" to b?.isShowing,
+      "offset" to if (a != null && b != null) listOf(b.x - a.x, b.y - a.y) else null,
+      "alphaTabs" to strip(alpha)?.let { tabs(it).keys.toList() },
+    )
   }
 
   private fun strip(p: Project): JComponent? {

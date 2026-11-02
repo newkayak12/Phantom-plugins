@@ -46,3 +46,32 @@ internal class ProjectSwitchActionListener : AnActionListener {
     if (service.isEnabled) service.switchTo(path)
   }
 }
+
+/** Window | Detach to Separate Window: the project of this window leaves the project tabs into a window of its own. */
+internal class DetachProjectAction : DumbAwareAction() {
+  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+  override fun update(e: AnActionEvent) {
+    val project = e.project
+    e.presentation.isEnabledAndVisible = project != null && serviceIfCreated<ProjectTabsService>()?.canDetach(project) == true
+  }
+
+  override fun actionPerformed(e: AnActionEvent) {
+    e.project?.let { ProjectTabsService.getInstance().detachProject(it) }
+  }
+}
+
+/** Window | Attach to Project Tabs: a detached project's window goes back into the project tabs, as the last tab. */
+internal class AttachProjectAction : DumbAwareAction() {
+  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+
+  override fun update(e: AnActionEvent) {
+    val project = e.project
+    val service = serviceIfCreated<ProjectTabsService>()
+    e.presentation.isEnabledAndVisible = project != null && service != null && service.isEnabled && service.isDetached(project)
+  }
+
+  override fun actionPerformed(e: AnActionEvent) {
+    e.project?.let { ProjectTabsService.getInstance().attachProject(it) }
+  }
+}

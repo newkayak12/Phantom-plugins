@@ -237,4 +237,23 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
     state.fullScreen == target.fullScreen &&
     state.maximized == target.maximized &&
     (state.fullScreen || state.maximized || state.bounds == target.bounds)
+
+  companion object {
+    /** How far a window detached from the stack is put from it, per detached window, so it is seen as separate. */
+    const val DETACH_STEP: Int = 40
+
+    /**
+     * [bounds] moved [step] right and down, kept on [screen]: shrunk to fit (not below half its size), then moved back
+     * onto it if it still does not fit.
+     */
+    fun cascaded(bounds: Rectangle, step: Int, screen: Rectangle?): Rectangle {
+      val r = Rectangle(bounds.x + step, bounds.y + step, bounds.width, bounds.height)
+      if (screen == null) return r
+      r.width = minOf(r.width, screen.x + screen.width - r.x).coerceAtLeast(bounds.width / 2)
+      r.height = minOf(r.height, screen.y + screen.height - r.y).coerceAtLeast(bounds.height / 2)
+      r.x = minOf(r.x, screen.x + screen.width - r.width).coerceAtLeast(screen.x)
+      r.y = minOf(r.y, screen.y + screen.height - r.height).coerceAtLeast(screen.y)
+      return r
+    }
+  }
 }

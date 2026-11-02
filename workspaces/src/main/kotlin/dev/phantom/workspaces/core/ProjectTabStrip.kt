@@ -8,6 +8,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.IdeRootPaneNorthExtension
 import com.intellij.openapi.wm.impl.ProjectFrameHelper
 import com.intellij.ui.InplaceButton
+import com.intellij.openapi.ui.JBMenuItem
+import com.intellij.openapi.ui.JBPopupMenu
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.panels.HorizontalLayout
@@ -16,6 +18,7 @@ import com.intellij.util.ui.UIUtil
 import java.awt.BorderLayout
 import java.awt.Cursor
 import java.awt.Graphics
+import java.awt.Point
 import java.awt.dnd.DragSource
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
@@ -43,7 +46,8 @@ private const val SYNC_DELAY_MS = 300
 
 /**
  * One tab per open project; the tab of this frame's [project] is the current one. Click switches, middle-click or
- * the close button closes, dragging moves the tab. Also watches its frame for [WindowStack] (activation, and moves/resizes, debounced).
+ * the close button closes, dragging moves the tab; dragging it up or down out of the strip, or Detach to Separate Window
+ * in its context menu, takes the project out into a window of its own. Also watches its frame for [WindowStack] (activation, and moves/resizes, debounced).
  */
 class ProjectTabStrip(val project: Project) : JPanel(HorizontalLayout(0)) {
   var tabs: List<ProjectTab> = emptyList()
@@ -163,6 +167,24 @@ class ProjectTabStrip(val project: Project) : JPanel(HorizontalLayout(0)) {
     }
   }
 
+  private fun tearOut(tab: ProjectTab, moveBy: Point) {
+    if (dropGap != -1) {
+      dropGap = -1
+      repaint()
+    }
+    service.detachProject(tab.key as Project, moveBy)
+  }
+
+  private fun showMenu(tab: ProjectTab, component: JComponent, at: Point) {
+    val project = tab.key as Project
+    val menu = JBPopupMenu()
+    val detach = JBMenuItem(PhantomWorkspacesBundle.message("action.PhantomWorkspaces.DetachProject.text"))
+    detach.isEnabled = service.canDetach(project)
+    detach.addActionListener { service.detachProject(project) }
+    menu.add(detach)
+    menu.show(component, at.x, at.y)
+  }
+
   private fun drop(tab: ProjectTab) {
     val gap = dropGap
     dropGap = -1
@@ -193,29 +215,54 @@ class ProjectTabStrip(val project: Project) : JPanel(HorizontalLayout(0)) {
       closeButton.border = JBUI.Borders.emptyLeft(6)
       add(closeButton, BorderLayout.EAST)
       val mouse = object : MouseAdapter() {
-        private var pressX: Int? = null
+        private var pressAt: Point? = null
         private var dragging = false
+        private var menuShown = false
+
+        // the vertical distance a dragged tab has to go to be torn out: out of the strip and the drag threshold beyond
+        private fun isTornOut(e: MouseEvent, start: Point) =
+          ProjectTabs.isDetachDrag(e.yOnScreen - start.y, this@ProjectTabStrip.height, DragSource.getDragThreshold())
 
         override fun mousePressed(e: MouseEvent) {
-          pressX = if (SwingUtilities.isLeftMouseButton(e)) e.xOnScreen else null
+          menuShown = e.isPopupTrigger
+          if (menuShown) {
+            pressAt = null
+            showMenu(tab, this@TabComponent, e.point)
+            return
+          }
+          pressAt = if (SwingUtilities.isLeftMouseButton(e)) e.locationOnScreen else null
         }
 
         override fun mouseDragged(e: MouseEvent) {
-          val start = pressX ?: return
-          if (!dragging && abs(e.xOnScreen - start) < DragSource.getDragThreshold()) return
+          val start = pressAt ?: return
+          val threshold = DragSource.getDragThreshold()
+          if (!dragging && abs(e.xOnScreen - start.x) < threshold && abs(e.yOnScreen - start.y) < threshold) return
           if (!dragging) {
             dragging = true
             cursor = Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR)
           }
-          dragTo(SwingUtilities.convertPoint(this@TabComponent, e.point, this@ProjectTabStrip).x)
+          if (isTornOut(e, start)) {
+            if (dropGap != -1) {
+              dropGap = -1
+              this@ProjectTabStrip.repaint()
+            }
+          }
+          else {
+            dragTo(SwingUtilities.convertPoint(this@TabComponent, e.point, this@ProjectTabStrip).x)
+          }
         }
 
         override fun mouseReleased(e: MouseEvent) {
-          pressX = null
+          val start = pressAt
+          pressAt = null
           if (dragging) {
             dragging = false
             cursor = Cursor.getDefaultCursor()
-            drop(tab)
+            if (start != null && isTornOut(e, start)) tearOut(tab, Point(e.xOnScreen - start.x, e.yOnScreen - start.y)) else drop(tab)
+            return
+          }
+          if (e.isPopupTrigger && !menuShown) {
+            showMenu(tab, this@TabComponent, e.point)
             return
           }
           if (!contains(e.point)) return

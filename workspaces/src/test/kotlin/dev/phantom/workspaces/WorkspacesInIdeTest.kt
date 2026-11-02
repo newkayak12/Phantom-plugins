@@ -126,6 +126,110 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
     assertEquals(listOf(project.name, "renamed"), first.tabs.map { it.title })
   }
 
+  fun testADetachedProjectLeavesTheTabsOfEveryOtherWindow() {
+    val first = stripOf(project)
+    val two = openSecondProject("two")
+    val second = stripOf(two)
+    val three = openSecondProject("three")
+    val third = stripOf(three)
+    settle()
+
+    ProjectTabsService.getInstance().detachProject(two)
+    assertTrue(ProjectTabsService.getInstance().isDetached(two))
+    assertEquals(listOf(project.name, three.name), first.tabs.map { it.title })
+    assertEquals(listOf(project.name, three.name), third.tabs.map { it.title })
+    assertTrue(first.isVisible)
+    assertTrue(third.isVisible)
+    // its own window has no strip
+    assertFalse(second.isVisible)
+  }
+
+  fun testWithOneTabLeftAfterDetachingTheStripHides() {
+    val first = stripOf(project)
+    val other = openSecondProject("alone")
+    stripOf(other)
+    settle()
+
+    val service = ProjectTabsService.getInstance()
+    service.detachProject(other)
+    assertEquals(listOf(project.name), first.tabs.map { it.title })
+    assertFalse(first.isVisible)
+    // the last tab stays: nothing to detach it from
+    assertFalse(service.canDetach(project))
+    service.detachProject(project)
+    assertFalse(service.isDetached(project))
+  }
+
+  fun testAnAttachedProjectComesBackAsTheLastTabInEveryWindow() {
+    val first = stripOf(project)
+    val two = openSecondProject("back")
+    val second = stripOf(two)
+    val three = openSecondProject("third")
+    val third = stripOf(three)
+    settle()
+
+    val service = ProjectTabsService.getInstance()
+    service.detachProject(project)
+    service.attachProject(project)
+    assertFalse(service.isDetached(project))
+    val order = listOf(two.name, three.name, project.name)
+    assertEquals(order, first.tabs.map { it.title })
+    assertEquals(order, second.tabs.map { it.title })
+    assertEquals(order, third.tabs.map { it.title })
+    assertEquals(listOf(false, false, true), first.tabs.map { it.isCurrent })
+    assertTrue(first.isVisible)
+  }
+
+  fun testClosingADetachedProjectWorksAsUsual() {
+    val first = stripOf(project)
+    val other = openSecondProject("closed")
+    stripOf(other)
+    val third = openSecondProject("stays")
+    stripOf(third)
+    settle()
+
+    val service = ProjectTabsService.getInstance()
+    service.detachProject(other)
+    PlatformTestUtil.forceCloseProjectWithoutSaving(other)
+    settle()
+    assertFalse(service.isDetached(other))
+    assertEquals(listOf(project.name, third.name), first.tabs.map { it.title })
+  }
+
+  fun testADetachedProjectStaysDetachedWhenTheSettingIsTurnedOffAndOn() {
+    val first = stripOf(project)
+    val other = openSecondProject("free")
+    val second = stripOf(other)
+    val third = openSecondProject("tabbed")
+    stripOf(third)
+    settle()
+
+    val service = ProjectTabsService.getInstance()
+    service.detachProject(other)
+    AdvancedSettings.setBoolean(ProjectTabs.SETTING_ID, false)
+    try {
+      settle()
+      assertFalse(first.isVisible)
+      assertFalse(service.canDetach(project))
+    }
+    finally {
+      AdvancedSettings.setBoolean(ProjectTabs.SETTING_ID, true)
+    }
+    settle()
+    assertTrue(service.isDetached(other))
+    assertEquals(listOf(project.name, third.name), first.tabs.map { it.title })
+    assertTrue(first.isVisible)
+    assertFalse(second.isVisible)
+  }
+
+  fun testDetachAndAttachAreInTheWindowMenu() {
+    val actions = ActionManager.getInstance()
+    val window = actions.getAction("WindowMenu") as com.intellij.openapi.actionSystem.ActionGroup
+    val ids = (window as com.intellij.openapi.actionSystem.DefaultActionGroup).childActionsOrStubs.mapNotNull { actions.getId(it) }
+    assertTrue(ids.toString(), "PhantomWorkspaces.DetachProject" in ids)
+    assertTrue(ids.toString(), "PhantomWorkspaces.AttachProject" in ids)
+  }
+
   fun testTurningItOffHidesTheStrip() {
     val first = stripOf(project)
     stripOf(openSecondProject("off"))
@@ -182,6 +286,51 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
     finally {
       newFrame.dispose()
       first.dispose()
+    }
+  }
+
+  /** [project]'s strip in a frame at [bounds], joined to the stack as adding it to a project frame does. */
+  private fun framed(project: Project, bounds: Rectangle, frames: MutableList<JFrame>): ProjectTabStrip {
+    val frame = ProjectFrame(bounds)
+    frames += frame
+    val strip = extension().createComponent(project, isDocked = false) as ProjectTabStrip
+    strips += strip
+    frame.contentPane.add(strip)
+    frame.addNotify()
+    return strip
+  }
+
+  fun testADetachedWindowIsFreedAndPutApartThenAttachedBackOntoTheStack() {
+    if (GraphicsEnvironment.isHeadless()) return
+    val stacked = Rectangle(100, 100, 800, 600)
+    val frames = mutableListOf<JFrame>()
+    try {
+      val first = framed(project, stacked, frames)
+      val other = openSecondProject("framed")
+      val second = framed(other, Rectangle(300, 200, 500, 400), frames)
+      settle()
+      assertEquals(stacked, second.window!!.frame.bounds)
+
+      val service = ProjectTabsService.getInstance()
+      service.detachProject(other)
+      val free = second.window!!.frame
+      assertTrue(free.isVisible)
+      assertEquals(Rectangle(140, 140, 800, 600), free.bounds)
+      assertEquals(listOf(project.name), first.tabs.map { it.title })
+
+      // the stack no longer moves it: a move of the front window leaves it where it is
+      service.switchTo(project)
+      first.window!!.frame.bounds = Rectangle(50, 50, 700, 500)
+      service.windowMoved(first.window!!)
+      service.flushMoves()
+      assertEquals(Rectangle(140, 140, 800, 600), free.bounds)
+
+      service.attachProject(other)
+      assertEquals(Rectangle(50, 50, 700, 500), free.bounds)
+      assertEquals(listOf(project.name, other.name), first.tabs.map { it.title })
+    }
+    finally {
+      frames.forEach(JFrame::dispose)
     }
   }
 

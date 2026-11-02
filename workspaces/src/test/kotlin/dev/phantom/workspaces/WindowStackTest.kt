@@ -601,4 +601,41 @@ class WindowStackTest {
     assertSame(a, stack.front)
     assertFalse(b.isShown)
   }
+
+  @Test
+  fun `a window detached from the stack is never hidden, moved or resized by it again`() {
+    stack.single = true
+    val a = window("a")
+    val b = window("b")
+    val c = window("c")
+    stack.add(a)
+    stack.add(b)
+    stack.add(c)
+    stack.remove(b)
+    b.show(true)
+    b.normal = elsewhere
+    log.clear()
+    stack.switchTo(a)
+    moveFront(a) { normal = Rectangle(0, 0, 640, 480) }
+    stack.activated(b)
+    assertTrue(b.isShown)
+    assertEquals(elsewhere, b.normal)
+    assertTrue(log.none { it.endsWith(" b") })
+    assertSame(a, stack.front)
+  }
+
+  @Test
+  fun `a detached window is put a step right and down of the stack`() {
+    assertEquals(Rectangle(140, 140, 1200, 800), WindowStack.cascaded(home, 40, screen))
+    assertEquals(Rectangle(180, 180, 1200, 800), WindowStack.cascaded(home, 80, screen))
+  }
+
+  @Test
+  fun `a detached window that would leave the screen shrinks to fit, then moves back onto it`() {
+    assertEquals(Rectangle(40, 40, 1880, 1040), WindowStack.cascaded(screen, 40, screen))
+    val small = Rectangle(0, 0, 800, 600)
+    assertEquals(Rectangle(1520, 780, 400, 300), WindowStack.cascaded(Rectangle(1500, 900, 800, 600), 40, screen))
+    assertEquals(Rectangle(140, 140, 800, 600), WindowStack.cascaded(Rectangle(100, 100, 800, 600), 40, null))
+    assertEquals(small.size, WindowStack.cascaded(small, 40, screen).size)
+  }
 }

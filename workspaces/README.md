@@ -6,11 +6,14 @@ All open projects as tabs of one window.
 
 - **Project tab strip:** a strip above the editor lists every open project. Click a tab to switch, middle-click or × to close, drag it left or right to put it elsewhere (in every window, and for Next Project Window too); renamed projects update their tab.
 - **One window:** only the project in front has a window on screen; the others are hidden behind it, so there is one window in the Dock menu, Mission Control and the window switcher. A project you open comes in as a new tab of that window, and closing the tab in front shows the one before it. Project windows share one size, position and maximized state; a project switched to also takes full screen.
+- **Detach:** right-click a tab and choose Detach to Separate Window, or drag the tab up or down out of the strip, to take that project out into a window of its own, set apart from the others (where you drop it, when dragged). It leaves the tabs of every window and is no longer hidden, moved or resized with them; its own window has no strip. Window | Attach to Project Tabs in that window puts it back as the last tab. Detached windows stay detached until attached or closed, not across restarts.
 - **Keys:** next/previous project with Window | Next Project Window. The Window menu and Open Recent on an open project switch tabs too.
 - **Same tool windows in every tab:** a project switched to takes the tool window layout of the one in front: which side and order the stripe buttons have, which tool windows are open, their sizes, docked or floating. Tool windows only that project has (Gradle in a Gradle project, say) keep their place. Off in Settings | Advanced Settings | Phantom Workspaces.
 - Works on every OS and does not use macOS native window tabs. Turn it off in Settings | Advanced Settings | Phantom Workspaces.
 
 Until 2026-10-26 this was bundled with Phantom (`phantom-workspaces`); it is a plugin now so it updates without a new Phantom build.
+
+**0.5.0**: a project tab can be detached into a window of its own, from the tab's context menu (Detach to Separate Window) or by dragging it out of the strip. The window comes out 40 px off the others (or where it was dropped) and the next tab takes its place; Window | Attach to Project Tabs puts it back as the last tab.
 
 **0.4.1**: turning Phantom Workspaces off keeps the project you were looking at in front instead of covering it with another project's window, and turning it back on keeps the active project's window on screen instead of hiding it.
 
