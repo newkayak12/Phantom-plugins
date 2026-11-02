@@ -12,6 +12,34 @@ internal const val FULL_SCREEN_SETTLE_MS = 1500L
  */
 data class WindowState(val bounds: Rectangle, val maximized: Boolean, val fullScreen: Boolean)
 
+/**
+ * Two windows side by side in [area]: the left one up to [seam], the right one from it. Pure, so the bounds math is
+ * tested as is.
+ */
+data class Tiling(val area: Rectangle, val seam: Int) {
+  val left: Rectangle get() = Rectangle(area.x, area.y, seam - area.x, area.height)
+  val right: Rectangle get() = Rectangle(seam, area.y, area.x + area.width - seam, area.height)
+
+  /**
+   * The tiling after the left (or right) window became [now]. Moved without changing size, the pair moves with it;
+   * resized, the seam follows its inner edge (kept a sixth of the area from either side) and the outer edges stay.
+   */
+  fun after(isLeft: Boolean, now: Rectangle): Tiling {
+    val old = if (isLeft) left else right
+    if (now.width == old.width && now.height == old.height) {
+      val dx = now.x - old.x
+      return Tiling(Rectangle(area).apply { translate(dx, now.y - old.y) }, seam + dx)
+    }
+    val edge = if (isLeft) now.x + now.width else now.x
+    val min = area.width / 6
+    return copy(seam = edge.coerceIn(area.x + min, area.x + area.width - min))
+  }
+
+  companion object {
+    fun halves(area: Rectangle): Tiling = Tiling(Rectangle(area), area.x + area.width / 2)
+  }
+}
+
 interface StackedWindow {
   val state: WindowState
   val isActive: Boolean
@@ -45,11 +73,31 @@ interface StackedWindow {
  * While [single], only the window in front is shown and the others are hidden, so there is one window on screen (one in
  * the Dock menu, Mission Control and the window switcher) whose project changes like a tab. Windows are kept in the
  * order they came to front, so closing the window in front shows the one in front before it.
+ *
+ * [split] puts two windows side by side over the stack's area, both shown; moving or resizing either keeps the pair
+ * tiling it ([Tiling.after]). Switching to a third window, [unsplit], maximizing or full screen of either, or closing
+ * either ends it; the stack is then one window again, at [shared].
  */
 class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
   private val windows = ArrayList<StackedWindow>()
   private var pending = false
   private var suspectedSince: Long? = null
+
+  private class Split(val left: StackedWindow, val right: StackedWindow, var tiling: Tiling) {
+    fun other(window: StackedWindow): StackedWindow = if (window === left) right else left
+  }
+
+  private var split: Split? = null
+
+  // the window of the pair that moved last
+  private var mover: StackedWindow? = null
+
+  /** The windows side by side, left first, or null. */
+  val splitPair: Pair<StackedWindow, StackedWindow>? get() = split?.let { it.left to it.right }
+
+  val tiling: Tiling? get() = split?.tiling
+
+  fun isInSplit(window: StackedWindow): Boolean = split.let { it != null && (it.left === window || it.right === window) }
 
   var shared: WindowState? = null
     private set
@@ -87,7 +135,11 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
   fun add(window: StackedWindow, align: Boolean = true) {
     if (contains(window)) return
     windows += window
-    if (front == null || window.isActive || single && window.isShown) toFront(window)
+    var ended = emptyList<StackedWindow>()
+    if (front == null || window.isActive || single && window.isShown) {
+      toFront(window)
+      ended = endSplit()
+    }
     val target = shared
     if (target == null) {
       if (!window.isInTransition) shared = window.state
@@ -96,6 +148,7 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
       alignBehind(window, target)
     }
     if (single) hideBehind()
+    alignEnded(ended)
   }
 
   /**
@@ -117,15 +170,23 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
    * before it), for the caller to [switchTo] once the closing is over; null otherwise.
    */
   fun remove(window: StackedWindow): StackedWindow? {
+    // one of a pair side by side: the other one is shown alone in their place
+    val partner = split?.takeIf { isInSplit(window) }?.other(window)
+    if (partner != null) endSplit()
     windows.removeIf { it === window }
-    if (front !== window) return null
+    if (front !== window) return partner
     front = null
     pending = false
-    return if (single) windows.lastOrNull() else null
+    return partner ?: if (single) windows.lastOrNull() else null
   }
 
   /** [window] moved, resized, maximized, or entered or left full screen. True when it leads and [flush] should follow. */
   fun moved(window: StackedWindow): Boolean {
+    if (isInSplit(window)) {
+      mover = window
+      pending = true
+      return true
+    }
     if (window !== front) return false
     pending = true
     return true
@@ -134,6 +195,10 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
   /** Takes the pending move of the window in front and pushes it to the windows behind. */
   fun flush() {
     if (!pending) return
+    split?.let {
+      flushSplit(it)
+      return
+    }
     val leader = front ?: return
     if (leader.isInTransition) return // stays pending; taken once the window has settled
     val now = leader.state
@@ -162,9 +227,12 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
     flush()
     if (!contains(window)) return
     toFront(window)
+    if (isInSplit(window)) return
+    val ended = endSplit()
     val target = shared
     if (target == null) shared = window.state else alignBehind(window, target)
     if (single) hideBehind()
+    alignEnded(ended)
   }
 
   /**
@@ -175,6 +243,11 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
   fun switchTo(window: StackedWindow) {
     flush()
     if (contains(window)) toFront(window)
+    if (isInSplit(window)) {
+      window.activate()
+      return
+    }
+    val ended = endSplit()
     val target = shared
     if (!window.isShown) {
       if (target != null) alignBehind(window, target)
@@ -183,6 +256,105 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
     if (target != null && !window.isInTransition && !inPlace(window.state, target)) window.apply(target)
     window.activate()
     if (single) hideBehind()
+    alignEnded(ended)
+  }
+
+  /**
+   * Puts [left] and [right] side by side over the stack's area (the screen's when it is maximized), both shown and not
+   * maximized, [left] in front. Ends a split of other windows. False when either is not in the stack, is in full screen
+   * or is entering or leaving it, or the stack is in full screen.
+   */
+  fun split(left: StackedWindow, right: StackedWindow): Boolean {
+    flush()
+    if (left === right || !contains(left) || !contains(right)) return false
+    val target = shared ?: return false
+    if (target.fullScreen || listOf(left, right).any { it.isInTransition || it.state.fullScreen }) return false
+    val ended = endSplit()
+    val area = if (left.state.maximized) left.state.bounds else target.bounds
+    val tiling = Tiling.halves(area)
+    split = Split(left, right, tiling)
+    tile(left, tiling.left)
+    tile(right, tiling.right)
+    if (!right.isShown) right.show(true)
+    if (!left.isShown) left.show(true)
+    toFront(right)
+    toFront(left)
+    left.activate()
+    if (single) hideBehind()
+    alignEnded(ended)
+    return true
+  }
+
+  /**
+   * Ends side by side: [keep] (the window of the pair in front when null or not in the pair) takes the stack's place
+   * again, the other goes behind it.
+   */
+  fun unsplit(keep: StackedWindow? = null) {
+    flush()
+    val ended = endSplit()
+    if (ended.isEmpty()) return
+    val keep = listOf(keep, front).firstOrNull { w -> ended.any { it === w } } ?: ended.first()
+    toFront(keep)
+    val target = shared
+    if (target != null && !keep.isInTransition && !inPlace(keep.state, target)) keep.apply(target)
+    if (single) hideBehind()
+    alignEnded(ended)
+  }
+
+  /**
+   * A pending move of the pair side by side. The window off its tile (the one that moved last first) sets the tiling,
+   * and the windows are put on their tiles; a window put there moves too, but is then on its tile, so nothing echoes.
+   * Maximizing or full screen of either ends side by side, and that window leads as the window in front.
+   */
+  private fun flushSplit(split: Split) {
+    val pair = listOfNotNull(mover?.takeIf(::isInSplit)) + listOf(split.left, split.right)
+    if (pair.any { it.isInTransition }) return
+    val zoomed = pair.firstOrNull { it.state.let { s -> s.maximized || s.fullScreen } }
+    if (zoomed != null) {
+      endSplit()
+      toFront(zoomed)
+      flush()
+      if (single) hideBehind()
+      return
+    }
+    val window = pair.firstOrNull { it.state.bounds != tileOf(split, it) }
+    if (window != null && mayBeEnteringFullScreen(window, window.state)) {
+      val since = suspectedSince ?: clock().also { suspectedSince = it }
+      if (clock() - since < FULL_SCREEN_SETTLE_MS) return
+    }
+    suspectedSince = null
+    pending = false
+    mover = null
+    if (window == null) return
+    val next = split.tiling.after(window === split.left, window.state.bounds)
+    split.tiling = next
+    tile(split.left, next.left)
+    tile(split.right, next.right)
+    shared?.let { if (!it.maximized && !it.fullScreen) shared = it.copy(bounds = Rectangle(next.area)) }
+  }
+
+  private fun tileOf(split: Split, window: StackedWindow): Rectangle =
+    if (window === split.left) split.tiling.left else split.tiling.right
+
+  private fun tile(window: StackedWindow, bounds: Rectangle) {
+    val state = window.state
+    if (state.maximized || state.fullScreen || state.bounds != bounds) window.apply(WindowState(bounds, maximized = false, fullScreen = false))
+  }
+
+  /** Clears side by side; returns the pair, for [alignEnded] once the stack is one window again. */
+  private fun endSplit(): List<StackedWindow> {
+    val ended = split ?: return emptyList()
+    split = null
+    mover = null
+    return listOf(ended.left, ended.right)
+  }
+
+  /** The windows of an ended pair that are not in front go back to where the stack is, behind it. */
+  private fun alignEnded(ended: List<StackedWindow>) {
+    val target = shared ?: return
+    for (window in ended) {
+      if (window !== front && contains(window)) alignBehind(window, target)
+    }
   }
 
   /**
@@ -191,11 +363,13 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
    */
   fun lead(window: StackedWindow) {
     if (!contains(window)) return
+    val ended = endSplit()
     toFront(window)
     if (!window.isShown) window.show(true)
     pending = true
     flush()
     if (single) hideBehind()
+    alignEnded(ended)
   }
 
   /**
@@ -222,7 +396,7 @@ class WindowStack(private val clock: () -> Long = System::currentTimeMillis) {
   private fun hideBehind() {
     val shown = front ?: return
     for (other in windows) {
-      if (other !== shown && other.isShown) other.show(false)
+      if (other !== shown && other.isShown && !isInSplit(other)) other.show(false)
     }
   }
 

@@ -41,6 +41,9 @@ import javax.swing.JFrame
  *
  * A [detachProject]ed project leaves the stack and the tabs: its window is free (never hidden, moved or resized by the
  * stack) and its strip is hidden, until [attachProject] puts it back as the last tab.
+ *
+ * [openSideBySide] shows two project windows side by side over the stack's area ([WindowStack.split]); both of their
+ * tabs are highlighted in every strip until it ends.
  */
 @Service(Service.Level.APP)
 class ProjectTabsService : Disposable {
@@ -102,7 +105,7 @@ class ProjectTabsService : Disposable {
   /** Also when a hidden project window is shown by someone else than the stack: it comes to front in place. */
   @RequiresEdt
   internal fun windowActivated(window: StackedWindow) {
-    if (isEnabled) stack.activated(window)
+    if (isEnabled) refreshAfter { stack.activated(window) }
   }
 
   /** Records a move of [window] when it happens; true when it leads and [flushMoves] should follow (debounced). */
@@ -113,12 +116,21 @@ class ProjectTabsService : Disposable {
   @RequiresEdt
   internal fun flushMoves(): Boolean {
     if (!isEnabled) return false
-    stack.flush()
+    // maximizing or full screen of a window side by side ends side by side
+    refreshAfter { stack.flush() }
     return stack.hasPendingMove
+  }
+
+  /** Runs [change] and refreshes the strips when it ended side by side. */
+  private fun refreshAfter(change: () -> Unit) {
+    val before = stack.splitPair
+    change()
+    if (stack.splitPair != before) refresh()
   }
 
   @RequiresEdt
   internal fun settingChanged() {
+    if (!isEnabled) stack.unsplit()
     stack.single = isEnabled
     if (isEnabled) {
       val windows = strips.filter { !isDetached(it.project) }.mapNotNull { it.window }
@@ -133,9 +145,9 @@ class ProjectTabsService : Disposable {
   fun switchTo(project: Project): Boolean {
     val window = strips.firstOrNull { it.project === project }?.window ?: return false
     if (isEnabled && !isDetached(project)) {
-      // before the window comes to front, so it shows with the layout already
-      strips.firstOrNull { it.window === stack.front }?.project?.let { ToolWindowLayoutSync.copy(it, project) }
-      stack.switchTo(window)
+      // before the window comes to front, so it shows with the layout already; not to a window already on screen beside it
+      if (!stack.isInSplit(window)) strips.firstOrNull { it.window === stack.front }?.project?.let { ToolWindowLayoutSync.copy(it, project) }
+      refreshAfter { stack.switchTo(window) }
     }
     else {
       window.activate()
@@ -194,6 +206,8 @@ class ProjectTabsService : Disposable {
     val tabs = openTabs()
     val window = strips.firstOrNull { it.project === project }?.window
     val wasFront = window != null && window === stack.front
+    // side by side, the other one of the pair takes the place
+    val partner = window?.takeIf(stack::isInSplit)?.let { w -> stack.splitPair?.toList()?.firstOrNull { it !== w } }
     detached += project
     if (window != null) {
       stack.remove(window)
@@ -205,10 +219,42 @@ class ProjectTabsService : Disposable {
         window.apply(WindowState(bounds, maximized = false, fullScreen = false))
       }
     }
-    if (wasFront) ProjectTabs.neighbor(tabs, project)?.let(::switchTo)
+    val next = partner?.let { p -> strips.firstOrNull { it.window === p }?.project } ?: if (wasFront) ProjectTabs.neighbor(tabs, project) else null
+    next?.let(::switchTo)
     window?.activate()
     refresh()
   }
+
+  /** The projects side by side, left first; empty when there are none. */
+  fun sideBySide(): List<Project> =
+    stack.splitPair?.toList()?.mapNotNull { w -> strips.firstOrNull { it.window === w }?.project } ?: emptyList()
+
+  /** Whether [partner] can be shown side by side with [current]: two different project tabs with a window each. */
+  fun canOpenSideBySide(current: Project, partner: Project): Boolean {
+    if (!isEnabled || current === partner) return false
+    val tabs = openTabs()
+    if (tabs.none { it === current } || tabs.none { it === partner }) return false
+    val pair = sideBySide()
+    if (pair.any { it === current } && pair.any { it === partner }) return false
+    return windowOf(current) != null && windowOf(partner) != null
+  }
+
+  /** Shows [current] on the left half of the stack's area and [partner] on the right half. */
+  @RequiresEdt
+  fun openSideBySide(current: Project, partner: Project) {
+    if (!canOpenSideBySide(current, partner)) return
+    val left = windowOf(current) ?: return
+    val right = windowOf(partner) ?: return
+    if (stack.split(left, right)) refresh()
+  }
+
+  /** Ends side by side: [keep] (else the one in front of the two) takes the whole stack again. */
+  @RequiresEdt
+  fun exitSideBySide(keep: Project? = null) {
+    refreshAfter { stack.unsplit(keep?.let(::windowOf)) }
+  }
+
+  private fun windowOf(project: Project): FrameWindow? = strips.firstOrNull { it.project === project }?.window
 
   /** Puts a detached [project] back into the tabs, as the last one, and brings it to front in the stack. */
   @RequiresEdt
@@ -252,6 +298,7 @@ class ProjectTabsService : Disposable {
   private fun refresh() {
     val open = openTabs().map { OpenProject(it, it.name, it.presentableUrl) }
     val visible = ProjectTabs.isStripVisible(isEnabled, open.size)
+    val sideBySide = sideBySide()
     val home = SystemProperties.getUserHome()
     for (strip in strips) {
       if (isDetached(strip.project)) {
@@ -259,7 +306,7 @@ class ProjectTabsService : Disposable {
         strip.display(ProjectTabs.tabs(listOf(OpenProject(strip.project, strip.project.name, strip.project.presentableUrl)), strip.project, home), false)
       }
       else {
-        strip.display(ProjectTabs.tabs(open, strip.project, home), visible)
+        strip.display(ProjectTabs.tabs(open, strip.project, home, sideBySide), visible)
       }
     }
   }

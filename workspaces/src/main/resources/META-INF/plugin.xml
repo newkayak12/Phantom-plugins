@@ -8,7 +8,8 @@
   switch, middle-click or the close button to close. Only the project in front has a window on screen, the others are
   hidden behind it, so there is one window; a project you open comes in as a new tab. Project windows share one size,
   position and maximized state; a project switched to also takes full screen. A tab can be detached into a window of its own
-  (its context menu, or drag it out of the strip) and attached back with Window | Attach to Project Tabs. Next/previous project: Window | Next Project Window. Works on every OS; no native window tabs. Turn it off in Settings | Advanced Settings | Phantom Workspaces.
+  (its context menu, or drag it out of the strip) and attached back with Window | Attach to Project Tabs; Open Side by Side in its context menu shows two projects side
+  by side over the same place. Next/previous project: Window | Next Project Window. Works on every OS; no native window tabs. Turn it off in Settings | Advanced Settings | Phantom Workspaces.
   ]]></description>
 
   <resource-bundle>messages.PhantomWorkspacesBundle</resource-bundle>

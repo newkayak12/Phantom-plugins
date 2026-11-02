@@ -89,4 +89,11 @@ class ProjectTabsTest {
     assertTrue(ProjectTabs.isDetachDrag(dy = 34, stripHeight = 28, threshold = 5))
     assertTrue(ProjectTabs.isDetachDrag(dy = -34, stripHeight = 28, threshold = 5))
   }
+
+  @Test
+  fun `both projects side by side are marked in the tabs`() {
+    val tabs = ProjectTabs.tabs(listOf(shop, blog, tools), current = "blog", userHome = home, sideBySide = listOf("blog", "tools"))
+    assertEquals(listOf(false, true, true), tabs.map { it.isSideBySide })
+    assertEquals(listOf(false, true, false), tabs.map { it.isCurrent })
+  }
 }

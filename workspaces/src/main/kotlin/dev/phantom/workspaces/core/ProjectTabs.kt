@@ -6,7 +6,8 @@ import kotlin.math.abs
 /** An open project as the tab strip sees it. [key] identifies it (the [com.intellij.openapi.project.Project] in the IDE). */
 data class OpenProject(val key: Any, val name: String, val location: String?)
 
-data class ProjectTab(val key: Any, val title: String, val tooltip: String?, val isCurrent: Boolean)
+/** [isSideBySide]: on screen beside the current one ([ProjectTabsService.openSideBySide]); highlighted as its partner. */
+data class ProjectTab(val key: Any, val title: String, val tooltip: String?, val isCurrent: Boolean, val isSideBySide: Boolean = false)
 
 /** What the project tab strip shows. No UI and no platform state, so it is tested as is. */
 object ProjectTabs {
@@ -14,13 +15,16 @@ object ProjectTabs {
   const val EXTENSION_KEY: String = "phantom.workspaces.project.tabs"
   const val CLOSE_PROJECT_ACTION_ID: String = "CloseProject"
 
-  /** One tab per project in [open] order; projects that share a name are titled by their location instead. */
-  fun tabs(open: List<OpenProject>, current: Any?, userHome: String): List<ProjectTab> {
+  /**
+   * One tab per project in [open] order; projects that share a name are titled by their location instead. The projects
+   * in [sideBySide] are marked, the current one included.
+   */
+  fun tabs(open: List<OpenProject>, current: Any?, userHome: String, sideBySide: List<Any> = emptyList()): List<ProjectTab> {
     val sharedNames = open.groupingBy { it.name }.eachCount().filterValues { it > 1 }.keys
     return open.map { project ->
       val where = project.location?.let { shortened(it, userHome) }
       val title = if (project.name in sharedNames && where != null) where else project.name
-      ProjectTab(project.key, title, where, project.key == current)
+      ProjectTab(project.key, title, where, project.key == current, sideBySide.any { it == project.key })
     }
   }
 

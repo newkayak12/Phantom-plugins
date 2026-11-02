@@ -2,6 +2,7 @@
 package dev.phantom.workspaces
 
 import dev.phantom.workspaces.core.StackedWindow
+import dev.phantom.workspaces.core.Tiling
 import dev.phantom.workspaces.core.WindowStack
 import dev.phantom.workspaces.core.WindowState
 import org.junit.Assert.assertEquals
@@ -637,5 +638,217 @@ class WindowStackTest {
     assertEquals(Rectangle(1520, 780, 400, 300), WindowStack.cascaded(Rectangle(1500, 900, 800, 600), 40, screen))
     assertEquals(Rectangle(140, 140, 800, 600), WindowStack.cascaded(Rectangle(100, 100, 800, 600), 40, null))
     assertEquals(small.size, WindowStack.cascaded(small, 40, screen).size)
+  }
+
+  // side by side: home is (100, 100, 1200, 800), so the halves are 600 wide and meet at x 700
+  private val leftHalf = Rectangle(100, 100, 600, 800)
+  private val rightHalf = Rectangle(700, 100, 600, 800)
+
+  private fun splitOf(vararg windows: FakeWindow): Triple<FakeWindow, FakeWindow, List<FakeWindow>> {
+    stack.single = true
+    windows.forEach { stack.add(it) }
+    stack.switchTo(windows[0])
+    assertTrue(stack.split(windows[0], windows[1]))
+    log.clear()
+    return Triple(windows[0], windows[1], windows.drop(2))
+  }
+
+  /** [window] of the pair changes, the debounce timer fires. */
+  private fun moveSplit(window: FakeWindow, change: FakeWindow.() -> Unit) {
+    window.change()
+    assertTrue(stack.moved(window))
+    stack.flush()
+  }
+
+  @Test
+  fun `tiling halves the area and a seam moved by either inner edge gives the other the rest`() {
+    val t = Tiling.halves(home)
+    assertEquals(leftHalf, t.left)
+    assertEquals(rightHalf, t.right)
+    // the left one made 200 wider from its right edge
+    assertEquals(900, t.after(isLeft = true, Rectangle(100, 100, 800, 800)).seam)
+    // the right one made 100 wider from its left edge
+    assertEquals(600, t.after(isLeft = false, Rectangle(600, 100, 700, 800)).seam)
+    // an outer edge or the height: the seam stays
+    assertEquals(700, t.after(isLeft = false, Rectangle(700, 100, 900, 800)).seam)
+    assertEquals(700, t.after(isLeft = true, Rectangle(100, 100, 600, 500)).seam)
+  }
+
+  @Test
+  fun `tiling keeps a sixth of the area on either side of the seam`() {
+    val t = Tiling.halves(home)
+    assertEquals(100 + 200, t.after(isLeft = true, Rectangle(100, 100, 50, 800)).seam)
+    assertEquals(1300 - 200, t.after(isLeft = false, Rectangle(1250, 100, 50, 800)).seam)
+  }
+
+  @Test
+  fun `tiling moves the pair with a window moved without resizing`() {
+    val moved = Tiling.halves(home).after(isLeft = false, Rectangle(750, 130, 600, 800))
+    assertEquals(Rectangle(150, 130, 1200, 800), moved.area)
+    assertEquals(750, moved.seam)
+  }
+
+  @Test
+  fun `side by side puts the current window on the left half and the other on the right, both shown`() {
+    stack.single = true
+    val a = window("a")
+    val b = window("b")
+    val c = window("c")
+    stack.add(a)
+    stack.add(b)
+    stack.add(c)
+    stack.switchTo(a)
+    assertFalse(b.isShown)
+    assertTrue(stack.split(a, b))
+    assertEquals(leftHalf, a.normal)
+    assertEquals(rightHalf, b.normal)
+    assertTrue(a.isShown)
+    assertTrue(b.isShown)
+    assertFalse(c.isShown)
+    assertSame(a, stack.front)
+    assertEquals(a to b, stack.splitPair)
+    // the stack's place is kept for when it is one window again
+    assertEquals(home, stack.shared!!.bounds)
+  }
+
+  @Test
+  fun `side by side from a maximized stack tiles the screen, not maximized`() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(a, b)
+    moveFront(a) { maximized = true }
+    assertTrue(stack.split(a, b))
+    assertFalse(a.maximized)
+    assertEquals(Rectangle(0, 0, 960, 1080), a.normal)
+    assertEquals(Rectangle(960, 0, 960, 1080), b.normal)
+  }
+
+  @Test
+  fun `no side by side in full screen`() {
+    val a = window("a")
+    val b = window("b")
+    stackOf(a, b)
+    moveFront(a) { fullScreen = true }
+    assertFalse(stack.split(a, b))
+    assertEquals(null, stack.splitPair)
+  }
+
+  @Test
+  fun `resizing the inner edge of either window resizes the other one`() {
+    val (a, b) = splitOf(window("a"), window("b"))
+    moveSplit(a) { normal = Rectangle(100, 100, 800, 800) }
+    assertEquals(Rectangle(900, 100, 400, 800), b.normal)
+    moveSplit(b) { normal = Rectangle(500, 100, 800, 800) }
+    assertEquals(Rectangle(100, 100, 400, 800), a.normal)
+  }
+
+  @Test
+  fun `a window put on its tile moving too does not move the pair again`() {
+    val (a, b) = splitOf(window("a"), window("b"))
+    moveSplit(a) { normal = Rectangle(100, 100, 800, 800) }
+    log.clear()
+    // the event of the window just put in place
+    stack.moved(b)
+    stack.flush()
+    assertTrue(log.isEmpty())
+    assertFalse(stack.hasPendingMove)
+  }
+
+  @Test
+  fun `an outer edge resized goes back to the pair's area`() {
+    val (a, b) = splitOf(window("a"), window("b"))
+    moveSplit(b) { normal = Rectangle(700, 100, 900, 600) }
+    assertEquals(rightHalf, b.normal)
+    assertEquals(leftHalf, a.normal)
+  }
+
+  @Test
+  fun `moving either window moves the pair, and the stack with it`() {
+    val (a, b) = splitOf(window("a"), window("b"), window("c"))
+    moveSplit(a) { normal = Rectangle(150, 130, 600, 800) }
+    assertEquals(Rectangle(750, 130, 600, 800), b.normal)
+    assertEquals(Rectangle(150, 130, 1200, 800), stack.shared!!.bounds)
+  }
+
+  @Test
+  fun `clicking into the other window of the pair keeps them side by side`() {
+    val (a, b) = splitOf(window("a"), window("b"))
+    stack.activated(b)
+    assertSame(b, stack.front)
+    assertTrue(a.isShown)
+    assertEquals(leftHalf, a.normal)
+    assertEquals(rightHalf, b.normal)
+    stack.switchTo(a)
+    assertTrue(b.isShown)
+    assertEquals(a to b, stack.splitPair)
+  }
+
+  @Test
+  fun `switching to a third window ends side by side`() {
+    val (a, b, rest) = splitOf(window("a"), window("b"), window("c"))
+    val c = rest.single()
+    stack.switchTo(c)
+    assertEquals(null, stack.splitPair)
+    assertSame(c, stack.front)
+    assertFalse(a.isShown)
+    assertFalse(b.isShown)
+    // behind, the pair is back where the stack is
+    assertEquals(home, a.normal)
+    assertEquals(home, b.normal)
+  }
+
+  @Test
+  fun `exiting side by side gives the window in front the whole place again`() {
+    val (a, b) = splitOf(window("a"), window("b"))
+    stack.activated(b)
+    stack.unsplit()
+    assertEquals(null, stack.splitPair)
+    assertSame(b, stack.front)
+    assertEquals(home, b.normal)
+    assertFalse(a.isShown)
+    assertEquals(home, a.normal)
+  }
+
+  @Test
+  fun `exiting side by side from one window of the pair keeps that one`() {
+    val (a, b) = splitOf(window("a"), window("b"))
+    stack.activated(b)
+    stack.unsplit(a)
+    assertSame(a, stack.front)
+    assertEquals(home, a.normal)
+    assertFalse(b.isShown)
+  }
+
+  @Test
+  fun `maximizing a window side by side ends it and the window leads maximized`() {
+    val (a, b) = splitOf(window("a"), window("b"))
+    moveSplit(b) { maximized = true }
+    assertEquals(null, stack.splitPair)
+    assertSame(b, stack.front)
+    assertTrue(stack.shared!!.maximized)
+    assertFalse(a.isShown)
+    assertTrue(a.maximized)
+  }
+
+  @Test
+  fun `closing a window side by side shows the other one alone in their place`() {
+    val (a, b, rest) = splitOf(window("a"), window("b"), window("c"))
+    assertSame(b, stack.remove(a))
+    assertEquals(null, stack.splitPair)
+    stack.switchTo(b)
+    assertEquals(home, b.normal)
+    assertFalse(rest.single().isShown)
+  }
+
+  @Test
+  fun `a project that opens ends side by side`() {
+    val (a, b) = splitOf(window("a"), window("b"))
+    val c = window("c", elsewhere)
+    stack.add(c)
+    assertEquals(null, stack.splitPair)
+    assertSame(c, stack.front)
+    assertEquals(home, c.normal)
+    assertFalse(a.isShown)
+    assertFalse(b.isShown)
   }
 }

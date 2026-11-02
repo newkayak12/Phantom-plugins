@@ -402,9 +402,9 @@
     {
       "id": "dev.phantom.workspaces",
       "name": "Phantom Workspaces",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "source": "workspaces",
-      "description": "All open projects as tabs of one window (0.5.0): a tab strip above the editor lists every open project (click to switch, middle-click or the close button to close, drag to reorder), and only the project in front has a window on screen, the others hidden behind it, so there is one window and a project you open comes in as a new tab. Project windows share one size, position and maximized state; a project switched to also takes full screen. Every project tab takes the tool window layout of the one in front (stripe sides and order, open tool windows, sizes). A tab can be detached into a window of its own (context menu or drag it out of the strip) and attached back from the Window menu. Next/previous project: Window | Next Project Window. Works on every OS, no native window tabs; off in Settings | Advanced Settings | Phantom Workspaces. Moved out of the Phantom bundle so it updates like any other plugin.",
+      "description": "All open projects as tabs of one window (0.6.0): a tab strip above the editor lists every open project (click to switch, middle-click or the close button to close, drag to reorder), and only the project in front has a window on screen, the others hidden behind it, so there is one window and a project you open comes in as a new tab. Project windows share one size, position and maximized state; a project switched to also takes full screen. Every project tab takes the tool window layout of the one in front (stripe sides and order, open tool windows, sizes). A tab can be detached into a window of its own (context menu or drag it out of the strip) and attached back from the Window menu, and two can be shown side by side (Open Side by Side), resizing together. Next/previous project: Window | Next Project Window. Works on every OS, no native window tabs; off in Settings | Advanced Settings | Phantom Workspaces. Moved out of the Phantom bundle so it updates like any other plugin.",
       "vendor": "Phantom",
       "category": "User Interface",
       "since": "262",
@@ -412,7 +412,7 @@
       "depends": [
         "com.intellij.modules.platform"
       ],
-      "download": "workspaces-0.5.0/workspaces-0.5.0.zip",
+      "download": "workspaces-0.6.0/workspaces-0.6.0.zip",
       "detect": []
     },
     {

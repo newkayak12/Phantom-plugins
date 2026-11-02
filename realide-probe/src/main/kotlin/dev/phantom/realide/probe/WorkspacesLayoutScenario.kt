@@ -28,6 +28,8 @@ import kotlinx.coroutines.delay
  * Workspaces 0.4.0: dragging beta's tab onto the left edge of alpha's moves it first, in both windows' strips.
  * Workspaces 0.5.0: Detach to Separate Window on beta's tab frees beta's window 40 px off the stack with alpha back in
  * front; Window | Attach to Project Tabs puts beta back onto the stack.
+ * Workspaces 0.6.0: Open Side by Side on alpha's tab puts beta on the left half and alpha on the right; making beta wider
+ * narrows alpha; Exit Side by Side gives beta the whole place again.
  */
 internal object WorkspacesLayoutScenario : ProbeScenario {
   private const val SYNC = "phantom.workspaces.sync.tool.windows"
@@ -83,6 +85,54 @@ internal object WorkspacesLayoutScenario : ProbeScenario {
                 dragged + ctx.edt { mapOf("beta" to strip(beta)?.let { tabs(it).keys.toList() }, "alpha" to strip(alpha)?.let { tabs(it).keys.toList() }) })
 
     detachAndAttach(ctx, alpha, beta)
+    sideBySide(ctx, alpha, beta)
+  }
+
+  /** Right-click on [tabOf]'s tab in [inFrameOf]'s strip and click [item]; whether it was there to click. */
+  private suspend fun menu(ctx: ProbeContext, inFrameOf: Project, tabOf: Project, item: String): Boolean {
+    val opened = ctx.edt {
+      val tab = strip(inFrameOf)?.let(::tabs)?.get(tabOf.name) ?: return@edt false
+      ProbeInput.popupTrigger(tab, Point(tab.width / 2, tab.height / 2))
+      true
+    }
+    if (!opened) return false
+    delay(500)
+    return ctx.edt {
+      val found = ProbeInput.openPopup()?.let(ProbeInput::items)?.firstOrNull { it.text == item && it.isEnabled } ?: return@edt false
+      ProbeInput.doClick(found)
+      true
+    }
+  }
+
+  private suspend fun sideBySide(ctx: ProbeContext, alpha: Project, beta: Project) {
+    val report = ctx.report
+    val whole = ctx.edt { WindowManager.getInstance().getFrame(beta)?.bounds }
+    val clicked = menu(ctx, beta, alpha, "Open Side by Side")
+    delay(1500)
+    fun pair(): Map<String, Any?> {
+      val a = WindowManager.getInstance().getFrame(alpha)
+      val b = WindowManager.getInstance().getFrame(beta)
+      return mapOf(
+        "alphaShown" to a?.isShowing, "betaShown" to b?.isShowing,
+        // beta's right edge to alpha's left edge, and the two together against the whole place
+        "seamGap" to if (a != null && b != null) a.x - (b.x + b.width) else null,
+        "span" to if (a != null && b != null && whole != null) listOf(b.x - whole.x, a.x + a.width - (whole.x + whole.width)) else null,
+        "betaWidth" to b?.width, "alphaWidth" to a?.width,
+      )
+    }
+    report.step("split.open", mapOf("clicked" to true, "alphaShown" to true, "betaShown" to true, "seamGap" to 0, "span" to listOf(0, 0)),
+                mapOf("clicked" to clicked, "whole" to whole?.let { listOf(it.x, it.y, it.width, it.height) }) + ctx.edt { pair() })
+
+    val before = ctx.edt { WindowManager.getInstance().getFrame(beta)?.let { f -> f.setSize(f.width + 100, f.height); f.width } }
+    delay(1500)
+    report.step("split.resize", mapOf("seamGap" to 0, "span" to listOf(0, 0)), mapOf("betaWidthSet" to before) + ctx.edt { pair() })
+
+    val exited = menu(ctx, beta, alpha, "Exit Side by Side")
+    delay(1500)
+    report.step("split.exit", mapOf("exited" to true, "alphaShown" to false, "betaShown" to true, "whole" to true),
+                mapOf("exited" to exited, "alphaShown" to ctx.edt { WindowManager.getInstance().getFrame(alpha)?.isShowing },
+                      "betaShown" to ctx.edt { WindowManager.getInstance().getFrame(beta)?.isShowing },
+                      "whole" to ctx.edt { WindowManager.getInstance().getFrame(beta)?.bounds == whole }))
   }
 
   private suspend fun detachAndAttach(ctx: ProbeContext, alpha: Project, beta: Project) {

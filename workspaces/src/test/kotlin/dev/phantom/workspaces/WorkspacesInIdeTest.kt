@@ -17,6 +17,8 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import dev.phantom.workspaces.core.ProjectTabStrip
 import dev.phantom.workspaces.core.ProjectTabs
 import dev.phantom.workspaces.core.ProjectTabsService
+import dev.phantom.workspaces.core.Tiling
+import dev.phantom.workspaces.core.WindowStack
 import java.awt.GraphicsEnvironment
 import java.awt.Rectangle
 import java.awt.event.HierarchyEvent
@@ -309,13 +311,16 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
       val other = openSecondProject("framed")
       val second = framed(other, Rectangle(300, 200, 500, 400), frames)
       settle()
-      assertEquals(stacked, second.window!!.frame.bounds)
+      // the stack keeps its place across tests: wherever it is, 40 px off it
+      val area = first.window!!.frame.bounds
+      assertEquals(area, second.window!!.frame.bounds)
 
       val service = ProjectTabsService.getInstance()
       service.detachProject(other)
       val free = second.window!!.frame
+      val apart = WindowStack.cascaded(area, WindowStack.DETACH_STEP, free.graphicsConfiguration.bounds)
       assertTrue(free.isVisible)
-      assertEquals(Rectangle(140, 140, 800, 600), free.bounds)
+      assertEquals(apart, free.bounds)
       assertEquals(listOf(project.name), first.tabs.map { it.title })
 
       // the stack no longer moves it: a move of the front window leaves it where it is
@@ -323,11 +328,56 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
       first.window!!.frame.bounds = Rectangle(50, 50, 700, 500)
       service.windowMoved(first.window!!)
       service.flushMoves()
-      assertEquals(Rectangle(140, 140, 800, 600), free.bounds)
+      assertEquals(apart, free.bounds)
 
       service.attachProject(other)
       assertEquals(Rectangle(50, 50, 700, 500), free.bounds)
       assertEquals(listOf(project.name, other.name), first.tabs.map { it.title })
+    }
+    finally {
+      frames.forEach(JFrame::dispose)
+    }
+  }
+
+  fun testSideBySideTilesTheStackAndMarksBothTabsInEveryStrip() {
+    if (GraphicsEnvironment.isHeadless()) return
+    val stacked = Rectangle(100, 100, 800, 600)
+    val frames = mutableListOf<JFrame>()
+    try {
+      val first = framed(project, stacked, frames)
+      val other = openSecondProject("beside")
+      val second = framed(other, stacked, frames)
+      val third = openSecondProject("behind")
+      framed(third, stacked, frames)
+      settle()
+      val service = ProjectTabsService.getInstance()
+      service.switchTo(project)
+      assertFalse(service.canOpenSideBySide(project, project))
+
+      // the stack keeps its place across tests: wherever it is, its halves
+      val left = first.window!!.frame
+      val right = second.window!!.frame
+      val area = left.bounds
+      service.openSideBySide(project, other)
+      val halves = Tiling.halves(area)
+      assertEquals(halves.left, left.bounds)
+      assertEquals(halves.right, right.bounds)
+      assertTrue(left.isVisible && right.isVisible)
+      assertEquals(listOf(project, other), service.sideBySide())
+      for (strip in listOf(first, second)) assertEquals(listOf(true, true, false), strip.tabs.map { it.isSideBySide })
+      assertEquals(listOf(false, true, false), second.tabs.map { it.isCurrent })
+
+      // the left one made wider from its inner edge: the right one takes the rest
+      left.bounds = Rectangle(halves.left).apply { width += 50 }
+      service.windowMoved(first.window!!)
+      service.flushMoves()
+      assertEquals(Rectangle(halves.right).apply { x += 50; width -= 50 }, right.bounds)
+
+      service.exitSideBySide()
+      assertTrue(service.sideBySide().isEmpty())
+      assertEquals(area, left.bounds)
+      assertFalse(right.isVisible)
+      assertEquals(listOf(false, false, false), first.tabs.map { it.isSideBySide })
     }
     finally {
       frames.forEach(JFrame::dispose)

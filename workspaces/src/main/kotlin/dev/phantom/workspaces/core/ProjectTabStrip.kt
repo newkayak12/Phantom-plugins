@@ -47,7 +47,7 @@ private const val SYNC_DELAY_MS = 300
 /**
  * One tab per open project; the tab of this frame's [project] is the current one. Click switches, middle-click or
  * the close button closes, dragging moves the tab; dragging it up or down out of the strip, or Detach to Separate Window
- * in its context menu, takes the project out into a window of its own. Also watches its frame for [WindowStack] (activation, and moves/resizes, debounced).
+ * in its context menu, takes the project out into a window of its own; Open Side by Side shows it beside this one. Also watches its frame for [WindowStack] (activation, and moves/resizes, debounced).
  */
 class ProjectTabStrip(val project: Project) : JPanel(HorizontalLayout(0)) {
   var tabs: List<ProjectTab> = emptyList()
@@ -182,6 +182,17 @@ class ProjectTabStrip(val project: Project) : JPanel(HorizontalLayout(0)) {
     detach.isEnabled = service.canDetach(project)
     detach.addActionListener { service.detachProject(project) }
     menu.add(detach)
+    menu.addSeparator()
+    val sideBySide = JBMenuItem(PhantomWorkspacesBundle.message("tab.menu.open.side.by.side"))
+    sideBySide.isEnabled = service.canOpenSideBySide(this.project, project)
+    sideBySide.addActionListener { service.openSideBySide(this.project, project) }
+    menu.add(sideBySide)
+    if (service.sideBySide().isNotEmpty()) {
+      val exit = JBMenuItem(PhantomWorkspacesBundle.message("tab.menu.exit.side.by.side"))
+      // the window whose strip it is chosen in stays
+      exit.addActionListener { service.exitSideBySide(this.project) }
+      menu.add(exit)
+    }
     menu.show(component, at.x, at.y)
   }
 
@@ -209,7 +220,7 @@ class ProjectTabStrip(val project: Project) : JPanel(HorizontalLayout(0)) {
       border = JBUI.Borders.empty(5, 10, 5, 4)
       toolTipText = tab.tooltip
       val title = JBLabel(tab.title)
-      if (!tab.isCurrent) title.foreground = UIUtil.getContextHelpForeground()
+      if (!tab.isCurrent && !tab.isSideBySide) title.foreground = UIUtil.getContextHelpForeground()
       add(title, BorderLayout.CENTER)
       val closeButton = InplaceButton(PhantomWorkspacesBundle.message("tab.close.tooltip"), AllIcons.Actions.Close) { close(tab) }
       closeButton.border = JBUI.Borders.emptyLeft(6)
@@ -297,9 +308,10 @@ class ProjectTabStrip(val project: Project) : JPanel(HorizontalLayout(0)) {
         g.color = background
         g.fillRect(0, 0, width, height)
       }
-      if (tab.isCurrent) {
+      // the one beside the current one, side by side: underlined like the current one, in the inactive color
+      if (tab.isCurrent || tab.isSideBySide) {
         val underline = JBUI.CurrentTheme.EditorTabs.underlineHeight()
-        g.color = JBUI.CurrentTheme.EditorTabs.underlineColor()
+        g.color = if (tab.isCurrent) JBUI.CurrentTheme.EditorTabs.underlineColor() else JBUI.CurrentTheme.EditorTabs.inactiveUnderlineColor()
         g.fillRect(0, height - underline, width, underline)
       }
     }
