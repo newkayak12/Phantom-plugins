@@ -85,4 +85,7 @@ object ThemeA : Theme {
   /** The frames animate the people themselves. */
   override fun personOffset(state: VizState, phase: Int) = Offset.ZERO
   override fun bubble(state: VizState) = "bubble_${state.key}"
+
+  /** The working pose reaches its right arm to a keyboard, wider than any free spot clear of the area's desks: a helper may stand in front of one. */
+  override val helperMayCoverOwnDesks: Boolean get() = true
 }
