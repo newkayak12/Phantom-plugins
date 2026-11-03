@@ -119,11 +119,20 @@ class SqlSelectSchemaAction : DumbAwareAction() {
 /**
  * In a `.sql` editor, Run Statement, Query History and Cancel (on Stop's keys) win over editor actions bound to the same keys (Cmd/Ctrl+Enter is
  * also Split Line and Generate); other editors keep their order.
+ *
+ * Promoters get only the UI data of the context (the editor, not the PSI file), so the editor's file type tells a `.sql` editor.
  */
 class SqlActionPromoter : ActionPromoter {
   override fun promote(actions: List<AnAction>, context: DataContext): List<AnAction> {
-    if (context.getData(CommonDataKeys.PSI_FILE) !is SqlFile) return emptyList()
+    if (!isSqlEditor(context)) return emptyList()
     return actions.filterIsInstance<SqlRunStatementAction>() + actions.filterIsInstance<DbShowHistoryAction>() + actions.filterIsInstance<DbCancelAction>()
+  }
+
+  companion object {
+    fun isSqlEditor(context: DataContext): Boolean {
+      val file = context.getData(CommonDataKeys.EDITOR)?.virtualFile ?: context.getData(PlatformCoreDataKeys.FILE_EDITOR)?.file ?: return false
+      return com.intellij.openapi.fileTypes.FileTypeRegistry.getInstance().isFileOfType(file, SqlFileType.INSTANCE)
+    }
   }
 }
 

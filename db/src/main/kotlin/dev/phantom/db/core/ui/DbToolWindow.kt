@@ -18,6 +18,8 @@ import javax.swing.JPanel
 import javax.swing.event.DocumentEvent
 import dev.phantom.db.core.dialect
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.service
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.readAction
@@ -220,7 +222,8 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       command("CopySource", { selectedNode() is DbNode.Source }) {
         (selectedNode() as? DbNode.Source)?.let { CopyPasteManager.getInstance().setContents(StringSelection(DbDataSourceClipboard.write(listOf(it.dataSource)))) }
       },
-      command("PasteSource", { DbDataSourceClipboard.read(clipboardText()).isNotEmpty() }) { paste() },
+      // whether the clipboard holds data sources is checked in the action's background update, not with the selection
+      command("PasteSource") { paste() },
       command("MoveToGroup", { selectedNode() is DbNode.Source || selectedNode() is DbNode.Group }) { moveToGroup() },
       command("MakeGlobal", { selectedNode() is DbNode.Source }) {
         (selectedNode() as? DbNode.Source)?.dataSource?.let { ds -> DbDataSourceService.getInstance(project).save(ds.copy().apply { global = !ds.global }, null) }
@@ -281,7 +284,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       },
       Separator.getInstance(),
       object : ToggleAction(PhantomDbBundle.message("db.action.system.schemas.text"), null, AllIcons.Actions.ToggleVisibility), DumbAware {
-        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
         override fun isSelected(e: AnActionEvent): Boolean = showSystemSchemas(project)
         override fun setSelected(e: AnActionEvent, state: Boolean) {
           PropertiesComponent.getInstance(project).setValue(SYSTEM_SCHEMAS_KEY, state)
@@ -586,14 +589,11 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
     DbDataSourceService.getInstance(project).save(copy, null)
   }
 
-  private fun clipboardText(): String? =
-    runCatching { CopyPasteManager.getInstance().getContents<String>(java.awt.datatransfer.DataFlavor.stringFlavor) }.getOrNull()
-
   /** Data sources copied (here or in another project or IDE) are added with new ids, in the selected group; passwords stay behind. */
   private fun paste() {
     val group = (selectedNode() as? DbNode.Group)?.path ?: selectedSource()?.group
     val service = DbDataSourceService.getInstance(project)
-    for (ds in DbDataSourceClipboard.read(clipboardText())) {
+    for (ds in DbDataSourceClipboard.read(DbDataSourceClipboard.text())) {
       ds.id = java.util.UUID.randomUUID().toString()
       if (group != null) ds.group = group
       service.save(ds, null)
@@ -710,13 +710,18 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
     return ActionManager.getInstance().getAction(id)
   }
 
+  /** Which tree commands apply to the selection, taken on the EDT with the data context so the commands update in the background. */
+  internal class Snapshot(val tree: JTree, val commands: Set<String>, val enabled: Set<String>, val selectedGlobal: Boolean)
+
   override fun uiDataSnapshot(sink: DataSink) {
     super.uiDataSnapshot(sink)
     sink[KEY] = this
+    sink[SNAPSHOT] = Snapshot(tree, commands.keys.toSet(), commands.filterValues { it.enabled() }.keys, selectedSource()?.global == true)
   }
 
   companion object {
     val KEY: DataKey<DbExplorerPanel> = DataKey.create("PhantomDb.ExplorerPanel")
+    internal val SNAPSHOT: DataKey<Snapshot> = DataKey.create("PhantomDb.ExplorerPanel.Snapshot")
     private const val SYSTEM_SCHEMAS_KEY = "phantom.db.tree.systemSchemas"
 
     fun showSystemSchemas(project: Project): Boolean = PropertiesComponent.getInstance(project).getBoolean(SYSTEM_SCHEMAS_KEY, false)
@@ -870,20 +875,21 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
  * tree's panel says whether it applies and runs it. Outside the tree it is hidden.
  */
 class DbTreeAction : DumbAwareAction() {
-  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
+  /** In the background, from the tree's [DbExplorerPanel.Snapshot]: a toolbar or key press never waits for the EDT on these. */
+  override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
   private fun command(e: AnActionEvent): DbExplorerPanel.Command? =
     panel(e.dataContext)?.command(ActionManager.getInstance().getId(this) ?: return null)
 
   override fun update(e: AnActionEvent) {
-    val command = command(e)
-    e.presentation.isVisible = command != null
-    e.presentation.isEnabled = command?.enabled?.invoke() == true
     val id = ActionManager.getInstance().getId(this)
+    val snapshot = e.getData(DbExplorerPanel.SNAPSHOT)?.takeIf { e.getData(PlatformCoreDataKeys.CONTEXT_COMPONENT) === it.tree }
+    e.presentation.isVisible = snapshot != null && id in snapshot.commands
+    e.presentation.isEnabled = snapshot != null && id in snapshot.enabled && (id != PREFIX + "PasteSource" || DbDataSourceClipboard.hasDataSources())
     // only on a supported database, so the menu and toolbar do not carry them greyed out
     if (id == PREFIX + "Dump" || id == PREFIX + "Restore") e.presentation.isVisible = e.presentation.isEnabled
     if (id == PREFIX + "MakeGlobal") {
-      val global = panel(e.dataContext)?.selectedSource()?.global == true
+      val global = snapshot?.selectedGlobal == true
       val key = if (global) "db.action.make.project" else "db.action.make.global"
       e.presentation.text = PhantomDbBundle.message("$key.text")
       e.presentation.description = PhantomDbBundle.message("$key.description")
@@ -922,6 +928,40 @@ object DbDataSourceClipboard {
     val element = org.jdom.Element(ROOT)
     sources.forEach { element.addContent(com.intellij.util.xmlb.XmlSerializer.serialize(it)) }
     return com.intellij.openapi.util.JDOMUtil.write(element)
+  }
+
+  fun text(): String? =
+    runCatching { CopyPasteManager.getInstance().getContents<String>(java.awt.datatransfer.DataFlavor.stringFlavor) }.getOrNull()
+
+  /**
+   * Whether the clipboard holds data sources, for Paste's update: read once after each change of the clipboard (a copy in the IDE, or
+   * coming back from another application, where it may have been copied), not on every update, since reading the system clipboard
+   * can take seconds.
+   */
+  fun hasDataSources(): Boolean = service<ClipboardState>().hasDataSources()
+
+  @Service(Service.Level.APP)
+  internal class ClipboardState : Disposable {
+    private val generation = java.util.concurrent.atomic.AtomicLong()
+    @Volatile private var cached: Pair<Long, Boolean>? = null
+
+    init {
+      CopyPasteManager.getInstance().addContentChangedListener({ _, _ -> generation.incrementAndGet() }, this)
+      com.intellij.openapi.application.ApplicationManager.getApplication().messageBus.connect(this)
+        .subscribe(com.intellij.openapi.application.ApplicationActivationListener.TOPIC, object : com.intellij.openapi.application.ApplicationActivationListener {
+          override fun applicationActivated(ideFrame: com.intellij.openapi.wm.IdeFrame) {
+            generation.incrementAndGet()
+          }
+        })
+    }
+
+    fun hasDataSources(): Boolean {
+      val now = generation.get()
+      cached?.takeIf { it.first == now }?.let { return it.second }
+      return read(text()).isNotEmpty().also { cached = now to it }
+    }
+
+    override fun dispose() {}
   }
 
   /** Empty for anything that is not such XML. */

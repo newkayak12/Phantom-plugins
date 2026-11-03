@@ -46,14 +46,15 @@ class DbShortcutTest : BasePlatformTestCase() {
     val other = manager.getAction("EditorSplitLine") ?: manager.getAction("EditorStartNewLine")!!
     val actions: List<AnAction> = listOf(other, history, run)
 
-    val sql = myFixture.configureByText("q.sql", "SELECT 1")
-    val promoted = SqlActionPromoter().promote(actions, SimpleDataContext.getSimpleContext(CommonDataKeys.PSI_FILE, sql))
+    // a promoter sees only the context's UI data: the editor, not its PSI file
+    myFixture.configureByText("q.sql", "SELECT 1")
+    val promoted = SqlActionPromoter().promote(actions, SimpleDataContext.getSimpleContext(CommonDataKeys.EDITOR, myFixture.editor))
     assertEquals(listOf(run, history), promoted)
 
-    val text = myFixture.configureByText("a.txt", "x")
-    assertEmpty(SqlActionPromoter().promote(actions, SimpleDataContext.getSimpleContext(CommonDataKeys.PSI_FILE, text)))
-    val java = myFixture.configureByText("A.java", "class A {}")
-    assertEmpty(SqlActionPromoter().promote(actions, SimpleDataContext.getSimpleContext(CommonDataKeys.PSI_FILE, java)))
+    myFixture.configureByText("a.txt", "x")
+    assertEmpty(SqlActionPromoter().promote(actions, SimpleDataContext.getSimpleContext(CommonDataKeys.EDITOR, myFixture.editor)))
+    myFixture.configureByText("A.java", "class A {}")
+    assertEmpty(SqlActionPromoter().promote(actions, SimpleDataContext.getSimpleContext(CommonDataKeys.EDITOR, myFixture.editor)))
   }
 
   /** DataGrip's keys: New Console, Commit, Cancel (Stop's), Jump to Console (Console.Open's) and the Database tree commands. */
@@ -104,5 +105,13 @@ class DbShortcutTest : BasePlatformTestCase() {
     val promoter = dev.phantom.db.core.ui.DbTreeActionPromoter()
     assertEquals(listOf(remove), promoter.promote(listOf(delete, remove), context(panel.tree)))
     assertEmpty(promoter.promote(listOf(delete, remove), context(javax.swing.JTextField())))
+  }
+
+  /** The tree commands update in the background, so its toolbar and key presses do not wait for the EDT (Paste read the clipboard there). */
+  fun testTreeCommandsUpdateInTheBackground() {
+    val manager = ActionManager.getInstance()
+    val tree = manager.getActionIdList(dev.phantom.db.core.ui.DbTreeAction.PREFIX)
+    assertTrue(tree.toString(), tree.size > 20)
+    for (id in tree) assertEquals(id, com.intellij.openapi.actionSystem.ActionUpdateThread.BGT, manager.getAction(id).actionUpdateThread)
   }
 }
