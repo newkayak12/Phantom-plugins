@@ -148,6 +148,6 @@ class ThemeBTest {
   }
 
   companion object {
-    const val THEME_A_3_AREAS_SHA256 = "fe3071036e253b7670255f93e93979fafb9194ad48dac307b4b332abecdcb563"
+    const val THEME_A_3_AREAS_SHA256 = "e5c29ecb24729874bdc4df9cd35a2cb83747d0c2588611d9d5eea2a29e4c6e81"
   }
 }

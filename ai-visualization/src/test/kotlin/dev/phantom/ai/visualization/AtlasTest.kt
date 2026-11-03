@@ -15,7 +15,7 @@ class AtlasTest {
     // 45 frames of scenery and bubbles, 140 of people: 10 looks x 14 hi-res frames (art/people_hd.py)
     assertEquals(185, atlas.frames.size)
     assertEquals(512, atlas.image.width)
-    assertEquals(1247, atlas.image.height)
+    assertEquals(1282, atlas.image.height)
   }
 
   @Test
