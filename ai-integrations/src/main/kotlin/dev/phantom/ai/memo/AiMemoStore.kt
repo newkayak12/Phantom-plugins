@@ -9,8 +9,10 @@ import com.intellij.openapi.editor.event.DocumentListener
 import com.intellij.openapi.editor.RangeMarker
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.messages.Topic
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicLong
 
@@ -31,6 +33,7 @@ class AiMemoStore(private val project: Project, private val root: () -> String?)
 
   private val memos = CopyOnWriteArrayList<AiMemo>()
   private val ids = AtomicLong()
+  private val listeners = ConcurrentHashMap<Long, Disposable>()
 
   fun worktree(): String? = root()
 
@@ -39,17 +42,20 @@ class AiMemoStore(private val project: Project, private val root: () -> String?)
     val marker = document.createRangeMarker(document.getLineStartOffset(startLine), document.getLineEndOffset(endLine))
     marker.isGreedyToRight = true
     val memo = AiMemo(ids.incrementAndGet(), file, marker, text)
+    val wasEmpty = marker.startOffset == marker.endOffset
+    val listenerScope = Disposer.newDisposable(this, "AiMemo ${memo.id}")
+    listeners[memo.id] = listenerScope
     memos.add(memo)
     document.addDocumentListener(
       object : DocumentListener {
         override fun documentChanged(event: DocumentEvent) {
-          if (!marker.isValid || marker.startOffset == marker.endOffset) {
-            document.removeDocumentListener(this)
+          if (!marker.isValid || (!wasEmpty && marker.startOffset == marker.endOffset)) {
+            release(memo)
             if (memos.remove(memo)) publish()
           }
         }
       },
-      this,
+      listenerScope,
     )
     publish()
     return memo
@@ -67,7 +73,7 @@ class AiMemoStore(private val project: Project, private val root: () -> String?)
 
   fun remove(ids: Collection<Long>) {
     val gone = memos.filter { it.id in ids }
-    gone.forEach { it.marker.dispose() }
+    gone.forEach { release(it) }
     if (memos.removeAll(gone.toSet())) publish()
   }
 
@@ -87,6 +93,11 @@ class AiMemoStore(private val project: Project, private val root: () -> String?)
       ),
     )
     return MemoItem(path.removePrefix("$base/"), memo.startLine + 1, memo.endLine + 1, language, code, memo.text)
+  }
+
+  private fun release(memo: AiMemo) {
+    listeners.remove(memo.id)?.let { Disposer.dispose(it) }
+    memo.marker.dispose()
   }
 
   private fun publish() = project.messageBus.syncPublisher(TOPIC).changed()

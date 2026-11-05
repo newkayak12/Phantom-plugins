@@ -69,4 +69,66 @@ class AiMemoStoreInIdeTest : BasePlatformTestCase() {
     WriteCommandAction.runWriteCommandAction(project) { doc.replaceString(doc.getLineStartOffset(3), doc.getLineEndOffset(3), "changed") }
     assertTrue(store.toItem(memo)!!.code.contains("changed"))
   }
+
+  private fun doc(name: String = "A.java", content: String = text) = myFixture.configureByText(name, content).let { myFixture.editor.document }
+
+  fun testBlankLineMemoSurvivesUnrelatedEdit() {
+    val doc = doc(content = "a\n\nb\nc")
+    store.add(doc, 1, 1, "blank")
+    WriteCommandAction.runWriteCommandAction(project) { doc.replaceString(doc.getLineStartOffset(3), doc.getLineEndOffset(3), "cc") }
+    assertEquals(listOf("blank"), store.all().map { it.text })
+  }
+
+  fun testRemoveStopsTrackingTheDocument() {
+    val doc = doc()
+    val memo = store.add(doc, 2, 4, "fix")
+    store.remove(listOf(memo.id))
+    assertTrue(store.all().isEmpty())
+    changes = 0
+    WriteCommandAction.runWriteCommandAction(project) { doc.deleteString(doc.getLineStartOffset(2), doc.getLineEndOffset(4)) }
+    assertEquals(0, changes)
+  }
+
+  fun testUpdateSetCheckedAndRemove() {
+    val doc = doc()
+    val a = store.add(doc, 1, 1, "a")
+    val b = store.add(doc, 3, 3, "b")
+    assertTrue(a.checked)
+    changes = 0
+    store.update(a.id, "a2")
+    store.setChecked(a.id, false)
+    assertEquals(2, changes)
+    assertEquals("a2", store.all()[0].text)
+    assertFalse(store.all()[0].checked)
+    store.remove(listOf(a.id))
+    assertEquals(listOf(b.id), store.all().map { it.id })
+  }
+
+  fun testInFile() {
+    val b = myFixture.configureByText("B.kt", text).virtualFile
+    store.add(myFixture.editor.document, 1, 1, "b")
+    val a = myFixture.configureByText("A.java", text).virtualFile
+    store.add(myFixture.editor.document, 2, 2, "a")
+    assertEquals(listOf("a"), store.inFile(a).map { it.text })
+    assertEquals(listOf("b"), store.inFile(b).map { it.text })
+  }
+
+  fun testToItemIsNullOutsideTheWorktree() {
+    val doc = doc()
+    val memo = store.add(doc, 1, 1, "x")
+    val other = AiMemoStore(project) { "/elsewhere" }
+    Disposer.register(testRootDisposable, other)
+    assertNull(other.toItem(memo))
+    val noRoot = AiMemoStore(project) { null }
+    Disposer.register(testRootDisposable, noRoot)
+    assertNull(noRoot.toItem(memo))
+  }
+
+  fun testServiceInstanceWorks() {
+    val svc = AiMemoStore.getInstance(project)
+    assertSame(svc, AiMemoStore.getInstance(project))
+    val memo = svc.add(doc(), 1, 1, "x")
+    assertEquals(listOf(memo.id), svc.all().map { it.id })
+    svc.remove(listOf(memo.id))
+  }
 }
