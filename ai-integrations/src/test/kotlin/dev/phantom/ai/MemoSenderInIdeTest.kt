@@ -67,7 +67,10 @@ class MemoSenderInIdeTest : BasePlatformTestCase() {
 
   private fun session(status: AgentStatus?): String {
     SessionStore.getInstance().put(AgentSession("t1", "/src", AgentKind.CLAUDE, status = status))
-    AgentTabsHost.getInstance(project).add(AgentTab("t1", "t1", JPanel(), io = io, disposable = Disposer.newDisposable("tab")))
+    val disposable = Disposer.newDisposable("tab")
+    Disposer.register(disposable) { SessionStore.getInstance().remove("t1") }
+    AgentTabsHost.getInstance(project).add(AgentTab("t1", "t1", JPanel(), io = io, disposable = disposable))
+    flush()
     return "t1"
   }
 
