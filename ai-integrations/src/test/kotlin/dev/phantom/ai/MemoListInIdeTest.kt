@@ -72,9 +72,11 @@ class MemoListInIdeTest : BasePlatformTestCase() {
 
   fun testPanelHiddenWithoutMemos() {
     assertFalse(panel.isVisible)
+    assertFalse(panel.sendButtonForTest().isVisible)
     store.add(doc, 0, 0, "m")
     flush()
     assertTrue(panel.isVisible)
+    assertTrue(panel.sendButtonForTest().isVisible)
   }
 
   fun testSendDisabledWithNothingChecked() {

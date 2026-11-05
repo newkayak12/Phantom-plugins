@@ -136,13 +136,14 @@ class AgentToolWindowInIdeTest {
     assertNotSame(p.treeHeaderForTest(), p.buttonForTest("btn.board").parent)
     assertEquals("+ Claude", p.buttonForTest("btn.claude").text)
     assertTrue(p.treeColumnForTest().isAncestorOf(p.buttonForTest("btn.board")))
+    assertSame("the memo send button sits with Board and Dashboard", p.buttonForTest("btn.board").parent, p.buttonForTest("btn.memoSend").parent)
   }
 
   @Test fun floatingButtonsInFullWidthRow() {
     type = ToolWindowType.FLOATING
     val p = panel()
     assertTrue(p.topRowForTest().isVisible)
-    listOf("btn.claude", "btn.codex", "btn.board", "btn.dashboard").forEach { assertSame(it, p.topRowForTest(), p.buttonForTest(it).parent) }
+    listOf("btn.claude", "btn.codex", "btn.board", "btn.dashboard", "btn.memoSend").forEach { assertSame(it, p.topRowForTest(), p.buttonForTest(it).parent) }
     assertFalse(p.treeHeaderForTest().isVisible)
     type = ToolWindowType.DOCKED
     p.relayout()

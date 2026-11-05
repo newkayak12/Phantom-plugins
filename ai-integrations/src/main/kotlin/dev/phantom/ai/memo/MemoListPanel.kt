@@ -14,7 +14,6 @@ import org.jetbrains.annotations.TestOnly
 import java.awt.BorderLayout
 import java.awt.Cursor
 import java.awt.Dimension
-import java.awt.FlowLayout
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.BoxLayout
@@ -23,16 +22,21 @@ import javax.swing.JCheckBox
 import javax.swing.JLabel
 import javax.swing.JPanel
 
-/** The memos of the project (and the batches waiting for a busy session) under the worktree tree; hidden while there are none. */
+/**
+ * The memos of the project (and the batches waiting for a busy session) under the worktree tree; hidden while there are none.
+ * Its send button lives in the tool window's button row (with Board and Dashboard), so it is there with the tree folded too.
+ */
 class MemoListPanel(
   private val project: Project,
   private val store: AiMemoStore = AiMemoStore.getInstance(project),
   private val sender: MemoSender = MemoSender.getInstance(project),
 ) : JPanel(BorderLayout()), Disposable {
   private val rows = JPanel().apply { layout = BoxLayout(this, BoxLayout.Y_AXIS) }
-  private val sendButton = JButton().apply {
+  /** "N개 한 번에 보내기": placed by the tool window; shown while there are memos. */
+  val sendButton = JButton().apply {
     name = "btn.memoSend"
     isFocusable = false
+    isVisible = false
     addActionListener { MemoSendPopup.show(project, this) }
   }
   private val rowTexts = mutableListOf<String>()
@@ -42,7 +46,6 @@ class MemoListPanel(
     name = "toolwindow.memoList"
     val scroll = JBScrollPane(rows).apply { border = JBUI.Borders.empty(); preferredSize = Dimension(0, JBUI.scale(140)) }
     add(scroll, BorderLayout.CENTER)
-    add(JPanel(FlowLayout(FlowLayout.LEFT, 6, 4)).apply { add(sendButton) }, BorderLayout.SOUTH)
     val connection = project.messageBus.connect(this)
     connection.subscribe(AiMemoStore.TOPIC, AiMemoListener { refreshLater() })
     connection.subscribe(SessionStore.TOPIC, SessionListener { _, _ -> refreshLater() })
@@ -103,6 +106,8 @@ class MemoListPanel(
     val checked = memos.count { it.checked }
     sendButton.text = PhantomAiBundle.message("memo.send", checked)
     sendButton.isEnabled = checked > 0
+    sendButton.isVisible = memos.isNotEmpty()
+    sendButton.parent?.revalidate()
     isVisible = memos.isNotEmpty() || batches.isNotEmpty()
     rows.revalidate()
     rows.repaint()

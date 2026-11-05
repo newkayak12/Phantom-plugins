@@ -37,8 +37,8 @@ import javax.swing.JPanel
 
 /**
  * The one panel of the tool window (mockups B and D): the worktree tree column and the agent terminal tabs, side by side
- * when docked; floating or windowed, side by side when wide and stacked when narrow. Docked, + Claude / + Codex head the tree column and Board / Dashboard end it; floating,
- * windowed, or with the tree hidden, one full-width row above the split holds all four. The tree folds into a thin
+ * when docked; floating or windowed, side by side when wide and stacked when narrow. Docked, + Claude / + Codex head the tree column and Board / Dashboard (and the AI memo send button) end it;
+ * floating, windowed, or with the tree hidden, one full-width row above the split holds them all. The tree folds into a thin
  * "Worktrees" strip (its « button or the title bar toggle) and a click on the strip unfolds it.
  */
 class AgentToolWindowPanel(
@@ -132,10 +132,10 @@ class AgentToolWindowPanel(
     treeHeader.removeAll()
     treeFooter.removeAll()
     if (inHeader) {
-      listOf(claudeButton, codexButton, boardButton, dashboardButton).forEach(topRow::add)
+      listOf(claudeButton, codexButton, boardButton, dashboardButton, memoList.sendButton).forEach(topRow::add)
     } else {
       listOf(claudeButton, codexButton).forEach(treeHeader::add)
-      listOf(boardButton, dashboardButton).forEach(treeFooter::add)
+      listOf(boardButton, dashboardButton, memoList.sendButton).forEach(treeFooter::add)
     }
     topRow.isVisible = inHeader
     treeHeader.isVisible = !inHeader
@@ -196,7 +196,7 @@ class AgentToolWindowPanel(
 
   @TestOnly internal fun centerForTest(): JPanel = center
 
-  @TestOnly internal fun buttonForTest(name: String): JButton = listOf(claudeButton, codexButton, boardButton, dashboardButton).first { it.name == name }
+  @TestOnly internal fun buttonForTest(name: String): JButton = listOf(claudeButton, codexButton, boardButton, dashboardButton, memoList.sendButton).first { it.name == name }
 
   companion object {
     const val BOARD_ACTION = "dev.phantom.ai.OpenBoard"
