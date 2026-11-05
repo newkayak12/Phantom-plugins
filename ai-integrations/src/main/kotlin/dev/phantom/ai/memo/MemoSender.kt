@@ -41,6 +41,10 @@ object MemoChoices {
   private fun label(s: AgentSession) = s.userTitle ?: s.firstPrompt?.take(30) ?: s.kind.name
 }
 
+fun interface MemoQueueListener {
+  fun changed()
+}
+
 enum class SendOutcome { SENT, QUEUED, STARTED, FAILED }
 
 /** Sends the memos of the project as one prompt to a session (now, or queued while it is busy) or to a new one. EDT only. */
@@ -73,7 +77,10 @@ class MemoSender(
   init {
     val connection = project.messageBus.connect(this)
     connection.subscribe(SessionStore.TOPIC, SessionListener { tabId, _ ->
-      ApplicationManager.getApplication().invokeLater({ queue.sessionChanged(tabId) }, project.disposed)
+      ApplicationManager.getApplication().invokeLater({
+        queue.sessionChanged(tabId)
+        publishQueueChanged()
+      }, project.disposed)
     })
     connection.subscribe(AgentTabsHost.TOPIC, AgentTabsListener {
       val id = AgentTabsHost.getInstance(project).selected()?.id
@@ -91,7 +98,14 @@ class MemoSender(
   }
 
   @RequiresEdt
-  fun send(target: MemoTarget, memoIds: List<Long>): SendOutcome {
+  fun send(target: MemoTarget, memoIds: List<Long>): SendOutcome =
+    doSend(target, memoIds).also { publishQueueChanged() }
+
+  private fun publishQueueChanged() {
+    if (!project.isDisposed) project.messageBus.syncPublisher(TOPIC).changed()
+  }
+
+  private fun doSend(target: MemoTarget, memoIds: List<Long>): SendOutcome {
     val memos = store.all().filter { it.id in memoIds }
     val docs = FileDocumentManager.getInstance()
     memos.forEach { docs.saveDocument(it.marker.document) }
@@ -130,6 +144,7 @@ class MemoSender(
   fun cancel(batchId: Long): Boolean {
     val batch = queue.cancel(batchId) ?: return false
     restore(batch)
+    publishQueueChanged()
     return true
   }
 
@@ -162,6 +177,9 @@ class MemoSender(
   override fun dispose() {}
 
   companion object {
+    /** Fires after every queue transition: queued, sent from the queue, returned, cancelled. */
+    val TOPIC: com.intellij.util.messages.Topic<MemoQueueListener> = com.intellij.util.messages.Topic.create("AI memo queue changes", MemoQueueListener::class.java)
+
     fun getInstance(project: Project): MemoSender = project.getService(MemoSender::class.java)
   }
 }

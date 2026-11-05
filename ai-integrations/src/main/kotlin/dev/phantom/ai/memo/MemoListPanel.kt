@@ -44,9 +44,9 @@ class MemoListPanel(
     add(scroll, BorderLayout.CENTER)
     add(JPanel(FlowLayout(FlowLayout.LEFT, 6, 4)).apply { add(sendButton) }, BorderLayout.SOUTH)
     val connection = project.messageBus.connect(this)
-    // the queue has no signal of its own: a send, a return or a cancel changes the memos, a session change drives the sends
     connection.subscribe(AiMemoStore.TOPIC, AiMemoListener { refreshLater() })
     connection.subscribe(SessionStore.TOPIC, SessionListener { _, _ -> refreshLater() })
+    connection.subscribe(MemoSender.TOPIC, MemoQueueListener { refreshLater() })
     refresh()
   }
 

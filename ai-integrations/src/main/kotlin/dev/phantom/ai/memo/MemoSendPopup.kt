@@ -1,6 +1,8 @@
 // Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.ai.memo
 
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareAction
@@ -9,7 +11,9 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.ui.SimpleListCellRenderer
 import dev.phantom.ai.core.AgentKind
 import dev.phantom.ai.core.AgentStatus
+import dev.phantom.ai.core.AiNotify
 import dev.phantom.ai.core.PhantomAiBundle
+import dev.phantom.ai.core.bestEffort
 import java.awt.Component
 
 /** Lists the sessions and a new Claude / Codex; the pick gets the checked memos. */
@@ -27,6 +31,26 @@ object MemoSendPopup {
     is MemoTarget.New -> PhantomAiBundle.message(if (target.kind == AgentKind.CODEX) "memo.popup.new.codex" else "memo.popup.new.claude")
   }
 
+  /** Sends the checked memos to [target]; on FAILED the memos stay and a balloon says so. */
+  fun sendChecked(
+    project: Project,
+    target: MemoTarget,
+    store: AiMemoStore = AiMemoStore.getInstance(project),
+    sender: MemoSender = MemoSender.getInstance(project),
+  ): SendOutcome? {
+    val ids = store.all().filter { it.checked }.map { it.id }
+    if (ids.isEmpty()) return null
+    val outcome = sender.send(target, ids)
+    if (outcome == SendOutcome.FAILED) {
+      bestEffort {
+        NotificationGroupManager.getInstance().getNotificationGroup(AiNotify.GROUP)
+          .createNotification(PhantomAiBundle.message("notify.title"), PhantomAiBundle.message("memo.send.failed"), NotificationType.WARNING)
+          .notify(project)
+      }
+    }
+    return outcome
+  }
+
   fun show(project: Project, anchor: Component?) {
     val sender = MemoSender.getInstance(project)
     val (targets, default) = sender.choices()
@@ -34,10 +58,7 @@ object MemoSendPopup {
       .setTitle(PhantomAiBundle.message("memo.send.title"))
       .setRenderer(SimpleListCellRenderer.create("") { label(it) })
       .setSelectedValue(targets.getOrNull(default), true)
-      .setItemChosenCallback { target ->
-        val ids = AiMemoStore.getInstance(project).all().filter { it.checked }.map { it.id }
-        if (ids.isNotEmpty()) sender.send(target, ids)
-      }
+      .setItemChosenCallback { target -> sendChecked(project, target) }
       .createPopup()
     if (anchor != null && anchor.isShowing) popup.showUnderneathOf(anchor) else popup.showCenteredInCurrentWindow(project)
   }

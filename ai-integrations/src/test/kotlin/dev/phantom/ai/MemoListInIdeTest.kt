@@ -98,4 +98,31 @@ class MemoListInIdeTest : BasePlatformTestCase() {
     flush()
     assertEquals(listOf("A.java 2 · m1"), panel.rowsForTest())
   }
+
+  fun testQueuedRowGoneWhenSessionDrains() {
+    workingSession()
+    val memo = store.add(doc, 1, 1, "m1")
+    sender.send(MemoTarget.Session("t1", "t1", AgentStatus.WORKING), listOf(memo.id))
+    flush()
+    assertTrue(panel.rowsForTest().single().startsWith("대기 중 →"))
+    SessionStore.getInstance().put(AgentSession("t1", "/src", AgentKind.CLAUDE, status = AgentStatus.DONE))
+    flush()
+    assertEquals(emptyList<String>(), panel.rowsForTest())
+    assertEquals(0, store.all().size)
+  }
+
+  fun testFailedSendNotifiesAndKeepsMemos() {
+    val memo = store.add(doc, 1, 1, "m1")
+    val seen = mutableListOf<String>()
+    project.messageBus.connect(testRootDisposable).subscribe(com.intellij.notification.Notifications.TOPIC, object : com.intellij.notification.Notifications {
+      override fun notify(notification: com.intellij.notification.Notification) {
+        seen += notification.content
+      }
+    })
+    val outcome = dev.phantom.ai.memo.MemoSendPopup.sendChecked(project, MemoTarget.Session("gone", "gone", null), store, sender)
+    flush()
+    assertEquals(SendOutcome.FAILED, outcome)
+    assertEquals(listOf(dev.phantom.ai.core.PhantomAiBundle.message("memo.send.failed")), seen)
+    assertEquals(listOf(memo.id), store.all().map { it.id })
+  }
 }
