@@ -33,6 +33,7 @@
     <fileEditorProvider implementation="dev.phantom.ai.board.BoardFileEditorProvider"/>
     <notificationGroup id="Phantom AI Integration" displayType="BALLOON"/>
     <!-- ===== other extensions (append here) ===== -->
+    <editorFactoryListener implementation="dev.phantom.ai.memo.MemoEditorFactoryListener"/>
     <postStartupActivity implementation="dev.phantom.ai.hooks.AgentTeamsStartup"/>
   </extensions>
   <actions>
@@ -47,6 +48,11 @@
             text="Open Agent Dashboard"/>
     <action id="dev.phantom.ai.OpenBoard" class="dev.phantom.ai.board.OpenBoardAction"
             text="Open Board"/>
+    <action id="dev.phantom.ai.AddAiMemo" class="dev.phantom.ai.memo.AddAiMemoAction" text="AI 메모 추가">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift M"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift M" replace-all="true"/>
+    </action>
   </actions>
   <applicationListeners>
     <!-- ===== U2 hooks startup etc. (append here) ===== -->
