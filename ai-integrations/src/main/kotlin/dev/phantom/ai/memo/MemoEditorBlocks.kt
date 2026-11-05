@@ -1,7 +1,6 @@
 // Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.ai.memo
 
-import com.intellij.collaboration.ui.codereview.editor.CodeReviewComponentInlayRenderer
 import com.intellij.icons.AllIcons
 import com.intellij.ide.DataManager
 import com.intellij.openapi.Disposable
@@ -11,6 +10,8 @@ import com.intellij.openapi.actionSystem.ActionUiKind
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.editor.ComponentInlayAlignment
+import com.intellij.openapi.editor.ComponentInlayRenderer
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorKind
 import com.intellij.openapi.editor.Inlay
@@ -192,12 +193,12 @@ class MemoEditorBlocks(private val editor: Editor, private val store: AiMemoStor
     val headerInlay = editor.addComponentInlay(
       doc.getLineStartOffset(start),
       InlayProperties().showAbove(true).relatesToPrecedingText(false).priority(PRIORITY),
-      CodeReviewComponentInlayRenderer(header),
+      wide(header),
     )
     val bodyInlay = editor.addComponentInlay(
       doc.getLineEndOffset(end),
       InlayProperties().showAbove(false).relatesToPrecedingText(true).priority(PRIORITY),
-      CodeReviewComponentInlayRenderer(body),
+      wide(body),
     )
     val outline = editor.markupModel.addRangeHighlighter(
       doc.getLineStartOffset(start), doc.getLineEndOffset(end), HighlighterLayer.SELECTION - 1, null, HighlighterTargetArea.LINES_IN_RANGE,
@@ -205,6 +206,9 @@ class MemoEditorBlocks(private val editor: Editor, private val store: AiMemoStor
     outline.customRenderer = RangeOutline(headerInlay, color)
     return Block(headerInlay, bodyInlay, outline)
   }
+
+  // as wide as the editor's view (the review renderer caps it at the comment text width, so long code lines ran out of the box)
+  private fun wide(component: JComponent) = ComponentInlayRenderer(component, ComponentInlayAlignment.FIT_VIEWPORT_WIDTH)
 
   override fun dispose() {
     disposed = true

@@ -50,8 +50,8 @@
             text="Open Board"/>
     <action id="dev.phantom.ai.AddAiMemo" class="dev.phantom.ai.memo.AddAiMemoAction" text="AI 메모 추가">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
-      <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift M"/>
-      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift M" replace-all="true"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="alt shift N"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="alt shift N" replace-all="true"/>
     </action>
     <action id="dev.phantom.ai.SendAiMemos" class="dev.phantom.ai.memo.SendAiMemosAction" text="AI 메모 보내기"/>
   </actions>
