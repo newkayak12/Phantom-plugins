@@ -4,9 +4,16 @@ package dev.phantom.ai.memo
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CustomShortcutSet
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.EditorModificationUtil
+import com.intellij.openapi.fileTypes.FileTypes
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.ui.ColorUtil
+import com.intellij.ui.EditorTextField
 import com.intellij.ui.InplaceButton
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
@@ -115,15 +122,21 @@ internal object MemoBlockComponents {
 
 /**
  * Body of the input block: the memo field and the key hint. ↩ saves, ⇧↩ breaks the line, Esc cancels, ⌘↩ (Ctrl+↩) saves and sends.
- * The keys are registered as actions on the field so the IDE keymap does not take them first.
+ * The field is an editor of its own (EditorTextField), so the IDE's editor actions (Backspace, Delete, arrows, Select All, Paste,
+ * Undo...) work on it and never on the code editor it sits in. The four keys are registered as actions on the field, which the
+ * IDE tries before the keymap.
  */
-internal class MemoInputBody(initial: String, onSubmit: (String, Boolean) -> Unit, onCancel: () -> Unit) :
+internal class MemoInputBody(project: Project, scope: Disposable, initial: String, onSubmit: (String, Boolean) -> Unit, onCancel: () -> Unit) :
   OutlinePanel(MemoBlockStyle.editing, top = false, bottom = true) {
-  val field = JBTextArea(initial, 1, 0).apply {
-    lineWrap = true
-    wrapStyleWord = true
+  val field = EditorTextField(initial, project, FileTypes.PLAIN_TEXT).apply {
+    setOneLineMode(false)
     font = UIUtil.getLabelFont()
-    border = JBUI.Borders.compound(JBUI.Borders.customLine(MemoBlockStyle.editing, 1), JBUI.Borders.empty(4, 6))
+    addSettingsProvider {
+      it.settings.isUseSoftWraps = true
+      it.setBorder(JBUI.Borders.empty(4, 6))
+    }
+    border = JBUI.Borders.customLine(MemoBlockStyle.editing, 1)
+    setDisposedWith(scope) // its editor lives as long as the input, on screen or not
   }
 
   init {
@@ -139,9 +152,15 @@ internal class MemoInputBody(initial: String, onSubmit: (String, Boolean) -> Uni
     val menu = if (SystemInfo.isMac) InputEvent.META_DOWN_MASK else InputEvent.CTRL_DOWN_MASK
     key(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0)) { onSubmit(field.text, false) }
     key(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, menu)) { onSubmit(field.text, true) }
-    key(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.SHIFT_DOWN_MASK)) { field.replaceSelection("\n") }
+    key(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.SHIFT_DOWN_MASK)) {
+      val editor = field.editor ?: return@key
+      WriteCommandAction.runWriteCommandAction(project) { EditorModificationUtil.insertStringAtCaret(editor, "\n") }
+    }
     key(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0)) { onCancel() }
   }
+
+  /** The field's own editor, made now if the field is not on screen yet. */
+  fun fieldEditor(): Editor? = field.getEditor(true)
 
   private fun key(stroke: KeyStroke, run: () -> Unit) {
     object : DumbAwareAction() {

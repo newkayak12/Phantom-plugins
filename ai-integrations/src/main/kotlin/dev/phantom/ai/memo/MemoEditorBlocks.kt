@@ -59,12 +59,13 @@ class MemoEditorBlocks(private val editor: Editor, private val store: AiMemoStor
     }
   }
 
-  private class Input(val memoId: Long?, val marker: RangeMarker, val block: Block, val body: MemoInputBody)
+  private class Input(val memoId: Long?, val marker: RangeMarker, val block: Block, val body: MemoInputBody, val scope: Disposable)
 
   private val project = requireNotNull(editor.project) { "memo blocks need a project editor" }
   private val saved = mutableListOf<Block>()
   private var input: Input? = null
   private var disposed = false
+  private val gutter: GutterPlus?
 
   init {
     editor.putUserData(KEY, this)
@@ -78,7 +79,7 @@ class MemoEditorBlocks(private val editor: Editor, private val store: AiMemoStor
       },
       this,
     )
-    (editor as? EditorEx)?.let { GutterPlus(it, this) { start, end -> openInput(start, end) } }
+    gutter = (editor as? EditorEx)?.let { GutterPlus(it, this) { start, end -> openInput(start, end) } }
     rebuild()
   }
 
@@ -91,11 +92,26 @@ class MemoEditorBlocks(private val editor: Editor, private val store: AiMemoStor
   @TestOnly
   fun inputOpen(): Boolean = input != null
 
+  /** The gutter x where the `+` is drawn and clicked. */
+  @TestOnly
+  fun plusX(): Int = requireNotNull(gutter).slotX()
+
+  /** What the edit button of [memo]'s block does. */
+  @TestOnly
+  fun editInput(memo: AiMemo) = open(memo.startLine, memo.endLine, memo)
+
+  @TestOnly
+  fun inputFocus(): JComponent = requireNotNull(requireNotNull(input).body.fieldEditor()).contentComponent
+
+  @TestOnly
+  fun inputText(): String = requireNotNull(input).body.field.text
+
   /** What ↩ (or ⌘↩ when [send]) does in the input field. */
   @TestOnly
   fun submitInput(text: String, send: Boolean = false) = submit(text, send)
 
   private fun open(startLine: Int, endLine: Int, memo: AiMemo?) {
+    val wasEditing = input?.memoId != null
     closeInput()
     val doc = editor.document
     val last = maxOf(doc.lineCount - 1, 0)
@@ -104,10 +120,12 @@ class MemoEditorBlocks(private val editor: Editor, private val store: AiMemoStor
     val marker = doc.createRangeMarker(doc.getLineStartOffset(start), doc.getLineEndOffset(end)).apply { isGreedyToRight = true }
     val lines = lines(start, end)
     val title = if (memo == null) PhantomAiBundle.message("memo.input.new", lines) else PhantomAiBundle.message("memo.input.edit", lines)
-    val body = MemoInputBody(memo?.text.orEmpty(), { text, send -> submit(text, send) }, { cancel() })
+    val scope = Disposer.newDisposable(this, "AI memo input")
+    val body = MemoInputBody(project, scope, memo?.text.orEmpty(), { text, send -> submit(text, send) }, { cancel() })
     val block = block(start, end, MemoBlockComponents.inputHeader(title) { cancel() }, body, MemoBlockStyle.editing)
-    input = Input(memo?.id, marker, block, body)
-    if (memo != null) rebuild() // its saved block gives way to the input
+    input = Input(memo?.id, marker, block, body, scope)
+    // the memo being edited gives way to the input; a memo whose edit was just dropped comes back
+    if (memo != null || wasEditing) rebuild()
     IdeFocusManager.getInstance(project).requestFocus(body.field, true)
   }
 
@@ -145,6 +163,7 @@ class MemoEditorBlocks(private val editor: Editor, private val store: AiMemoStor
     input = null
     current.block.dispose()
     current.marker.dispose()
+    Disposer.dispose(current.scope)
   }
 
   private fun refresh() {
@@ -220,14 +239,19 @@ class MemoEditorBlocks(private val editor: Editor, private val store: AiMemoStor
     }
   }
 
-  /** The gutter `+`: shown on the hovered line; a click opens an input for that line, a drag for the dragged lines. */
+  /**
+   * The gutter `+`: shown on the hovered line in a slot of its own (the left free painters area, as the review gutter controls do),
+   * so run, override and breakpoint icons keep their clicks. A click on it opens an input for that line, a drag for the dragged lines.
+   */
   private class GutterPlus(private val editor: EditorEx, parent: Disposable, private val open: (Int, Int) -> Unit) : LineMarkerRendererEx {
     private val icon = AllIcons.General.InlineAdd
     private var hovered: Int? = null
     private var dragFrom: Int? = null
     private var dragTo: Int? = null
+    private var swallowClick = false
 
     init {
+      editor.gutterComponentEx.reserveLeftFreePaintersAreaWidth(parent, icon.iconWidth)
       val highlighter = editor.markupModel.addRangeHighlighter(
         0, editor.document.textLength, HighlighterLayer.LAST, null, HighlighterTargetArea.LINES_IN_RANGE,
       )
@@ -250,8 +274,8 @@ class MemoEditorBlocks(private val editor: Editor, private val store: AiMemoStor
       editor.addEditorMouseListener(
         object : EditorMouseListener {
           override fun mousePressed(e: EditorMouseEvent) {
-            val line = hovered ?: return
-            if (!inGutter(e) || e.mouseEvent.x !in iconX()..iconX() + icon.iconWidth) return
+            if (!inGutter(e) || e.mouseEvent.x !in slotX() until slotX() + icon.iconWidth) return
+            val line = line(e)
             dragFrom = line
             dragTo = line
             e.consume()
@@ -262,9 +286,16 @@ class MemoEditorBlocks(private val editor: Editor, private val store: AiMemoStor
             val to = dragTo ?: from
             dragFrom = null
             dragTo = null
+            swallowClick = true
             e.consume()
             editor.gutterComponentEx.repaint()
             open(minOf(from, to), maxOf(from, to))
+          }
+
+          // the click that follows our press and release is ours too (not a breakpoint toggle)
+          override fun mouseClicked(e: EditorMouseEvent) {
+            if (swallowClick) e.consume()
+            swallowClick = false
           }
 
           override fun mouseExited(e: EditorMouseEvent) {
@@ -280,7 +311,7 @@ class MemoEditorBlocks(private val editor: Editor, private val store: AiMemoStor
     private fun line(e: EditorMouseEvent) =
       editor.xyToLogicalPosition(e.mouseEvent.point).line.coerceIn(0, maxOf(editor.document.lineCount - 1, 0))
 
-    private fun iconX() = editor.gutterComponentEx.iconAreaOffset
+    fun slotX() = editor.gutterComponentEx.lineMarkerAreaOffset
 
     private fun hover(line: Int?) {
       if (line == hovered) return
@@ -296,13 +327,13 @@ class MemoEditorBlocks(private val editor: Editor, private val store: AiMemoStor
       if (from != null && to != null) {
         g.color = MemoBlockStyle.editing
         val top = y(minOf(from, to))
-        g.fillRect(iconX() + icon.iconWidth / 2 - 1, top, 2, y(maxOf(from, to)) + editor.lineHeight - top)
+        g.fillRect(slotX() + icon.iconWidth / 2 - 1, top, 2, y(maxOf(from, to)) + editor.lineHeight - top)
       }
       val line = hovered ?: return
-      icon.paintIcon(editor.component, g, iconX(), y(line) + (editor.lineHeight - icon.iconHeight) / 2)
+      icon.paintIcon(editor.component, g, slotX(), y(line) + (editor.lineHeight - icon.iconHeight) / 2)
     }
 
-    override fun getPosition() = LineMarkerRendererEx.Position.CUSTOM
+    override fun getPosition() = LineMarkerRendererEx.Position.LEFT
   }
 
   companion object {
