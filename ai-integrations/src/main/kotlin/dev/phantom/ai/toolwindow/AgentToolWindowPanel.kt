@@ -21,6 +21,7 @@ import com.intellij.ui.OnePixelSplitter
 import com.intellij.util.ui.JBUI
 import dev.phantom.ai.core.AgentKind
 import dev.phantom.ai.core.PhantomAiBundle
+import dev.phantom.ai.memo.MemoListPanel
 import dev.phantom.ai.sidebar.WorktreeTreePanel
 import dev.phantom.ai.terminal.AgentTabsPanel
 import dev.phantom.ai.terminal.AgentTerminalService
@@ -49,6 +50,7 @@ class AgentToolWindowPanel(
   private val props: PropertiesComponent = PropertiesComponent.getInstance(),
   val tree: WorktreeTreePanel = WorktreeTreePanel(project).also { Disposer.register(parent, it) },
   val tabs: AgentTabsPanel = AgentTabsPanel(project, parent),
+  val memoList: MemoListPanel = MemoListPanel(project).also { Disposer.register(parent, it) },
   private val launch: (String, AgentKind) -> Unit = { path, kind -> AgentTerminalService.getInstance(project).launch(path, kind) },
   private val openAction: (String) -> Unit = { id -> runAction(project, id) },
 ) : JPanel(BorderLayout()) {
@@ -89,7 +91,11 @@ class AgentToolWindowPanel(
       add(treeHeader)
     }, BorderLayout.NORTH)
     treeColumn.add(tree, BorderLayout.CENTER)
-    treeColumn.add(treeFooter, BorderLayout.SOUTH)
+    treeColumn.add(JPanel().apply {
+      layout = BoxLayout(this, BoxLayout.Y_AXIS)
+      add(memoList)
+      add(treeFooter)
+    }, BorderLayout.SOUTH)
     treeColumn.minimumSize = JBUI.size(0, 0)
     add(topRow, BorderLayout.NORTH)
     add(center, BorderLayout.CENTER)

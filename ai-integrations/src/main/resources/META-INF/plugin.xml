@@ -53,6 +53,7 @@
       <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift M"/>
       <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift M" replace-all="true"/>
     </action>
+    <action id="dev.phantom.ai.SendAiMemos" class="dev.phantom.ai.memo.SendAiMemosAction" text="AI 메모 보내기"/>
   </actions>
   <applicationListeners>
     <!-- ===== U2 hooks startup etc. (append here) ===== -->

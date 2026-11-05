@@ -84,6 +84,8 @@ class MemoEditorInIdeTest : BasePlatformTestCase() {
     assertEquals(1, store.all().size)
     var sent = 0
     val manager = ActionManager.getInstance()
+    val real = manager.getAction(MemoEditorBlocks.SEND_ACTION_ID)
+    manager.unregisterAction(MemoEditorBlocks.SEND_ACTION_ID)
     manager.registerAction(MemoEditorBlocks.SEND_ACTION_ID, object : AnAction() {
       override fun actionPerformed(e: AnActionEvent) {
         sent++
@@ -96,6 +98,7 @@ class MemoEditorInIdeTest : BasePlatformTestCase() {
       assertEquals(1, sent)
     } finally {
       manager.unregisterAction(MemoEditorBlocks.SEND_ACTION_ID)
+      if (real != null) manager.registerAction(MemoEditorBlocks.SEND_ACTION_ID, real)
     }
   }
 
