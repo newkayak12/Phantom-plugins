@@ -8,6 +8,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.concurrency.annotations.RequiresEdt
@@ -19,6 +20,7 @@ import dev.phantom.ai.core.PhantomAiBundle
 import dev.phantom.ai.core.SessionListener
 import dev.phantom.ai.core.SessionStore
 import dev.phantom.ai.core.bestEffort
+import dev.phantom.ai.sidebar.SidebarActions
 import dev.phantom.ai.terminal.AgentTabsHost
 import dev.phantom.ai.terminal.AgentTabsListener
 import dev.phantom.ai.terminal.AgentTerminalService
@@ -32,11 +34,15 @@ sealed interface MemoTarget {
 object MemoChoices {
   /** The sessions in start order, then a new Claude and a new Codex; the default is the last used session, else the first, else a new Claude. */
   fun of(sessions: List<AgentSession>, lastUsed: String?): Pair<List<MemoTarget>, Int> {
-    val targets = sessions.map { MemoTarget.Session(it.tabId, label(it), it.status) } +
+    val targets = sessions.map { MemoTarget.Session(it.tabId, label(it), effectiveStatus(it)) } +
       listOf(MemoTarget.New(AgentKind.CLAUDE), MemoTarget.New(AgentKind.CODEX))
     val index = targets.indexOfFirst { it is MemoTarget.Session && it.tabId == lastUsed }
     return targets to maxOf(index, 0)
   }
+
+  /** WAITING from Claude's idle_prompt means the turn is over: idle (DONE), not busy. A permission or question WAITING stays WAITING. */
+  fun effectiveStatus(s: AgentSession): AgentStatus? =
+    if (s.status == AgentStatus.WAITING && s.idleWaiting) AgentStatus.DONE else s.status
 
   private fun label(s: AgentSession) = s.userTitle ?: s.firstPrompt?.take(30) ?: s.kind.name
 }
@@ -60,10 +66,10 @@ class MemoSender(
 
   private val queue = MemoQueue(
     object : MemoTerminals {
-      override fun status(tabId: String) = SessionStore.getInstance().get(tabId)?.status
-      override fun alive(tabId: String) = AgentTabsHost.getInstance(project).get(tabId) != null
+      override fun status(tabId: String) = SessionStore.getInstance().get(tabId)?.let { MemoChoices.effectiveStatus(it) }
+      override fun alive(tabId: String) = SidebarActions(project).terminalOf(tabId) != null
       override fun submit(tabId: String, prompt: String): Boolean {
-        val io = AgentTabsHost.getInstance(project).get(tabId)?.io ?: return false
+        val io = SidebarActions(project).terminalOf(tabId) ?: return false
         io.submit(prompt)
         return true
       }
@@ -116,7 +122,7 @@ class MemoSender(
     val outcome: SendOutcome
     when (target) {
       is MemoTarget.Session -> {
-        if (AgentTabsHost.getInstance(project).get(target.tabId) == null) return SendOutcome.FAILED
+        if (SidebarActions(project).terminalOf(target.tabId) == null) return SendOutcome.FAILED
         outcome = when {
           queue.offer(target.tabId, prompt, items) -> SendOutcome.SENT
           queue.pending().any { it.items === items } -> SendOutcome.QUEUED
@@ -135,7 +141,11 @@ class MemoSender(
       }
     }
     store.remove(sendable.map { it.first.id })
-    if (outcome != SendOutcome.QUEUED) lastUsed?.let { AgentTerminalService.getInstance(project).focus(it) }
+    if (outcome != SendOutcome.QUEUED) lastUsed?.let { tab ->
+      // the session may live in another window: focus it in the project that owns the tab
+      val owner = ProjectManager.getInstance().openProjects.firstOrNull { !it.isDisposed && AgentTabsHost.getInstance(it).get(tab) != null } ?: project
+      AgentTerminalService.getInstance(owner).focus(tab)
+    }
     return outcome
   }
 
@@ -153,7 +163,7 @@ class MemoSender(
     val docs = FileDocumentManager.getInstance()
     for (item in batch.items) {
       val doc = resolve("$base/${item.path}")?.takeIf { it.isValid }?.let { docs.getDocument(it) } ?: continue
-      val last = doc.lineCount - 1
+      val last = maxOf(doc.lineCount - 1, 0)
       val start = (item.startLine - 1).coerceIn(0, last)
       val end = (item.endLine - 1).coerceIn(start, last)
       store.add(doc, start, end, item.text)

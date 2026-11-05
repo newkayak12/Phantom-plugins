@@ -24,6 +24,7 @@ object HookIngest {
           else -> event.activity ?: s.activity
         },
         status = event.status ?: s.status,
+        idleWaiting = if (event.status != null) event.idle else s.idleWaiting,
         unread = if (event.status == AgentStatus.DONE) true else s.unread,
         sessionId = event.sessionId ?: s.sessionId,
         firstPrompt = s.firstPrompt ?: event.prompt,

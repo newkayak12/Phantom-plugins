@@ -22,6 +22,8 @@ data class HookEvent(
   val source: String? = null,
   /** What the agent does now, short ("Edit Foo.kt", "Bash: ./gradlew test", "답 기다림"); null = no change. */
   val activity: String? = null,
+  /** Claude Notification idle_prompt: a WAITING that means idle, not a prompt to answer. */
+  val idle: Boolean = false,
 )
 
 enum class SubagentEvent { START, STOP }
@@ -69,6 +71,7 @@ object HookEventMapper {
       subagentName = if (sub != null) str(o, "agent_type") ?: str(o, "subagent_type") else null,
       source = if (name == "SessionStart") str(o, "source") else null,
       activity = activity(kind, name, o),
+      idle = name == "Notification" && kind == AgentKind.CLAUDE && str(o, "notification_type") == "idle_prompt",
     )
   }
 

@@ -22,4 +22,6 @@ data class AgentSession(
   val subagents: List<Subagent> = emptyList(),
   /** What the agent does now, from its hooks ("Edit Foo.kt", "답 기다림"); null when it has stopped or not started. */
   val activity: String? = null,
+  /** WAITING only because Claude's idle_prompt fired: the turn is over, so the session is idle, not blocked. */
+  val idleWaiting: Boolean = false,
 )

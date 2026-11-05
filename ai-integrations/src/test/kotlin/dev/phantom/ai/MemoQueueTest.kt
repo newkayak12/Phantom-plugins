@@ -1,7 +1,10 @@
 // Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.ai
 
+import dev.phantom.ai.core.AgentKind
+import dev.phantom.ai.core.AgentSession
 import dev.phantom.ai.core.AgentStatus
+import dev.phantom.ai.memo.MemoChoices
 import dev.phantom.ai.memo.MemoItem
 import dev.phantom.ai.memo.MemoQueue
 import dev.phantom.ai.memo.MemoTerminals
@@ -46,6 +49,18 @@ class MemoQueueTest : TestCase() {
     fake.statuses["t"] = AgentStatus.WAITING
     assertFalse(queue.offer("t", "p", listOf(item)))
     assertEquals(1, queue.pending().size)
+  }
+
+  fun testIdleWaitingSessionGetsItNow() {
+    fake.statuses["t"] = MemoChoices.effectiveStatus(AgentSession("t", "/w", AgentKind.CLAUDE, AgentStatus.WAITING, idleWaiting = true))
+    assertTrue(queue.offer("t", "p", listOf(item)))
+    assertEquals(1, fake.sent.size)
+  }
+
+  fun testPermissionWaitingSessionQueues() {
+    fake.statuses["t"] = MemoChoices.effectiveStatus(AgentSession("t", "/w", AgentKind.CLAUDE, AgentStatus.WAITING))
+    assertFalse(queue.offer("t", "p", listOf(item)))
+    assertEquals(0, fake.sent.size)
   }
 
   fun testOneBatchPerDone() {

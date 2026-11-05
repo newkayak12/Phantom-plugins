@@ -77,7 +77,7 @@ class AiMemoStore(private val project: Project, private val root: () -> String?)
     if (memos.removeAll(gone.toSet())) publish()
   }
 
-  fun all(): List<AiMemo> = memos.sortedWith(compareBy({ it.file.path }, { it.startLine }))
+  fun all(): List<AiMemo> = memos.filter { it.marker.isValid }.sortedWith(compareBy({ it.file.path }, { it.startLine }))
 
   fun inFile(file: VirtualFile): List<AiMemo> = all().filter { it.file == file }
 

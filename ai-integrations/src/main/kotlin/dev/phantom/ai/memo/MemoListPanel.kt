@@ -51,8 +51,8 @@ class MemoListPanel(
   }
 
   private fun refreshLater() {
-    val app = ApplicationManager.getApplication()
-    if (app.isDispatchThread) refresh() else app.invokeLater({ refresh() }, project.disposed)
+    // always deferred: a document change may be what triggered this
+    ApplicationManager.getApplication().invokeLater({ refresh() }, project.disposed)
   }
 
   private fun refresh() {

@@ -274,6 +274,8 @@ class MemoEditorBlocks(private val editor: Editor, private val store: AiMemoStor
       editor.addEditorMouseListener(
         object : EditorMouseListener {
           override fun mousePressed(e: EditorMouseEvent) {
+            swallowClick = false
+            if (!javax.swing.SwingUtilities.isLeftMouseButton(e.mouseEvent)) return
             if (!inGutter(e) || e.mouseEvent.x !in slotX() until slotX() + icon.iconWidth) return
             val line = line(e)
             dragFrom = line
