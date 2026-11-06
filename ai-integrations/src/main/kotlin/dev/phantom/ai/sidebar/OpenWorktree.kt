@@ -47,9 +47,26 @@ class SidebarActions(
   fun terminalOf(tabId: String): TerminalIo? =
     ProjectManager.getInstance().openProjects.firstNotNullOfOrNull { p -> if (p.isDisposed) null else AgentTabsHost.getInstance(p).get(tabId)?.io }
 
-  /** A live terminal is focused (unread cleared); else the session resumes under its own account; nothing without an id. */
+  /**
+   * A live terminal is focused (unread cleared), in this window or, brought to front, in the one that has it; else a
+   * detached session is reattached here, else it resumes under its own account; nothing without an id.
+   */
   @RequiresEdt
-  fun activate(session: AgentSession): String? = if (terminal.focus(session.tabId)) session.tabId else terminal.resume(session)
+  fun activate(session: AgentSession): String? = when {
+    terminal.focus(session.tabId) -> session.tabId
+    focusElsewhere(session.tabId) -> session.tabId
+    else -> terminal.resume(session)
+  }
+
+  /** The tab of [tabId] in another open window: that window comes to front with the tab focused. False if none has it. */
+  @RequiresEdt
+  fun focusElsewhere(tabId: String): Boolean {
+    val other = ProjectManager.getInstance().openProjects.firstOrNull { p ->
+      p !== project && !p.isDisposed && AgentTabsHost.getInstance(p).get(tabId) != null
+    } ?: return false
+    other.basePath?.let { switcher.switchTo(it) }
+    return AgentTerminalService.getInstance(other).focus(tabId)
+  }
 
   fun canActivate(session: AgentSession): Boolean = terminal.canResume(session)
 

@@ -71,8 +71,12 @@ internal class PhantomAiApiImpl(
     }
   }
 
+  // a session attached in another window is focused there, a detached one is reattached here
   override fun focusSession(project: Project, tabId: String): Boolean =
-    onEdt(false) { AgentTerminalService.getInstance(project).focus(tabId) }
+    onEdt(false) {
+      SessionStore.getInstance().get(tabId)?.let { dev.phantom.ai.sidebar.SidebarActions(project).activate(it) != null }
+        ?: AgentTerminalService.getInstance(project).focus(tabId)
+    }
 
   override fun startSession(project: Project, worktreePath: String, agent: AiAgent): String? {
     val kind = when (agent) {

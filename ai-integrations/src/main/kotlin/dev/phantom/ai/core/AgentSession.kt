@@ -31,4 +31,6 @@ data class AgentSession(
    * it (AgentTerminalService.reattach). Hooks still update it.
    */
   val detached: Boolean = false,
+  /** Base path of the project whose window the session detached from: reopening that project reattaches it. */
+  val detachedFrom: String? = null,
 )

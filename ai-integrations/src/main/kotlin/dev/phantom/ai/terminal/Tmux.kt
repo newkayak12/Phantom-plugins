@@ -58,7 +58,8 @@ object Tmux {
   /**
    * The shell command that runs [command] in a new tmux session [name] in [cwd], with [env] set in it (a running tmux
    * server does not take the client's environment), mouse mode on and no status line. When the agent exits the session
-   * keeps a login shell, as the plain terminal does.
+   * keeps a login shell, as the plain terminal does. destroy-unattached is forced off: a user's ~/.tmux.conf must not end
+   * the agent when its window closes and leaves it detached.
    */
   fun wrap(tmux: String, name: String, cwd: String, env: Map<String, String>, command: String): String {
     val inner = plain(command)
@@ -68,6 +69,7 @@ object Tmux {
       add(inner)
       add(";"); add("set-option"); add("-t"); add(name); add("mouse"); add("on")
       add(";"); add("set-option"); add("-t"); add(name); add("status"); add("off")
+      add(";"); add("set-option"); add("-t"); add(name); add("destroy-unattached"); add("off")
     }
     return "exec " + args.joinToString(" ") { quote(it) }
   }
@@ -81,22 +83,38 @@ object Tmux {
     run(tmux, "kill-session", "-t", name)
   }
 
-  /** Whether session [name] still runs on Phantom's server. Bounded. */
-  fun hasSession(tmux: String, name: String): Boolean = run(tmux, "has-session", "-t", name) == 0
+  /** Ends Phantom's whole tmux server, every agent in it (the IDE is quitting). Best effort, bounded. */
+  fun killServer(tmux: String) {
+    run(tmux, "kill-server")
+  }
 
-  /** Exit code of `tmux -L phantom [args]`; null if it failed to run or did not end within 3 seconds. */
+  /**
+   * Whether session [name] still runs on Phantom's server: true, false (tmux said it has no such session: exit code 1),
+   * or null when that is unknown (tmux failed to run, timed out or answered something else). Bounded.
+   */
+  fun hasSession(tmux: String, name: String): Boolean? = when (run(tmux, "has-session", "-t", name)) {
+    0 -> true
+    1 -> false
+    else -> null
+  }
+
+  /** Exit code of `tmux -L phantom [args]`; null if it failed to run or did not end within 3 seconds (then it is killed). */
   private fun run(tmux: String, vararg args: String): Int? = runCatching {
     ProcessBuilder(tmux, "-L", SOCKET, *args).redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.DISCARD).start().run {
       outputStream.close()
-      if (waitFor(3, TimeUnit.SECONDS)) exitValue() else null
+      if (waitFor(3, TimeUnit.SECONDS)) exitValue() else null.also { destroyForcibly() }
     }
   }.getOrNull()
 
   /** The tmux calls made on agents' sessions after they started; [replaceSessions] fakes them in tests, which need no tmux. */
   @Volatile var sessions: TmuxSessions = object : TmuxSessions {
-    override fun exists(name: String) = binary()?.let { hasSession(it, name) } ?: false
+    // without the binary no window can attach it any more: as good as gone
+    override fun exists(name: String): Boolean? = binary()?.let { hasSession(it, name) } ?: false
     override fun kill(name: String) {
       binary()?.let { kill(it, name) }
+    }
+    override fun killServer() {
+      binary()?.let { killServer(it) }
     }
   }
     private set
@@ -105,11 +123,14 @@ object Tmux {
   @TestOnly fun replaceSessions(next: TmuxSessions): TmuxSessions = sessions.also { sessions = next }
 }
 
-/** Phantom's tmux server, as far as a running agent's session is concerned. Both calls block (bounded): keep them short on the EDT. */
+/** Phantom's tmux server, as far as a running agent's session is concerned. The calls block (bounded): keep them short on the EDT. */
 interface TmuxSessions {
-  /** Whether session [name] still runs. */
-  fun exists(name: String): Boolean
+  /** Whether session [name] still runs; null when that could not be told (tmux failed or timed out). */
+  fun exists(name: String): Boolean?
 
   /** Ends session [name] and the agent in it. Best effort. */
   fun kill(name: String)
+
+  /** Ends Phantom's tmux server and every session in it. Best effort. */
+  fun killServer()
 }

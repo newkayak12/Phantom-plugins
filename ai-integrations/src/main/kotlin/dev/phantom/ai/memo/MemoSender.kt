@@ -122,7 +122,11 @@ class MemoSender(
     val outcome: SendOutcome
     when (target) {
       is MemoTarget.Session -> {
-        if (SidebarActions(project).terminalOf(target.tabId) == null) return SendOutcome.FAILED
+        if (SidebarActions(project).terminalOf(target.tabId) == null) {
+          // a detached session (its window closed, the agent still runs): attached here, then sent like any
+          val detached = SessionStore.getInstance().get(target.tabId)?.detached == true
+          if (!detached || AgentTerminalService.getInstance(project).reattach(target.tabId) == null) return SendOutcome.FAILED
+        }
         outcome = when {
           queue.offer(target.tabId, prompt, items) -> SendOutcome.SENT
           queue.pending().any { it.items === items } -> SendOutcome.QUEUED

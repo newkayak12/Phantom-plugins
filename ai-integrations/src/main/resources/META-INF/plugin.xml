@@ -59,6 +59,6 @@
   <applicationListeners>
     <!-- ===== U2 hooks startup etc. (append here) ===== -->
     <listener class="dev.phantom.ai.hooks.HookStartup" topic="com.intellij.ide.AppLifecycleListener"/>
-    <listener class="dev.phantom.ai.terminal.DetachedSessionsExit" topic="com.intellij.ide.AppLifecycleListener"/>
+    <listener class="dev.phantom.ai.terminal.DetachedSessionsUnload" topic="com.intellij.ide.plugins.DynamicPluginListener"/>
   </applicationListeners>
 </idea-plugin>

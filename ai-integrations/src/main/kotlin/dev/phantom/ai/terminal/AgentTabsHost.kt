@@ -37,6 +37,10 @@ class AgentTabsHost(private val project: Project) : Disposable {
   private val list = ArrayList<AgentTab>()
   private var selectedId: String? = null
 
+  /** True once the project's window is closing: no tab may be added any more (a reattach leaves its session detached). */
+  var isClosed = false
+    private set
+
   fun tabs(): List<AgentTab> = list.toList()
 
   fun selected(): AgentTab? = list.firstOrNull { it.id == selectedId }
@@ -74,12 +78,17 @@ class AgentTabsHost(private val project: Project) : Disposable {
   }
 
   override fun dispose() {
+    isClosed = true
     val all = list.toList()
     list.clear()
     selectedId = null
-    // the project window closes, not the IDE: agents in tmux keep running for a window of their worktree to reattach
-    if (!DetachedSessions.exiting()) all.forEach { it.detach?.invoke() }
+    // the project window closes, not the IDE nor this plugin: agents in tmux keep running for a window to reattach
+    if (DetachedSessions.mayDetach()) all.forEach { it.detach?.invoke() }
     all.forEach { Disposer.dispose(it.disposable) }
+  }
+
+  @org.jetbrains.annotations.TestOnly fun reopen() {
+    isClosed = false
   }
 
   private fun fire() {

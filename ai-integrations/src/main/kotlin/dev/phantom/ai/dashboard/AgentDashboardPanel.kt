@@ -218,9 +218,13 @@ class AgentDashboardPanel(
     return p
   }
 
-  /** What a card click does: focus the session's terminal (clears unread), and clear unread even if the tab is gone. */
+  /**
+   * What a card click does: focus the session's terminal (clears unread), in whichever window has it, reattaching a
+   * detached one here; and clear unread even if the tab is gone.
+   */
   fun open(tabId: String) {
-    AgentTerminalService.getInstance(project).focus(tabId)
+    val session = SessionStore.getInstance().get(tabId)
+    if (session != null) dev.phantom.ai.sidebar.SidebarActions(project).activate(session) else AgentTerminalService.getInstance(project).focus(tabId)
     SessionStore.getInstance().update(tabId) { it.copy(unread = false) }
   }
 
