@@ -70,6 +70,8 @@ object Tmux {
       add(";"); add("set-option"); add("-t"); add(name); add("mouse"); add("on")
       add(";"); add("set-option"); add("-t"); add(name); add("status"); add("off")
       add(";"); add("set-option"); add("-t"); add(name); add("destroy-unattached"); add("off")
+      // tmux holds an Esc back (500 ms by default) to see if a key sequence follows: Claude's Esc (stop) goes through at once
+      add(";"); add("set-option"); add("-s"); add("escape-time"); add("0")
     }
     return "exec " + args.joinToString(" ") { quote(it) }
   }

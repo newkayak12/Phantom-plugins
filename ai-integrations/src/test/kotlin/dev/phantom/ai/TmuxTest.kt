@@ -12,7 +12,7 @@ class TmuxTest {
       "exec '/opt/homebrew/bin/tmux' '-L' 'phantom' 'new-session' '-s' 'phantom-1' '-c' '/r/my app' '-e' 'A=x y' '-e' 'B=2' " +
         "'claude '\\''--x'\\''; exec \"\${SHELL:-/bin/zsh}\" -l' " +
         "';' 'set-option' '-t' 'phantom-1' 'mouse' 'on' ';' 'set-option' '-t' 'phantom-1' 'status' 'off' " +
-        "';' 'set-option' '-t' 'phantom-1' 'destroy-unattached' 'off'",
+        "';' 'set-option' '-t' 'phantom-1' 'destroy-unattached' 'off' ';' 'set-option' '-s' 'escape-time' '0'",
       line,
     )
   }

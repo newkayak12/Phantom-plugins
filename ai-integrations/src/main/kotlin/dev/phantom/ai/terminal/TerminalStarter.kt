@@ -2,12 +2,17 @@
 package dev.phantom.ai.terminal
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.CustomShortcutSet
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import org.jetbrains.plugins.terminal.LocalTerminalDirectRunner
 import org.jetbrains.plugins.terminal.ShellStartupOptions
 import org.jetbrains.plugins.terminal.ShellTerminalWidget
+import java.awt.event.KeyEvent
 import java.util.UUID
 import javax.swing.JComponent
+import javax.swing.KeyStroke
 
 /**
  * A started terminal: the component to show in a tab, what should get the focus, and its screen/keys access for the remote
@@ -34,6 +39,18 @@ fun interface TerminalStarter {
     start(parent, cwd, emptyMap(), Tmux.attach("tmux", session)).let { StartedTerminal(it.component, it.preferredFocus, it.io, session) }
 }
 
+private const val ESC = "\u001b"
+
+/**
+ * Esc in an agent terminal is the agent's (Claude stops its turn on it), never the IDE's: outside the Terminal tool window the
+ * IDE takes it first (to move the focus back to the editor). An action on the terminal's own component runs before the keymap.
+ */
+internal fun escapeToAgent(component: JComponent, parent: Disposable, send: () -> Unit) {
+  object : DumbAwareAction() {
+    override fun actionPerformed(e: AnActionEvent) = send()
+  }.registerCustomShortcutSet(CustomShortcutSet(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0)), component, parent)
+}
+
 /** Real terminal: LocalTerminalDirectRunner of the bundled terminal plugin. Call on the EDT. */
 class LocalTerminalStarter(private val project: Project) : TerminalStarter {
   override fun start(parent: Disposable, cwd: String, env: Map<String, String>, command: String): StartedTerminal {
@@ -56,7 +73,10 @@ class LocalTerminalStarter(private val project: Project) : TerminalStarter {
     val widget = LocalTerminalDirectRunner.createTerminalRunner(project).startShellTerminalWidget(parent, options, true)
     // files dropped on the terminal are typed as paths (images as attachments), as in the Terminal tool window
     val jediTerm = ShellTerminalWidget.asShellJediTermWidget(widget)
-    if (jediTerm != null) TerminalDrop.install(jediTerm.terminalPanel, parent) { jediTerm.terminalStarter?.sendString(it, true) }
+    if (jediTerm != null) {
+      TerminalDrop.install(jediTerm.terminalPanel, parent) { jediTerm.terminalStarter?.sendString(it, true) }
+      escapeToAgent(jediTerm.terminalPanel, parent) { jediTerm.terminalStarter?.sendString(ESC, true) }
+    }
     return StartedTerminal(widget.component, widget.preferredFocusableComponent, jediTerm?.let { JediTermIo(it) }, tmuxSession)
   }
 }
