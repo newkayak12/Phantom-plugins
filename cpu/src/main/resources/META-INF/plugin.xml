@@ -1,0 +1,22 @@
+<idea-plugin>
+  <id>dev.phantom.cpu</id>
+  <name>Phantom CPU Indicator</name>
+  <vendor>Phantom</vendor>
+  <category>Tools Integration</category>
+  <description><![CDATA[
+  CPU use of the IDE and of the whole machine in the status bar: a one-minute graph and the current numbers, highlighted
+  while the IDE stays busy. Hover it to see what inside the IDE used the CPU in the last ten seconds (indexing, code
+  analysis, GC, JIT, other), the busiest processes on the machine, and a link that saves a thread dump.
+  Drawn without offscreen images and repainted only when a number or the graph changes; per-thread analysis runs only
+  while the popup is open or the IDE is busy.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.platform"/>
+  </dependencies>
+
+  <resource-bundle>messages.PhantomCpuBundle</resource-bundle>
+  <extensions defaultExtensionNs="com.intellij">
+    <statusBarWidgetFactory id="PhantomCpuIndicator" implementation="dev.phantom.cpu.CpuWidgetFactory" order="first"/>
+  </extensions>
+</idea-plugin>

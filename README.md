@@ -47,6 +47,7 @@ Public repositories need no token.
 | Phantom Bytecode Viewer | [bytecode](./bytecode/README.md) · [한국어](./bytecode/KOR.md) | ASM bytecode of a compiled Java or Kotlin class, synced with the editor's caret |
 | Phantom WebP | [webp](./webp/README.md) · [한국어](./webp/KOR.md) | WebP images in the image editor, decoded in Java with no native library |
 | Phantom Modal Commit | [modal-commit](./modal-commit/README.md) · [한국어](./modal-commit/KOR.md) | The modal commit dialog for Git and Mercurial instead of the Commit tool window |
+| Phantom CPU Indicator | [cpu](./cpu/README.md) · [한국어](./cpu/KOR.md) | IDE and system CPU in the status bar; hover shows what the IDE spent it on (indexing, analysis, GC, JIT) |
 
 ## Repository format
 

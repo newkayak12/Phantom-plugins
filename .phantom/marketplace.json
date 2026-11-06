@@ -511,6 +511,21 @@
       ],
       "download": "modal-commit-0.1.1/modal-commit-0.1.1.zip",
       "detect": []
+    },
+    {
+      "id": "dev.phantom.cpu",
+      "name": "Phantom CPU Indicator",
+      "version": "0.1.0",
+      "source": "cpu",
+      "description": "CPU use of the IDE and the whole machine in the status bar: a one-minute graph and the current numbers, highlighted while the IDE stays busy. Hover it to see what used the IDE's CPU in the last ten seconds (indexing, Kotlin/Java code analysis, GC, JIT, other), the three busiest processes and a thread dump link. Draws without offscreen images and repaints only on change; per-thread analysis and ps run only while hovered or busy. Replaces krasa.cpu.",
+      "vendor": "Phantom",
+      "category": "Tools Integration",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.platform"
+      ],
+      "download": "cpu-0.1.0/cpu-0.1.0.zip"
     }
   ]
 }
