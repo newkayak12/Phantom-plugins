@@ -37,7 +37,17 @@ class ProjectTabsTest {
   fun `two projects with the same name are told apart by their location`() {
     val otherShop = OpenProject("shop2", "shop", "/Users/me/old/shop")
     val tabs = ProjectTabs.tabs(listOf(shop, blog, otherShop), current = "blog", userHome = home)
-    assertEquals(listOf("~/work/shop", "blog", "~/old/shop"), tabs.map { it.title })
+    assertEquals(listOf("work/shop", "blog", "old/shop"), tabs.map { it.title })
+  }
+
+  @Test
+  fun `the worktrees of one repository are titled by their folders`() {
+    val main = OpenProject("m", "colo-backend", "/Users/me/orca/colo-backend")
+    val a = OpenProject("a", "colo-backend", "/Users/me/orca/workspaces/colo-backend/refactor-CL-556")
+    val b = OpenProject("b", "colo-backend", "/Users/me/orca/workspaces/colo-backend/refactor-CL-552")
+    val tabs = ProjectTabs.tabs(listOf(main, a, b, blog), current = "a", userHome = home)
+    assertEquals(listOf("colo-backend", "refactor-CL-556", "refactor-CL-552", "blog"), tabs.map { it.title })
+    assertEquals("~/orca/workspaces/colo-backend/refactor-CL-556", tabs[1].tooltip)
   }
 
   @Test
@@ -95,5 +105,32 @@ class ProjectTabsTest {
     val tabs = ProjectTabs.tabs(listOf(shop, blog, tools), current = "blog", userHome = home, sideBySide = listOf("blog", "tools"))
     assertEquals(listOf(false, true, true), tabs.map { it.isSideBySide })
     assertEquals(listOf(false, true, false), tabs.map { it.isCurrent })
+  }
+
+  @Test
+  fun `tabs that fit keep their width`() {
+    assertEquals(listOf(100, 200), ProjectTabs.fitted(listOf(100, 200), available = 400, minimum = 50))
+  }
+
+  @Test
+  fun `tabs that do not fit have the widest cut down to one width`() {
+    // 100 + 2 x 150 = 400
+    assertEquals(listOf(100, 150, 150), ProjectTabs.fitted(listOf(100, 300, 500), available = 400, minimum = 50))
+  }
+
+  @Test
+  fun `tabs never get narrower than the minimum, the rest scrolls`() {
+    val widths = ProjectTabs.fitted(listOf(300, 300, 300, 300), available = 200, minimum = 96)
+    assertEquals(listOf(96, 96, 96, 96), widths)
+    assertEquals(184, ProjectTabs.scrollOffset(500, total = widths.sum(), available = 200))
+    assertEquals(0, ProjectTabs.scrollOffset(-20, total = widths.sum(), available = 200))
+    assertEquals(0, ProjectTabs.scrollOffset(30, total = 150, available = 200))
+  }
+
+  @Test
+  fun `the current tab is scrolled into view, moving as little as needed`() {
+    assertEquals(300, ProjectTabs.reveal(0, start = 400, end = 500, available = 200))
+    assertEquals(100, ProjectTabs.reveal(300, start = 100, end = 200, available = 200))
+    assertEquals(50, ProjectTabs.reveal(50, start = 100, end = 200, available = 200))
   }
 }

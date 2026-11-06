@@ -14,6 +14,8 @@ All open projects as tabs of one window.
 
 Until 2026-10-26 this was bundled with Phantom (`phantom-workspaces`); it is a plugin now so it updates without a new Phantom build.
 
+**0.6.1**: tabs that do not fit get narrower (titles cut with …), and past a minimum width the strip scrolls with the wheel or a trackpad, the current tab kept in view; before, the last tabs ran off the window and could not be reached. Projects that share a name (the worktrees of one repository) are titled by the shortest end of their location that tells them apart, the whole location in the tooltip.
+
 **0.6.0**: two projects side by side. Open Side by Side in a tab's context menu splits the place of the project windows into a left half (the project in front) and a right half (that tab), and resizing one from the edge between them resizes the other. Switching to another tab or Exit Side by Side ends it.
 
 **0.5.0**: a project tab can be detached into a window of its own, from the tab's context menu (Detach to Separate Window) or by dragging it out of the strip. The window comes out 40 px off the others (or where it was dropped) and the next tab takes its place; Window | Attach to Project Tabs puts it back as the last tab.

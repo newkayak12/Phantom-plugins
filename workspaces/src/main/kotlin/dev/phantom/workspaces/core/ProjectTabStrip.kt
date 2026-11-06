@@ -12,11 +12,11 @@ import com.intellij.openapi.ui.JBMenuItem
 import com.intellij.openapi.ui.JBPopupMenu
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
-import com.intellij.ui.components.panels.HorizontalLayout
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import java.awt.BorderLayout
 import java.awt.Cursor
+import java.awt.Dimension
 import java.awt.Graphics
 import java.awt.Point
 import java.awt.dnd.DragSource
@@ -44,12 +44,18 @@ internal class ProjectTabsNorthExtension : IdeRootPaneNorthExtension {
 
 private const val SYNC_DELAY_MS = 300
 
+/** The narrowest a tab gets when the tabs do not fit; beyond that the strip scrolls. */
+private const val MIN_TAB_WIDTH = 96
+private const val WHEEL_STEP = 40
+
 /**
  * One tab per open project; the tab of this frame's [project] is the current one. Click switches, middle-click or
  * the close button closes, dragging moves the tab; dragging it up or down out of the strip, or Detach to Separate Window
- * in its context menu, takes the project out into a window of its own; Open Side by Side shows it beside this one. Also watches its frame for [WindowStack] (activation, and moves/resizes, debounced).
+ * in its context menu, takes the project out into a window of its own; Open Side by Side shows it beside this one. Tabs
+ * that do not fit get narrower (titles cut with …), and below [MIN_TAB_WIDTH] the strip scrolls with the wheel or a
+ * trackpad, the current tab kept in view. Also watches its frame for [WindowStack] (activation, and moves/resizes, debounced).
  */
-class ProjectTabStrip(val project: Project) : JPanel(HorizontalLayout(0)) {
+class ProjectTabStrip(val project: Project) : JPanel(null) {
   var tabs: List<ProjectTab> = emptyList()
     private set
 
@@ -87,9 +93,51 @@ class ProjectTabStrip(val project: Project) : JPanel(HorizontalLayout(0)) {
     if (service.windowMoved(window)) syncTimer.restart()
   }
 
+  // how far the tabs are scrolled to the left; kept in range by doLayout
+  private var scroll = 0
+  private var revealCurrent = true
+
   init {
     isVisible = false
     border = JBUI.Borders.customLineBottom(JBColor.border())
+    addMouseWheelListener { e ->
+      val step = (e.preciseWheelRotation * JBUI.scale(WHEEL_STEP)).toInt()
+      if (step != 0) {
+        scroll += step
+        doLayout()
+        repaint()
+      }
+    }
+  }
+
+  override fun getPreferredSize(): Dimension {
+    val ins = insets
+    val height = components.maxOfOrNull { it.preferredSize.height } ?: 0
+    return Dimension(components.sumOf { it.preferredSize.width } + ins.left + ins.right, height + ins.top + ins.bottom)
+  }
+
+  // never wider than the window: tabs that do not fit shrink and scroll
+  override fun getMinimumSize(): Dimension = Dimension(0, preferredSize.height)
+
+  override fun doLayout() {
+    val ins = insets
+    val available = width - ins.left - ins.right
+    val widths = ProjectTabs.fitted(components.map { it.preferredSize.width }, available, JBUI.scale(MIN_TAB_WIDTH))
+    if (revealCurrent) {
+      revealCurrent = false
+      val current = tabs.indexOfFirst { it.isCurrent }
+      if (current >= 0 && current < widths.size) {
+        val start = widths.take(current).sum()
+        scroll = ProjectTabs.reveal(scroll, start, start + widths[current], available)
+      }
+    }
+    scroll = ProjectTabs.scrollOffset(scroll, widths.sum(), available)
+    var x = ins.left - scroll
+    val height = height - ins.top - ins.bottom
+    components.forEachIndexed { i, tab ->
+      tab.setBounds(x, ins.top, widths[i], height)
+      x += widths[i]
+    }
   }
 
   override fun addNotify() {
@@ -142,6 +190,7 @@ class ProjectTabStrip(val project: Project) : JPanel(HorizontalLayout(0)) {
       this.tabs = tabs
       removeAll()
       for (tab in tabs) add(TabComponent(tab))
+      revealCurrent = true
       revalidate()
       repaint()
     }

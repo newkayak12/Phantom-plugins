@@ -14,7 +14,9 @@ import com.intellij.openapi.wm.StatusBar
 import com.intellij.ui.BalloonLayout
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import dev.phantom.workspaces.core.ProjectTab
 import dev.phantom.workspaces.core.ProjectTabStrip
+import com.intellij.ui.scale.JBUIScale
 import dev.phantom.workspaces.core.ProjectTabs
 import dev.phantom.workspaces.core.ProjectTabsService
 import dev.phantom.workspaces.core.Tiling
@@ -63,6 +65,21 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
 
   fun testTheStripIsAddedAboveTheEditorAreaOfEveryProjectFrame() {
     assertInstanceOf(extension().createComponent(project, isDocked = false), ProjectTabStrip::class.java)
+  }
+
+  fun testTabsThatDoNotFitShrinkThenScrollWithTheCurrentOneInView() {
+    val strip = extension().createComponent(project, isDocked = false) as ProjectTabStrip
+    val tabs = (0 until 12).map { ProjectTab("p$it", "~/orca/workspaces/colo-backend/refactor-CL-55$it", null, isCurrent = it == 11) }
+    strip.display(tabs, visible = true)
+    strip.setSize(600, 30)
+    strip.doLayout()
+    val bounds = strip.components.map { it.bounds }
+    assertTrue("every tab at least the minimum width", bounds.all { it.width >= JBUIScale.scale(96) - 1 })
+    val last = bounds.last()
+    assertTrue("the current (last) tab is in view: $last", last.x >= 0 && last.x + last.width <= 600)
+    // the wheel scrolls back to the first tab
+    repeat(50) { strip.dispatchEvent(java.awt.event.MouseWheelEvent(strip, java.awt.event.MouseEvent.MOUSE_WHEEL, 0L, 0, 10, 10, 0, false, java.awt.event.MouseWheelEvent.WHEEL_UNIT_SCROLL, 1, -1)) }
+    assertEquals(0, strip.components.first().x)
   }
 
   fun testNoStripInDetachedEditorWindows() {

@@ -16,16 +16,30 @@ object ProjectTabs {
   const val CLOSE_PROJECT_ACTION_ID: String = "CloseProject"
 
   /**
-   * One tab per project in [open] order; projects that share a name are titled by their location instead. The projects
-   * in [sideBySide] are marked, the current one included.
+   * One tab per project in [open] order; projects that share a name are titled by the shortest end of their location
+   * that tells them apart (the worktrees of one repository: by their folders), the whole location in the tooltip. The
+   * projects in [sideBySide] are marked, the current one included.
    */
   fun tabs(open: List<OpenProject>, current: Any?, userHome: String, sideBySide: List<Any> = emptyList()): List<ProjectTab> {
-    val sharedNames = open.groupingBy { it.name }.eachCount().filterValues { it > 1 }.keys
+    val shared = open.groupBy { it.name }.filterValues { it.size > 1 }
     return open.map { project ->
       val where = project.location?.let { shortened(it, userHome) }
-      val title = if (project.name in sharedNames && where != null) where else project.name
+      val namesakes = shared[project.name]
+      val title = if (namesakes != null && where != null) distinctEnd(project, namesakes, userHome) ?: where else project.name
       ProjectTab(project.key, title, where, project.key == current, sideBySide.any { it == project.key })
     }
+  }
+
+  /** The fewest last folders of [project]'s location that no other of [namesakes] ends with; null if none does. */
+  private fun distinctEnd(project: OpenProject, namesakes: List<OpenProject>, home: String): String? {
+    fun parts(p: OpenProject) = p.location?.let { shortened(it, home) }?.split('/', '\\')?.filter { it.isNotEmpty() }.orEmpty()
+    val mine = parts(project)
+    val others = namesakes.filter { it !== project }.map(::parts)
+    for (n in 1..mine.size) {
+      val end = mine.takeLast(n)
+      if (others.none { it.takeLast(n) == end }) return end.joinToString("/")
+    }
+    return null
   }
 
   /**
@@ -55,6 +69,37 @@ object ProjectTabs {
 
   /** A tab dragged [dy] up or down from where it was pressed is torn out of a strip [stripHeight] high. */
   fun isDetachDrag(dy: Int, stripHeight: Int, threshold: Int): Boolean = abs(dy) > stripHeight + threshold
+
+  /**
+   * The widths of tabs that want [preferred] in a strip [available] wide: as wanted when they fit, else the widest are cut
+   * down to one width (as browsers do), never below [minimum]. Tabs that still do not fit scroll ([scrollOffset]).
+   */
+  fun fitted(preferred: List<Int>, available: Int, minimum: Int): List<Int> {
+    if (preferred.sum() <= available) return preferred
+    var left = available
+    var cap = minimum
+    val sorted = preferred.sorted()
+    for ((i, width) in sorted.withIndex()) {
+      val rest = sorted.size - i
+      if (width * rest > left) {
+        cap = left / rest
+        break
+      }
+      left -= width
+    }
+    val width = maxOf(cap, minimum)
+    return preferred.map { minOf(it, width) }
+  }
+
+  /** [offset] kept within the [total] width of the tabs beyond a strip [available] wide. */
+  fun scrollOffset(offset: Int, total: Int, available: Int): Int = offset.coerceIn(0, maxOf(0, total - available))
+
+  /** The scroll offset that shows the tab from [start] to [end] whole, moving [offset] as little as it can. */
+  fun reveal(offset: Int, start: Int, end: Int, available: Int): Int = when {
+    start < offset -> start
+    end > offset + available -> end - available
+    else -> offset
+  }
 
   /** The strip is only worth its height when there is another project to switch to. */
   fun isStripVisible(enabled: Boolean, tabCount: Int): Boolean = enabled && tabCount > 1
