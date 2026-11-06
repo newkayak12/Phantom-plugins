@@ -55,6 +55,7 @@ class DetachedSessionsInIdeTest : BasePlatformTestCase() {
 
   private val commands = Collections.synchronizedList(mutableListOf<String>())
   private val killed = Collections.synchronizedList(mutableListOf<String>())
+  private val killedTogether = Collections.synchronizedList(mutableListOf<Set<String>>())
   private val running = Collections.synchronizedSet(mutableSetOf<String>())
   private val ios = Collections.synchronizedList(mutableListOf<FakeIo>())
   @Volatile private var tmuxUnknown = false
@@ -80,16 +81,19 @@ class DetachedSessionsInIdeTest : BasePlatformTestCase() {
         running.remove(name)
         killed.add(name)
       }
-      override fun killServer() {
-        killed.add("server")
+      override fun killAll(names: Collection<String>) {
+        killedTogether.add(names.toSet())
+        names.forEach(::kill)
       }
     })
+    DetachedSessions.resetOwned()
   }
 
   override fun tearDown() {
     try {
       Tmux.replaceSessions(realTmux)
       DetachedSessions.resetUnloading()
+      DetachedSessions.resetOwned()
       host.reopen()
       host.let { h -> h.tabs().forEach { h.close(it.id) } }
       store.all().forEach { store.remove(it.tabId) }
@@ -183,14 +187,63 @@ class DetachedSessionsInIdeTest : BasePlatformTestCase() {
     assertTrue("another plugin's unload changes nothing", store.get(detached)!!.detached)
 
     DetachedSessionsUnload().beforePluginUnload(self, isUpdate = true)
-    assertEquals("detached ones end at once", listOf("phantom-t1"), killed.toList())
+    assertEquals("attached and detached end together, once", listOf(setOf("phantom-t1", "phantom-t2")), killedTogether.toList())
     assertNull(store.get(detached))
-    assertFalse(Files.exists(mcpConfig(detached)))
-
-    // the project services are disposed after: their tabs kill (at once) instead of detaching
-    closeProjectWindow()
     assertNull(store.get(open))
-    assertEquals(listOf("phantom-t1", "phantom-t2"), killed.toList())
+    assertFalse(Files.exists(mcpConfig(detached)))
+    assertFalse(Files.exists(mcpConfig(open)))
+    assertTrue(DetachedSessions.owned().isEmpty())
+  }
+
+  fun testAfterUnloadTabDisposalLooksNothingUpAndKillsNothing() {
+    val open = service.launch("/w/keep/b", AgentKind.CLAUDE)!!
+    DetachedSessions.unload()
+    val kills = killed.toList()
+    // the store and the config would be what a tab's disposal touches: put back, they must stay untouched
+    store.put(AgentSession(open, "/w/keep/b", AgentKind.CLAUDE))
+    Files.createDirectories(mcpConfig(open).parent)
+    Files.writeString(mcpConfig(open), "{}")
+    try {
+      closeProjectWindow()
+      Thread.sleep(300)
+      assertNotNull("not removed by the tab's disposal", store.get(open))
+      assertFalse("not marked detached either", store.get(open)!!.detached)
+      assertTrue("config not deleted", Files.exists(mcpConfig(open)))
+      assertEquals("no per-tab kill", kills, killed.toList())
+    } finally {
+      Files.deleteIfExists(mcpConfig(open))
+    }
+  }
+
+  fun testUnloadKillsOnlyTheSessionsThisIdeStarted() {
+    detachedTab()
+    service.launch("/w/keep/b", AgentKind.CLAUDE)!!
+    store.put(AgentSession("foreign", "/w/x", AgentKind.CLAUDE, tmuxSession = "phantom-other-ide", detached = true))
+    DetachedSessions.unload()
+    assertEquals(listOf(setOf("phantom-t1", "phantom-t2")), killedTogether.toList())
+    assertFalse("phantom-other-ide" in killed)
+  }
+
+  fun testShutdownKillsOnlyTheSessionsThisIdeStarted() {
+    val closed = service.launch("/w/keep/a", AgentKind.CLAUDE)!!
+    host.close(closed)
+    awaitKilled("phantom-t1")
+    detachedTab("/w/keep/b")
+    service.launch("/w/keep/c", AgentKind.CLAUDE)!!
+    store.put(AgentSession("foreign", "/w/x", AgentKind.CLAUDE, tmuxSession = "phantom-other-ide", detached = true))
+    DetachedSessions.killOwned()
+    assertEquals("the detached and the attached, not the closed nor a foreign one", listOf(setOf("phantom-t2", "phantom-t3")), killedTogether.toList())
+    assertTrue(DetachedSessions.owned().isEmpty())
+  }
+
+  fun testNoBindingTaskSurvivesUnload() {
+    service.launch("/w/keep/a", AgentKind.CLAUDE)!!
+    assertTrue("a hook-less tab polls for its file", DetachedSessions.liveTasks() > 0)
+    DetachedSessions.unload()
+    assertEquals(0, DetachedSessions.liveTasks())
+    val late = java.util.concurrent.CompletableFuture<Unit>()
+    assertFalse("tracked after unload: cancelled at once", DetachedSessions.track(late))
+    assertTrue(late.isCancelled)
   }
 
   fun testReattachKeepsTheTabIdAndClearsDetached() {

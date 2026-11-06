@@ -40,6 +40,14 @@ class SessionStore {
     if (sessions.remove(tabId) != null) publish(tabId, null)
   }
 
+  /**
+   * Drops every session without telling the listeners: the plugin is unloading, and a listener's deferred refresh would
+   * run after its classes are gone.
+   */
+  fun clearSilently() {
+    sessions.clear()
+  }
+
   private fun publish(tabId: String, session: AgentSession?) {
     val app = ApplicationManager.getApplication() ?: return
     app.messageBus.syncPublisher(TOPIC).changed(tabId, session)

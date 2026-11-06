@@ -103,7 +103,10 @@ class AgentTerminalService(private val project: Project) {
     val exists = if (name == null) false else Tmux.sessions.exists(name) ?: return null
     if (!exists) {
       // tmux said it is gone; ended anyway, in case its name was reused
-      name?.let { Tmux.sessions.kill(it) }
+      name?.let {
+        Tmux.sessions.kill(it)
+        DetachedSessions.disown(it)
+      }
       store.remove(tabId)
       McpConfigFiles.delete(tabId)
       return null
@@ -187,16 +190,27 @@ class AgentTerminalService(private val project: Project) {
     bindOpenSessions()
   }
 
-  /** While a hook-less tab is open, looks for its .jsonl every few seconds; stops once bound or when the tab is disposed. */
+  /**
+   * While a hook-less tab is open, looks for its .jsonl every few seconds; stops once bound, when the tab is disposed or
+   * when the plugin unloads (which cancels it: no task may keep this plugin's code referenced).
+   */
   private fun pollBinding(tabId: String, parent: Disposable) {
     lateinit var future: java.util.concurrent.ScheduledFuture<*>
     future = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({
+      if (DetachedSessions.unloading()) {
+        future.cancel(false)
+        return@scheduleWithFixedDelay
+      }
       val session = SessionStore.getInstance().get(tabId)
       if (session == null) return@scheduleWithFixedDelay
       // bound: no more directory scans for this tab
       if (session.sessionId != null) future.cancel(false) else bindOpenSessions()
     }, POLL_MS, POLL_MS, TimeUnit.MILLISECONDS)
-    Disposer.register(parent) { future.cancel(false) }
+    DetachedSessions.track(future)
+    Disposer.register(parent) {
+      future.cancel(false)
+      DetachedSessions.untrack(future)
+    }
   }
 
   /** The account [session] ran under (null = System default), not the one active now; a removed account counts as default. */
@@ -251,29 +265,34 @@ class AgentTerminalService(private val project: Project) {
     // set when the project window closes (not the IDE): the agent keeps running in tmux and its session waits for a reattach
     var detached = false
     val base = project.basePath
-    if (tmux != null) DetachedSessions.hookShutdown()
+    if (tmux != null) {
+      DetachedSessions.own(tmux)
+      DetachedSessions.hookShutdown()
+    }
     tabId?.let {
       if (tmux != null) SessionStore.getInstance().update(it) { s -> s.copy(tmuxSession = tmux) }
       if (SessionStore.getInstance().get(it)?.sessionId == null) pollBinding(it, disposable)
-      // closing the tab (or the project, outside tmux) disposes it: the session goes with it
+      // closing the tab (or the project, outside tmux) disposes it: the session goes with it. Unloading, the plugin did
+      // all of that already (DetachedSessions.unload) and no service may be looked up any more
       Disposer.register(disposable) {
-        if (detached) {
-          SessionStore.getInstance().update(it) { s -> s.copy(detached = true, detachedFrom = base) }
-        } else {
-          bindOnClose(it)
-          SessionStore.getInstance().remove(it)
-          McpConfigFiles.delete(it)
+        when {
+          DetachedSessions.unloading() -> Unit
+          detached -> SessionStore.getInstance().update(it) { s -> s.copy(detached = true, detachedFrom = base) }
+          else -> {
+            bindOnClose(it)
+            SessionStore.getInstance().remove(it)
+            McpConfigFiles.delete(it)
+          }
         }
       }
     }
     if (tmux != null) {
-      // the terminal is only tmux's client: the agent ends with its tab unless it was detached. Quitting, the shutdown
-      // hook ends the whole server; unloading, the pooled thread would run this plugin's code after it is gone
+      // the terminal is only tmux's client: the agent ends with its tab unless it was detached. Unloading or quitting,
+      // the sessions this IDE started end together (DetachedSessions.unload, the shutdown hook), not one by one here
       Disposer.register(disposable) {
-        when {
-          detached || DetachedSessions.exiting() -> Unit
-          DetachedSessions.unloading() -> Tmux.sessions.kill(tmux)
-          else -> ApplicationManager.getApplication().executeOnPooledThread { Tmux.sessions.kill(tmux) }
+        if (!detached && !DetachedSessions.unloading() && !DetachedSessions.exiting()) {
+          DetachedSessions.disown(tmux)
+          ApplicationManager.getApplication().executeOnPooledThread { Tmux.sessions.kill(tmux) }
         }
       }
     }

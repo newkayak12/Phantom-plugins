@@ -12,6 +12,7 @@ import dev.phantom.ai.core.AgentKind
 import dev.phantom.ai.core.SessionStore
 import dev.phantom.ai.core.Subagent
 import dev.phantom.ai.core.SystemDirs
+import dev.phantom.ai.core.Unloading
 import dev.phantom.ai.core.bestEffort
 import java.nio.file.Files
 import java.nio.file.Path
@@ -82,7 +83,7 @@ class AgentTeamsPoller : Disposable {
   @Synchronized
   fun start() {
     if (future != null) return
-    future = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({ bestEffort { tick() } }, 2, 3, TimeUnit.SECONDS)
+    future = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({ if (!Unloading.inProgress) bestEffort { tick() } }, 2, 3, TimeUnit.SECONDS)
   }
 
   private fun tick() {

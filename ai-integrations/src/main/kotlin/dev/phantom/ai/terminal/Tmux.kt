@@ -83,9 +83,23 @@ object Tmux {
     run(tmux, "kill-session", "-t", name)
   }
 
-  /** Ends Phantom's whole tmux server, every agent in it (the IDE is quitting). Best effort, bounded. */
-  fun killServer(tmux: String) {
-    run(tmux, "kill-server")
+  /**
+   * Ends the sessions [names] at once, each by its own `kill-session` (a tmux command list stops at the first session
+   * that is already gone), within 3 seconds in all; stragglers are killed. Never the whole server: other Phantom
+   * instances share the socket. Best effort.
+   */
+  fun killAll(tmux: String, names: Collection<String>) {
+    val started = names.mapNotNull { name ->
+      runCatching {
+        ProcessBuilder(tmux, "-L", SOCKET, "kill-session", "-t", name).redirectErrorStream(true)
+          .redirectOutput(ProcessBuilder.Redirect.DISCARD).start().apply { outputStream.close() }
+      }.getOrNull()
+    }
+    val end = System.nanoTime() + TimeUnit.SECONDS.toNanos(3)
+    for (p in started) {
+      val ended = runCatching { p.waitFor(maxOf(0, end - System.nanoTime()), TimeUnit.NANOSECONDS) }.getOrDefault(false)
+      if (!ended) p.destroyForcibly()
+    }
   }
 
   /**
@@ -113,8 +127,8 @@ object Tmux {
     override fun kill(name: String) {
       binary()?.let { kill(it, name) }
     }
-    override fun killServer() {
-      binary()?.let { killServer(it) }
+    override fun killAll(names: Collection<String>) {
+      if (names.isNotEmpty()) binary()?.let { killAll(it, names) }
     }
   }
     private set
@@ -131,6 +145,6 @@ interface TmuxSessions {
   /** Ends session [name] and the agent in it. Best effort. */
   fun kill(name: String)
 
-  /** Ends Phantom's tmux server and every session in it. Best effort. */
-  fun killServer()
+  /** Ends the sessions [names] together, bounded in all (the IDE quits or the plugin unloads). Best effort. */
+  fun killAll(names: Collection<String>)
 }

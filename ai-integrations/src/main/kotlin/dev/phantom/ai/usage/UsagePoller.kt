@@ -7,6 +7,7 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.util.concurrency.AppExecutorUtil
 import dev.phantom.ai.accounts.AccountsService
 import dev.phantom.ai.core.AgentKind
+import dev.phantom.ai.core.Unloading
 import dev.phantom.ai.core.bestEffort
 import dev.phantom.ai.hooks.HookInstallService
 import dev.phantom.ai.hooks.HookServer
@@ -46,7 +47,7 @@ class UsagePoller(
   private val periodSeconds: Long = 60,
   private val codexEvery: Int = 5,
   private val active: () -> Boolean = { ApplicationManager.getApplication().isActive },
-) {
+) : com.intellij.openapi.Disposable {
   @Volatile private var statusLine: ClaudeUsage? = null
   @Volatile private var statusLineAt = 0L
   private var ticks = 0
@@ -66,7 +67,7 @@ class UsagePoller(
       registered = true
       HookServer.getInstance().statuslineListeners.add { _, body -> onStatusLine(body) }
     }
-    task = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({ tick() }, 0, periodSeconds, TimeUnit.SECONDS)
+    task = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({ if (!Unloading.inProgress) tick() }, 0, periodSeconds, TimeUnit.SECONDS)
   }
 
   @Synchronized
@@ -74,6 +75,9 @@ class UsagePoller(
     task?.cancel(false)
     task = null
   }
+
+  /** The app service goes (plugin unload, IDE exit): the timer must not outlive it. */
+  override fun dispose() = stop()
 
   /** A /statusline/claude body. */
   fun onStatusLine(body: String) {

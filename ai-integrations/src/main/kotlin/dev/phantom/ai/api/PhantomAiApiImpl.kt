@@ -12,6 +12,7 @@ import dev.phantom.ai.core.AiState
 import dev.phantom.ai.core.AiStateListener
 import dev.phantom.ai.core.SessionListener
 import dev.phantom.ai.core.SessionStore
+import dev.phantom.ai.core.Unloading
 import dev.phantom.ai.core.bestEffort
 import dev.phantom.ai.sidebar.GitProjectRepos
 import dev.phantom.ai.sidebar.GitWorktreeSource
@@ -110,7 +111,7 @@ internal class PhantomAiApiImpl(
   private fun startWatcher() {
     if (watcher != null || pollIntervalMs <= 0) return
     watcher = AppExecutorUtil.getAppScheduledExecutorService()
-      .scheduleWithFixedDelay({ bestEffort { pollWorktreesNow() } }, 0, pollIntervalMs, TimeUnit.MILLISECONDS)
+      .scheduleWithFixedDelay({ if (!Unloading.inProgress) bestEffort { pollWorktreesNow() } }, 0, pollIntervalMs, TimeUnit.MILLISECONDS)
   }
 
   @Synchronized
