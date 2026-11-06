@@ -10,6 +10,7 @@ import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import dev.phantom.ai.core.AgentKind
 import dev.phantom.ai.core.SessionStore
+import dev.phantom.ai.core.Unloading
 import dev.phantom.ai.mcp.IdeEditorBridge
 import dev.phantom.ai.mcp.PhantomMcp
 import org.jetbrains.annotations.TestOnly
@@ -38,7 +39,7 @@ class HookServer : Disposable {
   private var server: HttpServer? = null
   private var executor: java.util.concurrent.ExecutorService? = null
   val statuslineListeners = CopyOnWriteArrayList<StatuslineListener>()
-  @Volatile var mcp: PhantomMcp = PhantomMcp(IdeEditorBridge()) { tab -> tab?.let { SessionStore.getInstance().get(it)?.worktree } }
+  @Volatile var mcp: PhantomMcp = PhantomMcp(IdeEditorBridge()) { tab -> tab?.takeUnless { Unloading.inProgress }?.let { SessionStore.getInstance().get(it)?.worktree } }
     @TestOnly set
 
   val port: Int get() = server?.address?.port ?: 0
@@ -60,7 +61,8 @@ class HookServer : Disposable {
 
   private fun handle(ex: HttpExchange) {
     ex.use {
-      val reply = try { respond(ex) } catch (e: Exception) { rethrowIfCancellation(e); Reply(500) }
+      // the plugin is being unloaded: its services are going, so a late hook (an agent that unload just ended) is refused unread
+      val reply = if (Unloading.inProgress) Reply(503) else try { respond(ex) } catch (e: Exception) { rethrowIfCancellation(e); Reply(500) }
       if (reply.json == null) {
         ex.sendResponseHeaders(reply.code, -1)
       } else {

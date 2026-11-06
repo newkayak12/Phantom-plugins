@@ -50,6 +50,16 @@ class HookServerInIdeTest : BasePlatformTestCase() {
     assertEquals(AgentStatus.DONE, d.status); assertTrue(d.unread); assertEquals("first", d.firstPrompt)
   }
 
+  fun testUnloadingRefusesHooksUnread() {
+    dev.phantom.ai.core.Unloading.start()
+    try {
+      assertEquals(503, call("POST", "/hook/claude", ev("UserPromptSubmit"), tab = "tabA"))
+      assertNull(SessionStore.getInstance().get("tabA")!!.status)
+    } finally {
+      dev.phantom.ai.core.Unloading.reset()
+    }
+  }
+
   fun testTokenRequired() {
     assertEquals(403, call("POST", "/hook/claude", ev("Stop"), token = null, tab = "tabA"))
     assertEquals(403, call("POST", "/hook/claude", ev("Stop"), token = "wrong", tab = "tabA"))
