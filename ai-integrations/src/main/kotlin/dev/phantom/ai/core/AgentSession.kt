@@ -24,4 +24,11 @@ data class AgentSession(
   val activity: String? = null,
   /** WAITING only because Claude's idle_prompt fired: the turn is over, so the session is idle, not blocked. */
   val idleWaiting: Boolean = false,
+  /** Phantom's tmux session the agent runs in; null in a plain shell. */
+  val tmuxSession: String? = null,
+  /**
+   * Its project window closed while the agent kept running in [tmuxSession]: no tab shows it until a window reattaches
+   * it (AgentTerminalService.reattach). Hooks still update it.
+   */
+  val detached: Boolean = false,
 )

@@ -17,6 +17,11 @@ class AgentTab(
   val io: TerminalIo? = null,
   val disposable: Disposable,
   val icon: javax.swing.Icon? = null,
+  /**
+   * Set when the tab's agent can outlive the project window (it runs in tmux): [AgentTabsHost.dispose] calls it before
+   * disposing the tab, unless the IDE is exiting, so the agent keeps running detached instead of ending with the tab.
+   */
+  val detach: (() -> Unit)? = null,
 )
 
 fun interface AgentTabsListener {
@@ -72,6 +77,8 @@ class AgentTabsHost(private val project: Project) : Disposable {
     val all = list.toList()
     list.clear()
     selectedId = null
+    // the project window closes, not the IDE: agents in tmux keep running for a window of their worktree to reattach
+    if (!DetachedSessions.exiting()) all.forEach { it.detach?.invoke() }
     all.forEach { Disposer.dispose(it.disposable) }
   }
 

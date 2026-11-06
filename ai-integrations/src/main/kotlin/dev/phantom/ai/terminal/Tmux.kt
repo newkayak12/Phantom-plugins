@@ -2,6 +2,7 @@
 package dev.phantom.ai.terminal
 
 import dev.phantom.ai.launch.LaunchCommand.quote
+import org.jetbrains.annotations.TestOnly
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -71,13 +72,44 @@ object Tmux {
     return "exec " + args.joinToString(" ") { quote(it) }
   }
 
+  /** The shell command that shows the running session [name] (its agent kept running while no window showed it). */
+  fun attach(tmux: String, name: String): String =
+    "exec " + listOf(tmux, "-L", SOCKET, "attach-session", "-t", name).joinToString(" ") { quote(it) }
+
   /** Ends session [name]; the agent goes with its tab. Best effort, bounded. */
   fun kill(tmux: String, name: String) {
-    runCatching {
-      ProcessBuilder(tmux, "-L", SOCKET, "kill-session", "-t", name).redirectErrorStream(true).start().apply {
-        outputStream.close()
-        waitFor(3, TimeUnit.SECONDS)
-      }
+    run(tmux, "kill-session", "-t", name)
+  }
+
+  /** Whether session [name] still runs on Phantom's server. Bounded. */
+  fun hasSession(tmux: String, name: String): Boolean = run(tmux, "has-session", "-t", name) == 0
+
+  /** Exit code of `tmux -L phantom [args]`; null if it failed to run or did not end within 3 seconds. */
+  private fun run(tmux: String, vararg args: String): Int? = runCatching {
+    ProcessBuilder(tmux, "-L", SOCKET, *args).redirectErrorStream(true).redirectOutput(ProcessBuilder.Redirect.DISCARD).start().run {
+      outputStream.close()
+      if (waitFor(3, TimeUnit.SECONDS)) exitValue() else null
+    }
+  }.getOrNull()
+
+  /** The tmux calls made on agents' sessions after they started; [replaceSessions] fakes them in tests, which need no tmux. */
+  @Volatile var sessions: TmuxSessions = object : TmuxSessions {
+    override fun exists(name: String) = binary()?.let { hasSession(it, name) } ?: false
+    override fun kill(name: String) {
+      binary()?.let { kill(it, name) }
     }
   }
+    private set
+
+  /** Replaces [sessions]; returns the previous one, to put back. */
+  @TestOnly fun replaceSessions(next: TmuxSessions): TmuxSessions = sessions.also { sessions = next }
+}
+
+/** Phantom's tmux server, as far as a running agent's session is concerned. Both calls block (bounded): keep them short on the EDT. */
+interface TmuxSessions {
+  /** Whether session [name] still runs. */
+  fun exists(name: String): Boolean
+
+  /** Ends session [name] and the agent in it. Best effort. */
+  fun kill(name: String)
 }

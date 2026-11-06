@@ -2,6 +2,7 @@
 package dev.phantom.ai.terminal
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
@@ -56,11 +57,12 @@ class AgentTerminalService(private val project: Project) {
 
   /**
    * Starts the agent resuming [session] (hook session_id, else Claude's earliest-created .jsonl no other session owns); null and nothing run when
-   * there is no id. A session whose tab is still open is only focused.
+   * there is no id. A session whose tab is still open is only focused; a detached one still running is reattached.
    */
   @RequiresEdt
   fun resume(session: AgentSession): String? {
     if (focus(session.tabId)) return session.tabId
+    reattach(session.tabId)?.let { return it }
     val account = accountOf(session)
     val id = fallbackTarget(session, account)?.id ?: return null
     bind(session, id)
@@ -70,6 +72,7 @@ class AgentTerminalService(private val project: Project) {
   /** Whether Resume can do anything for [session]; the UI disables the action otherwise. */
   fun canResume(session: AgentSession): Boolean =
     host.get(session.tabId) != null ||
+      SessionStore.getInstance().get(session.tabId)?.detached == true ||
       fallbackTarget(session, accountOf(session)) != null
 
   /** Selects the tab of [tabId], activates the tool window and clears unread; false if there is no such tab. */
@@ -79,6 +82,46 @@ class AgentTerminalService(private val project: Project) {
     toolWindow(create = false)?.activate(null)
     SessionStore.getInstance().update(tabId) { it.copy(unread = false) }
     return true
+  }
+
+  /**
+   * Shows the detached session [tabId] (its project window closed while the agent kept running in tmux) in a tab here,
+   * attached to its tmux session under the same tab id, and returns that id; [activate] = false leaves the tool window
+   * alone. Null when it is not detached; one whose tmux session has ended is dropped (the agent is gone, only --resume
+   * can bring the conversation back).
+   */
+  @RequiresEdt
+  fun reattach(tabId: String, activate: Boolean = true): String? {
+    val store = SessionStore.getInstance()
+    val session = store.get(tabId)?.takeIf { it.detached } ?: return null
+    val name = session.tmuxSession
+    if (name == null || !Tmux.sessions.exists(name)) {
+      store.remove(tabId)
+      McpConfigFiles.delete(tabId)
+      return null
+    }
+    // claimed before the terminal starts: one window at most attaches a session
+    var claimed = false
+    store.update(tabId) { s -> if (s.detached) s.copy(detached = false).also { claimed = true } else s }
+    if (!claimed) return null
+    val title = PhantomAiBundle.message("terminal.tab", session.kind.command, branchOf(session.worktree) ?: Path.of(session.worktree).fileName?.toString() ?: session.worktree)
+    try {
+      show(title, session.worktree, emptyMap(), "", tabId, dev.phantom.ai.core.AgentIcons.of(session.kind), attach = name, activate = activate)
+    } catch (e: Exception) {
+      // the agent still runs: leave it detached for another try
+      store.update(tabId) { it.copy(detached = true) }
+      rethrowIfCancellation(e)
+      AiNotify.error(LOG, project, PhantomAiBundle.message("notify.terminal.failed", e.message ?: e.toString()), e)
+      return null
+    }
+    return tabId
+  }
+
+  /** Reattaches, without activating the tool window, every detached session of [worktree] (this project's base path). */
+  @RequiresEdt
+  fun reattachDetached(worktree: String) {
+    val base = Path.of(worktree)
+    SessionStore.getInstance().all().filter { it.detached && Path.of(it.worktree) == base }.forEach { reattach(it.tabId, activate = false) }
   }
 
   /** Runs [command] in a new terminal tab titled [title] (e.g. a login); [cwd] defaults to the user's home. */
@@ -177,27 +220,46 @@ class AgentTerminalService(private val project: Project) {
     return tabId.takeIf { shown }
   }
 
-  private fun show(title: String, cwd: String, env: Map<String, String>, command: String, tabId: String?, icon: javax.swing.Icon? = null): Boolean {
+  /** [attach] names a running tmux session to show instead of starting [command]; [activate] = false leaves the tool window alone. */
+  private fun show(
+    title: String, cwd: String, env: Map<String, String>, command: String, tabId: String?, icon: javax.swing.Icon? = null,
+    attach: String? = null, activate: Boolean = true,
+  ): Boolean {
     val tw = toolWindow(create = true)
     val disposable = Disposer.newDisposable("AI agent terminal $title")
     val started = try {
-      starter.start(disposable, cwd, env, command)
+      if (attach != null) starter.attach(disposable, cwd, attach) else starter.start(disposable, cwd, env, command)
     } catch (e: Throwable) {
       Disposer.dispose(disposable)
       throw e
     }
     val id = tabId ?: UUID.randomUUID().toString()
+    val tmux = started.tmuxSession
+    // set when the project window closes (not the IDE): the agent keeps running in tmux and its session waits for a reattach
+    var detached = false
     tabId?.let {
-      // closing the tab (or the project) disposes it: the session goes with it
+      if (tmux != null) SessionStore.getInstance().update(it) { s -> s.copy(tmuxSession = tmux) }
       if (SessionStore.getInstance().get(it)?.sessionId == null) pollBinding(it, disposable)
+      // closing the tab (or the project, outside tmux) disposes it: the session goes with it
       Disposer.register(disposable) {
-        bindOnClose(it)
-        SessionStore.getInstance().remove(it)
-        McpConfigFiles.delete(it)
+        if (detached) {
+          SessionStore.getInstance().update(it) { s -> s.copy(detached = true) }
+        } else {
+          bindOnClose(it)
+          SessionStore.getInstance().remove(it)
+          McpConfigFiles.delete(it)
+        }
       }
     }
-    host.add(AgentTab(id, title, started.component, started.preferredFocus, started.io, disposable, icon))
-    tw?.activate(null)
+    if (tmux != null) {
+      // the terminal is only tmux's client: the agent ends with its tab unless it was detached
+      Disposer.register(disposable) {
+        if (!detached) ApplicationManager.getApplication().executeOnPooledThread { Tmux.sessions.kill(tmux) }
+      }
+    }
+    val detach = if (tabId != null && tmux != null) ({ detached = true }) else null
+    host.add(AgentTab(id, title, started.component, started.preferredFocus, started.io, disposable, icon, detach))
+    if (activate) tw?.activate(null)
     return true
   }
 

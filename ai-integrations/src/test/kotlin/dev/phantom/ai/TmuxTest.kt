@@ -16,6 +16,9 @@ class TmuxTest {
     )
   }
 
+  @Test fun attachShowsTheRunningPhantomSession() =
+    assertEquals("exec '/opt/homebrew/bin/tmux' '-L' 'phantom' 'attach-session' '-t' 'phantom-1'", Tmux.attach("/opt/homebrew/bin/tmux", "phantom-1"))
+
   @Test fun plainCommandKeepsALoginShellAfterTheAgent() =
     assertEquals("claude; exec \"\${SHELL:-/bin/zsh}\" -l", Tmux.plain("claude"))
 
