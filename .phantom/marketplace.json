@@ -349,7 +349,7 @@
     {
       "id": "dev.phantom.ai",
       "name": "Phantom AI Integration",
-      "version": "0.3.17",
+      "version": "0.3.18",
       "source": "ai-integrations",
       "description": "Claude Code and Codex next to your projects (0.3.16): a tree of the current project's worktrees and agent sessions beside the agent terminals in one tool window, a board editor tab, an agent dashboard, usage in the status bar and opt-in remote control from another device's browser. Select code in the editor and type an AI command to leave an AI memo (kept in memory only, following its code as lines move), then send the checked memos to a session as one prompt, queued while that session is busy. Agents open files at a line in the editor and read what you are looking at through Phantom's own MCP server, with no setup. A small public API, dev.phantom.ai.api, lets other plugins read sessions (with the subagents each started, since 0.3.1, and what each is doing right now, since 0.3.8) and worktrees and focus or start a session. Agents keep running in tmux when their project window closes and reattach when it reopens. Needs Phantom Workspaces.",
       "vendor": "Phantom",
@@ -363,7 +363,7 @@
         "Git4Idea",
         "org.jetbrains.plugins.github"
       ],
-      "download": "ai-integrations-0.3.17/ai-integrations-0.3.17.zip",
+      "download": "ai-integrations-0.3.18/ai-integrations-0.3.18.zip",
       "detect": []
     },
     {

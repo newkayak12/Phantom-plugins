@@ -6,6 +6,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CustomShortcutSet
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
+import com.intellij.terminal.JBTerminalPanel
 import org.jetbrains.plugins.terminal.LocalTerminalDirectRunner
 import org.jetbrains.plugins.terminal.ShellStartupOptions
 import org.jetbrains.plugins.terminal.ShellTerminalWidget
@@ -51,6 +52,19 @@ internal fun escapeToAgent(component: JComponent, parent: Disposable, send: () -
   }.registerCustomShortcutSet(CustomShortcutSet(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0)), component, parent)
 }
 
+/**
+ * With "Override IDE shortcuts" on (the default) the panel gets keys before actions and the keymap, and outside the Terminal
+ * tool window it moves Esc to the editor by itself. Its pre-key handlers run before that; a consumed key reaches no action.
+ */
+internal fun escapeBeforeThePanel(panel: JBTerminalPanel, send: () -> Unit) {
+  panel.addPreKeyEventHandler { e ->
+    if (e.id == KeyEvent.KEY_PRESSED && e.keyCode == KeyEvent.VK_ESCAPE && e.modifiersEx == 0) {
+      send()
+      e.consume()
+    }
+  }
+}
+
 /** Real terminal: LocalTerminalDirectRunner of the bundled terminal plugin. Call on the EDT. */
 class LocalTerminalStarter(private val project: Project) : TerminalStarter {
   override fun start(parent: Disposable, cwd: String, env: Map<String, String>, command: String): StartedTerminal {
@@ -79,7 +93,9 @@ class LocalTerminalStarter(private val project: Project) : TerminalStarter {
     val jediTerm = ShellTerminalWidget.asShellJediTermWidget(widget)
     if (jediTerm != null) {
       TerminalDrop.install(jediTerm.terminalPanel, parent) { jediTerm.terminalStarter?.sendString(it, true) }
-      escapeToAgent(jediTerm.terminalPanel, parent) { jediTerm.terminalStarter?.sendString(ESC, true) }
+      val sendEscape = { jediTerm.terminalStarter?.sendString(ESC, true); Unit }
+      escapeBeforeThePanel(jediTerm.terminalPanel, sendEscape)
+      escapeToAgent(jediTerm.terminalPanel, parent, sendEscape)
     }
     return StartedTerminal(widget.component, widget.preferredFocusableComponent, jediTerm?.let { JediTermIo(it) }, tmuxSession)
   }
