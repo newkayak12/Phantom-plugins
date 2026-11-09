@@ -5,6 +5,7 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.components.JBRadioButton
 import dev.phantom.ai.accounts.AccountsConfigurable
 import dev.phantom.ai.accounts.AccountsService
+import dev.phantom.ai.accounts.LoginTerminal
 import dev.phantom.ai.core.AgentKind
 import dev.phantom.ai.core.AiState
 import java.awt.Component
@@ -44,9 +45,17 @@ class AccountsConfigurableInIdeTest : BasePlatformTestCase() {
   }
 
   fun testAddedAccountRowCanBeSelectedAndApplied() {
-    val svc = AccountsService.getInstance()
-    val a = svc.add(AgentKind.CODEX, "Work")
-    val c = AccountsConfigurable()
+    val base = java.nio.file.Files.createTempDirectory("accounts")
+    val svc = AccountsService(
+      baseDir = base,
+      installer = { _, _ -> true },
+      terminal = LoginTerminal { _, env, _ ->
+        java.nio.file.Files.writeString(java.nio.file.Path.of(env.getValue("CODEX_HOME"), "auth.json"), """{"OPENAI_API_KEY":"k"}""")
+      },
+      stateProvider = { AiState.getInstance() },
+    )
+    val a = svc.add(AgentKind.CODEX, "Work")!!
+    val c = AccountsConfigurable(svc)
     val ui = c.createComponent()
     val radio = all(ui).filterIsInstance<JBRadioButton>().single { it.name == "CODEX:${a.id}" }
     assertEquals("Work", radio.text)

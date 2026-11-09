@@ -31,10 +31,13 @@ class AccountsNotifyInIdeTest : BasePlatformTestCase() {
       val service = AccountsService(
         baseDir = base,
         installer = { _, _ -> false },
-        terminal = LoginTerminal { command, _, _ -> logins.add(command) },
+        terminal = LoginTerminal { command, env, _ ->
+          logins.add(command)
+          Files.writeString(java.nio.file.Path.of(env.getValue("CLAUDE_CONFIG_DIR"), ".claude.json"), """{"oauthAccount":{}}""")
+        },
         stateProvider = { AiState() },
       )
-      val account = service.add(AgentKind.CLAUDE)
+      val account = service.add(AgentKind.CLAUDE)!!
       assertEquals(1, seen.size)
       val n = seen.single()
       assertEquals("Phantom AI Integration", n.groupId)

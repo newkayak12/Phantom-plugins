@@ -143,23 +143,4 @@ class AgentTerminalInIdeTest : BasePlatformTestCase() {
     dev.phantom.ai.terminal.AgentTabsHost.getInstance(project).close(dev.phantom.ai.terminal.AgentTabsHost.getInstance(project).tabs().single().id)
     assertNull(SessionStore.getInstance().get(a))
   }
-
-  fun testAddingAccountOpensLoginInThisServiceForClaudeAndCodex() {
-    val svc = AccountsService.getInstance()
-    val claude = svc.add(AgentKind.CLAUDE, "t-claude")
-    val codex = svc.add(AgentKind.CODEX, "t-codex")
-    try {
-      assertEquals(2, started.size)
-      assertEquals(LaunchCommand.login(AgentKind.CLAUDE), started[0].command)
-      assertEquals(claude.dir, started[0].env["CLAUDE_CONFIG_DIR"])
-      assertEquals(LaunchCommand.login(AgentKind.CODEX), started[1].command)
-      assertEquals(codex.dir, started[1].env["CODEX_HOME"])
-      assertFalse(started[0].env.containsKey(HookEnv.TAB_ID))
-      assertEquals(2, dev.phantom.ai.terminal.AgentTabsHost.getInstance(project).tabs().size)
-    } finally {
-      svc.remove(AgentKind.CLAUDE, claude.id)
-      svc.remove(AgentKind.CODEX, codex.id)
-      listOf(claude.dir, codex.dir).forEach { java.io.File(it).deleteRecursively() }
-    }
-  }
 }

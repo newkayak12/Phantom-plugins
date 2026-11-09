@@ -140,12 +140,6 @@ class AgentTerminalService(private val project: Project) {
       .forEach { reattach(it.tabId, activate = false) }
   }
 
-  /** Runs [command] in a new terminal tab titled [title] (e.g. a login); [cwd] defaults to the user's home. */
-  @RequiresEdt
-  fun runInTerminal(command: String, env: Map<String, String> = emptyMap(), title: String, cwd: String? = null) {
-    show(title, cwd ?: System.getProperty("user.home"), env, command, tabId = null)
-  }
-
   /** Resume target of [session]: its hook id, else Claude's earliest-created .jsonl that no other session of the worktree owns. */
   private fun fallbackTarget(session: AgentSession, account: AgentAccount?): ResumeTarget.Id? =
     ResumeTarget.forSession(
