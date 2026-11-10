@@ -105,9 +105,9 @@
     {
       "id": "dev.phantom.mybatis",
       "name": "Phantom MyBatis",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "mybatis",
-      "description": "MyBatis mapper support (what MyBatisX does): interface ↔ XML statement gutters, statement id / resultMap / refid / resultType / property references with completion, rename and errors, mapper methods without a statement with a quick fix that writes it, #{...} parameter completion, and SQL highlighting and completion in mapper XML and @Select/@Insert/@Update/@Delete with Phantom Database Console.",
+      "description": "MyBatis mapper support (what MyBatisX does): interface ↔ XML statement gutters, statement id / resultMap / refid / resultType / property references with completion, rename and errors, mapper methods without a statement with a quick fix that writes it, #{...} parameter completion, and SQL highlighting and completion in mapper XML and @Select/@Insert/@Update/@Delete with Phantom Database Console. 0.1.1: Go to Implementation from mapper method calls opens the XML statement; Cmd+click on #{a.b}, <if test>, <foreach collection> and @Select placeholders goes to the parameter, property or foreach item.",
       "vendor": "Phantom",
       "since": "262",
       "until": "262.*",
@@ -116,7 +116,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "mybatis-0.1.0/mybatis-0.1.0.zip",
+      "download": "mybatis-0.1.1/mybatis-0.1.1.zip",
       "detect": [
         "org.mybatis:mybatis",
         "org.mybatis.spring.boot:mybatis-spring-boot-starter",

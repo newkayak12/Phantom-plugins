@@ -23,6 +23,10 @@
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.mybatis.MapperJavaLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="XML" implementationClass="dev.phantom.mybatis.MapperXmlLineMarkerProvider"/>
     <psi.referenceContributor language="XML" implementation="dev.phantom.mybatis.MapperReferenceContributor"/>
+    <psi.referenceContributor language="XML" implementation="dev.phantom.mybatis.MapperParameterReferenceContributor"/>
+    <psi.referenceContributor language="JAVA" implementation="dev.phantom.mybatis.MapperParameterReferenceContributor"/>
+    <gotoDeclarationHandler implementation="dev.phantom.mybatis.MapperXmlGotoDeclarationHandler"/>
+    <definitionsScopedSearch implementation="dev.phantom.mybatis.MapperDefinitionsSearch"/>
     <completion.contributor language="XML" implementationClass="dev.phantom.mybatis.MapperParameterCompletionContributor"/>
     <completion.contributor language="JAVA" implementationClass="dev.phantom.mybatis.MapperParameterCompletionContributor"/>
     <typedHandler implementation="dev.phantom.mybatis.MapperParameterTypedHandler"/>

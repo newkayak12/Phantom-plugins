@@ -201,4 +201,61 @@ class MyBatisTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals("SQL", injected!!.single().language.id)
     assertEquals("select id from users  WHERE name = ?", injected.single().text)
   }
+
+  fun testGoToImplementationFromCallSite() {
+    addMapper(statements)
+    myFixture.configureByText("UserService.java", """
+      package app;
+      class UserService { UserMapper mapper; User get() { return mapper.find<caret>ById(1L); } }
+    """.trimIndent())
+    val method = myFixture.elementAtCaret as PsiMethod
+    val targets = com.intellij.psi.search.searches.DefinitionsScopedSearch.search(method).findAll()
+    assertEquals(listOf("select"), targets.map { (it as XmlTag).name })
+    val mapper = myFixture.findClass("app.UserMapper")
+    assertEquals(listOf("mapper"), com.intellij.psi.search.searches.DefinitionsScopedSearch.search(mapper).findAll().map { (it as XmlTag).name })
+  }
+
+  private fun resolveIn(file: com.intellij.psi.PsiFile, marker: String, at: Int): String? {
+    val offset = file.text.indexOf(marker) + at
+    val e = file.findReferenceAt(offset)?.resolve()
+            ?: MapperXmlGotoDeclarationHandler().getGotoDeclarationTargets(file.findElementAt(offset), offset, null)?.singleOrNull()
+            ?: return null
+    return when (e) {
+      is XmlAttributeValue -> "attr:" + e.value
+      is com.intellij.psi.PsiParameter -> "param:" + e.name
+      is PsiNamedElement -> e.javaClass.simpleName.removePrefix("Psi").removeSuffix("Impl") + ":" + e.name
+      else -> e.toString()
+    }
+  }
+
+  fun testPlaceholderJumps() {
+    val file = addMapper("""
+      <select id="findAll" resultType="app.User">select * from users
+        <where>
+          <if test="name != null and name.length() > 0">name = #{name, jdbcType=VARCHAR}</if>
+          <if test="ids != null">id in <foreach collection="ids" item="uid" separator=",">#{uid}</foreach></if>
+          and x = #{param1}
+        </where>
+      </select>
+      <insert id="insertUser">insert into users(name, city) values (#{name}, #{address.city})</insert>
+    """)
+    assertEquals("param:name", resolveIn(file, "#{name, jdbc", 3))
+    assertEquals("param:name", resolveIn(file, "test=\"name !=", 7))
+    assertEquals("param:name", resolveIn(file, "and name.length", 5))
+    assertNull("method call", resolveIn(file, "name.length()", 6))
+    assertEquals("param:ids", resolveIn(file, "collection=\"ids", 13))
+    assertEquals("attr:uid", resolveIn(file, "#{uid}", 3))
+    assertEquals("param:name", resolveIn(file, "#{param1}", 3))
+    assertEquals("Field:name", resolveIn(file, "values (#{name}", 10))
+    assertEquals("Field:address", resolveIn(file, "#{address.city}", 3))
+    assertEquals("Field:city", resolveIn(file, "#{address.city}", 11))
+  }
+
+  fun testAnnotationPlaceholderJumpsAndUsages() {
+    val mapper = myFixture.findClass("app.UserMapper")
+    val file = mapper.containingFile
+    assertEquals("param:id", resolveIn(file, "#{id}", 3))
+    val usages = myFixture.findUsages(mapper.findMethodsByName("annotated", false).single().parameterList.parameters.single())
+    assertEquals(1, usages.size)
+  }
 }
