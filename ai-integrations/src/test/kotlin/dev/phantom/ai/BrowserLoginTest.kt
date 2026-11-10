@@ -29,7 +29,8 @@ class BrowserLoginTest {
 
   @Test fun stdinStaysOpen() {
     val file = tmp.root.toPath().resolve("stdin")
-    BrowserLogin.await(sh("""cat <&0 >/dev/null & p=${'$'}!; sleep 1; if kill -0 ${'$'}p 2>/dev/null; then echo open; else echo closed; fi > "$file"; kill ${'$'}p"""), emptyMap(), 10_000) {}
+    // fd 3: a POSIX sh (dash on Linux) gives a background job /dev/null as stdin before `<&0` is applied
+    BrowserLogin.await(sh("""exec 3<&0; cat <&3 >/dev/null & p=${'$'}!; sleep 1; if kill -0 ${'$'}p 2>/dev/null; then echo open; else echo closed; fi > "$file"; kill ${'$'}p 2>/dev/null; exit 0"""), emptyMap(), 10_000) {}
     assertEquals("open", Files.readString(file).trim())
   }
 
