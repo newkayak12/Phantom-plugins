@@ -17,6 +17,11 @@
     <plugin id="com.intellij.java"/>
   </dependencies>
 
+  <!-- with Phantom Database Console: syntax errors, run icons and formatting for mapper SQL -->
+  <content namespace="jetbrains">
+    <module name="phantom.mybatis.db"/>
+  </content>
+
   <resource-bundle>messages.PhantomMyBatisBundle</resource-bundle>
   <extensions defaultExtensionNs="com.intellij">
     <fileBasedIndex implementation="dev.phantom.mybatis.MapperNamespaceIndex"/>

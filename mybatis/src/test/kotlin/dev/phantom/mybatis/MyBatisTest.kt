@@ -180,14 +180,14 @@ class MyBatisTest : LightJavaCodeInsightFixtureTestCase() {
       </select>
     """)
     val tag = MyBatis.statements(file).single()
-    val sql = MapperSql.text(MapperSql.places(tag)!!).replace(Regex("\\s+"), " ").trim()
-    assertEquals("select * from users WHERE and name = ? and id in (?) and x &lt; 3 and y > 2", sql)
+    val sql = MapperSql.text(MapperSql.places(MapperSql.chunks(tag)!!)).replace(Regex("\\s+"), " ").trim()
+    assertEquals("select * from users WHERE 1=1 and name = ? and id in (?) and x &lt; 3 and y > 2", sql)
   }
 
   fun testAnnotationSqlPieces() {
     val method = myFixture.findClass("app.UserMapper").findMethodsByName("annotated", false).single()
     val annotation = method.getAnnotation("org.apache.ibatis.annotations.Select")!!
-    assertEquals("select * from users where id = ?", MapperSql.text(MapperSql.places(annotation)!!))
+    assertEquals("select * from users where id = ?", MapperSql.text(MapperSql.places(MapperSql.chunks(annotation)!!)))
   }
 
   fun testSqlIsInjectedIntoStatements() {
@@ -199,7 +199,7 @@ class MyBatisTest : LightJavaCodeInsightFixtureTestCase() {
     val injected = com.intellij.lang.injection.InjectedLanguageManager.getInstance(project).getInjectedPsiFiles(host)?.map { it.first as com.intellij.psi.PsiFile }
     assertNotNull("SQL injected", injected)
     assertEquals("SQL", injected!!.single().language.id)
-    assertEquals("select id from users  WHERE name = ?", injected.single().text)
+    assertEquals("select id from users  WHERE name = ? ", injected.single().text)
   }
 
   fun testGoToImplementationFromCallSite() {
@@ -257,5 +257,80 @@ class MyBatisTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals("param:id", resolveIn(file, "#{id}", 3))
     val usages = myFixture.findUsages(mapper.findMethodsByName("annotated", false).single().parameterList.parameters.single())
     assertEquals(1, usages.size)
+  }
+
+  private fun sqlOf(file: com.intellij.psi.PsiFile, id: String, mode: MapperSql.Mode = MapperSql.Mode.EDIT): String {
+    val tag = MyBatis.mapperRoot(file)!!.subTags.first { it.getAttributeValue("id") == id }
+    val chunks = MapperSql.chunks(tag, mode)!!
+    return (if (mode == MapperSql.Mode.RUN) MapperSql.runnable(chunks) else MapperSql.text(MapperSql.places(chunks))).replace(Regex("\\s+"), " ").trim()
+  }
+
+  fun testDynamicTagsAsMyBatisBuildsThem() {
+    val file = addMapper("""
+      <sql id="cols">id, name</sql>
+      <select id="findById" resultType="app.User">select <include refid="cols"/> from users where id = #{id}</select>
+      <update id="updateUser">update users
+        <set><if test="name != null">name = #{name},</if><if test="city != null">city = #{address.city},</if></set>
+        where id = #{id}</update>
+      <select id="findAll" resultType="app.User">select * from users
+        <trim prefix="WHERE" prefixOverrides="AND |OR "><if test="name != null">AND name = #{name}</if></trim>
+        <choose><when test="ids != null">order by id</when><otherwise>order by name</otherwise></choose>
+      </select>
+    """)
+    assertEquals("select id, name from users where id = ?", sqlOf(file, "findById"))
+    assertEquals("update users SET name = ?, city = ? where id = ?", sqlOf(file, "updateUser"))
+    assertEquals("select * from users WHERE name = ? order by id order by name", sqlOf(file, "findAll"))
+    assertEquals("select * from users WHERE name = :name order by id", sqlOf(file, "findAll", MapperSql.Mode.RUN))
+    assertEquals("update users SET name = :name, city = :address_city where id = :id", sqlOf(file, "updateUser", MapperSql.Mode.RUN))
+    assertEquals("select id, name from users where id = :id", sqlOf(file, "findById", MapperSql.Mode.RUN))
+  }
+
+  fun testWholeStatements() {
+    val file = addMapper("""
+      <select id="findById" resultType="app.User">select * from users <where><if test="id != null">and id = #{id}</if></where></select>
+      <select id="findAll" resultType="app.User">select * from ${'$'}{table}</select>
+      <select id="annotated" resultType="app.User">select * from users <choose><when test="a">order by id</when></choose></select>
+    """)
+    val tags = MyBatis.statements(file).associateBy { it.getAttributeValue("id") }
+    assertTrue(MapperSql.isWhole(tags["findById"]!!))
+    assertFalse("\${'$'}{} may be a name", MapperSql.isWhole(tags["findAll"]!!))
+    assertFalse("choose keeps every branch", MapperSql.isWhole(tags["annotated"]!!))
+  }
+
+  fun testSyntaxErrorsInWholeStatementsOnly() {
+    val file = addMapper("""
+      <select id="findById" resultType="app.User">select id, from users</select>
+      <select id="findAll" resultType="app.User">select id, from ${'$'}{table}</select>
+      <update id="insertUser">update users <set><if test="name != null">name = #{name},</if></set> where id = #{id}</update>
+    """)
+    myFixture.configureFromExistingVirtualFile(file.virtualFile)
+    val errors = myFixture.doHighlighting(com.intellij.lang.annotation.HighlightSeverity.ERROR)
+    val lines = errors.map { myFixture.editor.document.getLineNumber(it.startOffset) }.distinct()
+    val findById = myFixture.editor.document.getLineNumber(file.text.indexOf("\"findById\""))
+    assertEquals(errors.joinToString { it.description + "@" + it.text }, listOf(findById), lines)
+  }
+
+  fun testReformatFormatsPlainStatements() {
+    val file = addMapper("""
+      <select id="findById" resultType="app.User">select id,name from users where id=#{id} and name = #{name}</select>
+      <select id="findAll" resultType="app.User">select * from users <where>name = #{name}</where></select>
+    """)
+    myFixture.configureFromExistingVirtualFile(file.virtualFile)
+    com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction(project) {
+      com.intellij.psi.codeStyle.CodeStyleManager.getInstance(project).reformat(myFixture.file)
+    }
+    val text = myFixture.editor.document.text
+    val select = text.substring(text.indexOf("<select id=\"findById\""), text.indexOf("</select>") + 9)
+    println("FORMATTED\n" + select)
+    assertTrue(select, select.contains("#{id}") && select.contains("#{name}") && !select.contains("?"))
+    assertTrue(select, select.lines().size >= 4)
+    assertTrue("dynamic statements stay", text.contains("<where>name = #{name}</where>"))
+  }
+
+  fun testRunGutterOnStatements() {
+    addMapper(statements)
+    myFixture.configureFromExistingVirtualFile(myFixture.findFileInTempDir("app/UserMapper.xml"))
+    val runs = myFixture.findAllGutters().count { it.tooltipText == "Run in Phantom Database Console" }
+    assertEquals(4, runs)
   }
 }

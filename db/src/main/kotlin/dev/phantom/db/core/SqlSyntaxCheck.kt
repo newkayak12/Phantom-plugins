@@ -6,6 +6,7 @@ import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.lang.injection.InjectedLanguageManager
+import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
@@ -198,10 +199,30 @@ internal object SqlSyntaxCheck {
   private val AFTER_TABLE = listOf("WHERE", "JOIN")
 }
 
-/** Shows [SqlSyntaxCheck]'s problems as errors while typing. Not in SQL injected into code: such a string may be half a statement. */
+/**
+ * SQL that another plugin injects as whole statements (MyBatis mapper statements), so its syntax errors are real.
+ * Other injected SQL may be half a statement and gets no syntax errors.
+ */
+interface SqlWholeInjection {
+  /** [file] is SQL injected by this plugin, and reads as whole statements. */
+  fun isWhole(file: PsiFile): Boolean
+
+  companion object {
+    val EP_NAME: ExtensionPointName<SqlWholeInjection> = ExtensionPointName.create("dev.phantom.db.wholeInjection")
+
+    fun isWhole(file: PsiFile): Boolean = EP_NAME.extensionList.any { it.isWhole(file) }
+  }
+}
+
+/**
+ * Shows [SqlSyntaxCheck]'s problems as errors while typing. Not in SQL injected into code, which may be half a
+ * statement, unless a [SqlWholeInjection] says it is whole.
+ */
 class SqlSyntaxAnnotator : Annotator, DumbAware {
   override fun annotate(element: PsiElement, holder: AnnotationHolder) {
-    if (element !is SqlStatement || InjectedLanguageManager.getInstance(element.project).isInjectedFragment(element.containingFile)) return
+    if (element !is SqlStatement) return
+    if (InjectedLanguageManager.getInstance(element.project).isInjectedFragment(element.containingFile) &&
+        !SqlWholeInjection.isWhole(element.containingFile)) return
     if (dev.phantom.db.core.ui.DbFilterContext.of(element.containingFile) != null) return
     val base = element.textRange.startOffset
     for (problem in SqlSyntaxCheck.check(element.text)) {

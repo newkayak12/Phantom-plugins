@@ -102,6 +102,18 @@ object MyBatis {
   fun tagsById(root: XmlTag, names: Set<String>, id: String): List<XmlTag> =
     root.subTags.filter { it.name in names && it.getAttributeValue("id") == id }
 
+  /** The `<resultMap>` / `<sql>` ([kind]) that [id] names from the mapper file of [from]: here, or `other.Mapper.id`. */
+  fun findTag(from: PsiElement, kind: String, id: String): XmlTag? {
+    val name = id.trim()
+    val root = mapperRoot(from.containingFile) ?: return null
+    tagsById(root, setOf(kind), name).firstOrNull()?.let { return it }
+    val dot = name.lastIndexOf('.')
+    if (dot <= 0) return null
+    return mapperFiles(from.project, name.substring(0, dot)).firstNotNullOfOrNull { file ->
+      mapperRoot(file)?.let { tagsById(it, setOf(kind), name.substring(dot + 1)).firstOrNull() }
+    }
+  }
+
   /** The XML statements of a mapper method, from the XML files of the interface it is declared in. */
   fun statementsFor(method: PsiMethod): List<XmlTag> {
     val mapper = method.containingClass ?: return emptyList()

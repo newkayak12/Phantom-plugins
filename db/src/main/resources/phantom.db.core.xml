@@ -1,4 +1,4 @@
-<idea-plugin package="dev.phantom.db.core">
+<idea-plugin package="dev.phantom.db.core" visibility="internal">
   <dependencies>
     <module name="intellij.grid"/>
     <module name="intellij.grid.core.impl"/>
@@ -8,6 +8,7 @@
   <resource-bundle>messages.PhantomDbBundle</resource-bundle>
   <extensionPoints>
     <extensionPoint qualifiedName="dev.phantom.db.mappings" interface="dev.phantom.db.core.SqlDbMappings" dynamic="true"/>
+    <extensionPoint qualifiedName="dev.phantom.db.wholeInjection" interface="dev.phantom.db.core.SqlWholeInjection" dynamic="true"/>
   </extensionPoints>
   <extensions defaultExtensionNs="com.intellij">
     <fileType name="Phantom SQL" language="SQL" extensions="sql"

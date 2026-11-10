@@ -98,16 +98,7 @@ class StatementIdReference(value: XmlAttributeValue) : PsiReferenceBase<XmlAttri
 class TagIdReference(value: XmlAttributeValue, private val kind: String) : PsiReferenceBase<XmlAttributeValue>(value, true) {
   override fun resolve(): PsiElement? = target()?.getAttribute("id")?.valueElement
 
-  fun target(): XmlTag? {
-    val id = element.value.trim()
-    val root = MyBatis.mapperRoot(element.containingFile) ?: return null
-    MyBatis.tagsById(root, setOf(kind), id).firstOrNull()?.let { return it }
-    val dot = id.lastIndexOf('.')
-    if (dot <= 0) return null
-    return MyBatis.mapperFiles(element.project, id.substring(0, dot)).firstNotNullOfOrNull { file ->
-      MyBatis.mapperRoot(file)?.let { MyBatis.tagsById(it, setOf(kind), id.substring(dot + 1)).firstOrNull() }
-    }
-  }
+  fun target(): XmlTag? = MyBatis.findTag(element, kind, element.value)
 
   override fun getVariants(): Array<Any> {
     val root = MyBatis.mapperRoot(element.containingFile) ?: return emptyArray()
