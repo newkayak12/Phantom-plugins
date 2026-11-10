@@ -5,6 +5,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.testFramework.HeavyPlatformTestCase
 import com.intellij.testFramework.IndexingTestUtil
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.PsiTestUtil
 import dev.phantom.ai.mcp.IdeCodeIndex
 import dev.phantom.ai.mcp.McpToolError
@@ -20,7 +21,10 @@ class IdeCodeIndexInIdeTest : HeavyPlatformTestCase() {
     super.setUp()
     base = Path.of(project.basePath!!)
     write("api/src/Inside.java", "public class Inside {}")
-    write("other/src/Outside.java", "public class Outside {}")
+    write("other/src/Outside.java", "public class Outside { Inside ref; }")
+    write("api/src/Calc.java", "public class Calc {\n  static int twice(int x) { return x * 2; }\n}\n")
+    write("api/src/UseCalc.java", "class UseCalc {\n  int f() { return Calc.twice(1); }\n}\n")
+    write("api/src/Broken.java", "class Broken {\n  int f() { return missing(); }\n}\n")
     for (root in listOf("api/src", "other/src")) PsiTestUtil.addSourceRoot(module, LocalFileSystem.getInstance().refreshAndFindFileByNioFile(base.resolve(root))!!)
     IndexingTestUtil.waitUntilIndexesAreReady(project)
   }
@@ -45,6 +49,46 @@ class IdeCodeIndexInIdeTest : HeavyPlatformTestCase() {
     assertEquals("src/Inside.java", offEdt { index.findFile(api, "Inside", 5) })
     assertEquals("No symbol matches \"Outside\" in this workspace.", offEdt { index.findSymbol(api, "Outside", 5) })
     assertEquals(McpToolError::class.java, runCatching { offEdt { index.fileOutline(api, "../other/src/Outside.java") } }.exceptionOrNull()?.javaClass)
+  }
+
+  /** Off the EDT while the EDT keeps running: rename and the analysis wait for it. */
+  private fun <T> offEdtPumping(block: () -> T): T {
+    val future = ApplicationManager.getApplication().executeOnPooledThread<Result<T>> { runCatching(block) }
+    val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(60)
+    while (!future.isDone) {
+      check(System.nanoTime() < deadline) { "timed out" }
+      PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+      Thread.sleep(10)
+    }
+    return future.get().getOrThrow()
+  }
+
+  private val api get() = base.resolve("api").toString()
+
+  fun testProblemsAreTheFilesErrors() {
+    val broken = offEdtPumping { index.fileProblems(api, "src/Broken.java", false) }
+    assertTrue(broken, broken.startsWith("src/Broken.java:2  ERROR  ") && broken.contains("missing"))
+    assertEquals("No errors in src/Calc.java.", offEdtPumping { index.fileProblems(api, "src/Calc.java", false) })
+  }
+
+  fun testProblemsSeeWhatTheAgentJustWrote() {
+    Files.writeString(base.resolve("api/src/Calc.java"), "public class Calc {\n  static int twice(int x) { return nope; }\n}\n")
+    assertTrue(offEdtPumping { index.fileProblems(api, "src/Calc.java", false) }.startsWith("src/Calc.java:2  ERROR  "))
+  }
+
+  fun testRenameChangesTheReferencesAndSavesThem() {
+    val said = offEdtPumping { index.rename(api, "src/UseCalc.java", 2, "twice", "doubled") }
+    assertTrue(said, said.startsWith("Renamed twice to doubled: ") && said.endsWith("saved 2 files:\nsrc/Calc.java\nsrc/UseCalc.java"))
+    assertEquals("class UseCalc {\n  int f() { return Calc.doubled(1); }\n}\n", Files.readString(base.resolve("api/src/UseCalc.java")))
+    assertTrue(Files.readString(base.resolve("api/src/Calc.java")).contains("static int doubled(int x)"))
+  }
+
+  fun testRenameRefusesAChangeOutsideTheWorktree() {
+    val error = runCatching { offEdtPumping { index.rename(api, "src/Inside.java", 1, "Inside", "Within") } }.exceptionOrNull()
+    assertInstanceOf(error, McpToolError::class.java)
+    assertTrue(error!!.message, error.message!!.contains("outside this workspace"))
+    assertEquals("public class Inside {}", Files.readString(base.resolve("api/src/Inside.java")))
+    assertEquals("public class Outside { Inside ref; }", Files.readString(base.resolve("other/src/Outside.java")))
   }
 
   fun testAWorkspaceNotOpenIsToldSo() {

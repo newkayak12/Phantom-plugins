@@ -56,6 +56,43 @@ class CodeIndexInIdeTest : BasePlatformTestCase() {
     assertThrows(McpToolError::class.java) { ReadAction.run<Exception> { queries.usages(order, 99, "total", 10) } }
   }
 
+  fun testSymbolInfoFromAUseGivesTheDeclarationSignatureAndDoc() {
+    val doc = myFixture.addFileToProject("shop/Prices.java", """
+      package shop;
+      public class Prices {
+        /**
+         * Price after tax.
+         * @param net before tax
+         */
+        public static int gross(int net) { return net + 1; }
+        int use() { return gross(2); }
+      }
+    """.trimIndent()).virtualFile
+    assertEquals(
+      "Prices.java:7  public static int gross(int net) { return net + 1; }\npublic static int gross(int net)\nPrice after tax. @param net before tax",
+      ReadAction.compute<String, Exception> { queries.symbolInfo(doc, 8, "gross") },
+    )
+  }
+
+  fun testCallsListCallersWithTheirMemberAndWhatItCalls() {
+    myFixture.addFileToProject("shop/Cart.java", """
+      package shop;
+      public class Cart {
+        int sum(OrderService orders) { return orders.total(1) + tax(); }
+        int tax() { return 0; }
+      }
+    """.trimIndent())
+    val callers = ReadAction.compute<String, Exception> { queries.calls(order, 3, "total", 10) }.lines()
+    assertEquals("Called from:", callers[0])
+    assertTrue(callers.toString(), callers.contains("Checkout.java:3  [pay(OrderService): int]  int pay(OrderService orders) { return orders.total(3); }"))
+    assertTrue(callers.toString(), callers.any { it.startsWith("Cart.java:3  [sum(OrderService): int]") })
+    assertEquals("nothing in this workspace", callers.last())
+
+    val cart = ReadAction.compute<String, Exception> { queries.calls(myFixture.findFileInTempDir("shop/Cart.java"), 3, "sum", 10) }.lines()
+    assertEquals(listOf("Called from:", "nowhere in this workspace", "Calls:"), cart.take(3))
+    assertEquals(setOf("OrderService.java:3  public int total(int price) { return price * 2; }", "Cart.java:4  int tax() { return 0; }"), cart.drop(3).toSet())
+  }
+
   fun testOutlineGivesDeclarationsWithLines() {
     val outline = ReadAction.compute<String, Exception> { queries.outline(order) }.lines()
     assertEquals("2  OrderService", outline[0])

@@ -89,8 +89,12 @@ class PhantomMcp(private val bridge: EditorBridge, private val index: CodeIndex,
         CONTEXT -> text(bridge.context(worktree).toString())
         FIND_SYMBOL -> text(index.findSymbol(worktree, required(args, "query"), limit(args)))
         FIND_FILE -> text(index.findFile(worktree, required(args, "query"), limit(args)))
-        FIND_USAGES -> text(index.findUsages(worktree, required(args, "path"), int(args, "line") ?: throw McpToolError("line is required"), required(args, "name"), limit(args)))
+        FIND_USAGES -> text(index.findUsages(worktree, required(args, "path"), line(args), required(args, "name"), limit(args)))
         OUTLINE -> text(index.fileOutline(worktree, required(args, "path")))
+        SYMBOL_INFO -> text(index.symbolInfo(worktree, required(args, "path"), line(args), required(args, "name")))
+        CALLS -> text(index.calls(worktree, required(args, "path"), line(args), required(args, "name"), limit(args)))
+        PROBLEMS -> text(index.fileProblems(worktree, required(args, "path"), args.get("warnings")?.takeIf { it.isJsonPrimitive }?.asString == "true"))
+        RENAME -> text(index.rename(worktree, required(args, "path"), line(args), required(args, "name"), required(args, "new_name")))
         else -> text("Unknown tool: $name", isError = true)
       }
     } catch (e: McpToolError) {
@@ -126,9 +130,29 @@ class PhantomMcp(private val bridge: EditorBridge, private val index: CodeIndex,
     add(tool(OUTLINE, OUTLINE_DESCRIPTION, JsonObject().apply {
       add("path", prop("string", "File path, absolute or relative to your working directory."))
     }, required = listOf("path"), readOnly = true))
+    add(tool(SYMBOL_INFO, SYMBOL_INFO_DESCRIPTION, symbolAt(), required = listOf("path", "line", "name"), readOnly = true))
+    add(tool(CALLS, CALLS_DESCRIPTION, symbolAt().apply {
+      add("limit", prop("integer", "Most results per list (default $DEFAULT_LIMIT)."))
+    }, required = listOf("path", "line", "name"), readOnly = true))
+    add(tool(PROBLEMS, PROBLEMS_DESCRIPTION, JsonObject().apply {
+      add("path", prop("string", "File path, absolute or relative to your working directory."))
+      add("warnings", prop("boolean", "Warnings too (default: errors only)."))
+    }, required = listOf("path"), readOnly = true))
+    add(tool(RENAME, RENAME_DESCRIPTION, symbolAt().apply {
+      add("new_name", prop("string", "The new name."))
+    }, required = listOf("path", "line", "name", "new_name")))
+  }
+
+  /** A symbol named where it is written: the arguments find_usages also takes. */
+  private fun symbolAt() = JsonObject().apply {
+    add("path", prop("string", "File holding the symbol or a use of it."))
+    add("line", prop("integer", "1-based line where the name is written."))
+    add("name", prop("string", "The symbol's name on that line."))
   }
 
   private fun required(args: JsonObject, key: String): String = string(args, key) ?: throw McpToolError("$key is required")
+
+  private fun line(args: JsonObject): Int = int(args, "line") ?: throw McpToolError("line is required")
 
   private fun limit(args: JsonObject): Int = (int(args, "limit") ?: DEFAULT_LIMIT).coerceIn(1, MAX_LIMIT)
 
@@ -177,6 +201,10 @@ class PhantomMcp(private val bridge: EditorBridge, private val index: CodeIndex,
     const val FIND_FILE = "find_file"
     const val FIND_USAGES = "find_usages"
     const val OUTLINE = "file_outline"
+    const val SYMBOL_INFO = "get_symbol_info"
+    const val CALLS = "analyze_calls"
+    const val PROBLEMS = "get_file_problems"
+    const val RENAME = "rename_refactoring"
 
     private const val DEFAULT_LIMIT = 30
     private const val MAX_LIMIT = 200
@@ -193,7 +221,8 @@ class PhantomMcp(private val bridge: EditorBridge, private val index: CodeIndex,
         "the line you changed, the cause of a bug), open it with open_in_editor instead of only printing the path. When the " +
         "user says \"this\", \"here\" or refers to what they are looking at, read get_editor_context first. To find code, " +
         "ask the IDE's index before searching or reading files: find_symbol, find_file, find_usages, and file_outline before " +
-        "reading a whole file; then read only the lines you need. If one says it cannot answer, use your own search."
+        "reading a whole file; then read only the lines you need. If one says it cannot answer, use your own search. " +
+        "After editing a file, get_file_problems shows its errors without a build; rename symbols with rename_refactoring."
 
     private const val OPEN_DESCRIPTION =
       "Opens a file in the user's Phantom editor at a line, selects up to end_line and brings it to front. Use it whenever " +
@@ -215,5 +244,17 @@ class PhantomMcp(private val bridge: EditorBridge, private val index: CodeIndex,
 
     private const val OUTLINE_DESCRIPTION =
       "The declarations of a file with their lines, nested: its structure without reading it. Use it before reading a large file."
+
+    private const val SYMBOL_INFO_DESCRIPTION = "Where a symbol is declared, its signature and doc comment, without reading its file."
+
+    private const val CALLS_DESCRIPTION =
+      "Who calls a function or method, each with the [member] the call is in, and what it calls in this workspace."
+
+    private const val PROBLEMS_DESCRIPTION =
+      "A file's errors from the IDE's analysis (warnings with warnings=true), as path:line  ERROR  message. Faster than a build."
+
+    private const val RENAME_DESCRIPTION =
+      "Renames a symbol and all its references in this workspace with the IDE's Rename, and saves the changed files. " +
+        "Refuses on a name conflict or a change outside this workspace."
   }
 }
