@@ -28,6 +28,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom Spring | [spring](./spring/KOR.md) · [English](./spring/README.md) | 빈 주입 이동, 자동 주입 검사, Spring MVC 엔드포인트, Security 경로·표현식, Kafka·RabbitMQ·JMS 이동 (Java, Kotlin) |
 | Phantom Spring Boot | [spring-boot](./spring-boot/KOR.md) · [English](./spring-boot/README.md) | Spring Initializr로 새 Spring Boot 프로젝트 만들기, `application.yml` / `.properties` 키·값 자동완성과 문서 |
 | Phantom JPA | [jpa](./jpa/KOR.md) · [English](./jpa/README.md) | `@Query` 안의 JPQL, 파생 쿼리·`@Modifying` 검사, 엔티티 매핑 검사, 리포지토리·엔티티 이동 |
+| Phantom MyBatis | [mybatis](./mybatis/KOR.md) · [English](./mybatis/README.md) | 매퍼 인터페이스 ↔ XML 이동, statement / resultMap / property 참조와 오류, 빠진 statement 빠른 수정, `#{}` 자동완성, 매퍼 XML 안 SQL |
 | Phantom Reactive Streams | [reactive-streams](./reactive-streams/KOR.md) · [English](./reactive-streams/README.md) | 구독하지 않은 `Mono`/`Flux`, 연산자 안의 블로킹 호출 (Reactor, RxJava) |
 | Phantom Ktor | [ktor](./ktor/KOR.md) · [English](./ktor/README.md) | Ktor 라우트를 Endpoints 툴 윈도우에 표시 (`Route` 확장 함수 안의 라우트 포함) |
 | Phantom Kubernetes | [kubernetes](./kubernetes/KOR.md) · [English](./kubernetes/README.md) | Helm 템플릿: `.Values` 자동완성, 이동, 없는 값 경고 |

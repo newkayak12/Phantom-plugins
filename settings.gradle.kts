@@ -51,6 +51,7 @@ include("bytecode")
 include("webp")
 include("modal-commit")
 include("cpu")
+include("mybatis")
 
 // Real-IDE probe (see realide-probe/): only with -PrealIde, never part of CI or the marketplace
 if (providers.gradleProperty("realIde").isPresent) {

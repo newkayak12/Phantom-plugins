@@ -28,6 +28,7 @@ Public repositories need no token.
 | Phantom Spring | [spring](./spring/README.md) · [한국어](./spring/KOR.md) | Bean injection navigation, autowiring inspection, Spring MVC endpoints, Security paths and expressions, Kafka/RabbitMQ/JMS navigation (Java and Kotlin) |
 | Phantom Spring Boot | [spring-boot](./spring-boot/README.md) · [한국어](./spring-boot/KOR.md) | New Spring Boot projects with Spring Initializr; `application.yml` / `.properties` key and value completion and docs |
 | Phantom JPA | [jpa](./jpa/README.md) · [한국어](./jpa/KOR.md) | JPQL in `@Query`, derived query and `@Modifying` checks, entity mapping checks, repository/entity navigation |
+| Phantom MyBatis | [mybatis](./mybatis/README.md) · [한국어](./mybatis/KOR.md) | Mapper interface ↔ XML navigation, statement / resultMap / property references and errors, missing statements with a fix, `#{}` completion, SQL in mapper XML |
 | Phantom Reactive Streams | [reactive-streams](./reactive-streams/README.md) · [한국어](./reactive-streams/KOR.md) | Unsubscribed `Mono`/`Flux` and blocking calls inside operators (Reactor, RxJava) |
 | Phantom Ktor | [ktor](./ktor/README.md) · [한국어](./ktor/KOR.md) | Ktor routes in the Endpoints tool window, including routes in `Route` extension functions |
 | Phantom Kubernetes | [kubernetes](./kubernetes/README.md) · [한국어](./kubernetes/KOR.md) | Helm templates: `.Values` completion, navigation and missing-value warnings |
