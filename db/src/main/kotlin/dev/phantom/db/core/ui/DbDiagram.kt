@@ -105,7 +105,7 @@ class DbDiagramPanel(val model: DbDiagramModel) : JPanel() {
   private var offset = Point(0, 0)
 
   init {
-    background = UIUtil.getPanelBackground()
+    background = DbTableCard.CANVAS
     relayout()
     val mouse = object : MouseAdapter() {
       var dragged: DbTableRef? = null
@@ -164,25 +164,16 @@ class DbDiagramPanel(val model: DbDiagramModel) : JPanel() {
 
   private fun toModel(p: Point): Point = Point(((p.x - offset.x) / zoom).toInt(), ((p.y - offset.y) / zoom).toInt())
 
-  private fun lineHeight(fm: FontMetrics) = fm.height + JBUI.scale(2)
+  private fun rows(t: DbDiagramTable) = t.columns.map { DbCardRow(it.name, it.typeName.lowercase(), it.primaryKey, it.name in t.fkColumns) }
 
-  private fun size(t: DbDiagramTable, title: FontMetrics, column: FontMetrics): Dimension {
-    val pad = JBUI.scale(8)
-    val texts = t.columns.map { columnText(it, t) }
-    val width = maxOf(title.stringWidth(t.ref.name), texts.maxOfOrNull { column.stringWidth(it) } ?: 0) + 2 * pad
-    val height = lineHeight(title) + pad + t.columns.size * lineHeight(column) + pad
-    return Dimension(maxOf(width, JBUI.scale(120)), height)
-  }
-
-  private fun columnText(c: DbColumnInfo, t: DbDiagramTable): String {
-    val mark = listOfNotNull(if (c.primaryKey) "PK" else null, if (c.name in t.fkColumns) "FK" else null).joinToString(",")
-    return (if (mark.isEmpty()) "     " else "$mark ").padEnd(6) + c.name + "  " + c.typeName.lowercase()
-  }
+  private fun size(t: DbDiagramTable, title: FontMetrics, column: FontMetrics): Dimension = DbTableCard.size(title, column, t.ref.name, rows(t))
 
   override fun paintComponent(g: Graphics) {
     super.paintComponent(g)
     val g2 = g.create() as Graphics2D
     try {
+      g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+      DbTableCard.paintGrid(g2, width, height, offset, zoom)
       g2.translate(offset.x, offset.y)
       g2.scale(zoom, zoom)
       paintDiagram(g2)
@@ -213,65 +204,20 @@ class DbDiagramPanel(val model: DbDiagramModel) : JPanel() {
   private fun paintDiagram(g: Graphics2D) {
     g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
     g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
-    g.stroke = BasicStroke(1.2f)
-    g.color = LINE
+    val title = g.getFontMetrics(titleFont)
+    val column = g.getFontMetrics(columnFont)
+    val tables = model.tables.associateBy { it.ref }
     for (fk in model.foreignKeys) {
       val from = boxes[fk.table] ?: continue
       val to = boxes[fk.refTable] ?: continue
-      drawLink(g, from, to, fk.table == fk.refTable)
+      val fromRow = tables[fk.table]?.columns?.indexOfFirst { it.name == fk.columns.firstOrNull() } ?: -1
+      val toRow = tables[fk.refTable]?.columns?.indexOfFirst { it.name == fk.refColumns.firstOrNull() } ?: -1
+      DbTableCard.drawLink(g, from, DbTableCard.rowY(from, title, column, fromRow), to, DbTableCard.rowY(to, title, column, toRow),
+                           oneToOne = false, label = null, dashed = false)
     }
-    val title = g.getFontMetrics(titleFont)
-    val column = g.getFontMetrics(columnFont)
-    val pad = JBUI.scale(8)
     for (t in model.tables) {
       val r = boxes[t.ref] ?: continue
-      g.color = BOX
-      g.fillRoundRect(r.x, r.y, r.width, r.height, 8, 8)
-      g.color = HEADER
-      g.fillRoundRect(r.x, r.y, r.width, lineHeight(title) + pad / 2, 8, 8)
-      g.color = BORDER
-      g.drawRoundRect(r.x, r.y, r.width, r.height, 8, 8)
-      g.color = UIUtil.getLabelForeground()
-      g.font = titleFont
-      g.drawString(t.ref.name, r.x + pad, r.y + pad / 4 + title.ascent)
-      g.font = columnFont
-      var y = r.y + lineHeight(title) + pad + column.ascent
-      for (c in t.columns) {
-        g.color = if (c.primaryKey) KEY else if (c.name in t.fkColumns) FOREIGN else UIUtil.getLabelForeground()
-        g.drawString(columnText(c, t), r.x + pad, y)
-        y += lineHeight(column)
-      }
-    }
-  }
-
-  companion object {
-    internal val BOX = JBColor(Color(0xFAFAFA), Color(0x2B2D30))
-    internal val HEADER = JBColor(Color(0xDDE7F5), Color(0x35425A))
-    internal val BORDER = JBColor(Color(0x9AA7B8), Color(0x5A6372))
-    internal val LINE = JBColor(Color(0x6A7A90), Color(0x8C9AAE))
-    internal val KEY = JBColor(Color(0x9A6700), Color(0xE0B44C))
-    internal val FOREIGN = JBColor(Color(0x2B6CB0), Color(0x7AA7E0))
-
-    /** From the referencing box's side to the referenced box's, through a vertical segment between them; an arrow at the end. */
-    internal fun drawLink(g: Graphics2D, from: Rectangle, to: Rectangle, self: Boolean) {
-      val y1 = from.y + JBUI.scale(12)
-      val y2 = to.y + JBUI.scale(12)
-      if (self) {
-        val x = from.x + from.width
-        g.drawPolyline(intArrayOf(x, x + 20, x + 20, x), intArrayOf(y1, y1, y1 + 16, y1 + 16), 4)
-        return
-      }
-      val rightward = to.x >= from.x + from.width
-      val leftward = to.x + to.width <= from.x
-      val (x1, x2, mid) = when {
-        leftward -> Triple(from.x, to.x + to.width, (from.x + to.x + to.width) / 2)
-        rightward -> Triple(from.x + from.width, to.x, (from.x + from.width + to.x) / 2)
-        // overlapping columns: go around on the left
-        else -> Triple(from.x, to.x, minOf(from.x, to.x) - 20)
-      }
-      g.drawPolyline(intArrayOf(x1, mid, mid, x2), intArrayOf(y1, y1, y2, y2), 4)
-      val dir = if (x2 >= mid) -1 else 1
-      g.fillPolygon(intArrayOf(x2, x2 + dir * 7, x2 + dir * 7), intArrayOf(y2, y2 - 4, y2 + 4), 3)
+      DbTableCard.paint(g, r, t.ref.name, rows(t), selected = false)
     }
   }
 }

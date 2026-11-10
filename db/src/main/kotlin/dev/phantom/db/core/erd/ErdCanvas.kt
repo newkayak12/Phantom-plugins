@@ -1,14 +1,11 @@
 // Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.db.core.erd
 
-import com.intellij.ui.JBColor
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
-import dev.phantom.db.core.ui.DbDiagramPanel
+import dev.phantom.db.core.ui.DbCardRow
+import dev.phantom.db.core.ui.DbTableCard
 import java.awt.BasicStroke
-import java.awt.Color
-import java.awt.Font
-import java.awt.FontMetrics
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.awt.Point
@@ -37,8 +34,6 @@ internal class ErdCanvas(private val listener: Listener) : JPanel() {
   /** While on, dragging from one table to another draws a relation instead of moving the table. */
   var linking: Boolean = false
 
-  private val titleFont: Font get() = JBUI.Fonts.label().deriveFont(Font.BOLD)
-  private val columnFont: Font get() = JBUI.Fonts.label()
   private var zoom = 1.0
   private var offset = Point(0, 0)
   private var dragged: String? = null
@@ -46,7 +41,7 @@ internal class ErdCanvas(private val listener: Listener) : JPanel() {
   private var linkEnd: Point? = null
 
   init {
-    background = UIUtil.getPanelBackground()
+    background = DbTableCard.CANVAS
     isFocusable = true
     val mouse = object : MouseAdapter() {
       var pressedAt: Point? = null
@@ -119,37 +114,30 @@ internal class ErdCanvas(private val listener: Listener) : JPanel() {
 
   private fun tableAt(p: Point): ErdTable? = document.tables.lastOrNull { box(it).contains(p) }
 
-  private fun lineHeight(fm: FontMetrics) = fm.height + JBUI.scale(2)
-
   private fun shownName(name: String, logical: String) = if (logicalNames) logical.ifBlank { name } else name
 
   private fun isForeign(t: ErdTable, c: ErdColumn) = document.relations.any { it.table == t.name && c.name in it.columns }
 
-  private fun columnText(t: ErdTable, c: ErdColumn): String {
-    val mark = listOfNotNull(if (c.primaryKey) "PK" else null, if (isForeign(t, c)) "FK" else null).joinToString(",")
-    return mark.ifEmpty { "  " }.padEnd(6) + shownName(c.name, c.logicalName) + "  " + c.type
-  }
+  private fun rows(t: ErdTable) = t.columns.map { DbCardRow(shownName(it.name, it.logicalName), it.type, it.primaryKey, isForeign(t, it)) }
 
   /** Where [t] is drawn: at the mouse while it is being dragged. */
   private fun box(t: ErdTable): Rectangle {
-    val title = getFontMetrics(titleFont)
-    val column = getFontMetrics(columnFont)
-    val pad = JBUI.scale(8)
-    val width = maxOf(title.stringWidth(shownName(t.name, t.logicalName)), t.columns.maxOfOrNull { column.stringWidth(columnText(t, it)) } ?: 0) + 2 * pad
+    val size = DbTableCard.size(getFontMetrics(DbTableCard.titleFont), getFontMetrics(DbTableCard.columnFont), shownName(t.name, t.logicalName), rows(t))
     val position = draggedTo?.takeIf { t.name == dragged } ?: Point(t.x, t.y)
-    return Rectangle(position.x, position.y, maxOf(width, JBUI.scale(120)), lineHeight(title) + pad + t.columns.size * lineHeight(column) + pad)
+    return Rectangle(position.x, position.y, size.width, size.height)
   }
 
   override fun paintComponent(g: Graphics) {
     super.paintComponent(g)
     val g2 = g.create() as Graphics2D
     try {
-      g2.translate(offset.x, offset.y)
-      g2.scale(zoom, zoom)
       g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
       g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+      DbTableCard.paintGrid(g2, width, height, offset, zoom)
+      g2.translate(offset.x, offset.y)
+      g2.scale(zoom, zoom)
       paintRelations(g2)
-      document.tables.forEach { paintTable(g2, it) }
+      document.tables.forEach { DbTableCard.paint(g2, box(it), shownName(it.name, it.logicalName), rows(it), it.name == selection) }
     }
     finally {
       g2.dispose()
@@ -157,49 +145,23 @@ internal class ErdCanvas(private val listener: Listener) : JPanel() {
   }
 
   private fun paintRelations(g: Graphics2D) {
-    g.stroke = BasicStroke(1.2f)
+    val title = g.getFontMetrics(DbTableCard.titleFont)
+    val column = g.getFontMetrics(DbTableCard.columnFont)
+    val tables = document.tables.associateBy { it.name }
     val boxes = document.tables.associate { it.name to box(it) }
     for (r in document.relations) {
       val from = boxes[r.table] ?: continue
       val to = boxes[r.refTable] ?: continue
-      g.color = DbDiagramPanel.LINE
-      DbDiagramPanel.drawLink(g, from, to, r.table == r.refTable)
-      g.color = UIUtil.getContextHelpForeground()
-      g.font = columnFont
-      g.drawString(if (document.isOneToOne(r)) "1:1" else "1:N", (from.centerX + to.centerX).toInt() / 2, (from.y + to.y) / 2 + JBUI.scale(8))
+      val fromRow = tables[r.table]?.columns?.indexOfFirst { it.name == r.columns.firstOrNull() } ?: -1
+      val toRow = tables[r.refTable]?.columns?.indexOfFirst { it.name == r.refColumns.firstOrNull() } ?: -1
+      val oneToOne = document.isOneToOne(r)
+      DbTableCard.drawLink(g, from, DbTableCard.rowY(from, title, column, fromRow), to, DbTableCard.rowY(to, title, column, toRow),
+                           oneToOne, if (oneToOne) "1 : 1" else "1 : N", dashed = false)
     }
     val end = linkEnd ?: return
     val start = dragged?.let { boxes[it] } ?: return
-    g.color = SELECTED
+    g.color = DbTableCard.SELECTED
+    g.stroke = BasicStroke(1.5f)
     g.drawLine(start.centerX.toInt(), start.centerY.toInt(), end.x, end.y)
-  }
-
-  private fun paintTable(g: Graphics2D, t: ErdTable) {
-    val r = box(t)
-    val title = g.getFontMetrics(titleFont)
-    val column = g.getFontMetrics(columnFont)
-    val pad = JBUI.scale(8)
-    g.color = DbDiagramPanel.BOX
-    g.fillRoundRect(r.x, r.y, r.width, r.height, 8, 8)
-    g.color = DbDiagramPanel.HEADER
-    g.fillRoundRect(r.x, r.y, r.width, lineHeight(title) + pad / 2, 8, 8)
-    val chosen = t.name == selection
-    g.color = if (chosen) SELECTED else DbDiagramPanel.BORDER
-    g.stroke = BasicStroke(if (chosen) 2f else 1f)
-    g.drawRoundRect(r.x, r.y, r.width, r.height, 8, 8)
-    g.color = UIUtil.getLabelForeground()
-    g.font = titleFont
-    g.drawString(shownName(t.name, t.logicalName), r.x + pad, r.y + pad / 4 + title.ascent)
-    g.font = columnFont
-    var y = r.y + lineHeight(title) + pad + column.ascent
-    for (c in t.columns) {
-      g.color = if (c.primaryKey) DbDiagramPanel.KEY else if (isForeign(t, c)) DbDiagramPanel.FOREIGN else UIUtil.getLabelForeground()
-      g.drawString(columnText(t, c), r.x + pad, y)
-      y += lineHeight(column)
-    }
-  }
-
-  private companion object {
-    val SELECTED = JBColor(Color(0x3574F0), Color(0x548AF7))
   }
 }
