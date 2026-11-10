@@ -3,13 +3,16 @@ package dev.phantom.ai
 
 import dev.phantom.ai.accounts.AccountLogin
 import dev.phantom.ai.accounts.AccountsService
-import dev.phantom.ai.accounts.LoginTerminal
+import dev.phantom.ai.accounts.LoginFailed
+import dev.phantom.ai.accounts.LoginRunner
 import dev.phantom.ai.core.AgentKind
 import dev.phantom.ai.core.AiState
 import com.intellij.openapi.progress.ProcessCanceledException
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -30,7 +33,7 @@ class AccountsServiceTest {
     var email: String? = ""
     val service = AccountsService(
       base, { k, d -> installs.add(k to d); install(k, d) },
-      LoginTerminal { c, e, t -> logins.add(Triple(c, e, t)); email?.let { signIn(e, it) } }, { state },
+      LoginRunner { c, e, t -> logins.add(Triple(c, e, t)); email?.let { signIn(e, it) } }, { state },
       { m, e -> notices.add(m to e) },
     )
 
@@ -44,7 +47,7 @@ class AccountsServiceTest {
 
   @Test fun hookInstallFailureIsReportedToTheUser() {
     val f = fixture { _, _ -> false }
-    val a = f.service.add(AgentKind.CODEX)!!
+    val a = f.service.add(AgentKind.CODEX)
     val n = f.notices.single()
     assertTrue(n.first, n.first.contains(AgentKind.CODEX.displayName) && n.first.contains(a.dir))
     assertEquals(listOf(a), f.service.accounts(AgentKind.CODEX))
@@ -54,7 +57,7 @@ class AccountsServiceTest {
   @Test fun hookInstallExceptionIsReported() {
     val boom = IllegalStateException("disk full")
     val f = fixture { _, _ -> throw boom }
-    val a = f.service.add(AgentKind.CLAUDE)!!
+    val a = f.service.add(AgentKind.CLAUDE)
     val n = f.notices.single()
     assertTrue(n.first, n.first.contains("Claude") && n.first.contains(a.dir) && n.first.contains("disk full"))
     assertSame(boom, n.second)
@@ -72,7 +75,7 @@ class AccountsServiceTest {
 
   @Test fun addCreatesDirInstallsHooksAndRunsLoginWithAccountVariable() {
     val f = fixture()
-    val a = f.service.add(AgentKind.CLAUDE)!!
+    val a = f.service.add(AgentKind.CLAUDE)
     val dir = f.base.resolve("claude").resolve(a.id)
     assertTrue(Files.isDirectory(dir))
     assertEquals(dir.toString(), a.dir)
@@ -84,7 +87,7 @@ class AccountsServiceTest {
 
   @Test fun codexAccountUsesCodexHome() {
     val f = fixture()
-    val a = f.service.add(AgentKind.CODEX, "Work")!!
+    val a = f.service.add(AgentKind.CODEX, "Work")
     assertEquals("Work", a.label)
     assertEquals(mapOf("CODEX_HOME" to a.dir), f.logins.single().second)
     assertEquals("codex 'login'", f.logins.single().first)
@@ -94,7 +97,7 @@ class AccountsServiceTest {
   @Test fun activeAccountPerProviderAndSystemDefault() {
     val f = fixture()
     assertNull(f.service.active(AgentKind.CLAUDE))
-    val a = f.service.add(AgentKind.CLAUDE)!!
+    val a = f.service.add(AgentKind.CLAUDE)
     f.service.setActive(AgentKind.CLAUDE, a.id)
     assertEquals(a, f.service.active(AgentKind.CLAUDE))
     assertNull(f.service.active(AgentKind.CODEX))
@@ -104,13 +107,69 @@ class AccountsServiceTest {
     assertNull(f.service.active(AgentKind.CLAUDE))
   }
 
-  @Test fun removeForgetsAccountAndResetsActiveButKeepsDir() {
+  @Test fun removeForgetsAccountResetsActiveAndDeletesItsDirButNotWhatItLinksTo() {
     val f = fixture()
-    val a = f.service.add(AgentKind.CLAUDE)!!
+    val a = f.service.add(AgentKind.CLAUDE)
+    val shared = tmp.newFolder("shared").toPath()
+    Files.writeString(shared.resolve("keep.txt"), "x")
+    Files.createSymbolicLink(Path.of(a.dir, "skills"), shared)
     f.service.setActive(AgentKind.CLAUDE, a.id)
     f.service.remove(AgentKind.CLAUDE, a.id)
     assertNull(f.service.active(AgentKind.CLAUDE))
     assertEquals(emptyList<Any>(), f.service.accounts(AgentKind.CLAUDE))
+    assertFalse(Files.exists(Path.of(a.dir)))
+    assertTrue(Files.exists(shared.resolve("keep.txt")))
+  }
+
+  @Test fun aFailedLoginTellsWhyAndLeavesNothingEvenThroughLinks() {
+    val shared = tmp.newFolder("linked").toPath()
+    Files.writeString(shared.resolve("keep.txt"), "x")
+    val base = tmp.newFolder("base").toPath()
+    val service = AccountsService(
+      base, { _, d -> Files.createSymbolicLink(d.resolve("skills"), shared); true },
+      LoginRunner { _, _, _ -> throw LoginFailed("denied") }, { AiState() }, { _, _ -> },
+    )
+    assertEquals("denied", assertThrows(LoginFailed::class.java) { service.add(AgentKind.CLAUDE) }.message)
+    assertEquals(emptyList<Any>(), Files.list(base.resolve("claude")).use { it.toList() })
+    assertTrue(Files.exists(shared.resolve("keep.txt")))
+  }
+
+  @Test fun theSameAccountCannotBeAddedTwice() {
+    val f = fixture()
+    f.email = "Me@example.com"
+    f.service.add(AgentKind.CLAUDE)
+    f.email = "me@example.com"
+    val e = assertThrows(LoginFailed::class.java) { f.service.add(AgentKind.CLAUDE) }
+    assertTrue(e.message!!, e.message!!.contains("already added"))
+    assertEquals(1, f.service.accounts(AgentKind.CLAUDE).size)
+    assertEquals(1, Files.list(f.base.resolve("claude")).use { it.count() })
+  }
+
+  @Test fun aLoggedOutAccountCannotBeSelectedUntilItSignsInAgain() {
+    val f = fixture()
+    val a = f.service.add(AgentKind.CLAUDE)
+    assertEquals("Account 1", a.label)
+    Files.delete(Path.of(a.dir, ".claude.json"))
+    assertFalse(f.service.signedIn(a))
+    f.service.setActive(AgentKind.CLAUDE, a.id)
+    assertNull(f.service.active(AgentKind.CLAUDE))
+
+    f.email = "back@example.com"
+    f.service.signInAgain(AgentKind.CLAUDE, a.id)
+    val again = f.service.accounts(AgentKind.CLAUDE).single()
+    assertEquals("back@example.com", again.label)
+    assertTrue(f.service.signedIn(again))
+    f.service.setActive(AgentKind.CLAUDE, a.id)
+    assertEquals(a.id, f.service.active(AgentKind.CLAUDE)?.id)
+  }
+
+  @Test fun aFailedSignInAgainKeepsTheAccount() {
+    val f = fixture()
+    val a = f.service.add(AgentKind.CLAUDE)
+    Files.delete(Path.of(a.dir, ".claude.json"))
+    f.email = null
+    assertThrows(LoginFailed::class.java) { f.service.signInAgain(AgentKind.CLAUDE, a.id) }
+    assertEquals(listOf(a), f.service.accounts(AgentKind.CLAUDE))
     assertTrue(Files.isDirectory(Path.of(a.dir)))
   }
 
@@ -125,19 +184,19 @@ class AccountsServiceTest {
   @Test fun theLoginsEmailNamesTheAccount() {
     val f = fixture()
     f.email = "me@example.com"
-    assertEquals("me@example.com", f.service.add(AgentKind.CLAUDE)!!.label)
+    assertEquals("me@example.com", f.service.add(AgentKind.CLAUDE).label)
   }
 
   @Test fun aGivenLabelWinsOverTheEmail() {
     val f = fixture()
     f.email = "me@example.com"
-    assertEquals("Work", f.service.add(AgentKind.CLAUDE, "Work")!!.label)
+    assertEquals("Work", f.service.add(AgentKind.CLAUDE, "Work").label)
   }
 
-  @Test fun closingTheLoginWithoutLoggingInKeepsNothing() {
+  @Test fun aLoginThatEndsWithoutAnAccountFailsAndKeepsNothing() {
     val f = fixture()
     f.email = null
-    assertNull(f.service.add(AgentKind.CLAUDE))
+    assertThrows(LoginFailed::class.java) { f.service.add(AgentKind.CLAUDE) }
     assertEquals(emptyList<Any>(), f.service.accounts(AgentKind.CLAUDE))
     assertEquals(emptyList<Any>(), Files.list(f.base.resolve("claude")).use { it.toList() })
   }
@@ -163,11 +222,11 @@ class AccountsServiceTest {
 
   @Test fun numberedNamesDoNotRepeatAfterARemoval() {
     val f = fixture()
-    val first = f.service.add(AgentKind.CLAUDE)!!
-    val second = f.service.add(AgentKind.CLAUDE)!!
+    val first = f.service.add(AgentKind.CLAUDE)
+    val second = f.service.add(AgentKind.CLAUDE)
     assertEquals(listOf("Account 1", "Account 2"), listOf(first.label, second.label))
     f.service.remove(AgentKind.CLAUDE, first.id)
-    assertEquals("Account 1", f.service.add(AgentKind.CLAUDE)!!.label)
+    assertEquals("Account 1", f.service.add(AgentKind.CLAUDE).label)
     assertEquals(listOf("Account 2", "Account 1"), f.service.accounts(AgentKind.CLAUDE).map { it.label })
   }
 }

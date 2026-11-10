@@ -97,6 +97,7 @@ class AgentTerminalInIdeTest : BasePlatformTestCase() {
   fun testAddedAccountSetsAccountVariableOnlyForIt() {
     val acc = AccountsService.getInstance().let { svc ->
       val dir = Files.createTempDirectory("acc")
+      Files.writeString(dir.resolve("auth.json"), """{"OPENAI_API_KEY":"k"}""")
       val state = AiState.getInstance()
       state.state.accounts.add(
         dev.phantom.ai.core.AccountEntry().also { it.provider = "CODEX"; it.id = "t1"; it.label = "T"; it.dir = dir.toString() },

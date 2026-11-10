@@ -3,6 +3,7 @@ package dev.phantom.ai
 
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import dev.phantom.ai.mcp.CodeIndex
 import dev.phantom.ai.mcp.EditorBridge
 import dev.phantom.ai.mcp.McpToolError
 import dev.phantom.ai.mcp.PhantomMcp
@@ -22,7 +23,14 @@ class PhantomMcpTest {
     }
     override fun context(worktree: String?) = JsonObject().apply { addProperty("file", "/abs/a.kt"); addProperty("line", 3) }
   }
-  private val mcp = PhantomMcp(bridge) { tab -> if (tab == "t1") "/w/repo" else null }
+  private val asked = mutableListOf<List<Any?>>()
+  private val index = object : CodeIndex {
+    override fun findSymbol(worktree: String?, query: String, limit: Int): String { asked += listOf("symbol", worktree, query, limit); return "a.kt:1  class A" }
+    override fun findFile(worktree: String?, query: String, limit: Int): String { asked += listOf("file", worktree, query, limit); return "a.kt" }
+    override fun findUsages(worktree: String?, path: String, line: Int, name: String, limit: Int): String { asked += listOf("usages", worktree, path, line, name, limit); return "b.kt:2  A()" }
+    override fun fileOutline(worktree: String?, path: String): String { if (path == "busy") throw McpToolError("Phantom is still indexing"); asked += listOf("outline", worktree, path); return "1  A" }
+  }
+  private val mcp = PhantomMcp(bridge, index) { tab -> if (tab == "t1") "/w/repo" else null }
 
   private fun rpc(method: String, params: String = "{}", id: Int = 1, tab: String? = "t1") =
     JsonParser.parseString(mcp.handle("""{"jsonrpc":"2.0","id":$id,"method":"$method","params":$params}""", tab)!!).asJsonObject
@@ -45,7 +53,7 @@ class PhantomMcpTest {
 
   @Test fun listsBothTools() {
     val tools = rpc("tools/list").getAsJsonObject("result").getAsJsonArray("tools").map { it.asJsonObject }
-    assertEquals(listOf(PhantomMcp.OPEN, PhantomMcp.CONTEXT), tools.map { it.get("name").asString })
+    assertEquals(listOf(PhantomMcp.OPEN, PhantomMcp.CONTEXT) + INDEX_TOOLS, tools.map { it.get("name").asString })
     assertEquals("path", tools[0].getAsJsonObject("inputSchema").getAsJsonArray("required").single().asString)
   }
 
@@ -83,5 +91,36 @@ class PhantomMcpTest {
       "t1",
     )!!).asJsonArray
     assertEquals(listOf(1, 2), replies.map { it.asJsonObject.get("id").asInt })
+  }
+
+  private fun callTool(name: String, args: String) =
+    rpc("tools/call", """{"name":"$name","arguments":$args}""").getAsJsonObject("result")
+
+  private fun textOf(result: JsonObject) = result.getAsJsonArray("content")[0].asJsonObject.get("text").asString
+
+  @Test fun indexToolsAreReadOnlyAndAskTheCallersWorkspace() {
+    val tools = rpc("tools/list").getAsJsonObject("result").getAsJsonArray("tools").map { it.asJsonObject }.filter { it.get("name").asString in INDEX_TOOLS }
+    assertEquals(INDEX_TOOLS.toSet(), tools.map { it.get("name").asString }.toSet())
+    assertTrue(tools.all { it.getAsJsonObject("annotations").get("readOnlyHint").asBoolean })
+
+    assertEquals("a.kt:1  class A", textOf(callTool("find_symbol", """{"query":"A"}""")))
+    assertEquals("a.kt", textOf(callTool("find_file", """{"query":"a","limit":5}""")))
+    assertEquals("b.kt:2  A()", textOf(callTool("find_usages", """{"path":"a.kt","line":"1","name":"A","limit":9999}""")))
+    assertEquals("1  A", textOf(callTool("file_outline", """{"path":"a.kt"}""")))
+    assertEquals(
+      listOf(listOf("symbol", "/w/repo", "A", 30), listOf("file", "/w/repo", "a", 5), listOf("usages", "/w/repo", "a.kt", 1, "A", 200), listOf("outline", "/w/repo", "a.kt")),
+      asked,
+    )
+  }
+
+  @Test fun indexToolErrorsTellTheAgent() {
+    val busy = callTool("file_outline", """{"path":"busy"}""")
+    assertTrue(busy.get("isError").asBoolean)
+    assertEquals("Phantom is still indexing", textOf(busy))
+    assertEquals("line is required", textOf(callTool("find_usages", """{"path":"a.kt","name":"A"}""")))
+  }
+
+  private companion object {
+    val INDEX_TOOLS = listOf("find_symbol", "find_file", "find_usages", "file_outline")
   }
 }

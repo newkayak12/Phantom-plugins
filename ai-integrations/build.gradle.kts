@@ -4,7 +4,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.3.18"
+version = "0.3.19"
 
 dependencies {
   implementation("io.nayuki:qrcodegen:1.8.0")
@@ -14,6 +14,7 @@ dependencies {
     bundledPlugin("org.jetbrains.plugins.terminal")
     bundledPlugin("Git4Idea")
     bundledPlugin("org.jetbrains.plugins.github")
+    testBundledPlugin("com.intellij.java") // a real language for the IDE index queries
   }
 }
 

@@ -81,10 +81,6 @@ class LocalTerminalStarter(private val project: Project) : TerminalStarter {
     return run(parent, cwd, emptyMap(), Tmux.attach(tmux, session), session)
   }
 
-  /** [command] in the user's shell without tmux: for a short task whose output should select and copy like plain text. */
-  fun startPlain(parent: Disposable, cwd: String, env: Map<String, String>, command: String): StartedTerminal =
-    run(parent, cwd, env, Tmux.plain(command), null)
-
   private fun run(parent: Disposable, cwd: String, env: Map<String, String>, line: String, tmuxSession: String?): StartedTerminal {
     // the agent is the shell's argument, not typed at its prompt: no command line (or hook token) is echoed on screen
     val options = ShellStartupOptions.Builder().workingDirectory(cwd).envVariables(env).shellCommand(Tmux.shellCommand(line)).build()

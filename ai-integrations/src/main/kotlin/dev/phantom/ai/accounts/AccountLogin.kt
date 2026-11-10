@@ -29,7 +29,17 @@ internal object AccountLogin {
     }
   }.getOrNull()
 
-  private fun read(file: Path): JsonObject = JsonParser.parseString(Files.readString(file)).asJsonObject
+  /** Who is logged in, to spot one account added twice (the same email in two organizations is two accounts); null: unknown. */
+  fun identity(kind: AgentKind, dir: Path): String? = bestEffort {
+    when (kind) {
+      AgentKind.CLAUDE -> read(dir.resolve(".claude.json")).getAsJsonObject("oauthAccount")?.let { account ->
+        account.text("emailAddress")?.let { "${it.lowercase()}|${account.text("organizationUuid").orEmpty()}" }
+      }
+      AgentKind.CODEX -> name(kind, dir)?.takeIf { it.isNotEmpty() }?.lowercase()
+    }
+  }.getOrNull()
+
+  private fun read(file: Path): JsonObject =JsonParser.parseString(Files.readString(file)).asJsonObject
 
   private fun JsonObject.text(key: String): String? = get(key)?.takeIf { it.isJsonPrimitive }?.asString?.takeIf { it.isNotBlank() }
 

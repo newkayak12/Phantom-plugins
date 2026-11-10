@@ -11,6 +11,7 @@
   ]]></description>
 
   <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.modules.lang</depends>
   <depends>dev.phantom.workspaces</depends>
   <depends>org.jetbrains.plugins.terminal</depends>
   <depends>Git4Idea</depends>

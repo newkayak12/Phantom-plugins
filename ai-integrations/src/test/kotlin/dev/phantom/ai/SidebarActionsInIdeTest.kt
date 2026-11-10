@@ -81,6 +81,7 @@ class SidebarActionsInIdeTest : BasePlatformTestCase() {
   fun testResumeUsesTheAccountTheSessionRanUnderNotTheActiveOne() {
     val dirA = Files.createTempDirectory("accA").toString()
     val dirB = Files.createTempDirectory("accB").toString()
+    listOf(dirA, dirB).forEach { Files.writeString(java.nio.file.Path.of(it, "auth.json"), """{"OPENAI_API_KEY":"k"}""") }
     val state = AiState.getInstance()
     state.state.accounts.add(AccountEntry().also { it.provider = "CODEX"; it.id = "ta"; it.label = "A"; it.dir = dirA })
     state.state.accounts.add(AccountEntry().also { it.provider = "CODEX"; it.id = "tb"; it.label = "B"; it.dir = dirB })

@@ -215,6 +215,7 @@ class AgentTerminalService(private val project: Project) {
   private fun open(worktree: String, kind: AgentKind, command: (McpLink?) -> String, sessionId: String?, account: AgentAccount?, label: String? = null): String? {
     val tabId = UUID.randomUUID().toString()
     val hookEnv = HookEnv.forTab(worktree, tabId)
+    account?.let { AccountsService.getInstance().prepare(kind, Path.of(it.dir)) }
     val env = LaunchCommand.env(kind, account, hookEnv)
     val mcp = bestEffort { McpConfigFiles.link(HookServer.getInstance().port, HookServer.getInstance().token, tabId) }
       .onFailure { LOG.warn("Phantom MCP config for the agent failed", it) }.getOrNull()

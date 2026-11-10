@@ -26,9 +26,10 @@ interface EditorBridge {
 /**
  * Phantom's MCP server for its own agent terminals (JSON-RPC over the hook server's `/mcp`, streamable HTTP answered with
  * plain JSON, no SSE): lets Claude or Codex show the user code in the editor. [worktreeOf] maps the calling tab to its
- * worktree, the base of relative paths and the project to open in. Pure apart from [bridge].
+ * worktree, the base of relative paths and the project to open in; [index] answers code questions within that worktree.
+ * Pure apart from [bridge] and [index].
  */
-class PhantomMcp(private val bridge: EditorBridge, private val worktreeOf: (String?) -> String?) {
+class PhantomMcp(private val bridge: EditorBridge, private val index: CodeIndex, private val worktreeOf: (String?) -> String?) {
   /** The JSON reply to [body], or null when it held only notifications (HTTP 202, no body). */
   fun handle(body: String, tabId: String?): String? {
     val request = try {
@@ -86,6 +87,10 @@ class PhantomMcp(private val bridge: EditorBridge, private val worktreeOf: (Stri
           text(if (line != null) "Opened $opened at line $line." else "Opened $opened.")
         }
         CONTEXT -> text(bridge.context(worktree).toString())
+        FIND_SYMBOL -> text(index.findSymbol(worktree, required(args, "query"), limit(args)))
+        FIND_FILE -> text(index.findFile(worktree, required(args, "query"), limit(args)))
+        FIND_USAGES -> text(index.findUsages(worktree, required(args, "path"), int(args, "line") ?: throw McpToolError("line is required"), required(args, "name"), limit(args)))
+        OUTLINE -> text(index.fileOutline(worktree, required(args, "path")))
         else -> text("Unknown tool: $name", isError = true)
       }
     } catch (e: McpToolError) {
@@ -104,7 +109,28 @@ class PhantomMcp(private val bridge: EditorBridge, private val worktreeOf: (Stri
       add("end_line", prop("integer", "Last line (1-based, inclusive) to select from `line`, to point at a block."))
     }, required = listOf("path")))
     add(tool(CONTEXT, CONTEXT_DESCRIPTION, JsonObject(), required = emptyList(), readOnly = true))
+    add(tool(FIND_SYMBOL, FIND_SYMBOL_DESCRIPTION, JsonObject().apply {
+      add("query", prop("string", "Name of a class, method, function or field; camel humps work (OSvc)."))
+      add("limit", prop("integer", "Most results to return (default $DEFAULT_LIMIT)."))
+    }, required = listOf("query"), readOnly = true))
+    add(tool(FIND_FILE, FIND_FILE_DESCRIPTION, JsonObject().apply {
+      add("query", prop("string", "File name or part of it; camel humps work."))
+      add("limit", prop("integer", "Most results to return (default $DEFAULT_LIMIT)."))
+    }, required = listOf("query"), readOnly = true))
+    add(tool(FIND_USAGES, FIND_USAGES_DESCRIPTION, JsonObject().apply {
+      add("path", prop("string", "File holding the symbol, as find_symbol gave it."))
+      add("line", prop("integer", "1-based line where the symbol is written."))
+      add("name", prop("string", "The symbol's name on that line."))
+      add("limit", prop("integer", "Most results to return (default $DEFAULT_LIMIT)."))
+    }, required = listOf("path", "line", "name"), readOnly = true))
+    add(tool(OUTLINE, OUTLINE_DESCRIPTION, JsonObject().apply {
+      add("path", prop("string", "File path, absolute or relative to your working directory."))
+    }, required = listOf("path"), readOnly = true))
   }
+
+  private fun required(args: JsonObject, key: String): String = string(args, key) ?: throw McpToolError("$key is required")
+
+  private fun limit(args: JsonObject): Int = (int(args, "limit") ?: DEFAULT_LIMIT).coerceIn(1, MAX_LIMIT)
 
   private fun tool(name: String, description: String, properties: JsonObject, required: List<String>, readOnly: Boolean = false) =
     JsonObject().apply {
@@ -147,6 +173,13 @@ class PhantomMcp(private val bridge: EditorBridge, private val worktreeOf: (Stri
   companion object {
     const val OPEN = "open_in_editor"
     const val CONTEXT = "get_editor_context"
+    const val FIND_SYMBOL = "find_symbol"
+    const val FIND_FILE = "find_file"
+    const val FIND_USAGES = "find_usages"
+    const val OUTLINE = "file_outline"
+
+    private const val DEFAULT_LIMIT = 30
+    private const val MAX_LIMIT = 200
 
     /** Newest first: an unknown version asked for gets the newest. */
     val VERSIONS = listOf("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
@@ -158,7 +191,9 @@ class PhantomMcp(private val bridge: EditorBridge, private val worktreeOf: (Stri
     private const val INSTRUCTIONS =
       "You run in a terminal inside Phantom, the user's IDE. When you point the user at code (where something is defined, " +
         "the line you changed, the cause of a bug), open it with open_in_editor instead of only printing the path. When the " +
-        "user says \"this\", \"here\" or refers to what they are looking at, read get_editor_context first."
+        "user says \"this\", \"here\" or refers to what they are looking at, read get_editor_context first. To find code, " +
+        "ask the IDE's index before searching or reading files: find_symbol, find_file, find_usages, and file_outline before " +
+        "reading a whole file; then read only the lines you need. If one says it cannot answer, use your own search."
 
     private const val OPEN_DESCRIPTION =
       "Opens a file in the user's Phantom editor at a line, selects up to end_line and brings it to front. Use it whenever " +
@@ -167,5 +202,18 @@ class PhantomMcp(private val bridge: EditorBridge, private val worktreeOf: (Stri
     private const val CONTEXT_DESCRIPTION =
       "The file the user has open in Phantom's editor right now: its path, the caret line and column, the selected text " +
         "and its lines, and the other open files."
+
+    private const val FIND_SYMBOL_DESCRIPTION =
+      "Finds where a class, method, function or field is declared in this workspace, from the IDE's index. Returns path:line and " +
+        "that line of code. Prefer it to grep when you know a name."
+
+    private const val FIND_FILE_DESCRIPTION = "Finds files in this workspace by name, from the IDE's index. Returns relative paths."
+
+    private const val FIND_USAGES_DESCRIPTION =
+      "Finds the real references to a symbol in this workspace (no matches in comments or of other symbols with that name). " +
+        "Returns path:line and each line of code."
+
+    private const val OUTLINE_DESCRIPTION =
+      "The declarations of a file with their lines, nested: its structure without reading it. Use it before reading a large file."
   }
 }

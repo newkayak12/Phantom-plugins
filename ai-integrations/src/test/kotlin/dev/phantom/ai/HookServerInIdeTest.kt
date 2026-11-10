@@ -106,7 +106,7 @@ class HookServerInIdeTest : BasePlatformTestCase() {
     server.mcp = dev.phantom.ai.mcp.PhantomMcp(object : dev.phantom.ai.mcp.EditorBridge {
       override fun open(worktree: String?, path: String, line: Int?, column: Int?, endLine: Int?) = path.also { seen.set(worktree) }
       override fun context(worktree: String?) = com.google.gson.JsonObject()
-    }) { tab -> tab?.let { SessionStore.getInstance().get(it)?.worktree } }
+    }, dev.phantom.ai.mcp.IdeCodeIndex()) { tab -> tab?.let { SessionStore.getInstance().get(it)?.worktree } }
     try {
       val bearer = mapOf("Authorization" to "Bearer ${server.token}")
       val (code, body) = mcpCall("""{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"open_in_editor","arguments":{"path":"a.kt"}}}""", bearer)

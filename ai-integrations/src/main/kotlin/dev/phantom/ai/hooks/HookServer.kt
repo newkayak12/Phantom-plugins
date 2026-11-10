@@ -11,6 +11,7 @@ import com.sun.net.httpserver.HttpServer
 import dev.phantom.ai.core.AgentKind
 import dev.phantom.ai.core.SessionStore
 import dev.phantom.ai.core.Unloading
+import dev.phantom.ai.mcp.IdeCodeIndex
 import dev.phantom.ai.mcp.IdeEditorBridge
 import dev.phantom.ai.mcp.PhantomMcp
 import org.jetbrains.annotations.TestOnly
@@ -39,7 +40,7 @@ class HookServer : Disposable {
   private var server: HttpServer? = null
   private var executor: java.util.concurrent.ExecutorService? = null
   val statuslineListeners = CopyOnWriteArrayList<StatuslineListener>()
-  @Volatile var mcp: PhantomMcp = PhantomMcp(IdeEditorBridge()) { tab -> tab?.takeUnless { Unloading.inProgress }?.let { SessionStore.getInstance().get(it)?.worktree } }
+  @Volatile var mcp: PhantomMcp = PhantomMcp(IdeEditorBridge(), IdeCodeIndex()) { tab -> tab?.takeUnless { Unloading.inProgress }?.let { SessionStore.getInstance().get(it)?.worktree } }
     @TestOnly set
 
   val port: Int get() = server?.address?.port ?: 0
