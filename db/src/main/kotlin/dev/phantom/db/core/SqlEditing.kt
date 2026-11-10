@@ -41,6 +41,13 @@ object SqlColors {
   @JvmField val COMMA: TextAttributesKey = TextAttributesKey.createTextAttributesKey("PHANTOM_SQL_COMMA", DefaultLanguageHighlighterColors.COMMA)
   @JvmField val DOT: TextAttributesKey = TextAttributesKey.createTextAttributesKey("PHANTOM_SQL_DOT", DefaultLanguageHighlighterColors.DOT)
   @JvmField val PARENTHESES: TextAttributesKey = TextAttributesKey.createTextAttributesKey("PHANTOM_SQL_PARENTHESES", DefaultLanguageHighlighterColors.PARENTHESES)
+  @JvmField val TABLE: TextAttributesKey = TextAttributesKey.createTextAttributesKey("PHANTOM_SQL_TABLE", DefaultLanguageHighlighterColors.CLASS_NAME)
+  @JvmField val SCHEMA: TextAttributesKey = TextAttributesKey.createTextAttributesKey("PHANTOM_SQL_SCHEMA", DefaultLanguageHighlighterColors.CLASS_REFERENCE)
+  @JvmField val COLUMN: TextAttributesKey = TextAttributesKey.createTextAttributesKey("PHANTOM_SQL_COLUMN", DefaultLanguageHighlighterColors.INSTANCE_FIELD)
+  @JvmField val ALIAS: TextAttributesKey = TextAttributesKey.createTextAttributesKey("PHANTOM_SQL_ALIAS", DefaultLanguageHighlighterColors.LOCAL_VARIABLE)
+  @JvmField val CTE: TextAttributesKey = TextAttributesKey.createTextAttributesKey("PHANTOM_SQL_CTE", DefaultLanguageHighlighterColors.INTERFACE_NAME)
+  @JvmField val FUNCTION: TextAttributesKey = TextAttributesKey.createTextAttributesKey("PHANTOM_SQL_FUNCTION", DefaultLanguageHighlighterColors.FUNCTION_CALL)
+  @JvmField val DATA_TYPE: TextAttributesKey = TextAttributesKey.createTextAttributesKey("PHANTOM_SQL_DATA_TYPE", DefaultLanguageHighlighterColors.PREDEFINED_SYMBOL)
 }
 
 class SqlSyntaxHighlighter : SyntaxHighlighterBase() {
@@ -114,7 +121,7 @@ class SqlCompletionContributor : CompletionContributor() {
         // a WHERE / ORDER BY fragment over a grid: the columns it filters, then keywords
         dev.phantom.db.core.ui.DbFilterContext.of(parameters.originalFile)?.let { filter ->
           filter.columns().forEach { result.addElement(column(it, null)) }
-          keywords(result)
+          keywords(result, null, null)
           return
         }
         val project = position.project
@@ -142,6 +149,7 @@ class SqlCompletionContributor : CompletionContributor() {
         val q = parent.qualifier
         if (q != null) {
           qualifiedTable(q)?.let { t -> schema?.let { tableOf(t, it) } }?.let { columns(it).forEach { c -> result.addElement(column(c, null)) } }
+          derivedTableOf(q)?.let { d -> outputColumns(d).forEach { result.addElement(derivedColumn(it, null)) } }
           return
         }
         if (parent.isInsertColumn) {
@@ -151,12 +159,16 @@ class SqlCompletionContributor : CompletionContributor() {
         }
         for (scope in SqlScopes.chain(parent)) {
           for (ref in SqlScopes.direct(scope, SqlTableRef::class.java)) {
+            cteQuery(ref)?.let { query -> outputColumns(query).forEach { result.addElement(derivedColumn(it, ref.alias?.name ?: ref.tableName)) } }
             val table = schema?.let { tableOf(ref, it) } ?: continue
             columns(table).forEach { result.addElement(column(it, ref.alias?.name ?: table.name)) }
             ref.alias?.let { result.addElement(PrioritizedLookupElement.withPriority(LookupElementBuilder.create(it.name).withIcon(AllIcons.Nodes.Alias).withTypeText(table.name), 5.0)) }
           }
+          SqlScopes.direct(scope, SqlAlias::class.java).filter { it.subquery != null }.forEach { alias ->
+            outputColumns(alias.subquery!!).forEach { result.addElement(derivedColumn(it, alias.name)) }
+          }
         }
-        keywords(result)
+        keywords(result, position, dataSource?.dialect())
       }
       is SqlTableRef -> {
         if (joins != null && schema != null && SqlJoinCompletion.isAfterJoin(position)) {
@@ -169,11 +181,11 @@ class SqlCompletionContributor : CompletionContributor() {
         if (schemaName != null) return
         schema?.schemas?.forEach { result.addElement(PrioritizedLookupElement.withPriority(LookupElementBuilder.create(it.name).withIcon(AllIcons.Nodes.DataSchema), 2.0)) }
         SqlScopes.ctes(parent).forEach { result.addElement(PrioritizedLookupElement.withPriority(LookupElementBuilder.create(it.name).withIcon(AllIcons.Nodes.DataTables).withTypeText("CTE"), 8.0)) }
-        keywords(result)
+        keywords(result, position, dataSource?.dialect())
       }
       else -> {
         if (previousKeyword(position) in TABLE_CONTEXT) schema?.tables?.forEach { result.addElement(table(it)) }
-        keywords(result)
+        keywords(result, position, dataSource?.dialect())
       }
     }
   }
@@ -198,12 +210,62 @@ class SqlCompletionContributor : CompletionContributor() {
   private fun table(t: DbTableRef) = PrioritizedLookupElement.withPriority(
     LookupElementBuilder.create(t.name).withIcon(AllIcons.Nodes.DataTables).withTypeText(t.schema ?: t.catalog), 5.0)
 
-  private fun keywords(result: CompletionResultSet) {
-    val upper = result.prefixMatcher.prefix.firstOrNull()?.isUpperCase() != false
-    for (k in SqlTokens.KEYWORDS) {
-      result.addElement(LookupElementBuilder.create(if (upper) k else k.lowercase()).bold())
+  /** The subquery `d` stands for in `d.x`, directly or through a CTE. */
+  private fun derivedTableOf(q: SqlQualifier): SqlSubquery? = when (val r = SqlResolver.qualifier(q)) {
+    is SqlResolution.Found -> when (val t = r.target) {
+      is SqlAlias -> t.subquery ?: t.table?.let(::cteQuery)
+      is SqlTableRef -> cteQuery(t)
+      is SqlCteName -> cteBody(t)
+      else -> null
     }
+    else -> null
   }
+
+  private fun cteQuery(ref: SqlTableRef): SqlSubquery? = SqlScopes.ctes(ref).firstOrNull { SqlNames.same(it.name, ref.tableName) }?.let(::cteBody)
+
+  private fun cteBody(cte: SqlCteName): SqlSubquery? {
+    var next = PsiTreeUtil.skipWhitespacesAndCommentsForward(cte)
+    if (next?.node?.elementType == SqlTokens.KEYWORD && next.text.equals("AS", ignoreCase = true)) next = PsiTreeUtil.skipWhitespacesAndCommentsForward(next)
+    return next as? SqlSubquery
+  }
+
+  /** What a subquery's select list names: aliases, and plain columns that have none. */
+  private fun outputColumns(query: SqlSubquery): List<String> {
+    val from = SqlScopes.direct(query, SqlTableRef::class.java).firstOrNull()?.textRange?.startOffset ?: Int.MAX_VALUE
+    val aliases = SqlScopes.direct(query, SqlColumnAlias::class.java).filter { it.textRange.startOffset < from }
+    val plain = SqlScopes.direct(query, SqlColumnRef::class.java).filter { c ->
+      c.textRange.startOffset < from && c.columnName.isNotEmpty() && c.columnName != "*" && PsiTreeUtil.skipWhitespacesAndCommentsForward(c) !is SqlColumnAlias &&
+      PsiTreeUtil.skipWhitespacesAndCommentsForward(c)?.text?.equals("AS", ignoreCase = true) != true
+    }
+    return (plain.sortedBy { it.textRange.startOffset }.map { it.columnName } + aliases.map { it.name }).distinct()
+  }
+
+  private fun derivedColumn(name: String, owner: String?) = PrioritizedLookupElement.withPriority(
+    LookupElementBuilder.create(name).withIcon(AllIcons.Nodes.DataColumn).withTailText(owner?.let { " ($it)" }, true), 10.0)
+
+  /** What fits here first, the other keywords last, and functions and data types where an expression or a type can start. */
+  private fun keywords(result: CompletionResultSet, position: PsiElement?, dbms: Dbms?) {
+    val upper = result.prefixMatcher.prefix.firstOrNull()?.isUpperCase() != false
+    fun cased(word: String) = if (upper) word else word.lowercase()
+    val context = position?.let { SqlCompletionKeywords.at(it) }
+    val fitting = context?.words.orEmpty()
+    val priority = if (context?.afterOperand == true) 12.0 else 7.0
+    fitting.forEach { result.addElement(PrioritizedLookupElement.withPriority(LookupElementBuilder.create(cased(it)).bold(), priority)) }
+    val taken = fitting.flatMap { it.split(' ') }.toSet()
+    for (k in SqlTokens.KEYWORDS) if (k !in taken) result.addElement(LookupElementBuilder.create(cased(k)).bold())
+    if (context?.expression == true) SqlFunctions.forDialect(dbms).forEach { result.addElement(function(cased(it))) }
+    if (context?.types == true) SqlFunctions.TYPES.forEach { result.addElement(PrioritizedLookupElement.withPriority(LookupElementBuilder.create(cased(it)).withTypeText("type"), 9.0)) }
+  }
+
+  private fun function(name: String) = PrioritizedLookupElement.withPriority(
+    LookupElementBuilder.create(name).withIcon(AllIcons.Nodes.Function).withTailText("()", true).withInsertHandler { context, _ ->
+      val offset = context.tailOffset
+      val document = context.document
+      if (document.charsSequence.getOrNull(offset) != '(') document.insertString(offset, "()")
+      val none = SqlFunctions.takesNoArguments(name.uppercase())
+      context.editor.caretModel.moveToOffset(offset + if (none) 2 else 1)
+      if (!none) com.intellij.codeInsight.AutoPopupController.getInstance(context.project).autoPopupParameterInfo(context.editor, null)
+    }, 6.0)
 
   private fun previousKeyword(position: PsiElement): String? {
     var leaf = PsiTreeUtil.prevLeaf(position)

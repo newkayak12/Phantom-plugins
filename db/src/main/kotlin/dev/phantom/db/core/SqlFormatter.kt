@@ -19,7 +19,8 @@ import com.intellij.psi.util.PsiTreeUtil
 class SqlFormattingModelBuilder : FormattingModelBuilder {
   override fun createModel(formattingContext: FormattingContext): FormattingModel {
     val file = formattingContext.containingFile
-    val root = SqlRootBlock(file.node, SqlLayout(file.node))
+    val indent = formattingContext.codeStyleSettings.getIndentOptions(SqlFileType.INSTANCE).INDENT_SIZE
+    val root = SqlRootBlock(file.node, SqlLayout(file.node, indent))
     return FormattingModelProvider.createFormattingModelForPsiFile(file, root, formattingContext.codeStyleSettings)
   }
 }
@@ -57,7 +58,7 @@ private class SqlRootBlock(private val file: ASTNode, private val layout: SqlLay
 internal data class SqlPlacement(var lineFeeds: Int = 0, var space: Int = 1, var indent: Int = 0, var keepBreaks: Boolean = true)
 
 /** Decides the placement of every token of a SQL file in one pass. */
-internal class SqlLayout(file: ASTNode) {
+internal class SqlLayout(file: ASTNode, private val indentSize: Int = 4) {
   val leaves: List<ASTNode> = generateSequence(TreeUtil.findFirstLeaf(file)) { TreeUtil.nextLeaf(it) }
     .filter { it.elementType != TokenType.WHITE_SPACE && it.textLength > 0 }.toList()
   private val placements = HashMap<ASTNode, SqlPlacement>()
@@ -65,13 +66,13 @@ internal class SqlLayout(file: ASTNode) {
   fun decision(leaf: ASTNode): SqlPlacement = placements[leaf] ?: SqlPlacement()
 
   /** A query block (statement or subquery) or the inside of other parentheses. */
-  private class Frame(val query: Boolean, val base: Int, val close: Int, val closesOnNewLine: Boolean) {
+  private inner class Frame(val query: Boolean, val base: Int, val close: Int, val closesOnNewLine: Boolean) {
     var tokens = 0
     var listActive = false
     var listPending = false
     var lastClause: String? = null
-    val lineIndent: Int get() = if (query) base + INDENT else base
-    val childBase: Int get() = if (query) base + INDENT else base + INDENT
+    val lineIndent: Int get() = if (query) base + indentSize else base
+    val childBase: Int get() = if (query) base + indentSize else base + indentSize
     val childClose: Int get() = base
   }
 
@@ -181,16 +182,16 @@ internal class SqlLayout(file: ASTNode) {
       }
       kw == "ON" && frame.lastClause == "JOIN" -> {
         d.lineFeeds = 1
-        d.indent = frame.base + INDENT
+        d.indent = frame.base + indentSize
       }
       frame.listPending && kw !in LIST_MODIFIERS -> {
         frame.listPending = false
         d.lineFeeds = 1
-        d.indent = frame.base + INDENT
+        d.indent = frame.base + indentSize
       }
       frame.listActive && tokens[i - 1].elementType == SqlTokens.COMMA -> {
         d.lineFeeds = 1
-        d.indent = frame.base + INDENT
+        d.indent = frame.base + indentSize
       }
     }
   }
@@ -237,7 +238,6 @@ internal class SqlLayout(file: ASTNode) {
   }
 
   private companion object {
-    const val INDENT = 4
     val DML = setOf("SELECT", "WITH", "INSERT", "UPDATE", "DELETE", "REPLACE")
     val JOIN_PREFIX = setOf("LEFT", "RIGHT", "INNER", "CROSS", "FULL", "NATURAL")
     val LIST_MODIFIERS = setOf("DISTINCT", "ALL")

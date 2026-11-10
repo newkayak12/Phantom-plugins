@@ -17,6 +17,27 @@
     <lang.commenter language="SQL" implementationClass="dev.phantom.db.core.SqlCommenter"/>
     <lang.braceMatcher language="SQL" implementationClass="dev.phantom.db.core.SqlBraceMatcher"/>
     <completion.contributor language="SQL" implementationClass="dev.phantom.db.core.SqlCompletionContributor"/>
+    <annotator language="SQL" implementationClass="dev.phantom.db.core.SqlSyntaxAnnotator"/>
+    <annotator language="SQL" implementationClass="dev.phantom.db.core.SqlSemanticAnnotator"/>
+    <colorSettingsPage implementation="dev.phantom.db.core.SqlColorSettingsPage"/>
+    <typedHandler implementation="dev.phantom.db.core.SqlTypedHandler"/>
+    <extendWordSelectionHandler implementation="dev.phantom.db.core.SqlExtendSelectionHandler"/>
+    <lang.surroundDescriptor language="SQL" implementationClass="dev.phantom.db.core.SqlSurroundDescriptor"/>
+    <lang.smartEnterProcessor language="SQL" implementationClass="dev.phantom.db.core.SqlSmartEnterProcessor"/>
+    <langCodeStyleSettingsProvider implementation="dev.phantom.db.core.SqlLanguageCodeStyleSettingsProvider"/>
+    <postFormatProcessor implementation="dev.phantom.db.core.SqlKeywordCasePostFormatProcessor"/>
+    <lang.foldingBuilder language="SQL" implementationClass="dev.phantom.db.core.SqlFoldingBuilder"/>
+    <lang.quoteHandler language="SQL" implementationClass="dev.phantom.db.core.SqlQuoteHandler"/>
+    <codeInsight.parameterInfo language="SQL" implementationClass="dev.phantom.db.core.SqlParameterInfoHandler"/>
+    <codeInsight.declarativeInlayProvider language="SQL" implementationClass="dev.phantom.db.core.SqlInsertColumnHintsProvider"
+                                          isEnabledByDefault="true" group="PARAMETERS_GROUP" providerId="phantom.sql.insert.columns"
+                                          bundle="messages.PhantomDbBundle" nameKey="sql.hints.insert.columns" descriptionKey="sql.hints.insert.columns.description"/>
+    <intentionAction>
+      <language>SQL</language>
+      <className>dev.phantom.db.core.SqlExpandStarIntention</className>
+      <bundleName>messages.PhantomDbBundle</bundleName>
+      <categoryKey>sql.intention.category</categoryKey>
+    </intentionAction>
     <localInspection language="SQL" shortName="PhantomSqlUnresolvedTable" key="inspection.PhantomSqlUnresolvedTable" groupKey="inspection.group.sql"
                      enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnresolvedTableInspection"/>
     <localInspection language="SQL" shortName="PhantomSqlUnresolvedColumn" key="inspection.PhantomSqlUnresolvedColumn" groupKey="inspection.group.sql"
@@ -148,6 +169,8 @@
                 factoryClass="dev.phantom.db.core.ui.DbChangesToolWindowFactory"/>
     <projectCloseHandler implementation="dev.phantom.db.core.exec.DbPendingChangesCloseHandler"/>
     <fileEditorProvider implementation="dev.phantom.db.core.ui.DbDiagramEditorProvider"/>
+    <fileType name="Phantom ERD" implementationClass="dev.phantom.db.core.erd.ErdFileType" fieldName="INSTANCE" extensions="erd"/>
+    <fileEditorProvider implementation="dev.phantom.db.core.erd.ErdEditorProvider"/>
     <scratch.rootType implementation="dev.phantom.db.core.exec.DbConsoleRootType"/>
     <searchEverywhereContributor implementation="dev.phantom.db.core.ui.DbSearchEverywhereContributor$Factory"/>
     <database.datagrid.formatterCreatorProvider implementation="dev.phantom.db.core.exec.DbFormatterCreatorProvider" order="first"/>
@@ -155,6 +178,9 @@
     <notificationGroup id="Phantom Database" displayType="BALLOON" bundle="messages.PhantomDbBundle" key="db.notification.group"/>
   </extensions>
   <actions resource-bundle="messages.PhantomDbBundle">
+    <action id="PhantomDb.NewErd" class="dev.phantom.db.core.erd.ErdNewFileAction" icon="AllIcons.FileTypes.Diagram">
+      <add-to-group group-id="NewGroup" anchor="last"/>
+    </action>
     <action id="PhantomDb.RunStatement" class="dev.phantom.db.core.exec.SqlRunStatementAction" icon="AllIcons.Actions.Execute">
       <keyboard-shortcut keymap="$default" first-keystroke="control ENTER"/>
       <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta ENTER"/>

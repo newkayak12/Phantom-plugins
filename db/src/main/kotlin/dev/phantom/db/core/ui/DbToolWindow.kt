@@ -292,7 +292,21 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
         }
       },
     )
-    val toolbar = ActionManager.getInstance().createActionToolbar("PhantomDbExplorer", group, true)
+    // the toolbar keeps what is used all the time; every command stays in the ⋮ menu and on right click
+    val everything = DefaultActionGroup(PhantomDbBundle.message("db.tree.more"), true).apply {
+      templatePresentation.icon = AllIcons.Actions.More
+      addAll(group)
+    }
+    val manager = ActionManager.getInstance()
+    val shown = DefaultActionGroup(
+      manager.getAction(DbTreeAction.PREFIX + "Add"),
+      manager.getAction(DbTreeAction.PREFIX + "Refresh"),
+      manager.getAction(DbTreeAction.PREFIX + "OpenConsole"),
+      manager.getAction(DbTreeAction.PREFIX + "Data"),
+      Separator.getInstance(),
+      everything,
+    )
+    val toolbar = manager.createActionToolbar("PhantomDbExplorer", shown, true)
     toolbar.targetComponent = tree
     filterField.textEditor.emptyText.text = PhantomDbBundle.message("db.tree.filter")
     filterField.addDocumentListener(object : DocumentAdapter() {

@@ -14,7 +14,8 @@ data class DbSchemaModel(val name: String, val tables: Map<String, DbTableModel>
 
 data class DbTableModel(val name: String, val columns: List<DbColumnModel>, val primaryKey: List<String>, val indexes: List<DbIndexModel>)
 
-data class DbColumnModel(val name: String, val type: String, val nullable: Boolean, val default: String?)
+/** [extra]: more of the column's definition to write after its default (never compared). */
+data class DbColumnModel(val name: String, val type: String, val nullable: Boolean, val default: String?, val extra: String? = null)
 
 data class DbIndexModel(val name: String, val unique: Boolean, val columns: List<String>)
 
@@ -143,8 +144,8 @@ object DbSchemaDiff {
     return "CREATE TABLE ${q(table.name)} (\n${lines.joinToString(",\n")}\n);"
   }
 
-  private fun columnSql(c: DbColumnModel, q: (String) -> String): String =
-    q(c.name) + " " + c.type + (if (c.nullable) "" else " NOT NULL") + (c.default?.let { " DEFAULT $it" } ?: "")
+  internal fun columnSql(c: DbColumnModel, q: (String) -> String): String =
+    q(c.name) + " " + c.type + (if (c.nullable) "" else " NOT NULL") + (c.default?.let { " DEFAULT $it" } ?: "") + (c.extra?.let { " $it" } ?: "")
 
   private fun alterColumn(table: String, old: DbColumnModel, c: DbColumnModel, dbms: Dbms, q: (String) -> String): String = when (dbms) {
     Dbms.MYSQL, Dbms.MARIADB -> "ALTER TABLE ${q(table)} MODIFY COLUMN ${columnSql(c, q)};"

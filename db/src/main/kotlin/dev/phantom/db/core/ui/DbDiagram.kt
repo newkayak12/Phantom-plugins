@@ -244,35 +244,35 @@ class DbDiagramPanel(val model: DbDiagramModel) : JPanel() {
     }
   }
 
-  /** From the referencing box's side to the referenced box's, through a vertical segment between them; an arrow at the end. */
-  private fun drawLink(g: Graphics2D, from: Rectangle, to: Rectangle, self: Boolean) {
-    val y1 = from.y + JBUI.scale(12)
-    val y2 = to.y + JBUI.scale(12)
-    if (self) {
-      val x = from.x + from.width
-      g.drawPolyline(intArrayOf(x, x + 20, x + 20, x), intArrayOf(y1, y1, y1 + 16, y1 + 16), 4)
-      return
-    }
-    val rightward = to.x >= from.x + from.width
-    val leftward = to.x + to.width <= from.x
-    val (x1, x2, mid) = when {
-      leftward -> Triple(from.x, to.x + to.width, (from.x + to.x + to.width) / 2)
-      rightward -> Triple(from.x + from.width, to.x, (from.x + from.width + to.x) / 2)
-      // overlapping columns: go around on the left
-      else -> Triple(from.x, to.x, minOf(from.x, to.x) - 20)
-    }
-    g.drawPolyline(intArrayOf(x1, mid, mid, x2), intArrayOf(y1, y1, y2, y2), 4)
-    val dir = if (x2 >= mid) -1 else 1
-    g.fillPolygon(intArrayOf(x2, x2 + dir * 7, x2 + dir * 7), intArrayOf(y2, y2 - 4, y2 + 4), 3)
-  }
-
   companion object {
-    private val BOX = JBColor(Color(0xFAFAFA), Color(0x2B2D30))
-    private val HEADER = JBColor(Color(0xDDE7F5), Color(0x35425A))
-    private val BORDER = JBColor(Color(0x9AA7B8), Color(0x5A6372))
-    private val LINE = JBColor(Color(0x6A7A90), Color(0x8C9AAE))
-    private val KEY = JBColor(Color(0x9A6700), Color(0xE0B44C))
-    private val FOREIGN = JBColor(Color(0x2B6CB0), Color(0x7AA7E0))
+    internal val BOX = JBColor(Color(0xFAFAFA), Color(0x2B2D30))
+    internal val HEADER = JBColor(Color(0xDDE7F5), Color(0x35425A))
+    internal val BORDER = JBColor(Color(0x9AA7B8), Color(0x5A6372))
+    internal val LINE = JBColor(Color(0x6A7A90), Color(0x8C9AAE))
+    internal val KEY = JBColor(Color(0x9A6700), Color(0xE0B44C))
+    internal val FOREIGN = JBColor(Color(0x2B6CB0), Color(0x7AA7E0))
+
+    /** From the referencing box's side to the referenced box's, through a vertical segment between them; an arrow at the end. */
+    internal fun drawLink(g: Graphics2D, from: Rectangle, to: Rectangle, self: Boolean) {
+      val y1 = from.y + JBUI.scale(12)
+      val y2 = to.y + JBUI.scale(12)
+      if (self) {
+        val x = from.x + from.width
+        g.drawPolyline(intArrayOf(x, x + 20, x + 20, x), intArrayOf(y1, y1, y1 + 16, y1 + 16), 4)
+        return
+      }
+      val rightward = to.x >= from.x + from.width
+      val leftward = to.x + to.width <= from.x
+      val (x1, x2, mid) = when {
+        leftward -> Triple(from.x, to.x + to.width, (from.x + to.x + to.width) / 2)
+        rightward -> Triple(from.x + from.width, to.x, (from.x + from.width + to.x) / 2)
+        // overlapping columns: go around on the left
+        else -> Triple(from.x, to.x, minOf(from.x, to.x) - 20)
+      }
+      g.drawPolyline(intArrayOf(x1, mid, mid, x2), intArrayOf(y1, y1, y2, y2), 4)
+      val dir = if (x2 >= mid) -1 else 1
+      g.fillPolygon(intArrayOf(x2, x2 + dir * 7, x2 + dir * 7), intArrayOf(y2, y2 - 4, y2 + 4), 3)
+    }
   }
 }
 
