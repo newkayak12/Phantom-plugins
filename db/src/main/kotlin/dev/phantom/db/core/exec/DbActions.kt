@@ -54,12 +54,12 @@ class SqlRunStatementAction : DumbAwareAction() {
   private fun statements(e: AnActionEvent): List<String> {
     val file = e.getData(CommonDataKeys.PSI_FILE) as? SqlFile ?: return emptyList()
     e.getData(Location.DATA_KEY)?.psiElement?.let { element ->
-      return listOfNotNull(PsiTreeUtil.getParentOfType(element, SqlStatement::class.java, false)?.executableText?.takeIf { it.isNotEmpty() })
+      return listOfNotNull(PsiTreeUtil.getParentOfType(element, SqlStatement::class.java, false)?.let { SqlStatements.part(it, element.textRange.startOffset) })
     }
     val editor = e.getData(CommonDataKeys.EDITOR) ?: return emptyList()
     val selection = editor.selectionModel
     if (selection.hasSelection()) return SqlStatements.split(selection.selectedText.orEmpty())
-    return listOfNotNull(file.statementAt(editor.caretModel.offset)?.executableText?.takeIf { it.isNotEmpty() })
+    return listOfNotNull(file.executableAt(editor.caretModel.offset))
   }
 }
 

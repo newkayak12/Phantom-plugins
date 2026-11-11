@@ -11,6 +11,7 @@
     <extensionPoint qualifiedName="dev.phantom.db.wholeInjection" interface="dev.phantom.db.core.SqlWholeInjection" dynamic="true"/>
   </extensionPoints>
   <extensions defaultExtensionNs="com.intellij">
+    <nonProjectFileWritingAccessExtension implementation="dev.phantom.db.core.exec.DbConsoleWritingAccess"/>
     <fileType name="Phantom SQL" language="SQL" extensions="sql"
               implementationClass="dev.phantom.db.core.SqlFileType" fieldName="INSTANCE"/>
     <lang.parserDefinition language="SQL" implementationClass="dev.phantom.db.core.SqlParserDefinition"/>

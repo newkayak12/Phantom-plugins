@@ -131,6 +131,8 @@ class SqlFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, SqlLan
     all.lastOrNull { it.textRange.endOffset <= offset }?.takeIf { sameLine(it.textRange.endOffset, offset) }?.let { return it }
     return all.firstOrNull { it.textRange.startOffset >= offset }?.takeIf { sameLine(offset, it.textRange.startOffset) }
   }
+  /** The SQL to run for a caret at [offset]: [statementAt], cut where a `;` is missing before the next statement. */
+  fun executableAt(offset: Int): String? = statementAt(offset)?.let { SqlStatements.part(it, offset) }
 }
 
 /** One statement, up to and including its `;`. Below it: tokens, names ([SqlTableRef], [SqlColumnRef], ...) and subqueries. */
@@ -160,6 +162,23 @@ object SqlStatements {
       n = com.intellij.psi.impl.source.tree.TreeUtil.nextLeaf(n)?.takeIf { end == null || it.startOffset < end.startOffset + end.textLength }
     }
     return n?.takeIf { it.elementType == SqlTokens.KEYWORD }?.text?.uppercase()
+  }
+
+  /**
+   * The part of [statement] around [offset] (in the file): a statement that runs on into the next one for a missing
+   * `;` (`SELECT * FROM a` and `SELECT * FROM b` on the next line) is cut where the `;` should be.
+   */
+  fun part(statement: SqlStatement, offset: Int): String? {
+    val text = statement.executableText
+    if (text.isEmpty()) return null
+    val start = statement.textRange.startOffset + statement.text.indexOf(text)
+    val cuts = SqlSyntaxCheck.check(text).mapNotNull { p -> p.fix?.takeIf { it.text == ";" && it.start == it.end }?.start }.distinct().sorted()
+    var from = 0
+    for (cut in cuts) {
+      if (offset - start <= cut) return text.substring(from, cut).trim().ifEmpty { null }
+      from = cut
+    }
+    return text.substring(from).trim().ifEmpty { null }
   }
 
   /** Splits plain SQL text into statements with the same lexer as the editor. */

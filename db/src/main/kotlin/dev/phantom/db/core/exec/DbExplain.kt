@@ -68,7 +68,7 @@ abstract class DbExplainAction(private val analyze: Boolean) : DumbAwareAction()
     val editor = e.getData(CommonDataKeys.EDITOR) ?: return null
     val selection = editor.selectionModel
     if (selection.hasSelection()) return dev.phantom.db.core.SqlStatements.split(selection.selectedText.orEmpty()).firstOrNull()
-    return file.statementAt(editor.caretModel.offset)?.executableText?.takeIf { it.isNotEmpty() }
+    return file.executableAt(editor.caretModel.offset)
   }
 }
 

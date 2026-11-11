@@ -435,3 +435,8 @@ object DbRunner {
   }
 }
 
+
+/** Consoles are edited without the Non-Project Files Protection prompt: they live outside every project by design. */
+class DbConsoleWritingAccess : com.intellij.openapi.fileEditor.impl.NonProjectFileWritingAccessExtension {
+  override fun isWritable(file: VirtualFile): Boolean = DbConsoles.isConsole(file)
+}

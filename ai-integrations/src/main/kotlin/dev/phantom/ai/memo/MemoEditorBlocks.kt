@@ -280,7 +280,7 @@ class MemoEditorBlocks(private val editor: Editor, private val store: AiMemoStor
           override fun mousePressed(e: EditorMouseEvent) {
             swallowClick = false
             if (!javax.swing.SwingUtilities.isLeftMouseButton(e.mouseEvent)) return
-            if (!inGutter(e) || e.mouseEvent.x !in slotX() until slotX() + icon.iconWidth) return
+            if (!inGutter(e) || slotEnd() - slotX() < icon.iconWidth || e.mouseEvent.x !in slotX() until slotEnd()) return
             val line = line(e)
             dragFrom = line
             dragTo = line
@@ -319,6 +319,9 @@ class MemoEditorBlocks(private val editor: Editor, private val store: AiMemoStor
 
     fun slotX() = editor.gutterComponentEx.lineMarkerAreaOffset
 
+    /** Where the slot ends: never inside the icon area, whose run and navigation icons keep their clicks. */
+    private fun slotEnd() = minOf(slotX() + icon.iconWidth, editor.gutterComponentEx.iconAreaOffset)
+
     private fun hover(line: Int?) {
       if (line == hovered) return
       hovered = line
@@ -328,6 +331,8 @@ class MemoEditorBlocks(private val editor: Editor, private val store: AiMemoStor
     private fun y(line: Int) = editor.visualLineToY(editor.logicalToVisualPosition(LogicalPosition(line, 0)).line)
 
     override fun paint(editor: Editor, g: Graphics, r: Rectangle) {
+      // no slot of our own (the left free painters area is closed): draw nothing over the icons
+      if (slotEnd() - slotX() < icon.iconWidth) return
       val from = dragFrom
       val to = dragTo
       if (from != null && to != null) {

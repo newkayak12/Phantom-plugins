@@ -89,6 +89,22 @@ class DbConsoleTest : BasePlatformTestCase() {
     assertEquals(listOf("SELECT 1", "SELECT \$\$a;b\$\$", "SELECT 2"), SqlStatements.split("SELECT 1; SELECT \$\$a;b\$\$;\n-- c;\nSELECT 2;"))
   }
 
+  fun testRunCutsWhereSemicolonIsMissing() {
+    val file = myFixture.configureByText("missing.sql", "SELECT * FROM cfms.dynamic_job\nSELECT * FROM cfms.dynamic_trigger\n") as SqlFile
+    val text = file.text
+    assertEquals("SELECT * FROM cfms.dynamic_trigger", file.executableAt(text.indexOf("dynamic_trigger")))
+    assertEquals("SELECT * FROM cfms.dynamic_job", file.executableAt(text.indexOf("dynamic_job")))
+    assertEquals("SELECT * FROM cfms.dynamic_trigger", file.executableAt(text.length - 1))
+  }
+
+  fun testConsolesNeedNoWritePrompt() {
+    val dir = DbConsoles.legacyRoot().resolve("ds1")
+    java.nio.file.Files.createDirectories(dir)
+    val path = java.nio.file.Files.writeString(dir.resolve("console.sql"), "SELECT 1")
+    val vfile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(path)!!
+    assertTrue(DbConsoleWritingAccess().isWritable(vfile))
+  }
+
   fun testSafetyChecks() {
     val ds = DbDataSource().apply { name = "prod"; readOnly = true }
     assertTrue(SqlSafety.missingWhere("DELETE FROM reservation"))
