@@ -628,6 +628,70 @@
       ],
       "download": "logs-0.1.0/logs-0.1.0.zip",
       "detect": []
+    },
+    {
+      "id": "org.jetbrains.java.decompiler",
+      "name": "Java Bytecode Decompiler",
+      "version": "262.261111.1",
+      "source": "decompiler",
+      "description": "Opening a .class file without sources shows Java source decompiled by Fernflower instead of a stub, with the debugger mapping its lines back; Kotlin's bytecode decompiler builds on it. The IntelliJ Community Java Bytecode Decompiler (Apache 2.0), built in Phantom-plugins so it updates without a new Phantom build; its version is above the bundled build, so it replaces a copy Phantom still bundles.",
+      "vendor": "Phantom",
+      "category": "JVM Tools",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.java"
+      ],
+      "download": "decompiler-262.261111.1/decompiler-262.261111.1.zip",
+      "detect": []
+    },
+    {
+      "id": "Coverage",
+      "name": "Code Coverage for Java",
+      "version": "262.261111.1",
+      "source": "coverage",
+      "description": "Run with Coverage for Java run configurations, with the IntelliJ or the JaCoCo runner: the Coverage tool window, line and branch marks in the editor and the Project view, HTML reports and imported reports. The IntelliJ Community Code Coverage for Java plugin (Apache 2.0), built in Phantom-plugins so it updates without a new Phantom build; its version is above the bundled build, so it replaces a copy Phantom still bundles.",
+      "vendor": "Phantom",
+      "category": "JVM Tools",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.java"
+      ],
+      "download": "coverage-262.261111.1/coverage-262.261111.1.zip",
+      "detect": []
+    },
+    {
+      "id": "org.jetbrains.plugins.textmate",
+      "name": "TextMate Bundles",
+      "version": "262.261111.1",
+      "source": "textmate",
+      "description": "Highlighting, brace matching, commenting and snippets from TextMate and VS Code grammars for file types no other plugin covers: 64 bundled grammars and any you add. The IntelliJ Community TextMate Bundles plugin (Apache 2.0), built in Phantom-plugins so it updates without a new Phantom build; its version is above the bundled build, so it replaces a copy Phantom still bundles.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "textmate-262.261111.1/textmate-262.261111.1.zip",
+      "detect": []
+    },
+    {
+      "id": "org.intellij.plugins.markdown",
+      "name": "Markdown",
+      "version": "262.261111.1",
+      "source": "markdown",
+      "description": "Markdown files: highlighting, completion, navigation, inspections, table and list editing, images, language injection in code fences, front matter, and the JCEF or Compose preview; Shell Script, Kotlin and others build on it. The IntelliJ Community Markdown plugin (Apache 2.0), built in Phantom-plugins so it updates without a new Phantom build; its version is above the bundled build, so it replaces a copy Phantom still bundles.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "markdown-262.261111.1/markdown-262.261111.1.zip",
+      "detect": []
     }
   ]
 }

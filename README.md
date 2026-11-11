@@ -52,6 +52,10 @@ Public repositories need no token.
 | YAML | [yaml](./yaml/README.md) · [한국어](./yaml/KOR.md) | YAML files with JSON Schema support; docker, kubernetes, openapi and migrations build on it (the IntelliJ plugin, built here) |
 | Shell Script | [sh](./sh/README.md) · [한국어](./sh/KOR.md) | Shell scripts: completion, run configurations, ShellCheck and shfmt (the IntelliJ plugin, built here) |
 | Lombok | [lombok](./lombok/README.md) · [한국어](./lombok/KOR.md) | Project Lombok's generated members in the editor, inspections and Delombok (the IntelliJ plugin, built here) |
+| Java Bytecode Decompiler | [decompiler](./decompiler/README.md) · [한국어](./decompiler/KOR.md) | Decompiled Java source for `.class` files without sources (the IntelliJ plugin, built here) |
+| Code Coverage for Java | [coverage](./coverage/README.md) · [한국어](./coverage/KOR.md) | Run with Coverage, with the IntelliJ or the JaCoCo runner (the IntelliJ plugin, built here) |
+| TextMate Bundles | [textmate](./textmate/README.md) · [한국어](./textmate/KOR.md) | Highlighting from TextMate and VS Code grammars for other file types (the IntelliJ plugin, built here) |
+| Markdown | [markdown](./markdown/README.md) · [한국어](./markdown/KOR.md) | Markdown editing and preview; Shell Script, Kotlin and others build on it (the IntelliJ plugin, built here) |
 | Phantom CPU Indicator | [cpu](./cpu/README.md) · [한국어](./cpu/KOR.md) | IDE and system CPU in the status bar; hover shows what the IDE spent it on (indexing, analysis, GC, JIT) |
 | Phantom Log Console | [logs](./logs/README.md) · [한국어](./logs/KOR.md) | JSON logs as readable lines with stack traces, level colors, trace ids that list a request's lines |
 

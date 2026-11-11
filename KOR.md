@@ -52,6 +52,10 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | YAML | [yaml](./yaml/KOR.md) · [English](./yaml/README.md) | JSON Schema를 지원하는 YAML 파일. docker, kubernetes, openapi, migrations가 이것을 씀 (IntelliJ 플러그인을 여기서 빌드) |
 | Shell Script | [sh](./sh/KOR.md) · [English](./sh/README.md) | 셸 스크립트: 자동완성, 실행 구성, ShellCheck와 shfmt (IntelliJ 플러그인을 여기서 빌드) |
 | Lombok | [lombok](./lombok/KOR.md) · [English](./lombok/README.md) | 에디터에서 Project Lombok이 만드는 멤버, 인스펙션, Delombok (IntelliJ 플러그인을 여기서 빌드) |
+| Java Bytecode Decompiler | [decompiler](./decompiler/KOR.md) · [English](./decompiler/README.md) | `.class` 파일을 소스 없이 열 때 디컴파일한 Java 소스 (IntelliJ 플러그인을 여기서 빌드) |
+| Code Coverage for Java | [coverage](./coverage/KOR.md) · [English](./coverage/README.md) | IntelliJ 또는 JaCoCo 러너로 Run with Coverage (IntelliJ 플러그인을 여기서 빌드) |
+| TextMate Bundles | [textmate](./textmate/KOR.md) · [English](./textmate/README.md) | 다른 파일 형식을 TextMate와 VS Code 문법으로 하이라이팅 (IntelliJ 플러그인을 여기서 빌드) |
+| Markdown | [markdown](./markdown/KOR.md) · [English](./markdown/README.md) | Markdown 편집과 미리보기. Shell Script, Kotlin 등이 이것을 씀 (IntelliJ 플러그인을 여기서 빌드) |
 | Phantom CPU Indicator | [cpu](./cpu/KOR.md) · [English](./cpu/README.md) | 상태바에 IDE·시스템 CPU, 호버하면 IDE가 CPU를 어디에 썼는지(인덱싱, 분석, GC, JIT) |
 | Phantom Log Console | [logs](./logs/KOR.md) · [English](./logs/README.md) | JSON 로그를 읽기 쉬운 줄과 스택트레이스로, 레벨 색, traceId를 누르면 그 요청의 줄 목록 |
 

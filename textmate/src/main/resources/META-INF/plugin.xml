@@ -1,0 +1,29 @@
+<idea-plugin allow-bundled-update="true">
+  <!-- The id and the content module names stay the IntelliJ ones (Markdown's code fence highlighting depends on
+       intellij.textmate), and the version above the bundled build replaces a still-bundled copy. -->
+  <id>org.jetbrains.plugins.textmate</id>
+  <name>TextMate Bundles</name>
+  <category>Languages</category>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+
+  <description><![CDATA[
+    Supports syntax highlighting for arbitrary file types,
+    controlled by <a href="https://macromates.com/textmate/manual/bundles">TextMate bundles</a>.
+    The IntelliJ Community TextMate Bundles plugin (Apache 2.0), built in Phantom-plugins so it updates without a new Phantom build.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+  </dependencies>
+
+  <!-- One jar: the modules share the org.jetbrains.plugins.textmate packages, so they all load embedded. No frontend.split
+       (its sources are not in IntelliJ Community). -->
+  <content namespace="jetbrains">
+    <module name="intellij.textmate" loading="embedded"/>
+    <module name="intellij.textmate.common" loading="embedded"/>
+    <module name="intellij.textmate.core" loading="embedded"/>
+    <module name="intellij.textmate.joni" loading="embedded"/>
+    <module name="intellij.textmate.backend" loading="embedded"/>
+  </content>
+
+</idea-plugin>
