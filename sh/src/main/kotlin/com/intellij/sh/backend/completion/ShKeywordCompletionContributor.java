@@ -26,15 +26,13 @@ import static com.intellij.sh.backend.completion.ShCompletionUtil.insideSubshell
 import static com.intellij.sh.backend.completion.ShCompletionUtil.insideThenOrElse;
 import static com.intellij.sh.backend.completion.ShCompletionUtil.insideUntilDeclaration;
 import static com.intellij.sh.backend.completion.ShCompletionUtil.insideWhileDeclaration;
-import static com.intellij.sh.statistics.ShCounterUsagesCollector.BASE_KEYWORD_COMPLETION_USED_EVENT_ID;
-import static com.intellij.sh.statistics.ShCounterUsagesCollector.CONDITION_KEYWORD_COMPLETION_USED_EVENT_ID;
 
 final class ShKeywordCompletionContributor extends CompletionContributor implements DumbAware {
   ShKeywordCompletionContributor() {
-    extend(CompletionType.BASIC, keywordElementPattern(), new ShKeywordCompletionProvider(BASE_KEYWORD_COMPLETION_USED_EVENT_ID,
+    extend(CompletionType.BASIC, keywordElementPattern(), new ShKeywordCompletionProvider(
                                                   "if", "select", "case", "for", "while", "until", "function"));
-    extend(CompletionType.BASIC, elifElementPattern(), new ShKeywordCompletionProvider(BASE_KEYWORD_COMPLETION_USED_EVENT_ID, "elif"));
-    extend(CompletionType.BASIC, insideCondition(), new ShKeywordCompletionProvider(CONDITION_KEYWORD_COMPLETION_USED_EVENT_ID, true,
+    extend(CompletionType.BASIC, elifElementPattern(), new ShKeywordCompletionProvider("elif"));
+    extend(CompletionType.BASIC, insideCondition(), new ShKeywordCompletionProvider(true,
         "string equal", "string not equal", "string is empty", "string not empty", "number equal", "number not equal", "number less",
         "number less or equal", "number greater", "number greater or equal", "file exists", "file not empty", "command exists",
         "path exists", "directory exists", "file readable", "file writable", "file executable", "file equals", "file newer", "file older"));

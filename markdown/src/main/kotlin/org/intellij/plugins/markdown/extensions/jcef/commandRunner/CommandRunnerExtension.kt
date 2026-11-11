@@ -35,7 +35,6 @@ import org.jetbrains.annotations.ApiStatus
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.AppUIUtil
 import org.intellij.plugins.markdown.MarkdownBundle
-import org.intellij.plugins.markdown.MarkdownUsageCollector.RUNNER_EXECUTED
 import org.intellij.plugins.markdown.extensions.MarkdownBrowserPreviewExtension
 import org.intellij.plugins.markdown.extensions.MarkdownExtensionsUtil
 import org.intellij.plugins.markdown.injection.aliases.CodeFenceLanguageGuesser
@@ -205,7 +204,6 @@ internal class CommandRunnerExtension(
     val virtualFile = panel.virtualFile
     if (project != null && virtualFile != null) {
       TrustedProjectUtil.executeIfTrusted(project) {
-        RUNNER_EXECUTED.log(project,  RunnerPlace.PREVIEW, RunnerType.BLOCK, runner.javaClass)
         invokeLater {
           runner.run(command, project, getMarkdownCommandWorkingDirectory(project, virtualFile), executor)
         }
@@ -359,7 +357,6 @@ internal class CommandRunnerExtension(
         for (provider in RunAnythingProvider.EP_NAME.extensionList) {
           val value = provider.findMatchingValue(dataContext, trimmedCmd) ?: continue
           return@runReadAction TrustedProjectUtil.executeIfTrusted(project) {
-            RUNNER_EXECUTED.log(project, place, RunnerType.LINE, provider.javaClass)
             invokeLater {
               provider.execute(dataContext, value)
             }

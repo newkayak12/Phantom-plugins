@@ -58,7 +58,6 @@ import static com.intellij.platform.eel.provider.EelProviderUtil.toEelApiBlockin
 import static com.intellij.sh.ShBundle.message;
 import static com.intellij.sh.ShBundle.messagePointer;
 import static com.intellij.sh.ShNotification.NOTIFICATION_GROUP;
-import static com.intellij.sh.statistics.ShCounterUsagesCollector.EXTERNAL_ANNOTATOR_DOWNLOADED_EVENT_ID;
 
 public final class ShShellcheckUtil {
   private static final Logger LOG = Logger.getInstance(ShShellcheckUtil.class);
@@ -137,7 +136,6 @@ public final class ShShellcheckUtil {
                 FileUtil.delete(oldShellcheck);
               }
               ApplicationManager.getApplication().invokeLater(onSuccess);
-              EXTERNAL_ANNOTATOR_DOWNLOADED_EVENT_ID.log();
             }
           }
         }

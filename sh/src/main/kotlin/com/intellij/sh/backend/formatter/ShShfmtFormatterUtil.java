@@ -49,7 +49,6 @@ import static com.intellij.platform.eel.provider.EelProviderUtil.toEelApiBlockin
 import static com.intellij.sh.ShBundle.message;
 import static com.intellij.sh.ShBundle.messagePointer;
 import static com.intellij.sh.ShNotification.NOTIFICATION_GROUP;
-import static com.intellij.sh.statistics.ShCounterUsagesCollector.EXTERNAL_FORMATTER_DOWNLOADED_EVENT_ID;
 import static com.intellij.sh.utils.ExternalServicesUtil.computeDownloadPath;
 
 public final class ShShfmtFormatterUtil {
@@ -123,7 +122,6 @@ public final class ShShfmtFormatterUtil {
               FileUtil.delete(oldFormatter);
             }
             ApplicationManager.getApplication().invokeLater(onSuccess);
-            EXTERNAL_FORMATTER_DOWNLOADED_EVENT_ID.log();
           }
         }
         catch (IOException e) {

@@ -12,7 +12,6 @@ import com.intellij.codeInsight.template.Template;
 import com.intellij.codeInsight.template.TemplateManager;
 import com.intellij.codeInsight.template.impl.TemplateManagerImpl;
 import com.intellij.codeInsight.template.impl.TemplateSettings;
-import com.intellij.internal.statistic.eventLog.events.EventId;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorModificationUtil;
 import com.intellij.openapi.project.Project;
@@ -27,16 +26,14 @@ class ShKeywordCompletionProvider extends CompletionProvider<CompletionParameter
   private static final int PRIORITY = 10;
 
   private final String @NotNull [] myKeywords;
-  private final @NotNull EventId myEventId;
   private final boolean myWithDescription;
 
-  ShKeywordCompletionProvider(@NotNull EventId eventId, @NonNls String @NotNull ... keywords) {
-    this(eventId, false, keywords);
+  ShKeywordCompletionProvider(@NonNls String @NotNull ... keywords) {
+    this(false, keywords);
   }
 
-  ShKeywordCompletionProvider(@NotNull EventId eventId, boolean withDescription, @NonNls String @NotNull ... keywords) {
+  ShKeywordCompletionProvider(boolean withDescription, @NonNls String @NotNull ... keywords) {
     myKeywords = keywords;
-    myEventId = eventId;
     myWithDescription = withDescription;
   }
 
@@ -54,7 +51,7 @@ class ShKeywordCompletionProvider extends CompletionProvider<CompletionParameter
     TemplateManagerImpl templateManager = (TemplateManagerImpl) TemplateManager.getInstance(project);
     Template template = TemplateSettings.getInstance().getTemplateById("shell_" + keyword);
 
-    InsertHandler<LookupElement> insertHandler = createTemplateBasedInsertHandler(templateManager, template, myEventId);
+    InsertHandler<LookupElement> insertHandler = createTemplateBasedInsertHandler(templateManager, template);
     return PrioritizedLookupElement.withPriority(LookupElementBuilder
         .create(keyword)
         .withTypeText(template != null && myWithDescription ? template.getDescription() : "")
@@ -63,7 +60,7 @@ class ShKeywordCompletionProvider extends CompletionProvider<CompletionParameter
   }
 
   private static InsertHandler<LookupElement> createTemplateBasedInsertHandler(@NotNull TemplateManagerImpl templateManager,
-                                                                               @Nullable Template template, @NotNull EventId eventId) {
+                                                                               @Nullable Template template) {
     return (context, item) -> {
       Editor editor = context.getEditor();
       if (template != null) {
@@ -73,7 +70,6 @@ class ShKeywordCompletionProvider extends CompletionProvider<CompletionParameter
       else {
         EditorModificationUtil.insertStringAtCaret(editor, " ");
       }
-      eventId.log();
     };
   }
 }

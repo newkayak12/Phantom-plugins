@@ -35,7 +35,6 @@
     <module name="intellij.markdown.backend"/>
     <module name="intellij.markdown.java"/>
     <module name="intellij.markdown.fenceInjector.textMate"/>
-    <module name="intellij.markdown.figmaAdvertiser"/>
   </content>
 
   <description><![CDATA[
@@ -48,7 +47,7 @@
       <li>Drag and drop to insert images.</li>
       <li>Language injection in code blocks.</li>
       <li>Pandoc Converter for HTML, Microsoft Word, and PDF formats.</li>
-      <li>Support for PlantUML diagram rendering (you can add support for Mermaid diagrams with a <a href="https://plugins.jetbrains.com/plugin/20146-mermaid">separate plugin</a>).</li>
+      <li>Support for PlantUML diagram rendering.</li>
     </ul>
     <p>Based on the IntelliJ Community Markdown plugin (Apache 2.0).</p>
   ]]></description>
@@ -348,8 +347,6 @@
 
     <focusModeProvider language="Markdown" implementationClass="org.intellij.plugins.markdown.editor.MarkdownFocusModeProvider"/>
 
-    <codeInsight.lineMarkerProvider language="Markdown"
-                                    implementationClass="org.intellij.plugins.markdown.extensions.jcef.mermaid.MermaidLineMarkerAdvertisementProvider"/>
 
     <intentionAction>
       <language>Markdown</language>
@@ -429,7 +426,6 @@
     <advancedSetting id="markdown.hide.floating.toolbar" default="false" groupKey="markdown.settings.name"/>
     <advancedSetting id="markdown.squash.multiple.dashes.in.header.anchors" default="false" groupKey="markdown.settings.name"/>
 
-    <statistics.counterUsagesCollector implementationClass="org.intellij.plugins.markdown.MarkdownUsageCollector"/>
     <applicationSettings service="org.intellij.plugins.markdown.settings.MarkdownCodeFoldingSettings"/>
     <projectSettings service="org.intellij.plugins.markdown.settings.DocumentLinksSafeState"/>
     <projectSettings service="org.intellij.plugins.markdown.settings.pandoc.PandocSettings"/>

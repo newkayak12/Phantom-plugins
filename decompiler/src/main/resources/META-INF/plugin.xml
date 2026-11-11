@@ -28,7 +28,6 @@
     <psi.classFileDecompiler implementation="org.jetbrains.java.decompiler.IdeaDecompiler" order="last, before clsStubBuilder"/>
     <editorFactoryListener implementation="org.jetbrains.java.decompiler.DecompilerInEditorListener"/>
     <applicationService serviceImplementation="org.jetbrains.java.decompiler.IdeaDecompilerSettings"/>
-    <statistics.counterUsagesCollector implementationClass="org.jetbrains.java.decompiler.DecompilerPresetChangedCollector"/>
 
     <!--approximately - 50_000 lines of code -->
     <advancedSetting

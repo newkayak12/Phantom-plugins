@@ -27,7 +27,6 @@ import com.intellij.sh.ShBundle
 import com.intellij.sh.ShTypes
 import com.intellij.sh.psi.ShGenericCommandDirective
 import com.intellij.sh.psi.ShLiteral
-import com.intellij.sh.statistics.ShCounterUsagesCollector
 import com.intellij.util.SuspendingLazy
 import com.intellij.util.io.URLUtil
 import com.intellij.util.suspendingLazy
@@ -73,7 +72,6 @@ internal class ShDocumentationProvider(private val scope: CoroutineScope) : Docu
     if (o == null) return null
     if (!wordWithDocumentation(o)) return null
 
-    ShCounterUsagesCollector.DOCUMENTATION_PROVIDER_USED_EVENT_ID.log()
     return wrapIntoHtml(fetchInfo(o.getText(), o.getProject()))
   }
 
