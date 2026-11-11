@@ -48,6 +48,10 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom Bytecode Viewer | [bytecode](./bytecode/KOR.md) · [English](./bytecode/README.md) | 컴파일된 Java·Kotlin 클래스의 ASM 바이트코드, 에디터 캐럿과 동기화 |
 | Phantom WebP | [webp](./webp/KOR.md) · [English](./webp/README.md) | 네이티브 라이브러리 없이 Java로 디코딩하는 WebP 이미지 보기 |
 | Phantom Modal Commit | [modal-commit](./modal-commit/KOR.md) · [English](./modal-commit/README.md) | Git·Mercurial에서 Commit 도구 창 대신 모달 커밋 대화상자 |
+| Toml | [toml](./toml/KOR.md) · [English](./toml/README.md) | TOML 파일, Gradle 버전 카탈로그 지원의 바탕 (IntelliJ 플러그인을 여기서 빌드) |
+| YAML | [yaml](./yaml/KOR.md) · [English](./yaml/README.md) | JSON Schema를 지원하는 YAML 파일. docker, kubernetes, openapi, migrations가 이것을 씀 (IntelliJ 플러그인을 여기서 빌드) |
+| Shell Script | [sh](./sh/KOR.md) · [English](./sh/README.md) | 셸 스크립트: 자동완성, 실행 구성, ShellCheck와 shfmt (IntelliJ 플러그인을 여기서 빌드) |
+| Lombok | [lombok](./lombok/KOR.md) · [English](./lombok/README.md) | 에디터에서 Project Lombok이 만드는 멤버, 인스펙션, Delombok (IntelliJ 플러그인을 여기서 빌드) |
 | Phantom CPU Indicator | [cpu](./cpu/KOR.md) · [English](./cpu/README.md) | 상태바에 IDE·시스템 CPU, 호버하면 IDE가 CPU를 어디에 썼는지(인덱싱, 분석, GC, JIT) |
 
 ## 저장소 형식

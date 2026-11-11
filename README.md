@@ -48,6 +48,10 @@ Public repositories need no token.
 | Phantom Bytecode Viewer | [bytecode](./bytecode/README.md) · [한국어](./bytecode/KOR.md) | ASM bytecode of a compiled Java or Kotlin class, synced with the editor's caret |
 | Phantom WebP | [webp](./webp/README.md) · [한국어](./webp/KOR.md) | WebP images in the image editor, decoded in Java with no native library |
 | Phantom Modal Commit | [modal-commit](./modal-commit/README.md) · [한국어](./modal-commit/KOR.md) | The modal commit dialog for Git and Mercurial instead of the Commit tool window |
+| Toml | [toml](./toml/README.md) · [한국어](./toml/KOR.md) | TOML files, the base of Gradle version catalog support (the IntelliJ plugin, built here) |
+| YAML | [yaml](./yaml/README.md) · [한국어](./yaml/KOR.md) | YAML files with JSON Schema support; docker, kubernetes, openapi and migrations build on it (the IntelliJ plugin, built here) |
+| Shell Script | [sh](./sh/README.md) · [한국어](./sh/KOR.md) | Shell scripts: completion, run configurations, ShellCheck and shfmt (the IntelliJ plugin, built here) |
+| Lombok | [lombok](./lombok/README.md) · [한국어](./lombok/KOR.md) | Project Lombok's generated members in the editor, inspections and Delombok (the IntelliJ plugin, built here) |
 | Phantom CPU Indicator | [cpu](./cpu/README.md) · [한국어](./cpu/KOR.md) | IDE and system CPU in the status bar; hover shows what the IDE spent it on (indexing, analysis, GC, JIT) |
 
 ## Repository format

@@ -548,6 +548,70 @@
         "com.intellij.modules.platform"
       ],
       "download": "cpu-0.1.0/cpu-0.1.0.zip"
+    },
+    {
+      "id": "org.toml.lang",
+      "name": "Toml",
+      "version": "262.261027.1",
+      "source": "toml",
+      "description": "TOML files: highlighting, formatting, folding, references, JSON Schema completion and documentation; Gradle version catalogs build on it. The IntelliJ Community TOML plugin (Apache 2.0), built in Phantom-plugins so it updates without a new Phantom build; its version is above the bundled build, so it replaces a copy Phantom still bundles.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "toml-262.261027.1/toml-262.261027.1.zip",
+      "detect": []
+    },
+    {
+      "id": "org.jetbrains.plugins.yaml",
+      "name": "YAML",
+      "version": "262.261027.1",
+      "source": "yaml",
+      "description": "YAML files: highlighting, formatting, structure view, anchors and aliases, inspections, and JSON Schema completion, validation and documentation; Phantom's docker, kubernetes, openapi and migrations plugins depend on it. The IntelliJ Community YAML plugin (Apache 2.0), built in Phantom-plugins so it updates without a new Phantom build; its version is above the bundled build, so it replaces a copy Phantom still bundles.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.json"
+      ],
+      "download": "yaml-262.261027.1/yaml-262.261027.1.zip",
+      "detect": []
+    },
+    {
+      "id": "com.jetbrains.sh",
+      "name": "Shell Script",
+      "version": "262.261027.1",
+      "source": "sh",
+      "description": "Shell scripts: highlighting, completion, rename, a run configuration, ShellCheck and shfmt, shell blocks in Markdown and the terminal. The IntelliJ Community Shell Script plugin (Apache 2.0), built in Phantom-plugins so it updates without a new Phantom build; its version is above the bundled build, so it replaces a copy Phantom still bundles.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "sh-262.261027.1/sh-262.261027.1.zip",
+      "detect": []
+    },
+    {
+      "id": "Lombook Plugin",
+      "name": "Lombok",
+      "version": "262.261027.1",
+      "source": "lombok",
+      "description": "Project Lombok in the editor: generated getters, setters, constructors, builders, loggers and more resolve and complete; lombok.config, inspections, quick fixes and Delombok. The IntelliJ Community Lombok plugin (Apache 2.0), built in Phantom-plugins so it updates without a new Phantom build; its version is above the bundled build, so it replaces a copy Phantom still bundles.",
+      "vendor": "Phantom",
+      "category": "JVM Frameworks",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.java"
+      ],
+      "download": "lombok-262.261027.1/lombok-262.261027.1.zip",
+      "detect": []
     }
   ]
 }
