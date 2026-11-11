@@ -612,6 +612,22 @@
       ],
       "download": "lombok-262.261027.1/lombok-262.261027.1.zip",
       "detect": []
+    },
+    {
+      "id": "dev.phantom.logs",
+      "name": "Phantom Log Console",
+      "version": "0.1.0",
+      "source": "logs",
+      "description": "Readable logs in Run and Debug consoles: a JSON log line (logstash-logback-encoder, ECS, Log4j2 JSON) is shown as time LEVEL [thread] logger : message with its MDC values and the stack trace below; plain text WARN, ERROR and DEBUG lines take their level's console color; a trace id (traceId=, JSON, Spring Boot [traceId-spanId], Sleuth) is a link that lists every console line of that request.",
+      "vendor": "Phantom",
+      "category": "Tools Integration",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.platform"
+      ],
+      "download": "logs-0.1.0/logs-0.1.0.zip",
+      "detect": []
     }
   ]
 }
