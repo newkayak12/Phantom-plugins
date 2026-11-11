@@ -10,6 +10,7 @@
   <extensions defaultExtensionNs="com.intellij">
     <codeInsight.lineMarkerProvider language="XML" implementationClass="dev.phantom.mybatis.db.MapperRunLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.mybatis.db.MapperRunLineMarkerProvider"/>
+    <annotator language="XML" implementationClass="dev.phantom.mybatis.db.MapperSqlSyntaxAnnotator"/>
     <postFormatProcessor implementation="dev.phantom.mybatis.db.MapperSqlPostFormatProcessor"/>
   </extensions>
 </idea-plugin>

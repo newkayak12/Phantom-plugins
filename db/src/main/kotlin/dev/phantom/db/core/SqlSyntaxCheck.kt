@@ -242,3 +242,10 @@ class SqlSyntaxAnnotator : Annotator, DumbAware {
     }
   }
 }
+
+/** Syntax mistakes in SQL [text], for other plugins that check SQL they build themselves (MyBatis mapper statements). */
+object SqlSyntaxProblems {
+  class Problem(val range: TextRange, val message: String)
+
+  fun of(text: CharSequence): List<Problem> = SqlSyntaxCheck.check(text).map { Problem(TextRange(it.start, it.end), it.message) }
+}

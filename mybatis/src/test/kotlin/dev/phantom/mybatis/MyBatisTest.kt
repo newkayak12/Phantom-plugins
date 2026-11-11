@@ -199,7 +199,8 @@ class MyBatisTest : LightJavaCodeInsightFixtureTestCase() {
     val injected = com.intellij.lang.injection.InjectedLanguageManager.getInstance(project).getInjectedPsiFiles(host)?.map { it.first as com.intellij.psi.PsiFile }
     assertNotNull("SQL injected", injected)
     assertEquals("SQL", injected!!.single().language.id)
-    assertEquals("select id from users  WHERE name = ? ", injected.single().text)
+    // added text with whitespace at its edges sits between empty comments, so that formatting the XML cannot reach it
+    assertEquals("select id from users /**/ WHERE /**/name = /**/? /**/", injected.single().text)
   }
 
   fun testGoToImplementationFromCallSite() {
@@ -259,10 +260,11 @@ class MyBatisTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals(1, usages.size)
   }
 
-  private fun sqlOf(file: com.intellij.psi.PsiFile, id: String, mode: MapperSql.Mode = MapperSql.Mode.EDIT): String {
-    val tag = MyBatis.mapperRoot(file)!!.subTags.first { it.getAttributeValue("id") == id }
-    val chunks = MapperSql.chunks(tag, mode)!!
-    return (if (mode == MapperSql.Mode.RUN) MapperSql.runnable(chunks) else MapperSql.text(MapperSql.places(chunks))).replace(Regex("\\s+"), " ").trim()
+  private fun tagOf(file: com.intellij.psi.PsiFile, id: String) = MyBatis.mapperRoot(file)!!.subTags.first { it.getAttributeValue("id") == id }
+
+  private fun sqlOf(file: com.intellij.psi.PsiFile, id: String, run: Boolean = false, choices: MapperSql.Choices = MapperSql.Choices()): String {
+    val tag = tagOf(file, id)
+    return (if (run) MapperSql.runnable(tag, choices) else MapperSql.text(MapperSql.places(MapperSql.chunks(tag)!!))).replace(Regex("\\s+"), " ").trim()
   }
 
   fun testDynamicTagsAsMyBatisBuildsThem() {
@@ -280,9 +282,27 @@ class MyBatisTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals("select id, name from users where id = ?", sqlOf(file, "findById"))
     assertEquals("update users SET name = ?, city = ? where id = ?", sqlOf(file, "updateUser"))
     assertEquals("select * from users WHERE name = ? order by id order by name", sqlOf(file, "findAll"))
-    assertEquals("select * from users WHERE name = :name order by id", sqlOf(file, "findAll", MapperSql.Mode.RUN))
-    assertEquals("update users SET name = :name, city = :address_city where id = :id", sqlOf(file, "updateUser", MapperSql.Mode.RUN))
-    assertEquals("select id, name from users where id = :id", sqlOf(file, "findById", MapperSql.Mode.RUN))
+    assertEquals("select * from users WHERE name = :name order by id", sqlOf(file, "findAll", run = true))
+    assertEquals("update users SET name = :name, city = :address_city where id = :id", sqlOf(file, "updateUser", run = true))
+    assertEquals("select id, name from users where id = :id", sqlOf(file, "findById", run = true))
+  }
+
+  fun testRunTakesThePartsChosen() {
+    val file = addMapper("""
+      <select id="findAll" resultType="app.User">select * from users
+        <where><if test="name != null">and name = #{name}</if><if test="ids != null">and id in <foreach collection="ids" item="i" open="(" separator="," close=")">#{i}</foreach></if></where>
+        <choose><when test="a">order by id</when><when test="b">order by name</when><otherwise>order by city</otherwise></choose>
+      </select>
+    """)
+    val tag = tagOf(file, "findAll")
+    val tags = com.intellij.psi.util.PsiTreeUtil.findChildrenOfType(tag, XmlTag::class.java)
+    val ifs = tags.filter { it.name == "if" }
+    val choose = tags.single { it.name == "choose" }
+    assertEquals("select * from users WHERE name = :name and id in (:i) order by id", sqlOf(file, "findAll", run = true))
+    assertEquals("select * from users WHERE id in (:i) order by name",
+                 sqlOf(file, "findAll", run = true, choices = MapperSql.Choices(setOf(ifs[0]), mapOf(choose to MapperSql.branches(choose)[1]))))
+    assertEquals("where without content goes", "select * from users order by city",
+                 sqlOf(file, "findAll", run = true, choices = MapperSql.Choices(ifs.toSet(), mapOf(choose to MapperSql.branches(choose)[2]))))
   }
 
   fun testWholeStatements() {
@@ -302,12 +322,15 @@ class MyBatisTest : LightJavaCodeInsightFixtureTestCase() {
       <select id="findById" resultType="app.User">select id, from users</select>
       <select id="findAll" resultType="app.User">select id, from ${'$'}{table}</select>
       <update id="insertUser">update users <set><if test="name != null">name = #{name},</if></set> where id = #{id}</update>
+      <select id="annotated" resultType="app.User">select * from users <choose><when test="a">limit 1</when><otherwise>where id = 1</otherwise></choose></select>
+      <delete id="deleteAll">delete from users <choose><when test="a">where (id = 1</when><otherwise>where id = 1</otherwise></choose></delete>
     """)
     myFixture.configureFromExistingVirtualFile(file.virtualFile)
     val errors = myFixture.doHighlighting(com.intellij.lang.annotation.HighlightSeverity.ERROR)
-    val lines = errors.map { myFixture.editor.document.getLineNumber(it.startOffset) }.distinct()
-    val findById = myFixture.editor.document.getLineNumber(file.text.indexOf("\"findById\""))
-    assertEquals(errors.joinToString { it.description + "@" + it.text }, listOf(findById), lines)
+    val lines = errors.map { myFixture.editor.document.getLineNumber(it.startOffset) }.distinct().sorted()
+    fun line(id: String) = myFixture.editor.document.getLineNumber(file.text.indexOf("\"$id\""))
+    // whole: findById; ${'$'}{} read as a name: findAll; each choose branch alone: annotated is fine, deleteAll's first is not
+    assertEquals(errors.joinToString { it.description + "@" + it.text }, listOf(line("findById"), line("findAll"), line("deleteAll")), lines)
   }
 
   fun testReformatFormatsPlainStatements() {
@@ -324,8 +347,30 @@ class MyBatisTest : LightJavaCodeInsightFixtureTestCase() {
     println("FORMATTED\n" + select)
     assertTrue(select, select.contains("#{id}") && select.contains("#{name}") && !select.contains("?"))
     assertTrue(select, select.lines().size >= 4)
-    assertTrue("dynamic statements stay", text.contains("<where>name = #{name}</where>"))
+    val findAll = text.substring(text.indexOf("<select id=\"findAll\""))
+    println("FORMATTED\n" + findAll)
+    assertTrue(findAll, findAll.contains("\n        <where>\n            name = #{name}\n        </where>\n"))
   }
+
+  fun testReformatFormatsDynamicStatements() {
+    val file = addMapper("""
+      <update id="insertUser">update users <set><if test="name != null">name=#{name},</if><if test="address != null">city = #{address.city},</if></set> where id=#{id} and x &lt; 3</update>
+      <select id="findAll" resultType="app.User">select id,name from users <where><if test="name != null">and name like '%${'$'}{name}%'</if><if test="ids != null">and id in <foreach collection="ids" item="i" open="(" separator="," close=")">#{i}</foreach></if></where> order by id</select>
+    """)
+    myFixture.configureFromExistingVirtualFile(file.virtualFile)
+    val before = squeeze(myFixture.editor.document.text)
+    com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction(project) {
+      com.intellij.psi.codeStyle.CodeStyleManager.getInstance(project).reformat(myFixture.file)
+    }
+    val text = myFixture.editor.document.text
+    println("FORMATTED\n" + text)
+    assertEquals("only whitespace and case change", before, squeeze(text))
+    assertTrue(text, text.contains("\n        <set>\n            <if test=\"name != null\">\n                name = #{name},\n            </if>"))
+    assertTrue(text, text.contains("&lt; 3"))
+    assertTrue(text, text.contains("<foreach collection=\"ids\" item=\"i\" open=\"(\" separator=\",\" close=\")\">"))
+  }
+
+  private fun squeeze(s: String) = s.filterNot { it.isWhitespace() }.lowercase()
 
   fun testRunGutterOnStatements() {
     addMapper(statements)
