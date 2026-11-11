@@ -1,0 +1,5 @@
+<html>
+<body>
+Reports an instance <code>@Container</code> field: Testcontainers starts a new container before each test and stops it after, which is slow. A static field (in Kotlin, a property of the companion object) is started once for the class. Not reported with <code>@TestInstance(PER_CLASS)</code>.
+</body>
+</html>

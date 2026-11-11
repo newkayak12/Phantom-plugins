@@ -59,6 +59,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom CPU Indicator | [cpu](./cpu/KOR.md) · [English](./cpu/README.md) | 상태바에 IDE·시스템 CPU, 호버하면 IDE가 CPU를 어디에 썼는지(인덱싱, 분석, GC, JIT) |
 | Phantom Log Console | [logs](./logs/KOR.md) · [English](./logs/README.md) | JSON 로그를 읽기 쉬운 줄과 스택트레이스로, 레벨 색, traceId를 누르면 그 요청의 줄 목록 |
 | Phantom QueryDSL | [querydsl](./querydsl/KOR.md) · [English](./querydsl/README.md) | Q클래스 경로에서 엔티티로 이동, 엔티티 필드 Find Usages에 QueryDSL 경로 포함, 오래된 Q클래스 경고 |
+| Phantom Testcontainers | [testcontainers](./testcontainers/KOR.md) · [English](./testcontainers/README.md) | 시작되지 않거나 테스트마다 시작하는 컨테이너, 버전 없는 이미지, static이어야 하는 Spring 멤버 |
 
 ## 저장소 형식
 

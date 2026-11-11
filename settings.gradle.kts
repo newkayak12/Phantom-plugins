@@ -62,6 +62,7 @@ include("cpu")
 include("mybatis")
 include("logs")
 include("querydsl")
+include("testcontainers")
 
 // Real-IDE probe (see realide-probe/): only with -PrealIde, never part of CI or the marketplace
 if (providers.gradleProperty("realIde").isPresent) {
