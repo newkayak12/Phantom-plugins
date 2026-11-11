@@ -22,6 +22,7 @@ class PhantomMcpTest {
       return "/abs/$path"
     }
     override fun context(worktree: String?) = JsonObject().apply { addProperty("file", "/abs/a.kt"); addProperty("line", 3) }
+    override fun runOutput(worktree: String?, name: String?, lines: Int, grep: String?): String { opened += listOf("run", worktree, name, lines, grep); return "[App: running] 1 lines" }
   }
   private val asked = mutableListOf<List<Any?>>()
   private val index = object : CodeIndex {
@@ -33,6 +34,9 @@ class PhantomMcpTest {
     override fun calls(worktree: String?, path: String, line: Int, name: String, limit: Int): String { asked += listOf("calls", worktree, path, line, name, limit); return "Called from:" }
     override fun fileProblems(worktree: String?, path: String, warnings: Boolean): String { asked += listOf("problems", worktree, path, warnings); return "No errors in a.kt." }
     override fun rename(worktree: String?, path: String, line: Int, name: String, newName: String): String { asked += listOf("rename", worktree, path, line, name, newName); return "Renamed" }
+    override fun readSymbol(worktree: String?, path: String, line: Int?, name: String): String { asked += listOf("read", worktree, path, line, name); return "a.kt:1-3" }
+    override fun replaceSymbol(worktree: String?, path: String, line: Int?, name: String, code: String): String { asked += listOf("replace", worktree, path, line, name, code); return "Replaced" }
+    override fun insertCode(worktree: String?, path: String, line: Int?, name: String, after: Boolean, code: String): String { asked += listOf("insert", worktree, path, line, name, after, code); return "Inserted" }
   }
   private val mcp = PhantomMcp(bridge, index) { tab -> if (tab == "t1") "/w/repo" else null }
 
@@ -57,7 +61,7 @@ class PhantomMcpTest {
 
   @Test fun listsBothTools() {
     val tools = rpc("tools/list").getAsJsonObject("result").getAsJsonArray("tools").map { it.asJsonObject }
-    assertEquals(listOf(PhantomMcp.OPEN, PhantomMcp.CONTEXT) + INDEX_TOOLS + PhantomMcp.RENAME, tools.map { it.get("name").asString })
+    assertEquals(listOf(PhantomMcp.OPEN, PhantomMcp.CONTEXT) + INDEX_TOOLS + PhantomMcp.RENAME + EDIT_TOOLS, tools.map { it.get("name").asString })
     assertEquals("path", tools[0].getAsJsonObject("inputSchema").getAsJsonArray("required").single().asString)
   }
 
@@ -144,7 +148,32 @@ class PhantomMcpTest {
     assertEquals("new_name is required", textOf(callTool("rename_refactoring", """{"path":"a.kt","line":1,"name":"A"}""")))
   }
 
+  @Test fun symbolToolsReadAndWriteOneDeclaration() {
+    val tools = rpc("tools/list").getAsJsonObject("result").getAsJsonArray("tools").map { it.asJsonObject }.associateBy { it.get("name").asString }
+    assertTrue(listOf("read_symbol", "get_run_output").all { tools.getValue(it).getAsJsonObject("annotations").get("readOnlyHint").asBoolean })
+    assertFalse(listOf("replace_symbol", "insert_code").any { tools.getValue(it).getAsJsonObject("annotations").get("readOnlyHint").asBoolean })
+
+    assertEquals("a.kt:1-3", textOf(callTool("read_symbol", """{"path":"a.kt","name":"A.run"}""")))
+    callTool("replace_symbol", """{"path":"a.kt","name":"run","line":"4","code":"fun run() {\n\n}"}""")
+    callTool("insert_code", """{"path":"a.kt","name":"run","code":"fun b() {}"}""")
+    callTool("insert_code", """{"path":"a.kt","name":"run","position":"before","code":"fun c() {}"}""")
+    assertEquals(
+      listOf(
+        listOf("read", "/w/repo", "a.kt", null, "A.run"), listOf("replace", "/w/repo", "a.kt", 4, "run", "fun run() {\n\n}"),
+        listOf("insert", "/w/repo", "a.kt", null, "run", true, "fun b() {}"), listOf("insert", "/w/repo", "a.kt", null, "run", false, "fun c() {}"),
+      ),
+      asked,
+    )
+    assertEquals("code is required", textOf(callTool("replace_symbol", """{"path":"a.kt","name":"run"}""")))
+    assertEquals("position is before or after", textOf(callTool("insert_code", """{"path":"a.kt","name":"run","position":"inside","code":"x"}""")))
+
+    assertEquals("[App: running] 1 lines", textOf(callTool("get_run_output", """{"grep":"ERROR","lines":99999}""")))
+    callTool("get_run_output", """{"name":"App"}""")
+    assertEquals(listOf(listOf("run", "/w/repo", null, 2000, "ERROR"), listOf("run", "/w/repo", "App", 100, null)), opened)
+  }
+
   private companion object {
+    val EDIT_TOOLS = listOf("read_symbol", "replace_symbol", "insert_code", "get_run_output")
     val INDEX_TOOLS = listOf("find_symbol", "find_file", "find_usages", "file_outline", "get_symbol_info", "analyze_calls", "get_file_problems")
   }
 }

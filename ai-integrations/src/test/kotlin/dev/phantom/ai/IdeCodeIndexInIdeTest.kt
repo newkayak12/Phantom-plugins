@@ -91,6 +91,40 @@ class IdeCodeIndexInIdeTest : HeavyPlatformTestCase() {
     assertEquals("public class Outside { Inside ref; }", Files.readString(base.resolve("other/src/Outside.java")))
   }
 
+  fun testReadSymbolReadsOneDeclaration() {
+    assertEquals("src/Calc.java:2-2\n2    static int twice(int x) { return x * 2; }", offEdt { index.readSymbol(api, "src/Calc.java", null, "Calc.twice") })
+    assertEquals("src/Calc.java:1-3\n1  public class Calc {\n2    static int twice(int x) { return x * 2; }\n3  }", offEdt { index.readSymbol(api, "src/Calc.java", null, "Calc") })
+    // a call resolves to the declaration it calls
+    assertTrue(offEdt { index.readSymbol(api, "src/UseCalc.java", 2, "twice") }.startsWith("src/Calc.java:2-2"))
+    val error = runCatching { offEdt { index.readSymbol(api, "src/Calc.java", null, "thrice") } }.exceptionOrNull()
+    assertInstanceOf(error, McpToolError::class.java)
+  }
+
+  fun testReplaceSymbolRewritesTheDeclarationAtItsIndentation() {
+    val said = offEdtPumping { index.replaceSymbol(api, "src/Calc.java", null, "twice", "static int twice(int x) {\n  int y = x + x;\n  return y;\n}") }
+    assertEquals("Replaced twice in src/Calc.java: now lines 2-5. get_file_problems shows any errors.", said)
+    assertEquals(
+      "public class Calc {\n  static int twice(int x) {\n    int y = x + x;\n    return y;\n  }\n}\n",
+      Files.readString(base.resolve("api/src/Calc.java")),
+    )
+  }
+
+  fun testInsertCodeAddsBeforeAndAfter() {
+    offEdtPumping { index.insertCode(api, "src/Calc.java", null, "twice", true, "    static int thrice(int x) {\n      return x * 3;\n    }\n") }
+    offEdtPumping { index.insertCode(api, "src/Calc.java", null, "twice", false, "static int once(int x) { return x; }") }
+    assertEquals(
+      "public class Calc {\n  static int once(int x) { return x; }\n\n  static int twice(int x) { return x * 2; }\n\n" +
+        "  static int thrice(int x) {\n    return x * 3;\n  }\n}\n",
+      Files.readString(base.resolve("api/src/Calc.java")),
+    )
+  }
+
+  fun testEditsStayInTheWorktree() {
+    val error = runCatching { offEdtPumping { index.replaceSymbol(api, "../other/src/Outside.java", null, "Outside", "class X {}") } }.exceptionOrNull()
+    assertInstanceOf(error, McpToolError::class.java)
+    assertEquals("public class Outside { Inside ref; }", Files.readString(base.resolve("other/src/Outside.java")))
+  }
+
   fun testAWorkspaceNotOpenIsToldSo() {
     val error = runCatching { offEdt { index.findFile("/nowhere/at/all", "Inside", 5) } }.exceptionOrNull()
     assertInstanceOf(error, McpToolError::class.java)

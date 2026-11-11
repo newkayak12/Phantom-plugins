@@ -14,6 +14,7 @@ import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.progress.ProcessCanceledException
@@ -80,6 +81,15 @@ interface CodeIndex {
   fun fileProblems(worktree: String?, path: String, warnings: Boolean): String
   /** Renames the symbol and its references with the IDE's Rename and saves the files; refuses a conflict or a change outside [worktree]. */
   fun rename(worktree: String?, path: String, line: Int, name: String, newName: String): String
+
+  /** The source of one declaration with line numbers, found by [name] (or `Outer.name`) and, when given, its [line]. */
+  fun readSymbol(worktree: String?, path: String, line: Int?, name: String): String
+
+  /** Replaces a whole declaration (doc comment and annotations too) with [code], re-indented to its place; saves. */
+  fun replaceSymbol(worktree: String?, path: String, line: Int?, name: String, code: String): String
+
+  /** Puts [code] before or after a declaration ([after]), a blank line between, re-indented to its place; saves. */
+  fun insertCode(worktree: String?, path: String, line: Int?, name: String, after: Boolean, code: String): String
 }
 
 /** The queries themselves, inside a read action, over [scope]; [shown] is how a file is named in the answer. */
@@ -139,6 +149,61 @@ internal class CodeQueries(
   }
 
   fun inWorkspace(element: PsiElement): Boolean = PsiUtilCore.getVirtualFile(element)?.let(scope::contains) == true
+
+  /**
+   * The declaration [name] in [file]: the one on 1-based [line] (or the one a reference there resolves to), else the
+   * declaration of the file's outline with that name, where `Outer.name` picks the one inside `Outer`.
+   */
+  fun declaration(file: VirtualFile, line: Int?, name: String): PsiElement {
+    val simple = name.substringAfterLast('.')
+    if (line != null) return target(file, line, simple).navigationElement
+    val qualifiers = name.split('.').dropLast(1)
+    val found = declarationsOf(file).filter { (element, outer) ->
+      (element as? PsiNamedElement)?.name == simple && outer.takeLast(qualifiers.size) == qualifiers
+    }.map { it.first }
+    val document = documentOf(psiOf(file))
+    return when (found.size) {
+      0 -> throw McpToolError("No declaration named $name in ${shown(file)}; see file_outline")
+      1 -> found.single()
+      else -> throw McpToolError("$name is declared at lines ${found.joinToString { (document.getLineNumber(offsetOf(it)) + 1).toString() }} of ${shown(file)}; give line")
+    }
+  }
+
+  /** The source of a declaration with its line numbers, doc comment and annotations included. */
+  fun read(declaration: PsiElement): String {
+    val file = declaration.containingFile
+    val document = documentOf(file)
+    val first = document.getLineNumber(declaration.textRange.startOffset)
+    val last = document.getLineNumber(declaration.textRange.endOffset)
+    val shownLast = minOf(last, first + MAX_READ_LINES - 1)
+    val where = file.virtualFile?.let(shown) ?: file.name
+    val lines = (first..shownLast).map { n ->
+      "${n + 1}  " + document.getText(TextRange(document.getLineStartOffset(n), document.getLineEndOffset(n)))
+    }
+    val more = if (shownLast < last) listOf("... ${last - shownLast} more lines; read $where from line ${shownLast + 2}") else emptyList()
+    return (listOf("$where:${first + 1}-${last + 1}") + lines + more).joinToString("\n")
+  }
+
+  /** The declarations of the file's outline, each with the names of the declarations it is inside. */
+  private fun declarationsOf(file: VirtualFile): List<Pair<PsiElement, List<String>>> {
+    val builder = StructureViewBuilder.getProvider().getStructureViewBuilder(file.fileType, file, project) as? TreeBasedStructureViewBuilder
+      ?: throw McpToolError("Phantom has no outline for ${shown(file)}; give line")
+    val model = builder.createStructureViewModel(null)
+    try {
+      val found = ArrayList<Pair<PsiElement, List<String>>>()
+      fun walk(element: TreeElement, outer: List<String>, depth: Int) {
+        for (child in element.children) {
+          val psi = ((child as? StructureViewTreeElement)?.value as? PsiElement)?.takeIf { it.isValid } ?: continue
+          found += psi to outer
+          if (depth < MAX_OUTLINE_DEPTH) walk(child, outer + ((psi as? PsiNamedElement)?.name ?: ""), depth + 1)
+        }
+      }
+      walk(model.root, emptyList(), 0)
+      return found
+    } finally {
+      Disposer.dispose(model)
+    }
+  }
 
   /** Where the symbol is declared, its signature and its doc comment: what reading its file would be for. */
   fun symbolInfo(file: VirtualFile, line: Int, name: String): String {
@@ -365,6 +430,7 @@ internal class CodeQueries(
     const val MAX_OUTLINE_DEPTH = 3
     const val MAX_SIGNATURE = 300
     const val MAX_DOC = 800
+    const val MAX_READ_LINES = 500
     val WHITESPACE = Regex("\\s+")
   }
 }
@@ -473,13 +539,73 @@ class IdeCodeIndex : CodeIndex {
     val at = locate(worktree)
     LocalFileSystem.getInstance().refreshAndFindFileByNioFile(at.root)?.let { VfsUtil.markDirtyAndRefresh(false, true, true, it) }
       ?: throw McpToolError(NOT_OPEN)
-    // runs on the EDT when no dialog is up; one that has not started by the deadline never runs
+    return whenEdtFree(at, "nothing was renamed") { renameOnEdt(at, path, line, name, newName) }
+  }
+
+  override fun readSymbol(worktree: String?, path: String, line: Int?, name: String) =
+    inWorkspace(worktree) { it.queries.read(it.queries.declaration(it.file(path), line, name)) }
+
+  override fun replaceSymbol(worktree: String?, path: String, line: Int?, name: String, code: String) =
+    edit(worktree, path, line, name) { document, declaration ->
+      val range = declaration.textRange
+      val text = CodeText.indented(code, CodeText.indentOf(document, range.startOffset), indentFirst = false)
+      document.replaceString(range.startOffset, range.endOffset, text)
+      "Replaced $name" to TextRange(range.startOffset, range.startOffset + text.length)
+    }
+
+  override fun insertCode(worktree: String?, path: String, line: Int?, name: String, after: Boolean, code: String) =
+    edit(worktree, path, line, name) { document, declaration ->
+      val range = declaration.textRange
+      val indent = CodeText.indentOf(document, range.startOffset)
+      val text = CodeText.indented(code, indent, indentFirst = true)
+      if (after) {
+        document.insertString(range.endOffset, "\n\n$text")
+        "Inserted after $name" to TextRange(range.endOffset + 2, range.endOffset + 2 + text.length)
+      } else {
+        // at the declaration's line start, which keeps its own indentation after the inserted code
+        val at = range.startOffset - indent.length
+        document.insertString(at, "$text\n\n")
+        "Inserted before $name" to TextRange(at, at + text.length)
+      }
+    }
+
+  /**
+   * Changes a declaration of the worktree in one undoable command and saves the file. [change] edits the document and
+   * says what it did and which range it wrote.
+   */
+  private fun edit(worktree: String?, path: String, line: Int?, name: String, change: (Document, PsiElement) -> Pair<String, TextRange>): String {
+    val at = locate(worktree)
+    fresh(at, path)
+    return whenEdtFree(at, "nothing was changed") {
+      val documents = PsiDocumentManager.getInstance(at.project)
+      documents.commitAllDocuments()
+      val workspace = at.workspace()
+      val declaration = workspace.queries.declaration(workspace.file(path), line, name)
+      val file = PsiUtilCore.getVirtualFile(declaration)
+      if (file == null || !at.contains(file)) throw McpToolError("$name is declared outside this workspace; nothing was changed")
+      val document = documents.getDocument(declaration.containingFile) ?: throw McpToolError("Cannot edit $path")
+      if (!FileDocumentManager.getInstance().requestWriting(document, at.project)) throw McpToolError("${at.shown(file)} is read-only; nothing was changed")
+      var said: Pair<String, TextRange>? = null
+      WriteCommandAction.writeCommandAction(at.project).withName("Agent: edit $name").run<Exception> {
+        said = change(document, declaration)
+        documents.commitDocument(document)
+      }
+      FileDocumentManager.getInstance().saveDocument(document)
+      val (what, range) = said!!
+      val first = document.getLineNumber(range.startOffset) + 1
+      val last = document.getLineNumber(range.endOffset) + 1
+      "$what in ${at.shown(file)}: now lines $first-$last. get_file_problems shows any errors."
+    }
+  }
+
+  /** Runs [block] on the EDT when no dialog is up; one that has not started by the deadline never runs ([nothing] says so). */
+  private fun whenEdtFree(at: Located, nothing: String, block: () -> String): String {
     val state = AtomicInteger(PENDING)
     val done = CompletableFuture<String>()
     ApplicationManager.getApplication().invokeLater({
       if (!state.compareAndSet(PENDING, STARTED)) return@invokeLater
       try {
-        done.complete(renameOnEdt(at, path, line, name, newName))
+        done.complete(block())
       } catch (e: Throwable) {
         done.completeExceptionally(e)
       }
@@ -488,7 +614,7 @@ class IdeCodeIndex : CodeIndex {
       try {
         done.get(RENAME_WAIT_S, TimeUnit.SECONDS)
       } catch (e: TimeoutException) {
-        if (state.compareAndSet(PENDING, ABANDONED)) throw McpToolError("Phantom is busy (a dialog is open); nothing was renamed, try again")
+        if (state.compareAndSet(PENDING, ABANDONED)) throw McpToolError("Phantom is busy (a dialog is open); $nothing, try again")
         done.get()
       }
     } catch (e: ExecutionException) {
@@ -571,5 +697,27 @@ class IdeCodeIndex : CodeIndex {
     const val NOT_OPEN = "This workspace is not open in Phantom, so it has no index; use your own search."
     const val INDEXING = "Phantom is still indexing this workspace; use your own search for now."
     const val TOO_SLOW = "The IDE index took too long; narrow the query or use your own search."
+  }
+}
+
+/** Code an agent sends, fitted to where it goes. */
+internal object CodeText {
+  /** The whitespace before [offset] on its line, or nothing when code comes before it there. */
+  fun indentOf(document: Document, offset: Int): String {
+    val before = document.charsSequence.subSequence(document.getLineStartOffset(document.getLineNumber(offset)), offset).toString()
+    return if (before.isBlank()) before else ""
+  }
+
+  /** [code] without its blank first and last lines and its common indentation, each line then at [indent] (the first only if [indentFirst]). */
+  fun indented(code: String, indent: String, indentFirst: Boolean): String {
+    val lines = code.lines().dropWhile { it.isBlank() }.dropLastWhile { it.isBlank() }.map { it.trimEnd() }
+    val common = lines.filter { it.isNotBlank() }.minOfOrNull { it.length - it.trimStart().length } ?: 0
+    return lines.mapIndexed { i, line ->
+      when {
+        line.isBlank() -> ""
+        i == 0 && !indentFirst -> line.drop(common)
+        else -> indent + line.drop(common)
+      }
+    }.joinToString("\n")
   }
 }

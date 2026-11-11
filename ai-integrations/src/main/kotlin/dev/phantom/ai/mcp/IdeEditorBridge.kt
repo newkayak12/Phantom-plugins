@@ -1,6 +1,10 @@
 // Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.ai.mcp
 
+import com.intellij.execution.impl.ConsoleViewImpl
+import com.intellij.execution.ui.RunContentManager
+import com.intellij.openapi.editor.impl.EditorComponentImpl
+import com.intellij.util.ui.UIUtil
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.intellij.ide.impl.ProjectUtil
@@ -26,6 +30,24 @@ import java.util.concurrent.TimeoutException
  * The real [EditorBridge]. A file opens in the open project holding it (the deepest one), else in the calling agent's
  * worktree, opened as a project (a Workspaces tab) when it is not open yet, as the sidebar's "Open in Phantom" does.
  */
+/** The end of a console's text for an agent: few lines, filtered, with what it is. */
+internal object RunOutput {
+  fun answer(title: String, state: String, text: String, lines: Int, grep: String?): String {
+    val all = text.lines().dropLastWhile { it.isEmpty() }
+    val regex = grep?.let { runCatching { Regex(it, RegexOption.IGNORE_CASE) }.getOrElse { _ -> Regex(Regex.escape(grep), RegexOption.IGNORE_CASE) } }
+    val kept = if (regex == null) all else all.filter { regex.containsMatchIn(it) }
+    val shown = kept.takeLast(lines).map { if (it.length > MAX_LINE) it.take(MAX_LINE) + "…" else it }
+    val header = "[$title${if (state.isEmpty()) "" else ": $state"}] " + when {
+      regex != null -> "${kept.size} of ${all.size} lines match" + (if (kept.size > shown.size) ", the last ${shown.size}" else "")
+      kept.size > shown.size -> "the last ${shown.size} of ${all.size} lines"
+      else -> "${all.size} lines"
+    }
+    return (listOf(header) + shown).joinToString("\n")
+  }
+
+  private const val MAX_LINE = 1000
+}
+
 class IdeEditorBridge(
   /** Opens a worktree that is not open yet as a project (a new Workspaces tab). Fakeable. */
   private val openWorktree: (Path) -> Project? = { ProjectUtil.openOrImport(it, null, true) },
@@ -81,6 +103,34 @@ class IdeEditorBridge(
       }
       add("openFiles", JsonArray().apply { manager.openFiles.take(MAX_OPEN_FILES).forEach { add(it.path) } })
     }
+  }
+
+  override fun runOutput(worktree: String?, name: String?, lines: Int, grep: String?): String = onEdt {
+    val project = worktree?.let { w -> ProjectManager.getInstance().openProjects
+      .filter { p -> p.basePath?.let { Path.of(w).normalize().startsWith(Path.of(it)) } == true }
+      .maxByOrNull { it.basePath!!.length } } ?: focusedProject() ?: throw McpToolError("No Phantom window is open")
+    val manager = RunContentManager.getInstance(project)
+    val all = manager.allDescriptors
+    if (all.isEmpty()) throw McpToolError("No Run, Debug or test console is open in ${project.name}")
+    val descriptor = if (name != null) {
+      all.lastOrNull { it.displayName.contains(name, ignoreCase = true) }
+        ?: throw McpToolError("No console named like \"$name\"; the consoles: " + all.joinToString { it.displayName })
+    } else {
+      manager.selectedContent ?: all.last()
+    }
+    val console = descriptor.executionConsole ?: throw McpToolError("${descriptor.displayName} has no console")
+    (console as? ConsoleViewImpl)?.flushDeferredText()
+    // a test console holds the output in an inner console view; take the first console editor inside it
+    val editor = (console as? ConsoleViewImpl)?.editor
+      ?: UIUtil.findComponentsOfType(console.component, EditorComponentImpl::class.java).firstOrNull()?.editor
+      ?: throw McpToolError("${descriptor.displayName} shows no text output")
+    val process = descriptor.processHandler
+    val state = when {
+      process == null -> ""
+      !process.isProcessTerminated -> "running"
+      else -> "finished" + (process.exitCode?.let { ", exit code $it" } ?: "")
+    }
+    RunOutput.answer(descriptor.displayName, state, editor.document.text, lines, grep)
   }
 
   private fun resolve(worktree: String?, path: String): Path {

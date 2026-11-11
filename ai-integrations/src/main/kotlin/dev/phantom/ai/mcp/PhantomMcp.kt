@@ -21,6 +21,12 @@ interface EditorBridge {
 
   /** The editor the user is looking at: file, caret, selection, the other open files. */
   fun context(worktree: String?): JsonObject
+
+  /**
+   * The end of a Run, Debug or test console of the worktree's project: the one whose tab title contains [name], else the
+   * selected one; its last [lines] lines, only those matching [grep] when given.
+   */
+  fun runOutput(worktree: String?, name: String?, lines: Int, grep: String?): String
 }
 
 /**
@@ -95,6 +101,17 @@ class PhantomMcp(private val bridge: EditorBridge, private val index: CodeIndex,
         CALLS -> text(index.calls(worktree, required(args, "path"), line(args), required(args, "name"), limit(args)))
         PROBLEMS -> text(index.fileProblems(worktree, required(args, "path"), args.get("warnings")?.takeIf { it.isJsonPrimitive }?.asString == "true"))
         RENAME -> text(index.rename(worktree, required(args, "path"), line(args), required(args, "name"), required(args, "new_name")))
+        READ_SYMBOL -> text(index.readSymbol(worktree, required(args, "path"), int(args, "line"), required(args, "name")))
+        REPLACE_SYMBOL -> text(index.replaceSymbol(worktree, required(args, "path"), int(args, "line"), required(args, "name"), code(args)))
+        INSERT_CODE -> {
+          val after = when (string(args, "position") ?: "after") {
+            "after" -> true
+            "before" -> false
+            else -> throw McpToolError("position is before or after")
+          }
+          text(index.insertCode(worktree, required(args, "path"), int(args, "line"), required(args, "name"), after, code(args)))
+        }
+        RUN_OUTPUT -> text(bridge.runOutput(worktree, string(args, "name"), (int(args, "lines") ?: DEFAULT_LINES).coerceIn(1, MAX_LINES), string(args, "grep")))
         else -> text("Unknown tool: $name", isError = true)
       }
     } catch (e: McpToolError) {
@@ -141,6 +158,23 @@ class PhantomMcp(private val bridge: EditorBridge, private val index: CodeIndex,
     add(tool(RENAME, RENAME_DESCRIPTION, symbolAt().apply {
       add("new_name", prop("string", "The new name."))
     }, required = listOf("path", "line", "name", "new_name")))
+    add(tool(READ_SYMBOL, READ_SYMBOL_DESCRIPTION, declarationIn(), required = listOf("path", "name"), readOnly = true))
+    add(tool(REPLACE_SYMBOL, REPLACE_SYMBOL_DESCRIPTION, declarationIn().apply {
+      add("code", prop("string", "The whole new declaration, doc comment and annotations included."))
+    }, required = listOf("path", "name", "code")))
+    add(tool(INSERT_CODE, INSERT_CODE_DESCRIPTION, declarationIn().apply {
+      add("position", JsonObject().apply {
+        addProperty("type", "string")
+        add("enum", JsonArray().apply { add("after"); add("before") })
+        addProperty("description", "after (default) or before the declaration.")
+      })
+      add("code", prop("string", "The code to insert: one or more declarations."))
+    }, required = listOf("path", "name", "code")))
+    add(tool(RUN_OUTPUT, RUN_OUTPUT_DESCRIPTION, JsonObject().apply {
+      add("name", prop("string", "Part of the console tab's title (the run configuration name); the selected console when left out."))
+      add("lines", prop("integer", "How many lines from the end (default $DEFAULT_LINES, at most $MAX_LINES)."))
+      add("grep", prop("string", "Only lines matching this regular expression (case-insensitive), e.g. ERROR|Exception."))
+    }, required = emptyList(), readOnly = true))
   }
 
   /** A symbol named where it is written: the arguments find_usages also takes. */
@@ -149,6 +183,17 @@ class PhantomMcp(private val bridge: EditorBridge, private val index: CodeIndex,
     add("line", prop("integer", "1-based line where the name is written."))
     add("name", prop("string", "The symbol's name on that line."))
   }
+
+  /** A declaration in a file, by name and optionally its line. */
+  private fun declarationIn() = JsonObject().apply {
+    add("path", prop("string", "File path, relative to your working directory or absolute."))
+    add("name", prop("string", "The declaration's name; Outer.name for one inside Outer (Class.method)."))
+    add("line", prop("integer", "1-based line where the name is, only needed when the file declares the name more than once."))
+  }
+
+  /** The code argument as sent: blank lines inside it are kept. */
+  private fun code(args: JsonObject): String =
+    args.get("code")?.takeIf { it.isJsonPrimitive }?.asString?.takeIf { it.isNotBlank() } ?: throw McpToolError("code is required")
 
   private fun required(args: JsonObject, key: String): String = string(args, key) ?: throw McpToolError("$key is required")
 
@@ -205,6 +250,13 @@ class PhantomMcp(private val bridge: EditorBridge, private val index: CodeIndex,
     const val CALLS = "analyze_calls"
     const val PROBLEMS = "get_file_problems"
     const val RENAME = "rename_refactoring"
+    const val READ_SYMBOL = "read_symbol"
+    const val REPLACE_SYMBOL = "replace_symbol"
+    const val INSERT_CODE = "insert_code"
+    const val RUN_OUTPUT = "get_run_output"
+
+    private const val DEFAULT_LINES = 100
+    private const val MAX_LINES = 2000
 
     private const val DEFAULT_LIMIT = 30
     private const val MAX_LIMIT = 200
@@ -222,7 +274,10 @@ class PhantomMcp(private val bridge: EditorBridge, private val index: CodeIndex,
         "user says \"this\", \"here\" or refers to what they are looking at, read get_editor_context first. To find code, " +
         "ask the IDE's index before searching or reading files: find_symbol, find_file, find_usages, and file_outline before " +
         "reading a whole file; then read only the lines you need. If one says it cannot answer, use your own search. " +
-        "After editing a file, get_file_problems shows its errors without a build; rename symbols with rename_refactoring."
+        "To read one method or class, read_symbol instead of the whole file; to rewrite one, replace_symbol or insert_code " +
+        "instead of reproducing its old text. After editing a file, get_file_problems shows its errors without a build; " +
+        "rename symbols with rename_refactoring. For what a running app or test printed, get_run_output (with grep) " +
+        "instead of asking the user to paste it."
 
     private const val OPEN_DESCRIPTION =
       "Opens a file in the user's Phantom editor at a line, selects up to end_line and brings it to front. Use it whenever " +
@@ -252,6 +307,23 @@ class PhantomMcp(private val bridge: EditorBridge, private val index: CodeIndex,
 
     private const val PROBLEMS_DESCRIPTION =
       "A file's errors from the IDE's analysis (warnings with warnings=true), as path:line  ERROR  message. Faster than a build."
+
+    private const val READ_SYMBOL_DESCRIPTION =
+      "The source of one class, method, function or field with its line numbers, doc comment and annotations: only " +
+        "those lines instead of the whole file. Find it by name (Outer.name narrows it); line only when the name is declared twice."
+
+    private const val REPLACE_SYMBOL_DESCRIPTION =
+      "Replaces one whole declaration (method, function, class, field, with its doc comment and annotations) with new " +
+        "code in the IDE, as one undoable edit, and saves the file. No need to send the old text. The code is re-indented " +
+        "to the declaration's place: send it at column 0 or with one consistent indentation. Says the new lines."
+
+    private const val INSERT_CODE_DESCRIPTION =
+      "Inserts code after (default) or before one declaration, with a blank line between, re-indented to its place, as " +
+        "one undoable edit, and saves the file. For a new method next to an existing one. Says the new lines."
+
+    private const val RUN_OUTPUT_DESCRIPTION =
+      "What a Run, Debug or test console in Phantom printed: its last lines (grep filters them), and whether the process " +
+        "still runs. Lists the consoles when the name matches none."
 
     private const val RENAME_DESCRIPTION =
       "Renames a symbol and all its references in this workspace with the IDE's Rename, and saves the changed files. " +
