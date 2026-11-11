@@ -58,6 +58,7 @@ Public repositories need no token.
 | Markdown | [markdown](./markdown/README.md) · [한국어](./markdown/KOR.md) | Markdown editing and preview; Shell Script, Kotlin and others build on it (the IntelliJ plugin, built here) |
 | Phantom CPU Indicator | [cpu](./cpu/README.md) · [한국어](./cpu/KOR.md) | IDE and system CPU in the status bar; hover shows what the IDE spent it on (indexing, analysis, GC, JIT) |
 | Phantom Log Console | [logs](./logs/README.md) · [한국어](./logs/KOR.md) | JSON logs as readable lines with stack traces, level colors, trace ids that list a request's lines |
+| Phantom QueryDSL | [querydsl](./querydsl/README.md) · [한국어](./querydsl/KOR.md) | Q class paths go to the entity, Find Usages of entity fields finds QueryDSL paths, out-of-date Q classes |
 
 ## Repository format
 

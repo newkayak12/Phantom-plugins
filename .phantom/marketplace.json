@@ -692,6 +692,29 @@
       ],
       "download": "markdown-262.261111.1/markdown-262.261111.1.zip",
       "detect": []
+    },
+    {
+      "id": "dev.phantom.querydsl",
+      "name": "Phantom QueryDSL",
+      "version": "0.1.0",
+      "source": "querydsl",
+      "description": "QueryDSL Q classes followed back to their entities: Go to Declaration on a Q class path (order.customer.name, QOrder.order) goes to the entity property or entity, in Java and Kotlin code; Find Usages of a Java entity field also finds its QueryDSL paths; Java entities whose Q class is out of date (a field added or removed since the last build) are reported.",
+      "vendor": "Phantom",
+      "category": "JVM Frameworks",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang",
+        "com.intellij.java"
+      ],
+      "download": "querydsl-0.1.0/querydsl-0.1.0.zip",
+      "detect": [
+        "com.querydsl:querydsl-jpa",
+        "com.querydsl:querydsl-core",
+        "com.querydsl:querydsl-apt",
+        "io.github.openfeign.querydsl:querydsl-jpa",
+        "io.github.openfeign.querydsl:querydsl-core"
+      ]
     }
   ]
 }
