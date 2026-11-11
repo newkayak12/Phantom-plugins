@@ -91,7 +91,7 @@ class IdeaDecompiler : ClassFileDecompilers.Light() {
           showNotice = false
           TASK_KEY.set(file, null)
 
-          val id = PluginId.getId("org.jetbrains.java.decompiler")
+          val id = PluginId.getId("dev.phantom.decompiler")
           PluginManagerCore.disablePlugin(id)
 
           (PluginManagerCore.getPlugin(id) as? PluginMainDescriptor)?.let { plugin ->

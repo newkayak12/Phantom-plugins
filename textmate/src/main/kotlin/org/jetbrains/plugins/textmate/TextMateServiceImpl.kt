@@ -392,7 +392,7 @@ class TextMateServiceImpl(private val myScope: CoroutineScope) : TextMateService
 
 // Phantom-plugins: the bundles sit in this plugin's own folder, wherever it is installed (not only the IDE's plugins/textmate-plugin)
 private val bundledBundlePath: Path
-  get() = PluginManagerCore.getPlugin(PluginId.getId("org.jetbrains.plugins.textmate"))!!.pluginPath.resolve("lib/bundles").normalize()
+  get() = PluginManagerCore.getPlugin(PluginId.getId("dev.phantom.textmate"))!!.pluginPath.resolve("lib/bundles").normalize()
 
 private fun fireFileTypesChangedEvent(reason: @NonNls String, update: Runnable) {
   ApplicationManager.getApplication().invokeLater(

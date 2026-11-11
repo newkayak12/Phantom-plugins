@@ -1,14 +1,16 @@
-<idea-plugin allow-bundled-update="true">
-    <!-- The id and the content module names stay the IntelliJ ones: bundled Gradle and Kotlin modules (version catalogs)
-         depend on intellij.toml.core, and the version above the bundled build replaces a still-bundled copy. -->
-    <id>org.toml.lang</id>
-    <name>Toml</name>
+<idea-plugin>
+    <!-- Phantom's own id; org.toml.lang stays as an alias, so plugins depending on the IntelliJ id resolve to this one. The
+         content module names stay the IntelliJ ones: bundled Gradle and Kotlin modules (version catalogs) depend on
+         intellij.toml.core. The bundled IntelliJ TOML plugin has to be gone, or both claim the same id and modules. -->
+    <id>dev.phantom.toml</id>
+    <name>Phantom TOML</name>
+    <module value="org.toml.lang"/>
     <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
     <category>Languages</category>
 
     <description><![CDATA[
       Adds support for the <a href="https://toml.io/en/">TOML</a> configuration file syntax.
-      The IntelliJ Community TOML plugin (Apache 2.0), built in Phantom-plugins so it updates without a new Phantom build.
+      Based on the IntelliJ Community TOML plugin (Apache 2.0).
     ]]></description>
 
     <dependencies>

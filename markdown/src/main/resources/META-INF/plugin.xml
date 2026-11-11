@@ -1,8 +1,10 @@
-<idea-plugin allow-bundled-update="true">
-  <!-- The id and the content module names stay the IntelliJ ones (Shell Script, Kotlin and others depend on intellij.markdown),
-       and the version above the bundled build replaces a still-bundled copy. -->
-  <id>org.intellij.plugins.markdown</id>
-  <name>Markdown</name>
+<idea-plugin>
+  <!-- Phantom's own id; org.intellij.plugins.markdown stays as an alias, so plugins depending on the IntelliJ id resolve to this one. The
+       content module names stay the IntelliJ ones, as bundled modules depend on them by name. The bundled IntelliJ
+       Markdown plugin has to be gone, or both claim the same id and modules. -->
+  <id>dev.phantom.markdown</id>
+  <name>Phantom Markdown</name>
+  <module value="org.intellij.plugins.markdown"/>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Languages</category>
   <resource-bundle>messages.MarkdownBundle</resource-bundle>
@@ -48,7 +50,7 @@
       <li>Pandoc Converter for HTML, Microsoft Word, and PDF formats.</li>
       <li>Support for PlantUML diagram rendering (you can add support for Mermaid diagrams with a <a href="https://plugins.jetbrains.com/plugin/20146-mermaid">separate plugin</a>).</li>
     </ul>
-    <p>The IntelliJ Community Markdown plugin (Apache 2.0), built in Phantom-plugins so it updates without a new Phantom build.</p>
+    <p>Based on the IntelliJ Community Markdown plugin (Apache 2.0).</p>
   ]]></description>
 
   <extensionPoints>

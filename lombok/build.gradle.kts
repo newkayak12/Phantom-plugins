@@ -4,8 +4,7 @@ plugins {
   id("phantom-plugin")
 }
 
-// Above the bundled IntelliJ build (262.261027.0), so this copy replaces one a Phantom still bundles
-version = "262.261027.1"
+version = "0.1.0"
 
 dependencies {
   intellijPlatform {
@@ -14,4 +13,9 @@ dependencies {
     testFramework(TestFrameworkType.Plugin.Java, providers.gradleProperty("platformTestBuild"))
   }
   testImplementation("org.mockito:mockito-core:5.20.0")
+}
+
+// The IDE the tests run in still bundles IntelliJ's Lombok, which claims the id this plugin keeps as an alias
+tasks.prepareTestSandbox {
+  disabledPlugins.add("Lombook Plugin")
 }

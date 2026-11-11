@@ -5,8 +5,7 @@ plugins {
   id("phantom-plugin")
 }
 
-// Above the bundled IntelliJ build (262.261027.0), so this copy replaces one a Phantom still bundles
-version = "262.261111.1"
+version = "0.1.0"
 
 // The IntelliJ sources keep Java next to Kotlin. src/rt is java-coverage-rt.jar: the JUnit and TestNG listeners that
 // run inside the user's test JVM, so Java 8 bytecode in a jar of its own (the IDE's run configurations add that jar)
@@ -50,4 +49,9 @@ dependencies {
 
 tasks.named<JavaCompile>("compileRtJava") {
   options.release = 8
+}
+
+// The IDE the tests run in still bundles IntelliJ's Code Coverage for Java, which claims the id this plugin keeps as an alias
+tasks.prepareTestSandbox {
+  disabledPlugins.add("Coverage")
 }

@@ -5,8 +5,7 @@ plugins {
   id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-// Above the bundled IntelliJ build (262.261027.0), so this copy replaces one a Phantom still bundles
-version = "262.261111.1"
+version = "0.1.0"
 
 // The IntelliJ sources keep Java next to Kotlin
 sourceSets {
@@ -47,4 +46,9 @@ tasks.prepareSandbox {
   from(layout.projectDirectory.dir("bundles")) {
     into(pluginName.map { "$it/lib/bundles" })
   }
+}
+
+// The IDE the tests run in still bundles IntelliJ's TextMate Bundles, which claims the id this plugin keeps as an alias
+tasks.prepareTestSandbox {
+  disabledPlugins.add("org.jetbrains.plugins.textmate")
 }

@@ -5,8 +5,7 @@ plugins {
   id("org.jetbrains.kotlin.plugin.compose")
 }
 
-// Above the bundled IntelliJ build (262.261027.0), so this copy replaces one a Phantom still bundles
-version = "262.261111.1"
+version = "0.1.0"
 
 // The IntelliJ sources keep Java next to Kotlin
 sourceSets {
@@ -74,4 +73,9 @@ tasks.test {
   // With every Phantom plugin loaded, TextMateFallbackLanguageProvider injects TextMate into any unknown fence, as its
   // source says; this upstream test expects no injection
   filter.excludeTest("org.intellij.plugins.markdown.highlighting.MarkdownTextMateHighlightingTests", "test unknown fence has no injection and keeps code fence content")
+}
+
+// The IDE the tests run in still bundles IntelliJ's Markdown, which claims the id this plugin keeps as an alias
+tasks.prepareTestSandbox {
+  disabledPlugins.add("org.intellij.plugins.markdown")
 }

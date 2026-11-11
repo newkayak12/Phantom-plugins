@@ -1,9 +1,11 @@
-<idea-plugin allow-bundled-update="true">
-  <!-- The id and the content module names stay the IntelliJ ones (the bundled terminal depends on intellij.sh.core), and
-       the version above the bundled build replaces a still-bundled copy. -->
-  <id>com.jetbrains.sh</id>
+<idea-plugin>
+  <!-- Phantom's own id; com.jetbrains.sh stays as an alias, so plugins depending on the IntelliJ id resolve to this one. The
+       content module names stay the IntelliJ ones, as bundled modules depend on them by name. The bundled IntelliJ
+       Shell Script plugin has to be gone, or both claim the same id and modules. -->
+  <id>dev.phantom.sh</id>
+  <name>Phantom Shell Script</name>
+  <module value="com.jetbrains.sh"/>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
-  <name>Shell Script</name>
   <category>Languages</category>
 
   <!-- One jar: core and backend share com.intellij.sh, so the backend loads embedded; the optional modules (terminal,
@@ -28,7 +30,7 @@
     <li>Dedicated run/debug configuration for shell scripts</li>
     <li>Integration with external tools (<a href="https://github.com/koalaman/shellcheck">ShellCheck</a>, <a href="https://github.com/mvdan/sh">Shfmt</a>, <a href="https://explainshell.com/">Explainshell</a>)
     </li></ul>
-    The IntelliJ Community Shell Script plugin (Apache 2.0), built in Phantom-plugins so it updates without a new Phantom build.
+    Based on the IntelliJ Community Shell Script plugin (Apache 2.0).
   ]]></description>
 
 </idea-plugin>
