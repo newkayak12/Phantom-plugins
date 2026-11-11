@@ -2,7 +2,6 @@ import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
 plugins {
   id("phantom-plugin")
-  id("org.jetbrains.kotlin.plugin.compose")
 }
 
 version = "0.1.0"
@@ -29,23 +28,6 @@ dependencies {
     bundledModule("intellij.platform.frontend")
     bundledModule("intellij.platform.ui.jcef")
     bundledModule("intellij.libraries.jcef")
-    bundledModule("intellij.platform.compose")
-    bundledModule("intellij.platform.compose.markdown")
-    bundledModule("intellij.libraries.coil")
-    bundledModule("intellij.libraries.compose.foundation.desktop")
-    bundledModule("intellij.libraries.compose.runtime.desktop")
-    bundledModule("intellij.libraries.skiko")
-    bundledModule("intellij.platform.jewel.foundation")
-    bundledModule("intellij.platform.jewel.ui")
-    bundledModule("intellij.platform.jewel.ideLafBridge")
-    bundledModule("intellij.platform.jewel.markdown.core")
-    bundledModule("intellij.platform.jewel.markdown.ideLafBridgeStyling")
-    bundledModule("intellij.platform.jewel.markdown.extensions.autolink")
-    bundledModule("intellij.platform.jewel.markdown.extensions.frontMatter")
-    bundledModule("intellij.platform.jewel.markdown.extensions.gfmAlerts")
-    bundledModule("intellij.platform.jewel.markdown.extensions.gfmStrikethrough")
-    bundledModule("intellij.platform.jewel.markdown.extensions.gfmTables")
-    bundledModule("intellij.platform.jewel.markdown.extensions.images")
     bundledModule("intellij.json.backend")
     bundledModule("intellij.spellchecker")
     bundledModule("intellij.toml.core")
