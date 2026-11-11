@@ -20,6 +20,15 @@
   <!-- Public API: dev.phantom.ai.api is the only package other plugins may use. PhantomAiApi.getInstance() is a light
        application service (no registration needed). Everything else in dev.phantom.ai.* is internal. -->
 
+  <extensionPoints>
+    <extensionPoint qualifiedName="dev.phantom.ai.agentTools" interface="dev.phantom.ai.mcp.AgentTools" dynamic="true"/>
+  </extensionPoints>
+
+  <!-- with Phantom Database Console: the agents' read-only database tools -->
+  <content namespace="jetbrains">
+    <module name="phantom.ai.db"/>
+  </content>
+
   <extensions defaultExtensionNs="com.intellij">
     <!-- ===== core (U1) ===== -->
     <toolWindow id="Phantom AI Integration" anchor="right" icon="AllIcons.Toolwindows.ToolWindowMessages"

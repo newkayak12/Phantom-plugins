@@ -4,7 +4,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.3.22"
+version = "0.3.23"
 
 dependencies {
   implementation("io.nayuki:qrcodegen:1.8.0")
@@ -15,13 +15,30 @@ dependencies {
     bundledPlugin("Git4Idea")
     bundledPlugin("org.jetbrains.plugins.github")
     testBundledPlugin("com.intellij.java") // a real language for the IDE index queries
+    // Phantom Database Console: the optional phantom.ai.db module uses its data sources (not bundled in the zip)
+    localPlugin(project(":db"))
+    bundledPlugin("intellij.grid.core.plugin")
+    bundledModule("intellij.grid")
+    bundledModule("intellij.grid.core.impl")
+    bundledModule("intellij.grid.impl")
+    bundledModule("intellij.libraries.sshj")
   }
 }
 
+// The database tool tests load H2 as users' drivers are loaded: from the local Gradle cache (see db/build.gradle.kts)
+val testDrivers by configurations.creating
+dependencies { testDrivers("com.h2database:h2:2.3.232") }
+
 // Tests run against a throwaway home: never the developer's real ~/.claude, ~/.codex or keychain
 tasks.test {
+  inputs.files(testDrivers)
   val testHome = layout.buildDirectory.dir("test-home").map { it.asFile.absolutePath }
+  val drivers: FileCollection = files(testDrivers)
   doFirst {
+    // the throwaway home has no ~/.gradle: H2 goes where the driver lookup also looks, its ~/.m2
+    val h2 = File(testHome.get(), ".m2/repository/com/h2database/h2/2.3.232")
+    h2.mkdirs()
+    drivers.files.filter { it.name.startsWith("h2-") }.forEach { it.copyTo(File(h2, it.name), overwrite = true) }
     File(testHome.get(), ".claude").mkdirs()
     File(testHome.get(), ".codex").mkdirs()
   }

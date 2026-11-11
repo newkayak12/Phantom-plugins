@@ -35,7 +35,13 @@ interface EditorBridge {
  * worktree, the base of relative paths and the project to open in; [index] answers code questions within that worktree.
  * Pure apart from [bridge] and [index].
  */
-class PhantomMcp(private val bridge: EditorBridge, private val index: CodeIndex, private val worktreeOf: (String?) -> String?) {
+class PhantomMcp(
+  private val bridge: EditorBridge,
+  private val index: CodeIndex,
+  /** The tools of [AgentTools] extensions, asked on each list and call: one can come and go with its plugin. */
+  private val extra: () -> List<AgentTool> = { emptyList() },
+  private val worktreeOf: (String?) -> String?,
+) {
   /** The JSON reply to [body], or null when it held only notifications (HTTP 202, no body). */
   fun handle(body: String, tabId: String?): String? {
     val request = try {
@@ -112,7 +118,7 @@ class PhantomMcp(private val bridge: EditorBridge, private val index: CodeIndex,
           text(index.insertCode(worktree, required(args, "path"), int(args, "line"), required(args, "name"), after, code(args)))
         }
         RUN_OUTPUT -> text(bridge.runOutput(worktree, string(args, "name"), (int(args, "lines") ?: DEFAULT_LINES).coerceIn(1, MAX_LINES), string(args, "grep")))
-        else -> text("Unknown tool: $name", isError = true)
+        else -> extra().firstOrNull { it.name == name }?.let { text(it.call(worktree, args)) } ?: text("Unknown tool: $name", isError = true)
       }
     } catch (e: McpToolError) {
       text(e.message ?: "Failed", isError = true)
@@ -175,6 +181,7 @@ class PhantomMcp(private val bridge: EditorBridge, private val index: CodeIndex,
       add("lines", prop("integer", "How many lines from the end (default $DEFAULT_LINES, at most $MAX_LINES)."))
       add("grep", prop("string", "Only lines matching this regular expression (case-insensitive), e.g. ERROR|Exception."))
     }, required = emptyList(), readOnly = true))
+    for (tool in extra()) add(tool(tool.name, tool.description, tool.properties, tool.required, tool.readOnly))
   }
 
   /** A symbol named where it is written: the arguments find_usages also takes. */
@@ -277,7 +284,8 @@ class PhantomMcp(private val bridge: EditorBridge, private val index: CodeIndex,
         "To read one method or class, read_symbol instead of the whole file; to rewrite one, replace_symbol or insert_code " +
         "instead of reproducing its old text. After editing a file, get_file_problems shows its errors without a build; " +
         "rename symbols with rename_refactoring. For what a running app or test printed, get_run_output (with grep) " +
-        "instead of asking the user to paste it."
+        "instead of asking the user to paste it. With Phantom's Database Console, list_databases, list_tables, " +
+        "describe_table and query_database (read-only) reach the user's saved data sources: no connection details needed."
 
     private const val OPEN_DESCRIPTION =
       "Opens a file in the user's Phantom editor at a line, selects up to end_line and brings it to front. Use it whenever " +

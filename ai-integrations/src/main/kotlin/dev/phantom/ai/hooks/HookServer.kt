@@ -40,7 +40,7 @@ class HookServer : Disposable {
   private var server: HttpServer? = null
   private var executor: java.util.concurrent.ExecutorService? = null
   val statuslineListeners = CopyOnWriteArrayList<StatuslineListener>()
-  @Volatile var mcp: PhantomMcp = PhantomMcp(IdeEditorBridge(), IdeCodeIndex()) { tab -> tab?.takeUnless { Unloading.inProgress }?.let { SessionStore.getInstance().get(it)?.worktree } }
+  @Volatile var mcp: PhantomMcp = PhantomMcp(IdeEditorBridge(), IdeCodeIndex(), dev.phantom.ai.mcp.AgentTools::all) { tab -> tab?.takeUnless { Unloading.inProgress }?.let { SessionStore.getInstance().get(it)?.worktree } }
     @TestOnly set
 
   val port: Int get() = server?.address?.port ?: 0
