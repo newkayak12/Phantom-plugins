@@ -624,6 +624,134 @@
       ],
       "download": "mermaid-0.1.1/mermaid-0.1.1.zip",
       "detect": []
+    },
+    {
+      "id": "dev.phantom.toml",
+      "name": "Phantom TOML",
+      "version": "0.1.0",
+      "source": "toml",
+      "description": "TOML files: highlighting, formatting, folding, references, JSON Schema completion and documentation; Gradle version catalogs build on it. Based on the IntelliJ Community TOML plugin (Apache 2.0); org.toml.lang stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262.261112",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "toml-0.1.0/toml-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.yaml",
+      "name": "Phantom YAML",
+      "version": "0.1.0",
+      "source": "yaml",
+      "description": "YAML files: highlighting, formatting, structure view, anchors and aliases, inspections, and JSON Schema completion, validation and documentation; Phantom's docker, kubernetes, openapi and migrations plugins depend on it. Based on the IntelliJ Community YAML plugin (Apache 2.0); org.jetbrains.plugins.yaml stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262.261112",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.json"
+      ],
+      "download": "yaml-0.1.0/yaml-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.sh",
+      "name": "Phantom Shell Script",
+      "version": "0.1.0",
+      "source": "sh",
+      "description": "Shell scripts: highlighting, completion, rename, a run configuration, ShellCheck and shfmt, shell blocks in Markdown and the terminal. Based on the IntelliJ Community Shell Script plugin (Apache 2.0); com.jetbrains.sh stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262.261112",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "sh-0.1.0/sh-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.lombok",
+      "name": "Phantom Lombok",
+      "version": "0.1.0",
+      "source": "lombok",
+      "description": "Project Lombok in the editor: generated getters, setters, constructors, builders, loggers and more resolve and complete; lombok.config, inspections, quick fixes and Delombok. Based on the IntelliJ Community Lombok plugin (Apache 2.0); Lombook Plugin stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "JVM Frameworks",
+      "since": "262.261112",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.java"
+      ],
+      "download": "lombok-0.1.0/lombok-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.decompiler",
+      "name": "Phantom Java Bytecode Decompiler",
+      "version": "0.1.0",
+      "source": "decompiler",
+      "description": "Opening a .class file without sources shows Java source decompiled by Fernflower instead of a stub, with the debugger mapping its lines back; Kotlin's bytecode decompiler builds on it. Based on the IntelliJ Community Java Bytecode Decompiler plugin (Apache 2.0); org.jetbrains.java.decompiler stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "JVM Tools",
+      "since": "262.261112",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.java"
+      ],
+      "download": "decompiler-0.1.0/decompiler-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.coverage",
+      "name": "Phantom Code Coverage for Java",
+      "version": "0.1.0",
+      "source": "coverage",
+      "description": "Run with Coverage for Java run configurations, with the IntelliJ or the JaCoCo runner: the Coverage tool window, line and branch marks in the editor and the Project view, HTML reports and imported reports. Based on the IntelliJ Community Code Coverage for Java plugin (Apache 2.0); Coverage stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "JVM Tools",
+      "since": "262.261112",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.java"
+      ],
+      "download": "coverage-0.1.0/coverage-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.textmate",
+      "name": "Phantom TextMate Bundles",
+      "version": "0.1.0",
+      "source": "textmate",
+      "description": "Highlighting, brace matching, commenting and snippets from TextMate and VS Code grammars for file types no other plugin covers: 64 bundled grammars and any you add. Based on the IntelliJ Community TextMate Bundles plugin (Apache 2.0); org.jetbrains.plugins.textmate stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262.261112",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "textmate-0.1.0/textmate-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.markdown",
+      "name": "Phantom Markdown",
+      "version": "0.1.0",
+      "source": "markdown",
+      "description": "Markdown files: highlighting, completion, navigation, inspections, table and list editing, images, language injection in code fences, front matter, and the JCEF preview; Shell Script, Kotlin and others build on it. Based on the IntelliJ Community Markdown plugin (Apache 2.0); org.intellij.plugins.markdown stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262.261112",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "markdown-0.1.0/markdown-0.1.0.zip",
+      "detect": []
     }
   ]
 }
