@@ -295,4 +295,23 @@ class DbExplorerTest : BasePlatformTestCase() {
     assertEquals("CREATE OR REPLACE VIEW public.totals AS\n SELECT 1", DbDdl.postgresViewDdl(view, " SELECT 1\n"))
     assertEquals("CREATE MATERIALIZED VIEW public.totals_mv AS\n SELECT 1", DbDdl.postgresViewDdl(materialized, " SELECT 1"))
   }
+
+  /** Cmd+click (Go to Declaration) on a table name in a console selects the table in the Database tree. */
+  fun testGoToDeclarationOfATableSelectsItInTheTree() {
+    val ds = objectsSchema()
+    val panel = DbExplorerPanel(project, testRootDisposable)
+    val toolWindow = com.intellij.openapi.wm.ToolWindowManager.getInstance(project).getToolWindow(DbToolWindowFactory.ID)
+      ?: com.intellij.openapi.wm.ToolWindowManager.getInstance(project).registerToolWindow(DbToolWindowFactory.ID) {}
+    runBlocking { SqlSchema.getInstance(project).load(ds) }
+    val file = myFixture.configureByText("q.sql", "SELECT * FROM chi<caret>ld")
+    DbConsoles.attach(project, file.virtualFile, ds.id)
+    val target = com.intellij.codeInsight.navigation.actions.GotoDeclarationAction.findAllTargetElements(project, myFixture.editor, myFixture.caretOffset).single()
+    (target as com.intellij.pom.Navigatable).navigate(true)
+    // the first time, the tool window's panel is made only after the click
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    toolWindow.contentManager.addContent(com.intellij.ui.content.ContentFactory.getInstance().createContent(panel, "", false))
+    PlatformTestUtil.waitWithEventsDispatching("the table was not selected: ${panel.tree.selectionPath}", {
+      (( panel.tree.selectionPath?.lastPathComponent as? DefaultMutableTreeNode)?.userObject as? DbNode.Table)?.ref?.name == "CHILD"
+    }, 20)
+  }
 }

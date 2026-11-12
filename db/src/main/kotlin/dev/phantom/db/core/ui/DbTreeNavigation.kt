@@ -4,11 +4,14 @@ package dev.phantom.db.core.ui
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.util.ui.tree.TreeUtil
 import dev.phantom.db.core.DbDataSource
+import dev.phantom.db.core.PhantomDbBundle
 import dev.phantom.db.core.SqlDbTarget
 import dev.phantom.db.core.SqlFile
 import dev.phantom.db.core.exec.DbConsoles
@@ -36,7 +39,7 @@ object DbTreeNavigation {
       table.isView -> DbNode.Folder.Kind.VIEWS
       else -> DbNode.Folder.Kind.TABLES
     }
-    select(project, dataSource, table.schema ?: table.catalog, folder, column, focus) { (it as? DbNode.Table)?.ref?.name == table.name }
+    select(project, dataSource, table.schema ?: table.catalog, folder, column, focus) { (it as? DbNode.Table)?.ref?.name.equals(table.name, ignoreCase = true) }
   }
 
   fun select(project: Project, dataSource: DbDataSource, routine: DbRoutine, focus: Boolean = true) {
@@ -65,18 +68,45 @@ object DbTreeNavigation {
     DbToolWindowFactory.show(project, focus)
     DbConnectionService.getInstance(project).launch {
       withContext(Dispatchers.EDT) {
-        val panel = DbExplorerPanel.find(project) ?: return@withContext
+        // the first time the tool window opens, its panel is made after show() returns
+        val panel = awaitPanel(project) ?: return@withContext
         panel.setFilter("")
         val tree = panel.tree
-        var node = panel.sourceNodes().firstOrNull { (it.userObject as DbNode.Source).dataSource.id == dataSource.id } ?: return@withContext
-        node = expandTo(tree, node) { (it as? DbNode.Schema)?.ref?.name == schemaName } ?: return@withContext
-        node = expandTo(tree, node) { (it as? DbNode.Folder)?.kind == folder } ?: return@withContext
-        node = expandTo(tree, node, matches) ?: return@withContext
-        if (column != null) node = expandTo(tree, node) { (it as? DbNode.Column)?.info?.name == column } ?: node
-        TreeUtil.selectPath(tree, TreePath(node.path))
+        val node = locate(panel, dataSource, schemaName, folder, matches)
+        if (node == null) {
+          NotificationGroupManager.getInstance().getNotificationGroup("Phantom Database")
+            .createNotification(PhantomDbBundle.message("db.tree.navigation.not.found", listOfNotNull(schemaName, dataSource.name).joinToString(" · ")),
+                                NotificationType.INFORMATION)
+            .notify(project)
+          return@withContext
+        }
+        val target = if (column != null) expandTo(tree, node) { (it as? DbNode.Column)?.info?.name.equals(column, ignoreCase = true) } ?: node else node
+        TreeUtil.selectPath(tree, TreePath(target.path))
+        TreeUtil.scrollToVisible(tree, TreePath(target.path), false)
         if (focus) tree.requestFocusInWindow()
       }
     }
+  }
+
+  private suspend fun awaitPanel(project: Project): DbExplorerPanel? {
+    val deadline = System.currentTimeMillis() + LEVEL_TIMEOUT_MS
+    while (System.currentTimeMillis() < deadline) {
+      DbExplorerPanel.find(project)?.let { return it }
+      delay(50)
+    }
+    return null
+  }
+
+  /** The object's node: under its schema (names compared as the database does, ignoring case), else under the data source. */
+  private suspend fun locate(panel: DbExplorerPanel, dataSource: DbDataSource, schemaName: String?, folder: DbNode.Folder.Kind,
+                             matches: (Any?) -> Boolean): DefaultMutableTreeNode? {
+    val tree = panel.tree
+    val source = panel.sourceNodes().firstOrNull { (it.userObject as DbNode.Source).dataSource.id == dataSource.id } ?: return null
+    val schema = schemaName?.let { name -> expandTo(tree, source) { (it as? DbNode.Schema)?.ref?.name.equals(name, ignoreCase = true) } }
+    // a data source that lists its folders without a schema level, or a schema it does not show
+    val parent = schema ?: source
+    val folderNode = expandTo(tree, parent) { (it as? DbNode.Folder)?.kind == folder } ?: return null
+    return expandTo(tree, folderNode, matches)
   }
 
   private fun child(parent: DefaultMutableTreeNode, matches: (Any?) -> Boolean): DefaultMutableTreeNode? =
