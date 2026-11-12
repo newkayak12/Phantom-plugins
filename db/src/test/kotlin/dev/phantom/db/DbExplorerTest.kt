@@ -127,6 +127,20 @@ class DbExplorerTest : BasePlatformTestCase() {
     assertEquals(listOf("FT_PARENT"), names(panel.expand(panel.folder(parent, DbNode.Folder.Kind.TABLE_TRIGGERS)!!)))
   }
 
+  /** Copy on the tree puts the names shown on the clipboard, not `DbNode$Table@1856292e`. */
+  fun testCopyPutsTheNamesOnTheClipboard() {
+    val ds = objectsSchema()
+    val panel = DbExplorerPanel(project, testRootDisposable)
+    val schema = schemaOf(panel, ds)
+    panel.expand(schema)
+    val child = panel.expand(panel.folder(schema, DbNode.Folder.Kind.TABLES)!!).first { (it.userObject as? DbNode.Table)?.ref?.name == "CHILD" }
+    val label = panel.expand(child).first { (it.userObject as? DbNode.Column)?.info?.name == "LABEL" }
+    panel.tree.selectionPaths = arrayOf(TreePath(child.path), TreePath(label.path))
+    val clipboard = java.awt.datatransfer.Clipboard("test")
+    panel.tree.transferHandler.exportToClipboard(panel.tree, clipboard, javax.swing.TransferHandler.COPY)
+    assertEquals("CHILD\nLABEL", clipboard.getData(java.awt.datatransfer.DataFlavor.stringFlavor))
+  }
+
   fun testFilterHidesOtherObjectsAndEmptyFolders() {
     val ds = objectsSchema()
     val panel = DbExplorerPanel(project, testRootDisposable)

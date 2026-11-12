@@ -166,6 +166,12 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
       val source = path.path.firstNotNullOfOrNull { ((it as? DefaultMutableTreeNode)?.userObject as? DbNode.Source)?.dataSource }
       return DbColors.tint(source?.color) ?: super.getPathBackground(path, row)
     }
+
+    /** What Copy puts on the clipboard (and screen readers read): the name shown, not the node object. */
+    override fun convertValueToText(value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean): String {
+      val node = (value as? DefaultMutableTreeNode)?.userObject as? DbNode ?: return super.convertValueToText(value, selected, expanded, leaf, row, hasFocus)
+      return DbNode.text(node).ifEmpty { (node as? DbNode.Message)?.text.orEmpty() }
+    }
   }
   /** Nodes being loaded, each with a token of its load: a reload starts a new one, and the old load's result is dropped. */
   private val loading = HashMap<DefaultMutableTreeNode, Any>()
