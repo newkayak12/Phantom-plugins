@@ -1,0 +1,3 @@
+# The test projects open as IntelliJ projects: their .idea/ and .iml files are test data, not IDE state
+!.idea/
+!*.iml

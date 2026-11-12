@@ -708,7 +708,7 @@
     {
       "id": "dev.phantom.coverage",
       "name": "Phantom Code Coverage for Java",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "coverage",
       "description": "Run with Coverage for Java run configurations, with the IntelliJ or the JaCoCo runner: the Coverage tool window, line and branch marks in the editor and the Project view, HTML reports and imported reports. Based on the IntelliJ Community Code Coverage for Java plugin (Apache 2.0); Coverage stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -718,7 +718,7 @@
       "depends": [
         "com.intellij.java"
       ],
-      "download": "coverage-0.1.0/coverage-0.1.0.zip",
+      "download": "coverage-0.1.1/coverage-0.1.1.zip",
       "detect": []
     },
     {
