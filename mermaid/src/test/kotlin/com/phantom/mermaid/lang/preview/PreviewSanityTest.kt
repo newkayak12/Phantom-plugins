@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.api.extension.RegisterExtension
 
 @PreviewTest
+@DisabledInAutomation
 @WithJcef
 @ExtendWith(WaitForBuiltInServerExtension::class)
 @TestApplication
