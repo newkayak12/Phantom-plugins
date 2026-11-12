@@ -2,22 +2,19 @@
 package org.intellij.plugins.markdown.service
 
 import com.intellij.ide.vfs.VirtualFileId
-import com.intellij.platform.rpc.RemoteApiProviderService
-import fleet.rpc.RemoteApi
-import fleet.rpc.Rpc
-import fleet.rpc.remoteApiDescriptor
+import com.intellij.openapi.components.service
 import org.intellij.plugins.markdown.dto.MarkdownLinkNavigationData
 import org.jetbrains.annotations.ApiStatus
 
+// An application service of intellij.markdown.backend: Phantom runs frontend and backend in one process, without RPC
 @ApiStatus.Internal
-@Rpc
-interface MarkdownLinkOpenerRemoteApi: RemoteApi<Unit> {
+interface MarkdownLinkOpenerRemoteApi {
   suspend fun fetchLinkNavigationData(link: String, virtualFileId: VirtualFileId?): MarkdownLinkNavigationData
 
   companion object {
     @JvmStatic
     suspend fun getInstance(): MarkdownLinkOpenerRemoteApi {
-      return RemoteApiProviderService.resolve(remoteApiDescriptor<MarkdownLinkOpenerRemoteApi>())
+      return service<MarkdownLinkOpenerRemoteApi>()
     }
   }
 }
