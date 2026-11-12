@@ -4,7 +4,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.0"
+version = "0.1.1"
 
 // The IntelliJ sources (and the Grammar-Kit parser) keep Java next to Kotlin
 sourceSets {
@@ -39,6 +39,8 @@ tasks.test {
   // preview test is the first to start the IDE
   systemProperty("ide.browser.jcef.headless.enabled", "true")
   systemProperty("ide.browser.jcef.testMode.enabled", "true")
+  // the expected files are read from testData, which the test IDE's VFS does not allow on a CI checkout
+  systemProperty("NO_FS_ROOTS_ACCESS_CHECK", "true")
   // reads the Mermaid documentation examples, which the upstream build extracts first (examples/extractor)
   filter.excludeTestsMatching("com.phantom.mermaid.lang.preview.OfficialExamplesParsingTest")
 }
