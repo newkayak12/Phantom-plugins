@@ -608,6 +608,22 @@
         "org.testcontainers:junit-jupiter",
         "org.springframework.boot:spring-boot-testcontainers"
       ]
+    },
+    {
+      "id": "com.phantom.mermaid",
+      "name": "Mermaid (Phantom)",
+      "version": "0.1.0",
+      "source": "mermaid",
+      "description": "Editing support and diagram preview for Mermaid in .mmd and .mermaid files and in Markdown code fences: highlighting, completion, formatting, folding, rename and Find Usages of node ids, inspections, and a preview next to the editor. The IntelliJ Community Mermaid plugin (Apache 2.0) under its own id, so Phantom can stop bundling the JetBrains copy (com.intellij.mermaid), which has to be disabled for this one to load. Faster: the preview draws only the latest text after typing pauses and skips text that did not change, Markdown diagrams that did not change are not drawn again (and replaced blocks no longer stay in memory), and mermaid.js is read once and no longer kept stale in the browser after an update.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "mermaid-0.1.0/mermaid-0.1.0.zip",
+      "detect": []
     }
   ]
 }

@@ -60,6 +60,7 @@ Public repositories need no token.
 | Phantom Log Console | [logs](./logs/README.md) · [한국어](./logs/KOR.md) | JSON logs as readable lines with stack traces, level colors, trace ids that list a request's lines |
 | Phantom QueryDSL | [querydsl](./querydsl/README.md) · [한국어](./querydsl/KOR.md) | Q class paths go to the entity, Find Usages of entity fields finds QueryDSL paths, out-of-date Q classes |
 | Phantom Testcontainers | [testcontainers](./testcontainers/README.md) · [한국어](./testcontainers/KOR.md) | Containers that never start or start per test, images without a version, Spring members that must be static |
+| Mermaid (Phantom) | [mermaid](./mermaid/README.md) · [한국어](./mermaid/KOR.md) | Mermaid editing and preview, faster than the JetBrains copy it replaces (the IntelliJ plugin under a Phantom id) |
 
 ## Repository format
 
