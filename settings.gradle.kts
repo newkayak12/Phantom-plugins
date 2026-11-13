@@ -20,6 +20,10 @@ dependencyResolutionManagement {
     intellijPlatform {
       defaultRepositories()
     }
+    // Grazie's own libraries (ai.grazie.*), for grazie/
+    maven("https://packages.jetbrains.team/maven/p/grazi/grazie-platform-public") {
+      content { includeGroupByRegex("ai\\.grazie(\\..*)?") }
+    }
   }
 }
 
@@ -71,6 +75,7 @@ include("htmltools")
 include("testng")
 include("java-i18n")
 include("terminal")
+include("grazie")
 
 // Real-IDE probe (see realide-probe/): only with -PrealIde, never part of CI or the marketplace
 if (providers.gradleProperty("realIde").isPresent) {
