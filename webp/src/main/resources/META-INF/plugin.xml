@@ -16,6 +16,7 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <fileType name="Image" extensions="webp"/>
-    <imageReaderWriterSpi type="read" implementationClass="com.twelvemonkeys.imageio.plugins.webp.WebPImageReaderSpi"/>
+    <!-- registered while the IDE starts: a small provider of our own that creates the TwelveMonkeys one on first use -->
+    <imageReaderWriterSpi type="read" implementationClass="dev.phantom.webp.LazyWebPImageReaderSpi"/>
   </extensions>
 </idea-plugin>

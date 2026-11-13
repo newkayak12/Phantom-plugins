@@ -6,6 +6,8 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import org.intellij.images.fileTypes.impl.ImageFileType
 import java.awt.Color
 import javax.imageio.ImageIO
+import javax.imageio.spi.IIORegistry
+import javax.imageio.spi.ImageReaderSpi
 
 class WebpInIdeTest : BasePlatformTestCase() {
   fun `test webp files are images`() {
@@ -15,6 +17,11 @@ class WebpInIdeTest : BasePlatformTestCase() {
   fun `test the TwelveMonkeys reader is registered`() {
     val readers = ImageIO.getImageReadersBySuffix("webp").asSequence().map { it.originatingProvider.javaClass.name }.toList()
     assertTrue(readers.toString(), "com.twelvemonkeys.imageio.plugins.webp.WebPImageReaderSpi" in readers)
+  }
+
+  fun `test the provider registered at startup is the lazy one`() {
+    val registered = IIORegistry.getDefaultInstance().getServiceProviders(ImageReaderSpi::class.java, false).asSequence().map { it.javaClass.name }.toList()
+    assertTrue(registered.toString(), LazyWebPImageReaderSpi::class.java.name in registered)
   }
 
   fun `test lossless webp decodes through ImageIO`() {
