@@ -70,6 +70,7 @@ include("copyright")
 include("htmltools")
 include("testng")
 include("java-i18n")
+include("terminal")
 
 // Real-IDE probe (see realide-probe/): only with -PrealIde, never part of CI or the marketplace
 if (providers.gradleProperty("realIde").isPresent) {
