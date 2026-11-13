@@ -752,6 +752,104 @@
       ],
       "download": "markdown-0.1.0/markdown-0.1.0.zip",
       "detect": []
+    },
+    {
+      "id": "dev.phantom.github",
+      "name": "Phantom GitHub",
+      "version": "0.1.0",
+      "source": "github",
+      "description": "GitHub in the IDE: GitHub and GitHub Enterprise accounts (OAuth or token), cloning, Share Project on GitHub, pull requests (list, review with comments in the diff and editor, create, merge), gists, Open on GitHub, and GitHub Actions workflow schemas. Based on the IntelliJ Community GitHub plugin (Apache 2.0); org.jetbrains.plugins.github stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Version Controls",
+      "since": "262.261113",
+      "until": "262.*",
+      "depends": [
+        "Git4Idea"
+      ],
+      "download": "github-0.1.0/github-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.editorconfig",
+      "name": "Phantom EditorConfig",
+      "version": "0.1.0",
+      "source": "editorconfig",
+      "description": "EditorConfig files: properties from .editorconfig applied to the code style, indentation, encoding and trailing spaces of every supported language, plus editing support for the files themselves (highlighting, completion, inspections and quick fixes, navigation, rename, a preview of affected files, and code style scheme export). Based on the IntelliJ Community EditorConfig plugin (Apache 2.0); org.editorconfig.editorconfigjetbrains stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Editor",
+      "since": "262.261113",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "editorconfig-0.1.0/editorconfig-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.copyright",
+      "name": "Phantom Copyright",
+      "version": "0.1.0",
+      "source": "copyright",
+      "description": "Copyright notices: profiles with Velocity templates applied to scopes, per-language comment formatting, Update and Generate Copyright actions, updating on save and before commit, and profiles imported from Gradle; Shell Script, Java, Kotlin and others add their file types through it. Based on the IntelliJ Community Copyright plugin (Apache 2.0); com.intellij.copyright stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Editor",
+      "since": "262.261113",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang",
+        "com.intellij.modules.xml"
+      ],
+      "download": "copyright-0.1.0/copyright-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.htmltools",
+      "name": "Phantom HTML Tools",
+      "version": "0.1.0",
+      "source": "htmltools",
+      "description": "HTML editing: inspections for deprecated tags and attributes, accessibility (missing alt, lang, title, form labels), image sizes and unreachable web links, with quick fixes; Update Image Size, table column actions and cell navigation, Go to Symbol for element ids, Extract Include, and image drag and drop. Based on the IntelliJ Community HTML Tools plugin (Apache 2.0); HtmlTools stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262.261113",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.platform.images"
+      ],
+      "download": "htmltools-0.1.0/htmltools-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.testng",
+      "name": "Phantom TestNG",
+      "version": "0.1.0",
+      "source": "testng",
+      "description": "TestNG for Java: run configurations for classes, methods, packages, groups, patterns and suite files with the test tree, forked runs and debugging; test generation; references from dataProvider, dependsOnMethods, groups and testng.xml; inspections and quick fixes such as converting JUnit tests to TestNG. Based on the IntelliJ Community TestNG plugin (Apache 2.0); TestNG-J stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "JVM Tools",
+      "since": "262.261113",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.java"
+      ],
+      "download": "testng-0.1.0/testng-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.java-i18n",
+      "name": "Phantom Java Internationalization",
+      "version": "0.1.0",
+      "source": "java-i18n",
+      "description": "Java internationalization: inspections for hard-coded strings, unresolved property keys, message format parameters, inconsistent resource bundles and title capitalization; I18nize to move literals into properties files; folding of message calls to their text; references, find usages and rename between Java and properties keys. Based on the IntelliJ Community Java Internationalization plugin (Apache 2.0); com.intellij.java-i18n stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "JVM Tools",
+      "since": "262.261113",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.java",
+        "com.intellij.properties"
+      ],
+      "download": "java-i18n-0.1.0/java-i18n-0.1.0.zip",
+      "detect": []
     }
   ]
 }

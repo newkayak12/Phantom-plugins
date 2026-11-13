@@ -56,6 +56,12 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom Code Coverage for Java | [coverage](./coverage/KOR.md) · [English](./coverage/README.md) | IntelliJ 또는 JaCoCo 러너로 Run with Coverage (IntelliJ 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom TextMate Bundles | [textmate](./textmate/KOR.md) · [English](./textmate/README.md) | 다른 파일 형식을 TextMate와 VS Code 문법으로 하이라이팅 (IntelliJ 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Markdown | [markdown](./markdown/KOR.md) · [English](./markdown/README.md) | Markdown 편집과 미리보기. Shell Script, Kotlin 등이 이것을 씀 (IntelliJ 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Phantom GitHub | [github](./github/KOR.md) · [English](./github/README.md) | GitHub 계정, 클론, 프로젝트 공유, 풀 리퀘스트, Gist, Actions 스키마 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Phantom EditorConfig | [editorconfig](./editorconfig/KOR.md) · [English](./editorconfig/README.md) | .editorconfig를 코드 스타일·들여쓰기·인코딩에 적용하고 파일 자체 편집도 지원 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Phantom Copyright | [copyright](./copyright/KOR.md) · [English](./copyright/README.md) | Velocity 템플릿으로 저작권 문구를 넣고, 저장이나 커밋 전에 갱신 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Phantom HTML Tools | [htmltools](./htmltools/KOR.md) · [English](./htmltools/README.md) | HTML 검사(폐기된 마크업, 접근성, 이미지 크기, 링크)와 편집 기능 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Phantom TestNG | [testng](./testng/KOR.md) · [English](./testng/README.md) | TestNG 실행 구성, 테스트 생성, 참조, 검사 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Phantom Java Internationalization | [java-i18n](./java-i18n/KOR.md) · [English](./java-i18n/README.md) | Java 하드코딩 문자열 검사, I18nize, properties 키 참조 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom CPU Indicator | [cpu](./cpu/KOR.md) · [English](./cpu/README.md) | 상태바에 IDE·시스템 CPU, 호버하면 IDE가 CPU를 어디에 썼는지(인덱싱, 분석, GC, JIT) |
 | Phantom Log Console | [logs](./logs/KOR.md) · [English](./logs/README.md) | JSON 로그를 읽기 쉬운 줄과 스택트레이스로, 레벨 색, traceId를 누르면 그 요청의 줄 목록 |
 | Phantom QueryDSL | [querydsl](./querydsl/KOR.md) · [English](./querydsl/README.md) | Q클래스 경로에서 엔티티로 이동, 엔티티 필드 Find Usages에 QueryDSL 경로 포함, 오래된 Q클래스 경고 |
