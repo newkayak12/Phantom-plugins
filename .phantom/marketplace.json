@@ -850,6 +850,22 @@
       ],
       "download": "java-i18n-0.1.0/java-i18n-0.1.0.zip",
       "detect": []
+    },
+    {
+      "id": "dev.phantom.terminal",
+      "name": "Phantom Terminal",
+      "version": "0.1.0",
+      "source": "terminal",
+      "description": "The integrated terminal: Bash, Zsh, Fish, PowerShell and cmd sessions in tabs and split panes, shell integration (command blocks, prompt, working directory tracking), command completion from bundled command specs, clickable file links, and commands that open in the IDE; Shell Script and others build on it. Based on the IntelliJ Community Terminal plugin (Apache 2.0); org.jetbrains.plugins.terminal stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Tools Integration",
+      "since": "262.261113",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "terminal-0.1.0/terminal-0.1.0.zip",
+      "detect": []
     }
   ]
 }
