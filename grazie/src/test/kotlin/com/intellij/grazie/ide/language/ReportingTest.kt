@@ -152,7 +152,7 @@ class ReportingTest : BasePlatformTestCase() {
       "Ignore 'S' in this sentence", // then the built-in general context action
       "Configure rule 'something'…",
       "Accept all writing suggestions…",
-      // phantom-idea: no "Enable Cloud mode for deeper checks" without -Dphantom.jetbrains.services=true
+      // phantom: no "Enable Cloud mode for deeper checks", Grazie Cloud is not in this build
       "mock intention", // normal intentions are at the bottom
     )
   }

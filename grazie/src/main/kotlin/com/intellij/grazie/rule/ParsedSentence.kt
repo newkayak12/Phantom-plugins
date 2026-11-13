@@ -70,7 +70,7 @@ class ParsedSentence private constructor(
     fun findSentenceInFile(file: PsiFile?, fileOffset: Int): ParsedSentence? {
       if (file == null) return null
       val text = TextExtractor.findTextAt(file, fileOffset, TextContent.TextDomain.ALL) ?: return null
-      val sentences = runBlockingCancellable { getSentences(text, TextRange.from(fileOffset, 0), minimal = false) }
+      val sentences = runBlockingCancellable { getSentences(text, TextRange.from(fileOffset, 0)) }
       return sentences.lastOrNull { it.fileOffsetToText(fileOffset) != null }
     }
 
@@ -80,7 +80,7 @@ class ParsedSentence private constructor(
      */
     @JvmStatic
     fun findSentenceASAP(text: TextContent, fileOffset: Int): ParsedSentence? {
-      val sentences = runBlockingCancellable { getSentences(text, TextRange.from(fileOffset, 0), minimal = true) }
+      val sentences = runBlockingCancellable { getSentences(text, TextRange.from(fileOffset, 0)) }
       return sentences.lastOrNull { it.fileOffsetToText(fileOffset) != null }
     }
 
@@ -110,21 +110,21 @@ class ParsedSentence private constructor(
     }
 
     suspend fun getSentencesAsync(content: TextContent): List<ParsedSentence> {
-      return getSentences(content, content.commonParent.textRange, minimal = false)
+      return getSentences(content, content.commonParent.textRange)
     }
 
     @Suppress("unused")
     suspend fun getSentencesAsync(context: ProofreadingContext): List<ParsedSentence> {
       if (HighlightingUtil.isTooLargeText(listOf(context.text))) return emptyList()
-      val parser = DependencyParser.getParser(context, false) ?: return emptyList()
+      val parser = DependencyParser.getParser(context) ?: return emptyList()
       return getSentences(context.text, context.text.commonParent.textRange, parser)
     }
 
-    private suspend fun getSentences(content: TextContent, rangeInFile: TextRange, minimal: Boolean): List<ParsedSentence> {
+    private suspend fun getSentences(content: TextContent, rangeInFile: TextRange): List<ParsedSentence> {
       if (HighlightingUtil.isTooLargeText(listOf(content)) || !NaturalTextDetector.seemsNatural(content)) {
         return emptyList()
       }
-      val parser = DependencyParser.getParser(content, minimal) ?: return emptyList()
+      val parser = DependencyParser.getParser(content) ?: return emptyList()
       return getSentences(content, rangeInFile, parser)
     }
 

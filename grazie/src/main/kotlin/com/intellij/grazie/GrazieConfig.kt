@@ -6,9 +6,6 @@ import ai.grazie.nlp.langs.LanguageISO
 import ai.grazie.rules.settings.TextStyle
 import ai.grazie.rules.tree.Parameter
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
-import com.intellij.grazie.GrazieConfig.State.Processing.Cloud
-import com.intellij.grazie.GrazieConfig.State.Processing.Local
-import com.intellij.grazie.cloud.GrazieCloudConnector
 import com.intellij.grazie.config.CheckingContext
 import com.intellij.grazie.config.DetectionContext
 import com.intellij.grazie.config.SuppressingContext
@@ -103,7 +100,7 @@ class GrazieConfig : PersistentStateComponent<GrazieConfig.State>, ModificationT
     @Property val parametersPerDomain: Map<TextStyleDomain, Map<Language, Map<String, String>>> = TreeMap(),
     @Property val useOxfordSpelling: Boolean = false,
     @Property val autoFix: Boolean = false,
-    // Ex. Grazie Cloud
+    // Ex. Grazie Cloud; phantom: unused without it, kept so saved settings still load
     @Property val explicitlyChosenProcessing: Processing? = null,
   ) : VersionedState<Version, State> {
     /**
@@ -122,9 +119,6 @@ class GrazieConfig : PersistentStateComponent<GrazieConfig.State>, ModificationT
 
     val missedLanguages: Set<Lang>
       get() = enabledLanguages.asSequence().filter { isMissingLanguage(it) }.toCollection(CollectionFactory.createSmallMemoryFootprintLinkedSet())
-
-    val processing: Processing
-      get() = explicitlyChosenProcessing ?: if (GrazieCloudConnector.isCloudEnabledByDefault()) Cloud else Local
 
     val dictionaries: List<HunspellDictionary>
       get() = enabledLanguages

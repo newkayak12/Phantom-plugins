@@ -1,10 +1,7 @@
 package com.intellij.grazie.text
 
-import com.intellij.grazie.cloud.GrazieCloudConnector.Companion.seemsCloudConnected
-import com.intellij.grazie.mlec.MlecChecker
 import com.intellij.grazie.spellcheck.SpellingTextChecker
 import com.intellij.grazie.text.TextChecker.ProofreadingContext
-import com.intellij.grazie.utils.getProblemsForText
 import com.intellij.grazie.utils.isSpelling
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.progress.ProgressManager
@@ -66,19 +63,10 @@ internal class TextCheckerManager {
       }
 
       return runBlockingCancellable {
-        val correctTextJob = if (checkers.any { it is SpellingTextChecker || it is MlecChecker }) {
-          async { catching { getProblemsForText(contexts) } }
-        } else {
-          null
-        }
-
         val deferred = checkers.map { checker ->
           when (checker) {
             is SpellingTextChecker -> async(start = CoroutineStart.LAZY) {
-              catching { checker.checkWithProblems(contexts, correctTextJob?.await() ?: emptyMap()) } ?: emptyList()
-            }
-            is MlecChecker -> async(start = CoroutineStart.LAZY) {
-              catching { checker.checkWithProblems(correctTextJob?.await() ?: emptyMap()) } ?: emptyList()
+              catching { checker.checkContexts(contexts) } ?: emptyList()
             }
             is ExternalTextChecker -> async { catching { checker.checkExternally(contexts) } ?: emptyList() }
             else -> async(start = CoroutineStart.LAZY) { catching { checker.check(contexts) } ?: emptyList() }
@@ -111,19 +99,8 @@ internal class TextCheckerManager {
     }
 
     private fun runSpellingChecker(checker: TextChecker, contexts: List<ProofreadingContext>): Collection<TextProblem> {
-      // Spelling text checker optimization
-      // To get rid of expensive cancellable overhead,
-      // in case if cloud checking is disabled
-      return catching {
-        if (seemsCloudConnected()) {
-          runBlockingCancellable {
-            (checker as ExternalTextChecker).checkExternally(contexts)
-          }
-        }
-        else {
-          checker.check(contexts)
-        }
-      } ?: emptyList()
+      // phantom: always the local check, as upstream does when cloud checking is off
+      return catching { checker.check(contexts) } ?: emptyList()
     }
   }
 }

@@ -4,18 +4,9 @@ package com.intellij.grazie.utils
 import ai.grazie.gec.model.problem.ProblemFix
 import ai.grazie.nlp.langs.LanguageISO
 import com.intellij.grazie.GrazieConfig
-import com.intellij.ide.plugins.PluginManagerCore
-import com.intellij.openapi.application.ex.ApplicationInfoEx
-import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.progress.ProcessCanceledException
-import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.progress.runBlockingCancellable
-import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.NlsContexts
 import com.intellij.openapi.util.TextRange
-import com.intellij.openapi.util.ThrowableComputable
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
 import java.util.Enumeration
 
 fun ProblemFix.Part.Change.ijRange(): TextRange = TextRange(range.start, range.endExclusive)
@@ -54,34 +45,3 @@ internal fun getHunspellLanguages(state: GrazieConfig.State): Set<LanguageISO> =
   .mapNotNull { it.language() }
   .mapNotNull { LanguageISO.parse(it) }
   .toSet()
-
-/**
- * Same as [runBlockingModal] but without [ModalTaskOwner].
- */
-internal fun <T> runBlockingModalProcess(
-  project: Project? = null,
-  title: @NlsContexts.DialogTitle String,
-  isCancellable: Boolean = true,
-  block: suspend CoroutineScope.() -> T,
-): T {
-  return ProgressManager.getInstance().runProcessWithProgressSynchronously(
-    ThrowableComputable { runBlockingCancellable(block) },
-    title,
-    isCancellable,
-    project
-  )
-}
-
-// phantom: Phantom IDEA's MarketplaceRequests.jetBrainsServicesEnabled, read here so the plugin also builds against IntelliJ
-// Community, which doesn't have it
-internal val jetBrainsServicesEnabled: Boolean
-  get() = java.lang.Boolean.getBoolean("phantom.jetbrains.services")
-
-val isPromotionAllowed: Boolean
-  get() {
-    // phantom-idea: the promoted Grazie Cloud is off unless -Dphantom.jetbrains.services=true, so don't offer it
-    if (!jetBrainsServicesEnabled) return false
-    if (ApplicationInfoEx.getInstanceEx().isVendorJetBrains) return true
-    val pluginId = PluginId.getId("com.intellij.marketplace")
-    return PluginManagerCore.isLoaded(pluginId)
-  }

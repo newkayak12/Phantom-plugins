@@ -5,7 +5,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.0"
+version = "0.1.1"
 
 // The IntelliJ sources keep Java next to Kotlin
 sourceSets {
@@ -19,55 +19,23 @@ kotlin {
 }
 
 // The third-party libraries IntelliJ's Grazie packs into its own lib folder (the module libraries of intellij.grazie.core
-// and intellij.grazie.markdown, the project libraries ai.grazie.rule.engine, ai.grazie.semantic.engine and
-// io.github.oshai.kotlin.logging.jvm; the gec engine library module comes below),
-// at the versions the fork's .iml / .idea/libraries files pin. Each without its transitive dependencies, as the IntelliJ
-// build takes them: what they need beyond this list (Kotlin, coroutines, serialization, ktor, fastutil, ...) is the
-// platform's. ai.grazie.* comes from JetBrains' public grazie-platform-public repository, LanguageTool from
-// intellij-dependencies (both in settings.gradle.kts).
+// and intellij.grazie.markdown, the project libraries ai.grazie.rule.engine and io.github.oshai.kotlin.logging.jvm; the gec
+// engine library module comes below), at the versions the fork's .iml / .idea/libraries files pin. Each without its
+// transitive dependencies, as the IntelliJ build takes them: what they need beyond this list (Kotlin, coroutines,
+// serialization, ktor, fastutil, ...) is the platform's. ai.grazie.* comes from JetBrains' public grazie-platform-public
+// repository, LanguageTool from intellij-dependencies (both in settings.gradle.kts).
+// Without Grazie Cloud, none of the Grazie API client / cloud model jars IntelliJ ships are packaged (api-gateway-client,
+// client-*, auth-*, model-cloud/llm/nmt/quota/license/..., tasks-*, indexing-*, user-*, utils-jwt/ktor, llm-agg, gec-agg),
+// nor grazie-rules-llm (ai.grazie.semantic.engine: LLM prompt analysis through the API client): nothing that is left
+// references a class in them. The rule engine still needs model-ner and the tree model classes of api-gateway-api (below).
 val grazieLibraries = listOf(
-  // Grazie API / cloud client model (intellij.grazie.core)
-  "ai.grazie.api:api-gateway-client-jvm:0.8.256",
-  "ai.grazie.api:api-gateway-api-jvm:0.8.256",
-  "ai.grazie.auth:gec-agg-model-public-jvm:0.8.256",
-  "ai.grazie.llm:llm-agg-api-model-jvm:0.8.256",
-  "ai.grazie.model:model-feedback-jvm:0.8.256",
-  "ai.grazie.model:model-indexing-jvm:0.8.256",
-  "ai.grazie.model:model-llm-jvm:0.8.256",
-  "ai.grazie.model:model-nlp-jvm:0.8.256",
-  "ai.grazie.model:model-quota-jvm:0.8.256",
-  "ai.grazie.model:model-license-jvm:0.8.256",
-  "ai.grazie.model:model-gateway-jvm:0.8.256",
-  "ai.grazie.auth:auth-model-jvm:0.8.256",
-  "ai.grazie.auth.product:auth-product-model-jvm:0.8.256",
-  "ai.grazie.user.cfg:user-cfg-model-jvm:0.8.256",
-  "ai.grazie.utils:utils-jwt-jvm:0.8.256",
-  "ai.grazie.user.strg:user-strg-model-jvm:0.8.256",
-  "ai.grazie.indexing:indexing-server-api-jvm:0.8.256",
-  "ai.grazie.indexing:indexing-provider-api-jvm:0.8.256",
-  "ai.grazie.client:client-common-jvm:0.8.256",
-  "ai.grazie.model:model-auth-jvm:0.8.256",
-  "ai.grazie.client:client-attribute-jvm:0.8.256",
-  "ai.grazie.model:model-cloud-jvm:0.8.256",
-  "ai.grazie.model:model-nmt-jvm:0.8.256",
-  "ai.grazie.model:model-nlc-jvm:0.8.256",
-  "ai.grazie.model:model-qa-jvm:0.8.256",
-  "ai.grazie.model:model-emb-jvm:0.8.256",
-  "ai.grazie.model:model-task-jvm:0.8.256",
-  "ai.grazie.model:model-jet-jvm:0.8.256",
-  "ai.grazie.tasks.provider.model:tasks-provider-jet-completion-model-jvm:0.8.256",
-  "ai.grazie.tasks.provider:tasks-provider-task-schema:0.8.256",
-  "ai.grazie.tasks.provider.model:tasks-provider-proxy-model-jvm:0.8.256",
-  "ai.grazie.client:client-ktor-jvm:0.8.256",
-  "ai.grazie.utils:utils-ktor-jvm:0.8.256",
-  "ai.grazie.tasks-library:tasks-library-api-jvm:0.8.256",
-  "ai.grazie.tasks-library:tasks-library-model-jvm:0.8.256",
+  // The NER annotation model the rule engine's tree support is written against
   "ai.grazie.model:model-ner-jvm:0.8.256",
+  // ProblemAggregator, which TextProblemAggregator builds on
   "ai.grazie.gec:gec-util:0.9.2",
-  // Rule engine (ai.grazie.rule.engine) and the rules for the LLM-based checks (ai.grazie.semantic.engine)
+  // Rule engine (ai.grazie.rule.engine)
   "ai.grazie:grazie-rule-engine:0.3.261",
   "net.fellbaum:jemoji:1.3.1",
-  "ai.grazie:grazie-rules-llm:0.3.261",
   "io.github.oshai:kotlin-logging-jvm:7.0.3",
   // English Hunspell, part of the gec engine library module, as its own jar: the dictionary version is read from the jar
   // name (HunspellBundleInfoTest), and it has no classes to clash
@@ -129,6 +97,18 @@ val gecEngineLocalJar by tasks.registering(Jar::class) {
   }
 }
 
+// Of api-gateway-api (the Grazie Cloud API surface) only the dependency tree model the rule engine's TreeSupport classes use
+// (ai.grazie.tree.model.SentenceWithTreeDependencies): the rest of it is cloud requests and references the cloud model jars
+// that are not packaged
+val apiGatewayTreeModel by configurations.creating { isTransitive = false }
+val apiGatewayTreeModelJar by tasks.registering(Jar::class) {
+  archiveFileName = "api-gateway-api-jvm-0.8.256-tree-model.jar"
+  destinationDirectory = layout.buildDirectory.dir("apiGatewayTreeModel")
+  from(apiGatewayTreeModel.elements.map { jars -> jars.map { zipTree(it) } }) {
+    include("ai/grazie/tree/model/**")
+  }
+}
+
 // The languages the upstream tests check besides English (intellij.grazie.tests), which a user downloads at runtime
 val testLanguages = listOf(
   "ai.grazie.spell:hunspell-de:0.2.359",
@@ -181,6 +161,8 @@ dependencies {
   gecEngineLocalLibraries.forEach { gecEngineLocal(it) }
   gecEngineLocalOld("ai.grazie.nlp:nlp-common-jvm:0.8.256")
   implementation(files(gecEngineLocalJar))
+  apiGatewayTreeModel("ai.grazie.api:api-gateway-api-jvm:0.8.256")
+  implementation(files(apiGatewayTreeModelJar))
   testLanguages.forEach { testRuntimeOnly(it) { isTransitive = false } }
   // Some tests are JUnit Jupiter; the rest are JUnit 4, run by the vintage engine
   testImplementation(platform("org.junit:junit-bom:6.0.3"))

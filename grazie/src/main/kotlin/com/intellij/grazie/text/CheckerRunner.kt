@@ -9,11 +9,9 @@ import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemDescriptorBase
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.util.InspectionMessage
-import com.intellij.grazie.cloud.GrazieCloudConnector.Companion.seemsCloudConnected
 import com.intellij.grazie.ide.inspection.grammar.GrazieInspection
 import com.intellij.grazie.ide.inspection.grammar.quickfix.GrazieAddExceptionQuickFix
 import com.intellij.grazie.ide.inspection.grammar.quickfix.GrazieCustomFixWrapper
-import com.intellij.grazie.ide.inspection.grammar.quickfix.GrazieEnableCloudAction
 import com.intellij.grazie.ide.inspection.grammar.quickfix.GrazieMassApplyAction
 import com.intellij.grazie.ide.inspection.grammar.quickfix.GrazieReplaceTypoQuickFix
 import com.intellij.grazie.ide.inspection.grammar.quickfix.GrazieRuleSettingsAction
@@ -135,7 +133,6 @@ class CheckerRunner(val text: TextContent) {
       }
       result.add(GrazieMassApplyAction())
       result.add(GrazieYtReportAction(problem))
-      result.add(GrazieEnableCloudAction())
       return result.toTypedArray()
     }
 
@@ -251,6 +248,6 @@ class CheckerRunner(val text: TextContent) {
     }
 
     private fun isLanguageDetectionRequired(checkers: List<TextChecker>): Boolean =
-      checkers.any { it.isGrammar() } || checkers.any { it.isSpelling() } && seemsCloudConnected()
+      checkers.any { it.isGrammar() }
   }
 }
