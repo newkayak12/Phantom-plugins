@@ -54,12 +54,17 @@ class HookInstallService {
   }
 }
 
-/** App start: installs the hooks (skipped in unit-test mode so tests never touch ~/.claude or ~/.codex). */
+/**
+ * App start: installs the hooks (skipped in unit-test mode so tests never touch ~/.claude or ~/.codex) and starts Remote
+ * Control when it is turned on. Off (the default), the server and its Netty classes are not loaded at startup.
+ */
 class HookStartup : AppLifecycleListener {
   override fun appStarted() {
     val app = ApplicationManager.getApplication()
     if (app.isUnitTestMode) return
     app.executeOnPooledThread { HookInstallService.getInstance().installAll() }
-    bestEffort { dev.phantom.ai.remote.RemoteControlServer.getInstance().applySettings() }
+    bestEffort {
+      if (dev.phantom.ai.remote.RemoteControlSettings.getInstance().state.enabled) dev.phantom.ai.remote.RemoteControlServer.getInstance().applySettings()
+    }
   }
 }

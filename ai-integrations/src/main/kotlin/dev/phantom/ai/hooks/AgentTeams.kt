@@ -4,11 +4,12 @@ package dev.phantom.ai.hooks
 import com.google.gson.JsonParser
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.project.Project
-import com.intellij.openapi.startup.ProjectActivity
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.util.concurrency.AppExecutorUtil
 import dev.phantom.ai.accounts.AccountsService
 import dev.phantom.ai.core.AgentKind
+import dev.phantom.ai.core.AgentSession
+import dev.phantom.ai.core.SessionListener
 import dev.phantom.ai.core.SessionStore
 import dev.phantom.ai.core.Subagent
 import dev.phantom.ai.core.SystemDirs
@@ -78,7 +79,9 @@ object AgentTeams {
 @Service(Service.Level.APP)
 class AgentTeamsPoller : Disposable {
   private val scanner = AgentTeams.Scanner()
-  private var future: ScheduledFuture<*>? = null
+  @Volatile private var future: ScheduledFuture<*>? = null
+
+  val isStarted: Boolean get() = future != null
 
   @Synchronized
   fun start() {
@@ -102,11 +105,21 @@ class AgentTeamsPoller : Disposable {
   override fun dispose() {
     future?.cancel(false)
   }
+
+  companion object {
+    /** Only a Claude session with a known session id can lead a team. */
+    fun needed(session: AgentSession?): Boolean = session != null && session.kind == AgentKind.CLAUDE && session.sessionId != null
+  }
 }
 
-/** Starts [AgentTeamsPoller] with the first project. */
-class AgentTeamsStartup : ProjectActivity {
-  override suspend fun execute(project: Project) {
-    com.intellij.openapi.application.ApplicationManager.getApplication().getService(AgentTeamsPoller::class.java).start()
+/**
+ * Starts [AgentTeamsPoller] with the first Claude session that has a session id, not with the IDE: nothing of the agent
+ * teams loads or polls before then. Registered on [SessionStore.TOPIC], so it is created only once a session changes.
+ */
+class AgentTeamsStarter : SessionListener {
+  override fun changed(tabId: String, session: AgentSession?) {
+    if (!AgentTeamsPoller.needed(session)) return
+    val poller = ApplicationManager.getApplication().getService(AgentTeamsPoller::class.java)
+    if (!poller.isStarted) poller.start()
   }
 }

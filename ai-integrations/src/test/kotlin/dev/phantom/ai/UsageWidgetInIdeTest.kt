@@ -56,4 +56,21 @@ class UsageWidgetInIdeTest : BasePlatformTestCase() {
     poller.start() // unit-test mode: no timer, no real dirs
     poller.stop()
   }
+
+  // the widget's poller does not create the hook server: it listens once it has started and the server exists
+  fun testStatusLineListenerOnlyOnceStarted() {
+    val server = dev.phantom.ai.hooks.HookServer.getInstance()
+    val before = server.statuslineListeners.size
+    val poller = UsagePoller(Fake(null, null), { null }, { null }, active = { false })
+    poller.listenTo(server)
+    assertEquals("not started: no listener", before, server.statuslineListeners.size)
+    poller.begin()
+    try {
+      assertEquals(before + 1, server.statuslineListeners.size)
+      poller.listenTo(server)
+      assertEquals("once only", before + 1, server.statuslineListeners.size)
+    } finally {
+      poller.stop()
+    }
+  }
 }

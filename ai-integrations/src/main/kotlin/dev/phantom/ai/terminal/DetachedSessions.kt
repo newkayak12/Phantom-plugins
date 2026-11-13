@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.util.ShutDownTracker
+import dev.phantom.ai.core.AgentSession
 import dev.phantom.ai.core.SessionStore
 import dev.phantom.ai.core.Unloading
 import dev.phantom.ai.core.bestEffort
@@ -111,6 +112,14 @@ object DetachedSessions {
     store.clearSilently()
   }
 
+  /** The sessions of [sessions] that detached from the window of the project at [basePath]. */
+  fun detachedFrom(sessions: Collection<AgentSession>, basePath: String): List<AgentSession> {
+    // no file system lookup while nothing is detached (always so when the IDE starts)
+    if (sessions.none { it.detached }) return emptyList()
+    val base = normalize(basePath)
+    return sessions.filter { s -> s.detached && s.detachedFrom?.let { normalize(it) == base } == true }
+  }
+
   /** [path] comparable to another: its real path when it exists, else normalized. */
   fun normalize(path: String): Path {
     val p = Path.of(path)
@@ -137,10 +146,14 @@ class DetachedSessionsUnload : DynamicPluginListener {
   }
 }
 
-/** A project window opens: the agents that detached from a window of this project come back as tabs, without taking the focus. */
+/**
+ * A project window opens: the agents that detached from a window of this project come back as tabs, without taking the
+ * focus. Only the session store is looked at until there is one: the terminal service and the EDT are left alone at startup.
+ */
 class DetachedSessionsStartup : ProjectActivity {
   override suspend fun execute(project: Project) {
     val base = project.basePath ?: return
+    if (DetachedSessions.detachedFrom(SessionStore.getInstance().all(), base).isEmpty()) return
     withContext(Dispatchers.EDT) {
       if (!project.isDisposed) AgentTerminalService.getInstance(project).reattachDetached(base)
     }

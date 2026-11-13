@@ -1,9 +1,14 @@
 package dev.phantom.ai
 
 import dev.phantom.ai.core.Subagent
+import dev.phantom.ai.core.AgentKind
+import dev.phantom.ai.core.AgentSession
 import dev.phantom.ai.hooks.AgentTeams
+import dev.phantom.ai.hooks.AgentTeamsPoller
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 
@@ -49,5 +54,12 @@ class AgentTeamsTest {
     Files.setLastModifiedTime(team.resolve("config.json"), java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis() + 5000))
     assertEquals(listOf("a", "b"), scanner.scan(listOf(dir))["s1"]!!.map { it.name })
     assertEquals(emptyMap<String, List<Subagent>>(), scanner.scan(listOf(dir.resolve("none"))))
+  }
+
+  @Test fun pollerIsNeededOnlyForAClaudeSessionWithAnId() {
+    assertFalse(AgentTeamsPoller.needed(null))
+    assertFalse(AgentTeamsPoller.needed(AgentSession("t", "/w", AgentKind.CLAUDE)))
+    assertFalse(AgentTeamsPoller.needed(AgentSession("t", "/w", AgentKind.CODEX, sessionId = "s")))
+    assertTrue(AgentTeamsPoller.needed(AgentSession("t", "/w", AgentKind.CLAUDE, sessionId = "s")))
   }
 }

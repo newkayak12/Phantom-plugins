@@ -2,6 +2,7 @@
 package dev.phantom.ai.usage
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.serviceIfCreated
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.util.concurrency.AppExecutorUtil
@@ -58,16 +59,32 @@ class UsagePoller(
   val listeners = CopyOnWriteArrayList<() -> Unit>()
   private var task: ScheduledFuture<*>? = null
   private var registered = false
+  private var started = false
 
   /** Starts the timer and the statusLine listener once; no-op in unit-test mode. */
-  @Synchronized
   fun start() {
-    if (task != null || ApplicationManager.getApplication()?.isUnitTestMode != false) return
-    if (!registered) {
-      registered = true
-      HookServer.getInstance().statuslineListeners.add { _, body -> onStatusLine(body) }
-    }
+    if (ApplicationManager.getApplication()?.isUnitTestMode != false) return
+    begin()
+  }
+
+  /**
+   * [start] without the unit-test guard. The statusLine listener goes on the hook server now when it exists, else when
+   * it starts ([listenTo]): payloads only come once it runs, so the widget does not create the server at startup.
+   */
+  @Synchronized
+  internal fun begin() {
+    if (task != null) return
+    started = true
+    serviceIfCreated<HookServer>()?.let(::listenTo)
     task = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({ if (!Unloading.inProgress) tick() }, 0, periodSeconds, TimeUnit.SECONDS)
+  }
+
+  /** Takes the statusLine payloads of [server] once this poller has started; called by [HookServer.ensureStarted] too. */
+  @Synchronized
+  fun listenTo(server: HookServer) {
+    if (!started || registered) return
+    registered = true
+    server.statuslineListeners.add { _, body -> onStatusLine(body) }
   }
 
   @Synchronized

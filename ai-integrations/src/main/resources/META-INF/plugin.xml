@@ -44,7 +44,6 @@
     <notificationGroup id="Phantom AI Integration" displayType="BALLOON"/>
     <!-- ===== other extensions (append here) ===== -->
     <editorFactoryListener implementation="dev.phantom.ai.memo.MemoEditorFactoryListener"/>
-    <postStartupActivity implementation="dev.phantom.ai.hooks.AgentTeamsStartup"/>
     <postStartupActivity implementation="dev.phantom.ai.terminal.DetachedSessionsStartup"/>
   </extensions>
   <actions>
@@ -70,5 +69,7 @@
     <!-- ===== U2 hooks startup etc. (append here) ===== -->
     <listener class="dev.phantom.ai.hooks.HookStartup" topic="com.intellij.ide.AppLifecycleListener"/>
     <listener class="dev.phantom.ai.terminal.DetachedSessionsUnload" topic="com.intellij.ide.plugins.DynamicPluginListener"/>
+    <!-- the agent teams poller starts with the first Claude session that has a session id, not at startup -->
+    <listener class="dev.phantom.ai.hooks.AgentTeamsStarter" topic="dev.phantom.ai.core.SessionListener"/>
   </applicationListeners>
 </idea-plugin>

@@ -134,10 +134,7 @@ class AgentTerminalService(private val project: Project) {
    */
   @RequiresEdt
   fun reattachDetached(basePath: String) {
-    val base = DetachedSessions.normalize(basePath)
-    SessionStore.getInstance().all()
-      .filter { s -> s.detached && s.detachedFrom?.let { DetachedSessions.normalize(it) == base } == true }
-      .forEach { reattach(it.tabId, activate = false) }
+    DetachedSessions.detachedFrom(SessionStore.getInstance().all(), basePath).forEach { reattach(it.tabId, activate = false) }
   }
 
   /** Resume target of [session]: its hook id, else Claude's earliest-created .jsonl that no other session of the worktree owns. */

@@ -6,6 +6,7 @@ import dev.phantom.ai.core.bestEffort
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.serviceIfCreated
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import dev.phantom.ai.core.AgentKind
@@ -48,6 +49,8 @@ class HookServer : Disposable {
   @Synchronized
   fun ensureStarted() {
     if (server != null) return
+    // the usage widget's poller listens from the moment payloads can come in
+    serviceIfCreated<dev.phantom.ai.usage.UsagePoller>()?.listenTo(this)
     val s = HttpServer.create(InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0)
     s.createContext("/") { handle(it) }
     // an MCP call may wait on the EDT; hooks keep their own threads meanwhile
