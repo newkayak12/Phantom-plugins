@@ -6,6 +6,7 @@ import com.intellij.openapi.components.serviceIfCreated
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 
 /** Keeps every pane's groups in line when tabs open, get selected or get pinned. */
@@ -16,7 +17,7 @@ internal class TabGroupsListener : FileEditorManagerListener {
 
   override fun filePinStateChanged(source: FileEditorManager, file: VirtualFile) {
     ApplicationManager.getApplication().invokeLater({
-      val service = TabGroupsService.getInstance(source.project)
+      val service = source.project.groupsInUse() ?: return@invokeLater
       for (controller in service.allControllers()) {
         if (controller.window.isFileOpen(file) && controller.window.isFilePinned(file)) controller.removeFromGroup(file) else controller.refresh()
       }
@@ -29,10 +30,16 @@ internal class TabGroupsListener : FileEditorManagerListener {
 
   private fun refreshLater(source: FileEditorManager) {
     ApplicationManager.getApplication().invokeLater({
-      TabGroupsService.getInstance(source.project).allControllers().forEach { it.refresh() }
+      source.project.groupsInUse()?.allControllers()?.forEach { it.refresh() }
     }, source.project.disposed)
   }
 }
+
+/**
+ * The project's groups when it has any. Before the service exists (it is made by [TabGroupsStartup] or a tab action) there
+ * are none to show yet; saved ones are brought back by [TabGroupsStartup] once their panes are listed.
+ */
+private fun Project.groupsInUse(): TabGroupsService? = serviceIfCreated<TabGroupsService>()?.takeIf { it.isInUse }
 
 /** Keeps the selection off tabs hidden in collapsed groups when the selected tab closes. */
 internal class TabGroupsCloseListener : FileEditorManagerListener.Before {

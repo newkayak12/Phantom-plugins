@@ -103,6 +103,18 @@ class TabGroupsService(private val project: Project) : PersistentStateComponent<
     files.forEach(manager::updateFilePresentation)
   }
 
+  /**
+   * Whether this project has groups, saved or made since it opened. Until then a pane needs no controller: editor events
+   * leave the panes alone, so a project without groups loads nothing of the tab bar code when it opens.
+   */
+  @get:RequiresEdt
+  val isInUse: Boolean
+    get() = controllers.isNotEmpty() || hasSavedGroups
+
+  /** Whether the project was saved with groups. */
+  val hasSavedGroups: Boolean
+    get() = saved.panes.any { it.groups.isNotEmpty() }
+
   /** Whether [url] is in a group in one pane and not in another it is open in (or shown differently there). */
   fun isPaneSpecific(url: String): Boolean = url in paneSpecific
 

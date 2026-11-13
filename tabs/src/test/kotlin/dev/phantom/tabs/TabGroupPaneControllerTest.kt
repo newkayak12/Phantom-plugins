@@ -26,6 +26,7 @@ import com.intellij.testFramework.replaceService
 import com.intellij.ui.tabs.TabInfo
 import com.intellij.ui.tabs.impl.JBTabsImpl
 import dev.phantom.tabs.core.TabGroup
+import dev.phantom.tabs.core.TabGroupColorProvider
 import dev.phantom.tabs.core.TabGroupTitleProvider
 import dev.phantom.tabs.core.TabGroupPaneController
 import dev.phantom.tabs.core.GroupState
@@ -340,6 +341,26 @@ class TabGroupPaneControllerTest : FileEditorManagerTestCase() {
 
     assertSavedGroupShown()
     assertEquals(1, service.state.panes.single().groups.size)
+  }
+
+  // Startup: a project without groups makes no pane controllers on editor events or tab colors, and its open activity
+  // does nothing; once a group is made, editor events keep every pane's groups as before.
+  fun testNothingIsMadeForPanesUntilAGroupIsMade() {
+    val service = TabGroupsService.getInstance(project)
+    val d = myFixture.addFileToProject("d.txt", "d").virtualFile
+    open(d)
+    open(a)
+    assertNull(TabGroupColorProvider().getEditorTabColor(project, a))
+    runOpenProjectActivities()
+    assertFalse(service.isInUse)
+    assertEquals(0, service.controllerCount)
+
+    val right = split(window)
+    service.controllerFor(right).createGroup(listOf(right.selectedFile!!))
+    assertTrue(service.isInUse)
+    // the next editor event gives the other pane its controller (the event's refresh runs later on the EDT)
+    open(newFile("e.txt"))
+    PlatformTestUtil.waitWithEventsDispatching({ "controllers ${service.controllerCount}" }, { service.controllerCount == 2 }, 10)
   }
 
   // T11: a pane got its controller (through a tab action or an editor event) before the editor manager listed it, so its

@@ -19,6 +19,8 @@ import kotlinx.coroutines.withContext
 internal class TabGroupsStartup : ProjectActivity {
   override suspend fun execute(project: Project) {
     val service = TabGroupsService.getInstance(project)
+    // nothing saved, nothing to bring back: no trip to the EDT
+    if (!service.hasSavedGroups) return
     var waited = 0L
     while (!withContext(Dispatchers.EDT) { service.restorePanes() }) {
       if (waited >= LIMIT_MS) {
