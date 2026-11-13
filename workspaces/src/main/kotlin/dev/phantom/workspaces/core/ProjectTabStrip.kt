@@ -185,9 +185,17 @@ class ProjectTabStrip(val project: Project) : JPanel(null) {
     window = null
   }
 
+  // whether the tab components show [tabs]; they are made only once the strip is shown, so a single project (the strip
+  // hidden) makes no tab components at startup
+  private var built = false
+
   internal fun display(tabs: List<ProjectTab>, visible: Boolean) {
     if (tabs != this.tabs) {
       this.tabs = tabs
+      built = false
+    }
+    if (visible && !built) {
+      built = true
       removeAll()
       for (tab in tabs) add(TabComponent(tab))
       revealCurrent = true

@@ -93,6 +93,23 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
     assertFalse(strip.isVisible)
   }
 
+  // startup with one project: the hidden strip makes no tab components (labels, close buttons, the bundle) on the EDT
+  fun testTabComponentsAreMadeOnlyOnceTheStripShows() {
+    val first = stripOf(project)
+    assertEquals(0, first.componentCount)
+
+    val other = openSecondProject("shown")
+    stripOf(other)
+    settle()
+    assertTrue(first.isVisible)
+    assertEquals(2, first.componentCount)
+
+    PlatformTestUtil.forceCloseProjectWithoutSaving(other)
+    settle()
+    assertFalse(first.isVisible)
+    assertEquals(listOf(project.name), first.tabs.map { it.title })
+  }
+
   fun testEveryFrameListsEveryOpenProjectAndHighlightsItsOwn() {
     val first = stripOf(project)
     val other = openSecondProject("second")
