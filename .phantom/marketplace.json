@@ -371,9 +371,9 @@
     {
       "id": "dev.phantom.ai",
       "name": "Phantom AI Integration",
-      "version": "0.3.23",
+      "version": "0.3.24",
       "source": "ai-integrations",
-      "description": "Claude Code and Codex next to your projects (0.3.16): a tree of the current project's worktrees and agent sessions beside the agent terminals in one tool window, a board editor tab, an agent dashboard, usage in the status bar and opt-in remote control from another device's browser. Select code in the editor and type an AI command to leave an AI memo (kept in memory only, following its code as lines move), then send the checked memos to a session as one prompt, queued while that session is busy. Agents open files at a line in the editor and read what you are looking at through Phantom's own MCP server, with no setup. A small public API, dev.phantom.ai.api, lets other plugins read sessions (with the subagents each started, since 0.3.1, and what each is doing right now, since 0.3.8) and worktrees and focus or start a session. Agents keep running in tmux when their project window closes and reattach when it reopens. Needs Phantom Workspaces. 0.3.22: agents read one declaration (read_symbol), replace one or insert next to it (replace_symbol, insert_code) as undoable IDE edits, and read the end of a Run console filtered by a pattern (get_run_output). 0.3.23: with Phantom Database Console, agents list its data sources, tables and columns and run read-only queries (list_databases, list_tables, describe_table, query_database); passwords stay in Phantom.",
+      "description": "Claude Code and Codex next to your projects (0.3.16): a tree of the current project's worktrees and agent sessions beside the agent terminals in one tool window, a board editor tab, an agent dashboard, usage in the status bar and opt-in remote control from another device's browser. Select code in the editor and type an AI command to leave an AI memo (kept in memory only, following its code as lines move), then send the checked memos to a session as one prompt, queued while that session is busy. Agents open files at a line in the editor and read what you are looking at through Phantom's own MCP server, with no setup. A small public API, dev.phantom.ai.api, lets other plugins read sessions (with the subagents each started, since 0.3.1, and what each is doing right now, since 0.3.8) and worktrees and focus or start a session. Agents keep running in tmux when their project window closes and reattach when it reopens. Needs Phantom Workspaces. 0.3.22: agents read one declaration (read_symbol), replace one or insert next to it (replace_symbol, insert_code) as undoable IDE edits, and read the end of a Run console filtered by a pattern (get_run_output). 0.3.23: with Phantom Database Console, agents list its data sources, tables and columns and run read-only queries (list_databases, list_tables, describe_table, query_database); passwords stay in Phantom. 0.3.24: agent teams, detached-session reattach, the hook server and Remote Control wait until they are needed.",
       "vendor": "Phantom",
       "category": "Tools",
       "since": "262",
@@ -385,7 +385,7 @@
         "Git4Idea",
         "org.jetbrains.plugins.github"
       ],
-      "download": "ai-integrations-0.3.23/ai-integrations-0.3.23.zip",
+      "download": "ai-integrations-0.3.24/ai-integrations-0.3.24.zip",
       "detect": []
     },
     {
@@ -408,9 +408,9 @@
     {
       "id": "dev.phantom.tabs",
       "name": "Phantom Tab Groups",
-      "version": "0.2.7",
+      "version": "0.2.8",
       "source": "tabs",
-      "description": "Editor tab groups, as in a web browser: from a tab's context menu put tabs into a named, colored group, collapse the group to its first tab (showing the group's name and size) and expand it again, rename, recolor, ungroup or close the group; drag tabs in and out. A group reads as one piece: a line in the group's color runs under all its tabs, they get a faint background in that color, and the group's name is a chip in that color on its first tab; a click on the chip collapses or opens the group and dragging it moves the whole group, as in Chrome. Groups belong to each editor split and are kept with the project; collapsing only hides tabs, files stay open and are never closed by the tab limit. Moved out of the Phantom bundle; uses only the public platform API.",
+      "description": "Editor tab groups, as in a web browser: from a tab's context menu put tabs into a named, colored group, collapse the group to its first tab (showing the group's name and size) and expand it again, rename, recolor, ungroup or close the group; drag tabs in and out. A group reads as one piece: a line in the group's color runs under all its tabs, they get a faint background in that color, and the group's name is a chip in that color on its first tab; a click on the chip collapses or opens the group and dragging it moves the whole group, as in Chrome. Groups belong to each editor split and are kept with the project; collapsing only hides tabs, files stay open and are never closed by the tab limit. Moved out of the Phantom bundle; uses only the public platform API. 0.2.8: the tab group code loads only once a project has tab groups.",
       "vendor": "Phantom",
       "category": "User Interface",
       "since": "262",
@@ -418,15 +418,15 @@
       "depends": [
         "com.intellij.modules.platform"
       ],
-      "download": "tabs-0.2.7/tabs-0.2.7.zip",
+      "download": "tabs-0.2.8/tabs-0.2.8.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.workspaces",
       "name": "Phantom Workspaces",
-      "version": "0.6.1",
+      "version": "0.6.2",
       "source": "workspaces",
-      "description": "All open projects as tabs of one window (0.6.1): a tab strip above the editor lists every open project (click to switch, middle-click or the close button to close, drag to reorder), and only the project in front has a window on screen, the others hidden behind it, so there is one window and a project you open comes in as a new tab. Project windows share one size, position and maximized state; a project switched to also takes full screen. Every project tab takes the tool window layout of the one in front (stripe sides and order, open tool windows, sizes). A tab can be detached into a window of its own (context menu or drag it out of the strip) and attached back from the Window menu, and two can be shown side by side (Open Side by Side), resizing together. Next/previous project: Window | Next Project Window. Works on every OS, no native window tabs; off in Settings | Advanced Settings | Phantom Workspaces. Moved out of the Phantom bundle so it updates like any other plugin.",
+      "description": "All open projects as tabs of one window (0.6.1): a tab strip above the editor lists every open project (click to switch, middle-click or the close button to close, drag to reorder), and only the project in front has a window on screen, the others hidden behind it, so there is one window and a project you open comes in as a new tab. Project windows share one size, position and maximized state; a project switched to also takes full screen. Every project tab takes the tool window layout of the one in front (stripe sides and order, open tool windows, sizes). A tab can be detached into a window of its own (context menu or drag it out of the strip) and attached back from the Window menu, and two can be shown side by side (Open Side by Side), resizing together. Next/previous project: Window | Next Project Window. Works on every OS, no native window tabs; off in Settings | Advanced Settings | Phantom Workspaces. Moved out of the Phantom bundle so it updates like any other plugin. 0.6.2: with one project open, the hidden tab strip builds nothing at startup.",
       "vendor": "Phantom",
       "category": "User Interface",
       "since": "262",
@@ -434,7 +434,7 @@
       "depends": [
         "com.intellij.modules.platform"
       ],
-      "download": "workspaces-0.6.1/workspaces-0.6.1.zip",
+      "download": "workspaces-0.6.2/workspaces-0.6.2.zip",
       "detect": []
     },
     {
@@ -505,9 +505,9 @@
     {
       "id": "dev.phantom.webp",
       "name": "Phantom WebP",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "webp",
-      "description": "WebP images (lossy, lossless, alpha) open in the image editor and as thumbnails, decoded in Java by the TwelveMonkeys ImageIO reader (BSD) with no native library. Reading only. Replaces the bundled WebP plugin; turn that one off if your Phantom still bundles it.",
+      "description": "WebP images (lossy, lossless, alpha) open in the image editor and as thumbnails, decoded in Java by the TwelveMonkeys ImageIO reader (BSD) with no native library. Reading only. Replaces the bundled WebP plugin; turn that one off if your Phantom still bundles it. 0.1.1: the WebP decoder loads when a WebP image is first opened, not at startup.",
       "vendor": "Phantom",
       "category": "Images",
       "since": "262",
@@ -515,7 +515,7 @@
       "depends": [
         "com.intellij.platform.images"
       ],
-      "download": "webp-0.1.0/webp-0.1.0.zip",
+      "download": "webp-0.1.1/webp-0.1.1.zip",
       "detect": []
     },
     {
