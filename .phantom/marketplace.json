@@ -866,6 +866,22 @@
       ],
       "download": "terminal-0.1.0/terminal-0.1.0.zip",
       "detect": []
+    },
+    {
+      "id": "dev.phantom.grazie",
+      "name": "Phantom Natural Languages",
+      "version": "0.1.0",
+      "source": "grazie",
+      "description": "Spelling, grammar and style checks for any text in the IDE: comments, string literals, documentation, commit messages, Markdown, XML, JSON, YAML, properties and plain text, with LanguageTool and Hunspell running locally; English is built in, other languages download when enabled; TOML, YAML, Markdown, Kotlin and others build on it. Based on the IntelliJ Community Natural Languages plugin (Apache 2.0); tanvd.grazi stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Editor",
+      "since": "262.261113",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "grazie-0.1.0/grazie-0.1.0.zip",
+      "detect": []
     }
   ]
 }

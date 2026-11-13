@@ -63,6 +63,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom TestNG | [testng](./testng/KOR.md) · [English](./testng/README.md) | TestNG 실행 구성, 테스트 생성, 참조, 검사 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Java Internationalization | [java-i18n](./java-i18n/KOR.md) · [English](./java-i18n/README.md) | Java 하드코딩 문자열 검사, I18nize, properties 키 참조 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Terminal | [terminal](./terminal/KOR.md) · [English](./terminal/README.md) | 셸 통합과 명령 자동 완성을 갖춘 Terminal 도구 창 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Phantom Natural Languages | [grazie](./grazie/KOR.md) · [English](./grazie/README.md) | 교정: 텍스트·주석·문자열의 문법, 맞춤법, 문체 검사 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom CPU Indicator | [cpu](./cpu/KOR.md) · [English](./cpu/README.md) | 상태바에 IDE·시스템 CPU, 호버하면 IDE가 CPU를 어디에 썼는지(인덱싱, 분석, GC, JIT) |
 | Phantom Log Console | [logs](./logs/KOR.md) · [English](./logs/README.md) | JSON 로그를 읽기 쉬운 줄과 스택트레이스로, 레벨 색, traceId를 누르면 그 요청의 줄 목록 |
 | Phantom QueryDSL | [querydsl](./querydsl/KOR.md) · [English](./querydsl/README.md) | Q클래스 경로에서 엔티티로 이동, 엔티티 필드 Find Usages에 QueryDSL 경로 포함, 오래된 Q클래스 경고 |
