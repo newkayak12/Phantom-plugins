@@ -1,0 +1,80 @@
+<idea-plugin allow-bundled-update="true">
+  <!-- Phantom's own id; com.intellij.copyright stays as an alias, so plugins depending on the IntelliJ id resolve to this one.
+       The content module name stays the IntelliJ one, as bundled modules depend on it by name. The bundled IntelliJ
+       Copyright plugin has to be gone, or both claim the same id and modules. -->
+  <id>dev.phantom.copyright</id>
+  <name>Phantom Copyright</name>
+  <module value="com.intellij.copyright"/>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>IDE Settings</category>
+  <description><![CDATA[
+    Ensures that files in a project or module have a consistent copyright notice.
+    It does not guarantee copyright compliance nor does it constitute legal advice.
+    <ul><li>Create multiple copyright profiles to use in different scopes</li>
+    <li>Import existing profiles</li></ul>
+
+    To configure, open the <b>Settings / Preferences</b> dialog and select <b>Editor | Copyright</b>.
+    <br/>
+    Based on the IntelliJ Community Copyright plugin (Apache 2.0).
+    ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+    <plugin id="com.intellij.modules.xml"/>
+  </dependencies>
+  <!-- One jar: the VCS commit hook (package com.maddyhome.idea.copyright.vcs) keeps its own class loader, as in IntelliJ -->
+  <content>
+    <module name="intellij.copyright.vcs"/>
+  </content>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <projectConfigurable groupId="editor" groupWeight="110" dynamic="true"
+                         bundle="messages.CopyrightBundle"
+                         key="configurable.CopyrightProjectConfigurable.display.name"
+                         id="copyright"
+                         instance="com.maddyhome.idea.copyright.ui.CopyrightProjectConfigurable"/>
+    <applicationService serviceImplementation="com.maddyhome.idea.copyright.util.FileTypeUtil"/>
+    <projectService serviceImplementation="com.maddyhome.idea.copyright.actions.UpdateCopyrightCheckinHandlerState"/>
+
+    <projectService serviceImplementation="com.intellij.copyright.CopyrightManager"/>
+    <externalSystemConfigurationHandler implementation="com.maddyhome.idea.copyright.import.CopyrightConfigurationHandler"/>
+    <actionOnSaveInfoProvider id="copyrightInfoProvider"
+                              implementation="com.maddyhome.idea.copyright.actions.CopyrightOnSaveInfoProvider"/>
+    <actionOnSave id="copyrightOnSaveAction" implementation="com.maddyhome.idea.copyright.actions.CopyrightOnSaveAction"/>
+    <projectSettings service="com.maddyhome.idea.copyright.actions.UpdateCopyrightCheckinHandlerState"/>
+    <projectSettings service="com.intellij.copyright.CopyrightManager"/>
+  </extensions>
+
+  <extensions defaultExtensionNs="com.intellij.copyright">
+    <updater filetype="XML" implementationClass="com.maddyhome.idea.copyright.psi.UpdateXmlCopyrightsProvider"/>
+    <updater filetype="DTD" implementationClass="com.maddyhome.idea.copyright.psi.UpdateXmlCopyrightsProvider"/>
+    <updater filetype="HTML" implementationClass="com.maddyhome.idea.copyright.psi.UpdateXmlCopyrightsProvider"/>
+    <updater filetype="XHTML" implementationClass="com.maddyhome.idea.copyright.psi.UpdateXmlCopyrightsProvider"/>
+  </extensions>
+  <!-- Qualified names: a plain name would be prefixed with this plugin's id (dev.phantom.copyright), while the code and
+       the plugins that register updaters and variable providers use com.intellij.copyright.* -->
+  <extensionPoints>
+    <extensionPoint qualifiedName="com.intellij.copyright.updater" beanClass="com.intellij.openapi.fileTypes.FileTypeExtensionPoint" dynamic="true">
+      <with attribute="implementationClass" implements="com.maddyhome.idea.copyright.psi.UpdateCopyrightsProvider"/>
+    </extensionPoint>
+    <extensionPoint qualifiedName="com.intellij.copyright.variablesProvider" beanClass="com.intellij.openapi.fileTypes.FileTypeExtensionPoint" dynamic="true">
+      <with attribute="implementationClass" implements="com.maddyhome.idea.copyright.pattern.CopyrightVariablesProvider"/>
+    </extensionPoint>
+  </extensionPoints>
+  <applicationListeners>
+    <listener class="com.intellij.copyright.CopyrightManagerDocumentListener"
+              topic="com.intellij.openapi.vfs.newvfs.BulkFileListenerBackgroundable"/>
+  </applicationListeners>
+
+  <actions>
+    <action id="UpdateCopyright" class="com.maddyhome.idea.copyright.actions.UpdateCopyrightAction">
+      <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+      <add-to-group group-id="CodeMenu" anchor="last"/>
+      <add-to-group group-id="NavbarPopupMenu" anchor="last"/>
+    </action>
+    <action id="GenerateCopyright" class="com.maddyhome.idea.copyright.actions.GenerateCopyrightAction">
+      <add-to-group group-id="GenerateGroup" anchor="last"/>
+    </action>
+  </actions>
+  <resource-bundle>messages.CopyrightBundle</resource-bundle>
+</idea-plugin>
