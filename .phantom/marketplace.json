@@ -967,6 +967,23 @@
       ],
       "download": "json-0.1.0/json-0.1.0.zip",
       "detect": []
+    },
+    {
+      "id": "dev.phantom.gradle-dsl",
+      "name": "Phantom Gradle DSL",
+      "version": "0.1.0",
+      "source": "gradle-dsl",
+      "description": "A technical plugin with no UI of its own: an API that reads Gradle build files (Groovy, Kotlin script, version catalog TOML) as a model and edits them in place — dependencies, plugins, repositories, ext properties, Android blocks; Gradle-Java's dependency updater and build analysis use it. The Kotlin script parser switches on only with the Kotlin plugin installed. Based on the IntelliJ Community Gradle DSL API plugin (Apache 2.0); org.jetbrains.idea.gradle.dsl stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Build Tools",
+      "since": "262.261116",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.java",
+        "com.intellij.gradle"
+      ],
+      "download": "gradle-dsl-0.1.0/gradle-dsl-0.1.0.zip",
+      "detect": []
     }
   ]
 }
