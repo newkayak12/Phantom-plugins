@@ -920,6 +920,22 @@
       ],
       "download": "properties-0.1.0/properties-0.1.0.zip",
       "detect": []
+    },
+    {
+      "id": "dev.phantom.junit",
+      "name": "Phantom JUnit",
+      "version": "0.1.0",
+      "source": "junit",
+      "description": "JUnit 3, 4, 5 and 6 for Java: run configurations for a class, method, package, directory, pattern, tags or unique id, run from the gutter with the test tree, rerun of failed tests, forked runs and debugging; test generation and navigation between a test and its subject; references from @MethodSource, @FieldSource and @EnumSource to their targets; and inspections and quick fixes such as malformed test declarations and JUnit 4 to 5 migration. Based on the IntelliJ Community JUnit plugin (Apache 2.0); JUnit stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "JVM Tools",
+      "since": "262.261116",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.java"
+      ],
+      "download": "junit-0.1.0/junit-0.1.0.zip",
+      "detect": []
     }
   ]
 }
