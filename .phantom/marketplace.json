@@ -20,7 +20,7 @@
         "com.intellij.modules.lang",
         "intellij.grid.core.plugin"
       ],
-      "download": "db-0.25.7/db-0.25.7.zip",
+      "download": "db-0.25.8/db-0.25.8.zip",
       "detect": [
         "com.mysql:mysql-connector-j",
         "mysql:mysql-connector-java",
@@ -385,7 +385,7 @@
         "Git4Idea",
         "org.jetbrains.plugins.github"
       ],
-      "download": "ai-integrations-0.3.24/ai-integrations-0.3.24.zip",
+      "download": "ai-integrations-0.3.25/ai-integrations-0.3.25.zip",
       "detect": []
     },
     {
