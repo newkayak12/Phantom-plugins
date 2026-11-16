@@ -8,9 +8,11 @@ import dev.phantom.db.core.PhantomDbBundle
  * The statements that turn a table's columns and indexes from one definition into another, as edited in Modify Table.
  * A column or index keeps the name it had when loaded in [ColumnDef.original] / [IndexDef.original], so a changed name
  * is a rename and not a drop and an add. Defaults are SQL expressions as typed (`0`, `'new'`, `CURRENT_TIMESTAMP`).
+ * MySQL restates a changed column whole, so its comment and AUTO_INCREMENT go into that statement or they are lost.
  */
 object DbAlter {
-  data class ColumnDef(val original: String?, val name: String, val type: String, val nullable: Boolean, val default: String?)
+  data class ColumnDef(val original: String?, val name: String, val type: String, val nullable: Boolean, val default: String?,
+                       val comment: String? = null, val autoIncrement: Boolean = false)
 
   data class IndexDef(val original: String?, val name: String, val columns: List<String>, val unique: Boolean)
 
@@ -35,6 +37,7 @@ object DbAlter {
       val old = before.firstOrNull { it.original != null && it.original == column.original }
       if (old == null) {
         result += "ALTER TABLE $t ADD COLUMN ${definition(dbms, column)}"
+        if (!dbms.usesCatalogs && !column.comment.isNullOrBlank()) result += commentOn(dbms, t, column)
         continue
       }
       if (old.name != column.name) {
@@ -44,7 +47,8 @@ object DbAlter {
       val typeChanged = !old.type.equals(column.type, ignoreCase = true)
       val nullChanged = old.nullable != column.nullable
       val defaultChanged = old.default.orEmpty().trim() != column.default.orEmpty().trim()
-      if (!typeChanged && !nullChanged && !defaultChanged) continue
+      val commentChanged = old.comment.orEmpty() != column.comment.orEmpty()
+      if (!typeChanged && !nullChanged && !defaultChanged && !commentChanged) continue
       val c = q(column.name)
       when (dbms) {
         // MySQL restates the whole column; anything left out (default, NOT NULL) would be lost
@@ -58,6 +62,7 @@ object DbAlter {
           if (defaultChanged) {
             result += "ALTER TABLE $t ALTER COLUMN $c " + (column.default?.takeIf { it.isNotBlank() }?.let { "SET DEFAULT $it" } ?: "DROP DEFAULT")
           }
+          if (commentChanged) result += commentOn(dbms, t, column)
         }
       }
     }
@@ -74,7 +79,17 @@ object DbAlter {
     append(DbNames.quote(dbms, column.name)).append(' ').append(column.type.trim())
     column.default?.takeIf { it.isNotBlank() }?.let { append(" DEFAULT ").append(it.trim()) }
     append(if (column.nullable) (if (dbms.usesCatalogs) " NULL" else "") else " NOT NULL")
+    if (dbms.usesCatalogs) {
+      if (column.autoIncrement) append(" AUTO_INCREMENT")
+      column.comment?.takeIf { it.isNotBlank() }?.let { append(" COMMENT ").append(literal(dbms, it)) }
+    }
   }
+
+  private fun commentOn(dbms: Dbms, t: String, column: ColumnDef): String =
+    "COMMENT ON COLUMN $t.${DbNames.quote(dbms, column.name)} IS " + (column.comment?.takeIf { it.isNotBlank() }?.let { literal(dbms, it) } ?: "NULL")
+
+  private fun literal(dbms: Dbms, text: String): String =
+    "'" + (if (dbms.usesCatalogs) text.replace("\\", "\\\\") else text).replace("'", "''") + "'"
 
   private fun dropIndex(dbms: Dbms, table: DbTableRef, name: String): String = when (dbms) {
     Dbms.MYSQL, Dbms.MARIADB -> "DROP INDEX ${DbNames.quote(dbms, name)} ON ${DbNames.table(dbms, table)}"

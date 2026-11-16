@@ -25,7 +25,7 @@ import javax.swing.JComponent
 import javax.swing.JPanel
 
 /**
- * Modify Table: the table's columns (name, type, nullable, default) and indexes, edited in place, with the ALTER
+ * Modify Table: the table's columns (name, type, nullable, default, comment) and indexes, edited in place, with the ALTER
  * statements that make the change shown underneath as they are typed. OK runs them on the console connection.
  */
 class DbModifyTableDialog(
@@ -35,7 +35,8 @@ class DbModifyTableDialog(
   private val columnsBefore: List<DbAlter.ColumnDef>,
   private val indexesBefore: List<DbAlter.IndexDef>,
 ) : DialogWrapper(project) {
-  private class ColumnRow(val original: String?, var name: String, var type: String, var nullable: Boolean, var default: String)
+  private class ColumnRow(val original: String?, var name: String, var type: String, var nullable: Boolean, var default: String,
+                          var comment: String, val autoIncrement: Boolean)
   private class IndexRow(val original: String?, var name: String, var columns: String, var unique: Boolean)
 
   private val columns = ListTableModel<ColumnRow>(
@@ -48,7 +49,8 @@ class DbModifyTableDialog(
       override fun setValue(item: ColumnRow, value: Boolean?) { item.nullable = value == true; changed() }
     },
     text("db.modify.column.default", { it.default }) { r, v -> r.default = v },
-  ).apply { items = columnsBefore.map { ColumnRow(it.original, it.name, it.type, it.nullable, it.default.orEmpty()) } }
+    text("db.modify.column.comment", { it.comment }) { r, v -> r.comment = v },
+  ).apply { items = columnsBefore.map { ColumnRow(it.original, it.name, it.type, it.nullable, it.default.orEmpty(), it.comment.orEmpty(), it.autoIncrement) } }
 
   private val indexes = ListTableModel<IndexRow>(
     textIndex("db.modify.index.name", { it.name }) { r, v -> r.name = v },
@@ -77,7 +79,8 @@ class DbModifyTableDialog(
 
   fun statements(): List<String> = DbAlter.statements(
     dataSource.dialect(), table, columnsBefore,
-    columns.items.filter { it.name.isNotBlank() && it.type.isNotBlank() }.map { DbAlter.ColumnDef(it.original, it.name.trim(), it.type.trim(), it.nullable, it.default.trim().ifEmpty { null }) },
+    columns.items.filter { it.name.isNotBlank() && it.type.isNotBlank() }.map { DbAlter.ColumnDef(it.original, it.name.trim(), it.type.trim(), it.nullable, it.default.trim().ifEmpty { null },
+                                                                                                     it.comment.trim().ifEmpty { null }, it.autoIncrement) },
     indexesBefore,
     indexes.items.filter { it.name.isNotBlank() && it.columns.isNotBlank() }
       .map { DbAlter.IndexDef(it.original, it.name.trim(), it.columns.split(',').map(String::trim).filter(String::isNotEmpty), it.unique) },
@@ -90,16 +93,16 @@ class DbModifyTableDialog(
   }
 
   override fun createCenterPanel(): JComponent {
-    val columnTable = TableView(columns).apply { setShowGrid(false) }
+    val columnTable = TableView(columns).apply { setShowGrid(false); widths(this, 240, 130, 70, 130, 260) }
     val columnPanel = ToolbarDecorator.createDecorator(columnTable)
       .setAddAction {
-        columns.addRow(ColumnRow(null, "new_column", "VARCHAR(255)", true, ""))
+        columns.addRow(ColumnRow(null, "new_column", "VARCHAR(255)", true, "", "", false))
         columnTable.editCellAt(columns.rowCount - 1, 0)
       }
       .setRemoveAction { columnTable.selectedRows.sortedDescending().forEach { columns.removeRow(it) } }
       .disableUpDownActions()
       .createPanel()
-    val indexTable = TableView(indexes).apply { setShowGrid(false) }
+    val indexTable = TableView(indexes).apply { setShowGrid(false); widths(this, 340, 420, 70) }
     val indexPanel = ToolbarDecorator.createDecorator(indexTable)
       .setAddAction { indexes.addRow(IndexRow(null, "idx_${table.name.lowercase()}_${indexes.rowCount + 1}", "", false)) }
       .setRemoveAction { indexTable.selectedRows.sortedDescending().forEach { indexes.removeRow(it) } }
@@ -112,8 +115,13 @@ class DbModifyTableDialog(
     return JPanel(BorderLayout(0, JBUI.scale(6))).apply {
       add(top, BorderLayout.CENTER)
       add(labeled("db.modify.preview", JBScrollPane(preview)), BorderLayout.SOUTH)
-      preferredSize = JBUI.size(760, 560)
+      preferredSize = JBUI.size(1000, 600)
     }
+  }
+
+  /** Long names (overseas_shipment_oms_info_id) need the room; the checkbox columns don't */
+  private fun widths(table: TableView<*>, vararg px: Int) {
+    for ((i, w) in px.withIndex()) table.columnModel.getColumn(i).preferredWidth = JBUI.scale(w)
   }
 
   private fun labeled(key: String, component: JComponent) = JPanel(BorderLayout()).apply {
@@ -147,7 +155,7 @@ class DbModifyTableDialog(
             return@withContext
           }
           val dialog = DbModifyTableDialog(project, dataSource, table,
-                                           details.map { DbAlter.ColumnDef(it.name, it.name, it.typeName, it.nullable, it.default) },
+                                           details.map { DbAlter.ColumnDef(it.name, it.name, it.typeName, it.nullable, it.default, it.comment, it.autoIncrement) },
                                            idx.map { DbAlter.IndexDef(it.name, it.name, it.columns, it.unique) })
           if (!dialog.showAndGet()) return@withContext
           run(project, dataSource, dialog.statements(), afterRun)

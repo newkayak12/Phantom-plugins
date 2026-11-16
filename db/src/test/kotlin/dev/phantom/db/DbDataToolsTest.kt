@@ -136,6 +136,25 @@ class DbDataToolsTest : BasePlatformTestCase() {
     assertEquals("NEW", DbObjectCache.defaultExpression(Dbms.POSTGRESQL, "NEW"))
   }
 
+  fun testModifyTableKeepsCommentsAndAutoIncrement() {
+    val t = DbTableRef("x", "shop", null, "orders", "TABLE")
+    val pg = DbTableRef("x", null, "public", "orders", "TABLE")
+    val id = DbAlter.ColumnDef("id", "id", "BIGINT", false, null, "주문 번호", autoIncrement = true)
+    val memo = DbAlter.ColumnDef("memo", "memo", "VARCHAR(20)", true, null, "it's \\ memo")
+    // MySQL restates the column: a type change keeps its comment and AUTO_INCREMENT
+    assertEquals(listOf("ALTER TABLE shop.orders MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT COMMENT '주문 번호'"),
+                 DbAlter.statements(Dbms.MYSQL, t, listOf(id), listOf(id.copy(type = "INT"))))
+    assertEquals(listOf("ALTER TABLE shop.orders MODIFY COLUMN memo VARCHAR(20) NULL COMMENT 'it''s \\\\ memo'"),
+                 DbAlter.statements(Dbms.MYSQL, t, listOf(memo.copy(comment = null)), listOf(memo)))
+    assertEquals(listOf("COMMENT ON COLUMN public.orders.memo IS 'it''s \\ memo'"),
+                 DbAlter.statements(Dbms.POSTGRESQL, pg, listOf(memo.copy(comment = null)), listOf(memo)))
+    assertEquals(listOf("COMMENT ON COLUMN public.orders.memo IS NULL"),
+                 DbAlter.statements(Dbms.POSTGRESQL, pg, listOf(memo), listOf(memo.copy(comment = ""))))
+    assertEquals(listOf("ALTER TABLE public.orders ADD COLUMN note TEXT", "COMMENT ON COLUMN public.orders.note IS '비고'"),
+                 DbAlter.statements(Dbms.POSTGRESQL, pg, emptyList(), listOf(DbAlter.ColumnDef(null, "note", "TEXT", true, null, "비고"))))
+    assertEmpty(DbAlter.statements(Dbms.MYSQL, t, listOf(id, memo), listOf(id, memo)))
+  }
+
   fun testParametersSkipStringsCommentsAndUserVariables() {
     val sql = "SELECT * FROM \${tbl} WHERE a = :id AND b = ? AND c = '?' AND d = ':no' -- :x ?\n AND e = @v AND f::text = ? /* :y */ AND g = :id"
     assertEquals(listOf("tbl", "id", "?1", "?2", "id"), DbParameters.find(sql).map { it.name })

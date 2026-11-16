@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap
 /** A column with what DDL needs beyond [DbColumnInfo]: the default expression and whether the database fills it. */
 /** [generated]: a computed column (`GENERATED ALWAYS AS (…)`), which takes no value of its own. */
 data class DbColumnDetail(val name: String, val typeName: String, val nullable: Boolean, val default: String?, val autoIncrement: Boolean,
-                          val generated: Boolean = false)
+                          val generated: Boolean = false, val comment: String? = null)
 
 /** The primary key: its constraint name (may be null) and columns in key order. */
 data class DbPrimaryKey(val name: String?, val columns: List<String>)
@@ -60,7 +60,8 @@ class DbObjectCache(private val project: Project) {
         else DbColumnDetail(it.getString("COLUMN_NAME"), typeText(it), it.getInt("NULLABLE") != DatabaseMetaData.columnNoNulls,
                             it.getString("COLUMN_DEF")?.takeIf { d -> d.isNotBlank() }?.let { d -> defaultExpression(dataSource.dialect(), d) },
                             runCatching { it.getString("IS_AUTOINCREMENT") == "YES" }.getOrDefault(false),
-                            runCatching { it.getString("IS_GENERATEDCOLUMN") == "YES" }.getOrDefault(false))
+                            runCatching { it.getString("IS_GENERATEDCOLUMN") == "YES" }.getOrDefault(false),
+                            runCatching { it.getString("REMARKS") }.getOrNull()?.takeIf { r -> r.isNotBlank() })
       }
     }
   }.also { details[table] = it }
