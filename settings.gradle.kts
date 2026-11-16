@@ -87,6 +87,7 @@ include("properties")
 include("junit")
 include("repository-search")
 include("json")
+include("gradle-dsl")
 
 // Real-IDE probe (see realide-probe/): only with -PrealIde, never part of CI or the marketplace
 if (providers.gradleProperty("realIde").isPresent) {

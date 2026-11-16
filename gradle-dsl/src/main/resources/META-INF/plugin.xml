@@ -1,0 +1,47 @@
+<!-- Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license. -->
+<idea-plugin package="com.android.tools.idea.gradle.dsl"
+             implementation-detail="true"
+             xmlns:xi="http://www.w3.org/2001/XInclude">
+  <!-- Phantom's own id; org.jetbrains.idea.gradle.dsl stays as an alias, so plugins depending on the IntelliJ id resolve to
+       this one (Gradle-Java's intellij.gradle.analysis and intellij.gradle.dependencyUpdater modules, Gradle's declarative
+       sync). The content module names stay the IntelliJ ones: intellij.gradle.dependencyUpdater depends on
+       intellij.android.gradle.dsl.android by name. The bundled IntelliJ Gradle DSL API plugin has to be gone, or both
+       claim the same id and modules. -->
+  <id>dev.phantom.gradle-dsl</id>
+  <name>Phantom Gradle DSL</name>
+  <module value="org.jetbrains.idea.gradle.dsl"/>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <description>
+    <![CDATA[
+    Technical plugin: an API that reads and edits Gradle build files (Groovy, Kotlin script and version catalog TOML)
+    as a model, for plugins that change dependencies, plugins and repositories in build scripts.
+    Based on the IntelliJ Community Gradle DSL API plugin (Apache 2.0).
+    ]]>
+  </description>
+
+  <xi:include href="/META-INF/gradle-dsl.xml" xpointer="xpointer(/idea-plugin/*)"/>
+
+  <dependencies>
+    <module name="intellij.java.backend"/>
+    <module name="intellij.gradle"/>
+    <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
+    <module name="intellij.java.frontback.psi"/>
+    <module name="intellij.java.psi"/>
+    <module name="intellij.java.syntax"/>
+    <!-- endregion -->
+  </dependencies>
+
+  <!-- One jar. flags loads embedded: the main module itself reads DeclarativeStudioSupport from it. The parsers for
+       Groovy, Kotlin script and TOML and the Android block models keep their own class loader on a package of their own,
+       as in IntelliJ, so each switches off with what it depends on (the Kotlin one without the Kotlin plugin, which
+       Phantom no longer bundles). No intellij.android.gradle.dsl.declarative: it needs Android Studio's Declarative
+       Gradle plugin (com.android.tools.gradle.dcl), which neither IntelliJ Community nor Phantom has, so it never
+       loaded, and its sources build on intellij.android.gradle.declarative.lang, which the platform doesn't ship. -->
+  <content namespace="jetbrains">
+    <module name="intellij.android.gradle.dsl.flags" loading="embedded"/>
+    <module name="intellij.android.gradle.dsl.groovy"/>
+    <module name="intellij.android.gradle.dsl.kotlin"/>
+    <module name="intellij.android.gradle.dsl.toml"/>
+    <module name="intellij.android.gradle.dsl.android"/>
+  </content>
+</idea-plugin>

@@ -1,0 +1,4 @@
+dependencies {
+  compile(project(mapOf("path" to ":androidlib1", "configuration" to "flavor1Release")))
+  compile(project(":other"))
+}
