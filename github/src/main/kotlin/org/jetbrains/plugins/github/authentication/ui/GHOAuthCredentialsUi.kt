@@ -53,17 +53,17 @@ internal class GHOAuthCredentialsUi(
   }
 
   private suspend fun acquireToken(server: GithubServerPath): String {
-    status.text = "Looking for a GitHub CLI login…"
+    status.text = message("phantom.login.status.looking.for.cli")
     GHDeviceFlow.ghCliToken(server)?.let {
-      status.text = "Using the GitHub CLI (gh) login…"
+      status.text = message("phantom.login.status.using.cli")
       return it
     }
     val clientId = GHDeviceFlow.clientId
-                   ?: throw GithubAuthenticationException("Browser login is not set up in this build. Log in with a token, or run `gh auth login` first.")
+                   ?: throw GithubAuthenticationException(message("phantom.login.browser.not.set.up"))
     val deviceCode = GHDeviceFlow.requestCode(server, clientId)
     code.text = deviceCode.userCode
     CopyPasteManager.getInstance().setContents(StringSelection(deviceCode.userCode))
-    status.text = "<html>Enter this code at ${deviceCode.verificationUri} (copied to the clipboard).<br>Waiting for approval…</html>"
+    status.text = message("phantom.login.status.enter.code", deviceCode.verificationUri)
     BrowserUtil.browse(deviceCode.verificationUri)
     return GHDeviceFlow.awaitToken(server, clientId, deviceCode)
   }
