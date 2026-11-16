@@ -1,0 +1,29 @@
+<idea-plugin>
+  <!-- Phantom's own id; com.intellij.groovy.scripting stays as an alias, so plugins depending on the IntelliJ id (Groovy,
+       Groovy Live Templates) resolve to this one. The content module names stay the IntelliJ ones, as Groovy, Groovy Live
+       Templates and other plugins depend on intellij.libraries.groovy by name. The bundled IntelliJ Groovy Scripting plugin
+       has to be gone, or both claim the same id and modules. -->
+  <id>dev.phantom.groovy-scripting</id>
+  <name>Phantom Groovy Scripting</name>
+  <module value="com.intellij.groovy.scripting"/>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Languages</category>
+
+  <description><![CDATA[
+    Provides the Groovy JSR223 scripting engine for the IDE Scripting Console, and the Groovy library other plugins
+    build on.
+    <br/>
+    Based on the IntelliJ Community Groovy Scripting plugin (Apache 2.0).
+  ]]></description>
+
+  <depends>com.intellij.modules.platform</depends>
+
+  <!-- The three modules wrap libraries only: Groovy 3 (org.codehaus.groovy:groovy), its JSR223 engine and Apache Ivy (for
+       Grape). The jars sit in lib/ under their Maven names, and the module descriptors are in this plugin's jar; the
+       modules load embedded, as in the IntelliJ plugin. -->
+  <content namespace="jetbrains">
+    <module name="intellij.libraries.groovy" loading="embedded"/>
+    <module name="intellij.libraries.groovy.jsr223" loading="embedded"/>
+    <module name="intellij.libraries.ivy" loading="embedded"/>
+  </content>
+</idea-plugin>
