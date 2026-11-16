@@ -936,6 +936,22 @@
       ],
       "download": "junit-0.1.0/junit-0.1.0.zip",
       "detect": []
+    },
+    {
+      "id": "dev.phantom.repository-search",
+      "name": "Phantom Repository Search",
+      "version": "0.1.0",
+      "source": "repository-search",
+      "description": "Dependency completion for Maven pom.xml and Gradle build scripts (group, artifact and version suggestions from the local Maven index, Gradle caches and project modules) and the repository search API Maven and Gradle build on; JetBrains' Package Search service is never called and no usage statistics are collected. Based on the IntelliJ Community Repository Search plugin (Apache 2.0); org.jetbrains.idea.reposearch stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Build Tools",
+      "since": "262.261116",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "repository-search-0.1.0/repository-search-0.1.0.zip",
+      "detect": []
     }
   ]
 }
