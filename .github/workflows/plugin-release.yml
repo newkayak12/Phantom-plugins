@@ -7,7 +7,7 @@ name: Plugin release
 
 on:
   push:
-    tags: ['*-[0-9]*']
+    tags: ['*-[0-9]*', '!kotlin-*']   # kotlin-262.<YYMMDD>: released by Phantom IDEA's phantom-release.sh, not built here
   workflow_dispatch:
     inputs:
       plugin:
