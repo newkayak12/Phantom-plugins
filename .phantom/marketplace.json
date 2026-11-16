@@ -951,6 +951,22 @@
         "build.gradle.kts",
         "settings.gradle.kts"
       ]
+    },
+    {
+      "id": "dev.phantom.json",
+      "name": "Phantom JSON",
+      "version": "0.1.0",
+      "source": "json",
+      "description": "JSON, JSON5 and JSON Lines files: highlighting, formatting, folding, structure view, Copy JSON Pointer, and JSON Schema mappings, the schemastore.org catalog, completion, validation, documentation and quick fixes; YAML, TOML, OpenAPI and others build on it. Based on the IntelliJ Community JSON plugin (Apache 2.0); com.intellij.modules.json stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262.261116",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "json-0.1.0/json-0.1.0.zip",
+      "detect": []
     }
   ]
 }
