@@ -884,28 +884,6 @@
       "detect": []
     },
     {
-      "id": "org.jetbrains.kotlin",
-      "name": "Kotlin",
-      "version": "262.261113.0-IJ",
-      "source": "kotlin",
-      "description": "Kotlin language support: editing, inspections, refactorings, debugging and Gradle Kotlin DSL scripts. The IntelliJ Kotlin plugin (Apache 2.0) built with Phantom; not bundled, since Java-only projects never use it.",
-      "vendor": "JetBrains",
-      "category": "Languages",
-      "since": "262.261113",
-      "until": "262.*",
-      "depends": [
-        "com.intellij.modules.java"
-      ],
-      "download": "kotlin-262.261113/Kotlin-262.261113.zip",
-      "detect": [
-        "org.jetbrains.kotlin:kotlin-stdlib"
-      ],
-      "detectFiles": [
-        "build.gradle.kts",
-        "settings.gradle.kts"
-      ]
-    },
-    {
       "id": "dev.phantom.properties",
       "name": "Phantom Properties",
       "version": "0.1.0",
@@ -952,6 +930,28 @@
       ],
       "download": "repository-search-0.1.0/repository-search-0.1.0.zip",
       "detect": []
+    },
+    {
+      "id": "org.jetbrains.kotlin",
+      "name": "Kotlin",
+      "version": "262.261116.0-IJ",
+      "source": "kotlin",
+      "description": "Kotlin language support: editing, inspections, refactorings, debugging and Gradle Kotlin DSL scripts. The IntelliJ Kotlin plugin (Apache 2.0) built with Phantom; not bundled, since Java-only projects never use it.",
+      "vendor": "JetBrains",
+      "category": "Languages",
+      "since": "262.261116",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.java"
+      ],
+      "download": "kotlin-262.261116/Kotlin-262.261116.zip",
+      "detect": [
+        "org.jetbrains.kotlin:kotlin-stdlib"
+      ],
+      "detectFiles": [
+        "build.gradle.kts",
+        "settings.gradle.kts"
+      ]
     }
   ]
 }
