@@ -219,9 +219,12 @@ object GHAccountsUtil {
     if (request.server != GithubServerPath.DEFAULT_SERVER) {
       request.loginWithToken(model, project, parentComponent)
     }
-    // phantom-idea: without an OAuth client id both OAUTH and UNDEFINED go straight to token login, no "Log In via GitHub / Use Token" prompt
+    // phantom-idea: without an OAuth client id both OAUTH and UNDEFINED go to token login, no "Log In via GitHub / Use Token" prompt.
+    // A TOKEN request opens the token dialog directly, as upstream does; only the other two get the token-only prompt.
     else if (!GHDeviceFlow.isBrowserLoginAvailable) {
-      if (promptTokenLogin(request, project, parentComponent)) request.loginWithToken(model, project, parentComponent)
+      if (request.authType == AuthorizationType.TOKEN || promptTokenLogin(request, project, parentComponent)) {
+        request.loginWithToken(model, project, parentComponent)
+      }
     }
     else when (request.authType) {
       AuthorizationType.OAUTH -> request.loginWithOAuth(model, project, parentComponent)
