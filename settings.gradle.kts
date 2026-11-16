@@ -24,6 +24,13 @@ dependencyResolutionManagement {
     maven("https://packages.jetbrains.team/maven/p/grazi/grazie-platform-public") {
       content { includeGroupByRegex("ai\\.grazie(\\..*)?") }
     }
+    // JetBrains' Package Search client and the kotlinx-document-store library it caches in, for repository-search/
+    maven("https://packages.jetbrains.team/maven/p/kpm/public") {
+      content {
+        includeGroup("org.jetbrains.packagesearch")
+        includeGroup("com.github.lamba92")
+      }
+    }
   }
 }
 
@@ -78,6 +85,7 @@ include("terminal")
 include("grazie")
 include("properties")
 include("junit")
+include("repository-search")
 
 // Real-IDE probe (see realide-probe/): only with -PrealIde, never part of CI or the marketplace
 if (providers.gradleProperty("realIde").isPresent) {

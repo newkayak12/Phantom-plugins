@@ -1,0 +1,13 @@
+<idea-plugin visibility="internal">
+  <extensionPoints>
+    <extensionPoint qualifiedName="org.jetbrains.idea.reposearch.contributor"
+                    interface="com.intellij.repository.search.completion.api.DependencyCompletionContributor" dynamic="true"/>
+  </extensionPoints>
+  <extensions defaultExtensionNs="com.intellij">
+    <applicationService serviceInterface="com.intellij.repository.search.completion.api.DependencyCompletionService"
+                        serviceImplementation="com.intellij.repository.search.completion.impl.DependencyCompletionServiceImpl"/>
+
+    <registryKey key="dependency.completion.local.results.delay.ms" defaultValue="3000"
+                 description="Max wait time for server dependency completion results before local results are shown (ms)"/>
+  </extensions>
+</idea-plugin>
