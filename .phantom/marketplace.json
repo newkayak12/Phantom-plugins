@@ -932,27 +932,6 @@
       "detect": []
     },
     {
-      "id": "org.jetbrains.kotlin",
-      "name": "Phantom Kotlin",
-      "version": "262.261116.0-IJ",
-      "description": "Kotlin language support: editing, inspections, refactorings, debugging and Gradle Kotlin DSL scripts. IntelliJ's Kotlin plugin (Apache 2.0) built with each Phantom release; not bundled, since Java-only projects never use it. org.jetbrains.kotlin stays its id, so plugins depending on Kotlin keep working.",
-      "vendor": "Phantom",
-      "category": "Languages",
-      "since": "262.261116",
-      "until": "262.*",
-      "depends": [
-        "com.intellij.modules.java"
-      ],
-      "download": "kotlin-262.261116/Kotlin-262.261116.zip",
-      "detect": [
-        "org.jetbrains.kotlin:kotlin-stdlib"
-      ],
-      "detectFiles": [
-        "build.gradle.kts",
-        "settings.gradle.kts"
-      ]
-    },
-    {
       "id": "dev.phantom.json",
       "name": "Phantom JSON",
       "version": "0.1.0",
@@ -984,6 +963,27 @@
       ],
       "download": "gradle-dsl-0.1.0/gradle-dsl-0.1.0.zip",
       "detect": []
+    },
+    {
+      "id": "org.jetbrains.kotlin",
+      "name": "Phantom Kotlin",
+      "version": "262.261116.0-IJ",
+      "description": "Kotlin language support: editing, inspections, refactorings, debugging and Gradle Kotlin DSL scripts. IntelliJ's Kotlin plugin (Apache 2.0) built with each Phantom release; not bundled, since Java-only projects never use it. org.jetbrains.kotlin stays its id, so plugins depending on Kotlin keep working.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262.261116",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.java"
+      ],
+      "download": "kotlin-262.261116/Kotlin-262.261116.zip",
+      "detect": [
+        "org.jetbrains.kotlin:kotlin-stdlib"
+      ],
+      "detectFiles": [
+        "build.gradle.kts",
+        "settings.gradle.kts"
+      ]
     }
   ]
 }
