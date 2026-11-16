@@ -984,6 +984,56 @@
         "build.gradle.kts",
         "settings.gradle.kts"
       ]
+    },
+    {
+      "id": "dev.phantom.groovy-scripting",
+      "name": "Phantom Groovy Scripting",
+      "version": "0.1.0",
+      "source": "groovy-scripting",
+      "description": "The Groovy JSR223 engine for the IDE Scripting Console, and the Groovy 3 library (with Ivy for Grape) that Groovy, Groovy Live Templates and others load through intellij.libraries.groovy. Based on the IntelliJ Community Groovy Scripting plugin (Apache 2.0); com.intellij.groovy.scripting stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262.261116",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.platform"
+      ],
+      "download": "groovy-scripting-0.1.0/groovy-scripting-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.groovy",
+      "name": "Phantom Groovy",
+      "version": "0.1.0",
+      "source": "groovy",
+      "description": "Groovy: highlighting, completion, inspections and quick fixes, intentions, refactorings, formatting, structural search, GDSL scripts, Groovy and Gant run configurations with debugger hot swap, the Groovy console, Grape, compilation in the IDE build (Groovy or Eclipse compiler, stub generation), Spock and Geb support, and the Ant, Git and Copyright integrations; Gradle, Maven and others build on it. Based on the IntelliJ Community Groovy plugin (Apache 2.0); org.intellij.groovy stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262.261116",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.java",
+        "com.intellij.properties",
+        "com.intellij.groovy.scripting"
+      ],
+      "download": "groovy-0.1.0/groovy-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.groovy-live-templates",
+      "name": "Phantom Groovy Live Templates",
+      "version": "0.1.0",
+      "source": "groovy-live-templates",
+      "description": "The groovyScript() live template macro: a template variable computed by a Groovy script, inline or from a file, with the macro's arguments and the editor at hand. Based on the IntelliJ Community Groovy Live Templates plugin (Apache 2.0); org.intellij.groovy.live.templates stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262.261116",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.groovy.scripting"
+      ],
+      "download": "groovy-live-templates-0.1.0/groovy-live-templates-0.1.0.zip",
+      "detect": []
     }
   ]
 }
