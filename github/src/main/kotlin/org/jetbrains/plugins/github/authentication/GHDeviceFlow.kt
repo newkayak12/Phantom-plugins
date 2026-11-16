@@ -30,6 +30,10 @@ internal object GHDeviceFlow {
 
   val clientId: String? get() = System.getProperty("phantom.github.oauth.client.id")?.takeIf { it.isNotBlank() } ?: PHANTOM_CLIENT_ID.ifBlank { null }
 
+  // phantom-idea: browser login entry points are hidden while no OAuth client id is configured
+  /** Whether github.com browser login can work in this build: false while no client id is configured, so the UI offers only token login. */
+  val isBrowserLoginAvailable: Boolean get() = clientId != null
+
   class Code(val deviceCode: String, val userCode: String, val verificationUri: String, val intervalSeconds: Int, val expiresInSeconds: Int)
 
   suspend fun requestCode(server: GithubServerPath, clientId: String): Code {

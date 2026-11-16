@@ -6,7 +6,7 @@ plugins {
   id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-version = "0.1.0"
+version = "0.1.1"
 
 // As the IntelliJ module is compiled: interfaces annotated @JvmDefaultWithCompatibility need this mode
 kotlin {

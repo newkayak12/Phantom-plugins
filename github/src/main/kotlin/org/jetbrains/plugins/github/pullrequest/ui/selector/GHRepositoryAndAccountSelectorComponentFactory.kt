@@ -13,6 +13,7 @@ import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.plugins.github.api.GithubServerPath
 import org.jetbrains.plugins.github.authentication.AuthorizationType
 import org.jetbrains.plugins.github.authentication.GHAccountsUtil
+import org.jetbrains.plugins.github.authentication.GHDeviceFlow
 import org.jetbrains.plugins.github.authentication.GHLoginSource
 import org.jetbrains.plugins.github.authentication.accounts.GHAccountManager
 import org.jetbrains.plugins.github.authentication.accounts.GithubProjectDefaultAccountHolder
@@ -57,8 +58,9 @@ class GHRepositoryAndAccountSelectorComponentFactory(
   }
 
   private fun createLoginButtons(scope: CoroutineScope): List<JButton> {
-    return listOf(
-      JButton(GithubBundle.message("action.Github.Accounts.AddGHAccount.text")).apply {
+    // phantom-idea: no browser login button while no OAuth client id is configured
+    return listOfNotNull(
+      if (!GHDeviceFlow.isBrowserLoginAvailable) null else JButton(GithubBundle.message("action.Github.Accounts.AddGHAccount.text")).apply {
         isDefault = true
         isOpaque = false
 
@@ -101,8 +103,9 @@ class GHRepositoryAndAccountSelectorComponentFactory(
 
   private fun createPopupLoginActions(repo: GHGitRepositoryMapping?): List<AbstractAction> {
     val isDotComServer = repo?.repository?.serverPath?.isGithubDotCom ?: false
+    // phantom-idea: no browser login action while no OAuth client id is configured
     return if (isDotComServer)
-      listOf(object : AbstractAction(GithubBundle.message("action.Github.Accounts.AddGHAccount.text")) {
+      listOfNotNull(if (!GHDeviceFlow.isBrowserLoginAvailable) null else object : AbstractAction(GithubBundle.message("action.Github.Accounts.AddGHAccount.text")) {
         override fun actionPerformed(e: ActionEvent?) {
           loginToGithub(true, AuthorizationType.OAUTH)
         }
