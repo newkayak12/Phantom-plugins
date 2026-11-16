@@ -2,6 +2,8 @@
 package dev.phantom.ai.db
 
 import com.google.gson.JsonObject
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import dev.phantom.ai.mcp.AgentTool
@@ -12,6 +14,7 @@ import dev.phantom.db.core.DbDataSource
 import dev.phantom.db.core.DbDataSourceService
 import dev.phantom.db.core.DbPasswordStorage
 import dev.phantom.db.core.exec.DbConnectionService
+import dev.phantom.db.core.exec.DbConsoles
 import dev.phantom.db.core.exec.DbMetadataCache
 import dev.phantom.db.core.exec.DbSchemaRef
 import dev.phantom.db.core.exec.SqlSafety
@@ -21,11 +24,17 @@ import kotlinx.coroutines.withTimeout
 import java.nio.file.Path
 import java.sql.Connection
 import java.sql.SQLException
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * The data sources of Phantom Database Console for the agents, read-only: which there are, their tables and columns,
  * and SELECT-like queries. Connections are the console's own (its saved credentials, SSH tunnels and drivers); the
  * agent never sees a password. A query runs in a read-only transaction that is rolled back, whatever it was.
+ * Changes are only drafted: [DRAFT] writes the statements into the data source's console for the user to read and run.
  */
 class DbAgentTools : AgentTools {
   override fun tools(): List<AgentTool> = listOf(
@@ -44,6 +53,11 @@ class DbAgentTools : AgentTools {
       val project = projectOf(worktree)
       val rows = args.get("max_rows")?.takeIf { it.isJsonPrimitive }?.asString?.toDoubleOrNull()?.toInt() ?: DEFAULT_ROWS
       query(project, dataSource(project, args), string(args, "sql") ?: throw McpToolError("sql is required"), string(args, "schema"), rows.coerceIn(1, MAX_ROWS))
+    },
+    AgentTool(DRAFT, DRAFT_DESCRIPTION, props("database" to DATABASE, "sql" to "The statements to draft, ending with ';'; any kind (INSERT, UPDATE, DELETE, DDL)."),
+      listOf("database", "sql"), readOnly = false) { worktree, args ->
+      val project = projectOf(worktree)
+      draft(project, dataSource(project, args), string(args, "sql") ?: throw McpToolError("sql is required"))
     },
   )
 
@@ -83,7 +97,7 @@ class DbAgentTools : AgentTools {
   private fun query(project: Project, ds: DbDataSource, sql: String, schema: String?, maxRows: Int): String {
     val statement = sql.trim().removeSuffix(";").trim()
     val keyword = SqlSafety.firstKeyword(statement)
-    if (keyword !in READS) throw McpToolError("Only read-only statements run here (SELECT, WITH, SHOW, EXPLAIN, DESCRIBE); this one starts with ${keyword ?: "nothing"}")
+    if (keyword !in READS) throw McpToolError("Only read-only statements run here (SELECT, WITH, SHOW, EXPLAIN, DESCRIBE); this one starts with ${keyword ?: "nothing"}. Use $DRAFT to write changes into the console for the user")
     if (statement.contains(';')) throw McpToolError("One statement at a time")
     return connected(project, ds) {
       val schemaRef = schema?.let { name -> schemaNamed(DbMetadataCache.getInstance(project).schemas(ds), name) ?: throw McpToolError("No schema $name in ${ds.name}") }
@@ -105,6 +119,37 @@ class DbAgentTools : AgentTools {
         }
       }
     }
+  }
+
+  /** Appends [sql] to the data source's console in an editor, without running it. */
+  private fun draft(project: Project, ds: DbDataSource, sql: String): String {
+    val text = sql.trim()
+    val started = AtomicBoolean()
+    val done = CompletableFuture<String?>()
+    ApplicationManager.getApplication().invokeLater({
+      if (!started.compareAndSet(false, true)) return@invokeLater
+      try {
+        done.complete(DbConsoles.openConsole(project, ds, text)?.name)
+      }
+      catch (e: Throwable) {
+        done.completeExceptionally(e)
+      }
+    }, ModalityState.nonModal(), project.disposed)
+    val console = try {
+      try {
+        done.get(EDT_WAIT_S, TimeUnit.SECONDS)
+      }
+      catch (e: TimeoutException) {
+        if (started.compareAndSet(false, true)) throw McpToolError("Phantom is busy (a dialog is open); nothing was drafted, try again")
+        done.get()
+      }
+    }
+    catch (e: ExecutionException) {
+      throw e.cause ?: e
+    }
+    console ?: throw McpToolError("Cannot open a console for ${ds.name}")
+    return "Drafted in the console $console of ${ds.name}, not run: the user reviews and runs it there" +
+      (if (ds.readOnly) " (${ds.name} is read-only in Phantom, so the console will refuse changes until that is turned off)." else ".")
   }
 
   /** Runs [block] in a read-only transaction that is rolled back, then puts the connection back as it was. */
@@ -188,6 +233,8 @@ class DbAgentTools : AgentTools {
     const val TABLES = "list_tables"
     const val DESCRIBE = "describe_table"
     const val QUERY = "query_database"
+    const val DRAFT = "draft_sql"
+    private const val EDT_WAIT_S = 30L
     private val READS = setOf("SELECT", "WITH", "SHOW", "EXPLAIN", "DESCRIBE", "DESC", "VALUES", "TABLE")
     private const val DEFAULT_ROWS = 50
     private const val MAX_ROWS = 500
@@ -204,6 +251,9 @@ class DbAgentTools : AgentTools {
     private const val QUERY_DESCRIPTION =
       "Runs one read-only statement (SELECT, WITH, SHOW, EXPLAIN, DESCRIBE) on a data source and returns the rows as a " +
         "tab-separated table. It runs in a read-only transaction that is rolled back; nothing can be changed. Ask for few rows."
+    private const val DRAFT_DESCRIPTION =
+      "Writes SQL into the data source's console in Phantom's editor, appended at the end, and does not run it: the user " +
+        "reviews and runs it. The way to propose changes (INSERT, UPDATE, DELETE, DDL); nothing reaches the database from here."
   }
 }
 

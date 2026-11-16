@@ -57,8 +57,8 @@ class DbAgentToolsInIdeTest : BasePlatformTestCase() {
 
   fun testTheModuleAddsTheDatabaseTools() {
     val names = AgentTools.all().map { it.name }
-    assertEquals(listOf("list_databases", "list_tables", "describe_table", "query_database"), names)
-    assertTrue(AgentTools.all().all { it.readOnly })
+    assertEquals(listOf("list_databases", "list_tables", "describe_table", "query_database", "draft_sql"), names)
+    assertEquals(listOf("draft_sql"), AgentTools.all().filterNot { it.readOnly }.map { it.name })
   }
 
   fun testListsTablesAndColumns() {
@@ -78,6 +78,20 @@ class DbAgentToolsInIdeTest : BasePlatformTestCase() {
     assertTrue(error("query_database", "database" to "shop", "sql" to "DELETE FROM orders").startsWith("Only read-only statements"))
     assertEquals("One statement at a time", error("query_database", "database" to "shop", "sql" to "SELECT 1; DROP TABLE orders"))
     assertTrue(error("query_database", "database" to "nope", "sql" to "SELECT 1").startsWith("No data source nope"))
+    assertEquals("C\n3\n(1 rows)", call("query_database", "database" to "shop", "sql" to "SELECT count(*) AS c FROM orders"))
+  }
+
+  fun testDraftsChangesIntoTheConsoleWithoutRunningThem() {
+    // the tool opens the console on the EDT, which is this test's thread: keep it dispatching while the tool waits
+    val tool = AgentTools.all().single { it.name == "draft_sql" }
+    val json = JsonObject().apply { addProperty("database", "shop"); addProperty("sql", "DELETE FROM orders WHERE id = 1;") }
+    val future = ApplicationManager.getApplication().executeOnPooledThread<String> { tool.call(project.basePath, json) }
+    val deadline = System.currentTimeMillis() + 60_000
+    while (!future.isDone && System.currentTimeMillis() < deadline) com.intellij.testFramework.PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    val said = future.get(1, TimeUnit.SECONDS)
+    assertTrue(said, said.startsWith("Drafted in the console") && said.contains("not run"))
+    val editor = com.intellij.openapi.fileEditor.FileEditorManager.getInstance(project).selectedTextEditor ?: fail("no console open") as Nothing
+    assertTrue(editor.document.text, editor.document.text.contains("DELETE FROM orders WHERE id = 1;"))
     assertEquals("C\n3\n(1 rows)", call("query_database", "database" to "shop", "sql" to "SELECT count(*) AS c FROM orders"))
   }
 }

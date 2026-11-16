@@ -4,7 +4,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.3.24"
+version = "0.3.25"
 
 dependencies {
   implementation("io.nayuki:qrcodegen:1.8.0")
@@ -151,3 +151,7 @@ if (providers.gradleProperty("realIde").isPresent) {
     }
   }
 }
+
+// Phantom bundles GitHub as dev.phantom.github under the alias org.jetbrains.plugins.github; the Gradle plugin's index
+// lists the alias as depending on dev.phantom.github, which it cannot resolve (it is the same plugin)
+configurations.configureEach { exclude(group = "bundledPlugin", module = "dev.phantom.github") }
