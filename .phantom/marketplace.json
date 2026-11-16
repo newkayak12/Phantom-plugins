@@ -904,6 +904,22 @@
         "build.gradle.kts",
         "settings.gradle.kts"
       ]
+    },
+    {
+      "id": "dev.phantom.properties",
+      "name": "Phantom Properties",
+      "version": "0.1.0",
+      "source": "properties",
+      "description": "Properties files: highlighting, formatting, folding, completion, find usages and rename of keys, the Resource Bundle editor, inspections for unused, duplicate, incomplete and unsorted properties, structural search, properties-aware diff and merge, XML properties files and copyright headers; Java I18n, Spring Boot, Grazie, Groovy, Gradle and Maven build on it. Based on the IntelliJ Community Properties plugin (Apache 2.0); com.intellij.properties stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262.261116",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "properties-0.1.0/properties-0.1.0.zip",
+      "detect": []
     }
   ]
 }
