@@ -47,6 +47,7 @@ dependencies {
   intellijPlatform {
     bundledPlugin("com.intellij.java")
     bundledPlugin("com.intellij.properties") // junit-properties.xml, optional
+    bundledPlugin("intellij.testRunner.plugin") // SMRunnerConsolePropertiesProvider (intellij.platform.smRunner)
     testBundledPlugin("org.intellij.groovy") // groovy-tests (GroovyJUnitDetectionTest, GroovyJUnit3NamingConventionInspectionTest)
     testFramework(TestFrameworkType.Plugin.Java, providers.gradleProperty("platformTestBuild"))
     testFramework(TestFrameworkType.JUnit5, providers.gradleProperty("platformTestBuild"))

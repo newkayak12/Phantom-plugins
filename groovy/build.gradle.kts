@@ -83,19 +83,12 @@ tasks.jar {
   }
 }
 
-// Phantom bundles its own Properties, Copyright, JUnit and Grazie (dev.phantom.*, the IntelliJ ids as aliases); the
-// IntelliJ Platform Gradle Plugin resolves a bundled plugin asked for by alias to a dependency on its id it then can't find,
-// so against the installed Phantom they're asked for by their Phantom ids, against IntelliJ Community by the IntelliJ ones
-val fromRepository = providers.gradleProperty("platformFromRepository").isPresent ||
-  project.name in providers.gradleProperty("platformFromRepositoryFor").orNull.orEmpty().split(',').map { it.trim() }
-fun bundledId(intellijId: String, phantomId: String) = if (fromRepository) intellijId else phantomId
-
 dependencies {
   intellijPlatform {
     bundledPlugin("com.intellij.java")
-    bundledPlugin(bundledId("com.intellij.properties", "dev.phantom.properties"))
-    bundledPlugin(bundledId("com.intellij.copyright", "dev.phantom.copyright"))
-    bundledPlugin(bundledId("JUnit", "dev.phantom.junit"))
+    bundledPlugin("com.intellij.properties")
+    bundledPlugin("com.intellij.copyright")
+    bundledPlugin("JUnit")
     bundledPlugin("Git4Idea")
     bundledPlugin("intellij.structuralSearch.plugin")
     bundledModule("intellij.platform.langInjection")
@@ -109,7 +102,7 @@ dependencies {
     // GroovyScriptMacroTest (in IntelliJ's Groovy tests) tests Groovy Live Templates
     testLocalPlugin(project(":groovy-live-templates"))
     // Grazie for the spellchecker tests, the benchmark framework for the performance tests
-    testBundledPlugin(bundledId("tanvd.grazi", "dev.phantom.grazie"))
+    testBundledPlugin("tanvd.grazi")
     testFramework(TestFrameworkType.Metrics, providers.gradleProperty("platformTestBuild"))
     testFramework(TestFrameworkType.Plugin.Java, providers.gradleProperty("platformTestBuild"))
     testFramework(TestFrameworkType.JUnit5, providers.gradleProperty("platformTestBuild"))
