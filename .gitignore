@@ -5,3 +5,9 @@ build/
 .idea/
 *.iml
 mermaid/browser-build/kotlin-js-store/
+# local files of the OS and of coding agents
+.DS_Store
+.claude/
+.superpowers/
+.teams_output/
+.harness-run/
