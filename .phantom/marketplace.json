@@ -1034,6 +1034,22 @@
       ],
       "download": "groovy-live-templates-0.1.0/groovy-live-templates-0.1.0.zip",
       "detect": []
+    },
+    {
+      "id": "dev.phantom.images",
+      "name": "Phantom Images",
+      "version": "0.1.0",
+      "source": "images",
+      "description": "Image files open in a viewer with zoom, grid, transparency chessboard, thumbnails, Set Background Image, external editor and a scientific view (channels, grayscale, binarize, normalize, rotate); SVG files are XML with a preview and Convert SVG to PNG. Based on the IntelliJ Community Images plugin (Apache 2.0), without its usage statistics; com.intellij.platform.images stays as an alias, so plugins depending on it (htmltools, markdown, webp and others) keep working. Bundled with Phantom from build 262.261117; older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Editor",
+      "since": "262.261117",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "images-0.1.0/images-0.1.0.zip",
+      "detect": []
     }
   ]
 }

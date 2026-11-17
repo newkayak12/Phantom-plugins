@@ -72,6 +72,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom Groovy Scripting | [groovy-scripting](./groovy-scripting/KOR.md) · [English](./groovy-scripting/README.md) | Groovy 스크립트 엔진과 Groovy 3 라이브러리. Phantom 262.261116 빌드부터 기본 포함 (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Groovy | [groovy](./groovy/KOR.md) · [English](./groovy/README.md) | IntelliJ Groovy를 대체하는 Groovy 언어 지원. Phantom 262.261116 빌드부터 기본 포함 (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Groovy Live Templates | [groovy-live-templates](./groovy-live-templates/KOR.md) · [English](./groovy-live-templates/README.md) | groovyScript() 라이브 템플릿 매크로. Phantom 262.261116 빌드부터 기본 포함 (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Phantom Images | [images](./images/KOR.md) · [English](./images/README.md) | 이미지 뷰어와 편집 도구(확대, 격자, 체스판, 배경 이미지, 과학용 보기)와 SVG 언어 (IntelliJ 플러그인 기반. Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom CPU Indicator | [cpu](./cpu/KOR.md) · [English](./cpu/README.md) | 상태바에 IDE·시스템 CPU, 호버하면 IDE가 CPU를 어디에 썼는지(인덱싱, 분석, GC, JIT) |
 | Phantom Log Console | [logs](./logs/KOR.md) · [English](./logs/README.md) | JSON 로그를 읽기 쉬운 줄과 스택트레이스로, 레벨 색, traceId를 누르면 그 요청의 줄 목록 |
 | Phantom QueryDSL | [querydsl](./querydsl/KOR.md) · [English](./querydsl/README.md) | Q클래스 경로에서 엔티티로 이동, 엔티티 필드 Find Usages에 QueryDSL 경로 포함, 오래된 Q클래스 경고 |

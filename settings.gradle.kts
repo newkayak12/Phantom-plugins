@@ -91,6 +91,7 @@ include("gradle-dsl")
 include("groovy-scripting")
 include("groovy")
 include("groovy-live-templates")
+include("images")
 
 // Real-IDE probe (see realide-probe/): only with -PrealIde, never part of CI or the marketplace
 if (providers.gradleProperty("realIde").isPresent) {
