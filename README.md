@@ -2,7 +2,7 @@
 
 [![Analysis](https://github.com/newkayak12/Phantom-plugins/actions/workflows/analysis.yml/badge.svg?branch=main)](https://github.com/newkayak12/Phantom-plugins/actions/workflows/analysis.yml)
 [![Strings coverage](https://codecov.io/gh/newkayak12/Phantom-plugins/branch/main/graph/badge.svg?flag=strings)](https://codecov.io/gh/newkayak12/Phantom-plugins)
-[![Strings quality gate](https://sonarcloud.io/api/project_badges/measure?project=newkayak12_Phantom-plugins&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=newkayak12_Phantom-plugins)
+[![Strings quality gate](https://sonarcloud.io/api/project_badges/measure?project=newkayak12_Phantom-plugins&metric=alert_status&token=8d7c753364a763477e920082bd02b5dafde3994a)](https://sonarcloud.io/summary/new_code?id=newkayak12_Phantom-plugins)
 
 Plugins for [Phantom](https://github.com/newkayak12/Phantom), kept out of the IDE so that a project only
 pays for the technology it uses. [한국어](./KOR.md)

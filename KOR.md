@@ -2,7 +2,7 @@
 
 [![분석 CI](https://github.com/newkayak12/Phantom-plugins/actions/workflows/analysis.yml/badge.svg?branch=main)](https://github.com/newkayak12/Phantom-plugins/actions/workflows/analysis.yml)
 [![Strings 커버리지](https://codecov.io/gh/newkayak12/Phantom-plugins/branch/main/graph/badge.svg?flag=strings)](https://codecov.io/gh/newkayak12/Phantom-plugins)
-[![Strings 품질 게이트](https://sonarcloud.io/api/project_badges/measure?project=newkayak12_Phantom-plugins&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=newkayak12_Phantom-plugins)
+[![Strings 품질 게이트](https://sonarcloud.io/api/project_badges/measure?project=newkayak12_Phantom-plugins&metric=alert_status&token=8d7c753364a763477e920082bd02b5dafde3994a)](https://sonarcloud.io/summary/new_code?id=newkayak12_Phantom-plugins)
 
 [Phantom](https://github.com/newkayak12/Phantom)용 플러그인 모음입니다.
 IDE에 기본으로 넣지 않고 따로 설치하게 해서, 프로젝트가 실제로 쓰는 기술만 비용을 냅니다. [English](./README.md)
