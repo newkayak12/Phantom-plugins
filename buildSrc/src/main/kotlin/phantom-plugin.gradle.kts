@@ -58,6 +58,15 @@ fun resolveBundledPhantomPluginsByAlias() {
   }
 }
 
+// Every plugin zip carries the licenses with it: the repository's LICENSE and NOTICE, and a plugin folder's own LICENSE
+// (TOML's MIT license, for one) as META-INF/LICENSE-<plugin>
+tasks.named<Jar>("jar") {
+  metaInf {
+    from(rootDir.resolve("LICENSE"), rootDir.resolve("NOTICE"))
+    from(projectDir.resolve("LICENSE").takeIf { it.isFile } ?: files()) { rename { "LICENSE-${project.name}" } }
+  }
+}
+
 intellijPlatform {
   buildSearchableOptions = false
   instrumentCode = false

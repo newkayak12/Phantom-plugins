@@ -1,0 +1,16 @@
+Phantom plugins
+Copyright 2026 Phantom IDEA contributors
+
+Licensed under the Apache License, Version 2.0 (LICENSE), except where a plugin folder has its own LICENSE.
+
+Several plugins are modified versions of plugins from IntelliJ IDEA Community Edition
+(https://github.com/JetBrains/intellij-community), Copyright (C) JetBrains s.r.o. and contributors,
+licensed under the Apache License, Version 2.0; each such plugin's README names the plugin it is based on.
+The TOML plugin (toml/) includes code from the intellij-rust project under the MIT License (toml/LICENSE).
+
+Third-party libraries packaged in a plugin keep their own licenses, found in their jars.
+
+These plugins are not affiliated with, sponsored or endorsed by JetBrains s.r.o. or by the owners of the
+technologies they support. JetBrains, IntelliJ and IntelliJ IDEA are trademarks of JetBrains s.r.o.; Spring and
+Spring Boot are trademarks of Broadcom Inc.; Apache Kafka is a trademark of The Apache Software Foundation; Docker is
+a trademark of Docker, Inc.; Kubernetes is a trademark of The Linux Foundation. Other names belong to their owners.
