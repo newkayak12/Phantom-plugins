@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
+# Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 """
 Regenerates src/main/resources/icons/material/ from the Material Icon Theme (Philipp Kief, MIT):
 

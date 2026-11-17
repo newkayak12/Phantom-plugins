@@ -4,7 +4,7 @@
   <vendor>Phantom</vendor>
   <category>Cloud</category>
   <description><![CDATA[
-  Helm chart support for Phantom IDEA: completion of .Values paths from values.yaml, .Release and .Chart fields and
+  Helm chart support for Phantom: completion of .Values paths from values.yaml, .Release and .Chart fields and
   include names in chart templates; Ctrl+B from a value to its key and from include to define; and a warning for
   values that values.yaml does not define. Works only inside chart templates.
   Plain Kubernetes manifests are checked for removed API versions, unknown and missing keys, duplicate container

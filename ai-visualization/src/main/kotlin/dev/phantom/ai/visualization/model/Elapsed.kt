@@ -1,4 +1,4 @@
-// Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.ai.visualization.model
 
 /** "45s", "12m", "1h 5m", "2d 3h": how long a session has run. */

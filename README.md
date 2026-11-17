@@ -1,6 +1,6 @@
 # phantom-plugins
 
-Plugins for [Phantom IDEA](https://github.com/newkayak12/Phantom-IDEA), kept out of the IDE so that a project only
+Plugins for [Phantom](https://github.com/newkayak12/Phantom-IDEA), kept out of the IDE so that a project only
 pays for the technology it uses. [한국어](./KOR.md)
 
 ## Install
@@ -120,7 +120,7 @@ Each plugin folder holds its sources, a `build.gradle.kts`, a `README.md` and a 
 
 ## Build and release
 
-The plugins compile against an installed Phantom IDEA (`phantomIde` in `gradle.properties`) and need JDK 25, which
+The plugins compile against an installed Phantom (`phantomIde` in `gradle.properties`) and need JDK 25, which
 Phantom bundles.
 
 ```

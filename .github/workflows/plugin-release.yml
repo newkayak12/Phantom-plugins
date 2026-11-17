@@ -1,13 +1,13 @@
 # Builds and tests one plugin, then publishes its zip as the GitHub release the marketplace points to.
 #   tag push:  `<dir>-<version>` (e.g. kafka-0.1.1, the release tag style of .phantom/marketplace.json)
 #   manual:    Actions → Plugin release → plugin=<dir>; dry_run builds and tests without touching releases
-# CI has no Phantom IDEA installed, so it compiles and tests against the IntelliJ Community build Phantom is forked
+# CI has no Phantom installed, so it compiles and tests against the IntelliJ Community build Phantom is forked
 # from (platformTestBuild in gradle.properties); local builds keep using the installed Phantom.
 name: Plugin release
 
 on:
   push:
-    tags: ['*-[0-9]*', '!kotlin-*']   # kotlin-262.<YYMMDD>: released by Phantom IDEA's phantom-release.sh, not built here
+    tags: ['*-[0-9]*', '!kotlin-*']   # kotlin-262.<YYMMDD>: released by Phantom's phantom-release.sh, not built here
   workflow_dispatch:
     inputs:
       plugin:

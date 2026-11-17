@@ -1,4 +1,4 @@
-// Shared setup for every plugin in this repository: Kotlin, and the installed Phantom IDEA as the platform.
+// Shared setup for every plugin in this repository: Kotlin, and the installed Phantom as the platform.
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -20,7 +20,7 @@ java {
 
 dependencies {
   intellijPlatform {
-    // Plugins compile against an installed Phantom IDEA, not a downloaded IntelliJ. CI (-PplatformFromRepository) has no
+    // Plugins compile against an installed Phantom, not a downloaded IntelliJ. CI (-PplatformFromRepository) has no
     // Phantom installed and takes the IntelliJ Community build Phantom is forked from instead.
     // Also for the plugins listed in platformFromRepositoryFor: their id is still bundled in the installed Phantom, which
     // would shadow the plugin under test (a bundled copy with a higher version wins).
@@ -29,7 +29,11 @@ dependencies {
       intellijIdeaCommunity(providers.gradleProperty("platformTestBuild")) { useInstaller = false }
     }
     else {
-      local(providers.gradleProperty("phantomIde"))
+      // Phantom was "Phantom IDEA.app" before the rename; until Phantom.app is installed, the old app is used
+      local(providers.gradleProperty("phantomIde").map { path ->
+        val legacy = "/Applications/Phantom IDEA.app"
+        if (!file(path).exists() && path == "/Applications/Phantom.app" && file(legacy).exists()) legacy else path
+      })
       resolveBundledPhantomPluginsByAlias()
     }
     // Phantom is a fork of this IntelliJ build, whose test framework is published

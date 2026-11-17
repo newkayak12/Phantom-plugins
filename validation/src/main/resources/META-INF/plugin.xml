@@ -4,7 +4,7 @@
   <vendor>Phantom</vendor>
   <category>Frameworks</category>
   <description><![CDATA[
-  Jakarta (and javax) Bean Validation checks for Phantom IDEA, in Java and Kotlin: contradictory bounds (@Min above
+  Jakarta (and javax) Bean Validation checks for Phantom, in Java and Kotlin: contradictory bounds (@Min above
   @Max, @Size min above max), constraints on types they cannot validate (@NotBlank on a number, @Past on a String),
   Kotlin constructor properties whose constraint lands on the parameter instead of the field (add <code>@field:</code>),
   nested objects with constraints but no @Valid, and Spring beans with method constraints but no @Validated.

@@ -25,7 +25,7 @@
        (com.intellij.terminal.backend, com.intellij.terminal.frontend, org.jetbrains.plugins.terminal.cloud,
        org.jetbrains.plugins.terminal.sh) are their own, and they switch off without their dependency (remote servers,
        Shell Script). No backend.split / frontend.split: their sources are not in IntelliJ Community (the bundled
-       Phantom IDEA plugin has neither). -->
+       Phantom plugin has neither). -->
   <content namespace="jetbrains">
     <module name="intellij.terminal.backend"/>
     <module name="intellij.terminal.frontend"/>

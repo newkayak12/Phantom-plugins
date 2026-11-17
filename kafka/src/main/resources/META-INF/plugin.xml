@@ -4,7 +4,7 @@
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Cloud</category>
   <description><![CDATA[
-  A Kafka browser for Phantom IDEA: topics with their partitions and offsets, the latest or earliest messages of a
+  A Kafka browser for Phantom: topics with their partitions and offsets, the latest or earliest messages of a
   topic or those since a time (read without joining a consumer group or committing anything), sending a message with
   key, headers and partition, consumer groups with their lag, and creating and deleting topics. SASL and SSL through
   client properties kept in the password safe. Clients start only while the Kafka tool window is shown.

@@ -1,4 +1,4 @@
-// Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.ai.sidebar
 
 /** The title of a worktree card: the name the user gave, else the pull request title, else the branch. */

@@ -4,7 +4,7 @@
   <vendor>Phantom</vendor>
   <category>Frameworks</category>
   <description><![CDATA[
-  JPA, Hibernate and Spring Data JPA support for Phantom IDEA: entity mapping checks (identifiers, constructors, mappedBy, converters, attribute types, enums, cascades), Kotlin entity checks against the module's kotlin-jpa/allOpen Gradle setup, Lombok-on-entity checks, Spring Data repository signature checks (Page without Pageable, count/exists return types, argument types), repository/entity navigation, JPQL inside Spring Data @Query and @NamedQuery (also through
+  JPA, Hibernate and Spring Data JPA support for Phantom: entity mapping checks (identifiers, constructors, mappedBy, converters, attribute types, enums, cascades), Kotlin entity checks against the module's kotlin-jpa/allOpen Gradle setup, Lombok-on-entity checks, Spring Data repository signature checks (Page without Pageable, count/exists return types, argument types), repository/entity navigation, JPQL inside Spring Data @Query and @NamedQuery (also through
   const val / static final constants), with highlighting, entity and attribute navigation, completion
   and unresolved-name errors. The Entity Diagram tool window draws entities and their relations, and copies them as a
   Mermaid erDiagram. Works for Java and Kotlin. Does nothing in projects without JPA.

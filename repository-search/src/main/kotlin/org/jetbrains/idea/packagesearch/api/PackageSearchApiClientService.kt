@@ -89,7 +89,7 @@ class PackageSearchApiClientService(val coroutineScope: CoroutineScope) : Dispos
   // leaves (ahead of HttpSend, so HttpRequestRetry does not retry it) in case a third-party plugin still asks for it.
   init {
     httpClient.requestPipeline.intercept(HttpRequestPipeline.Before) {
-      throw IOException("JetBrains Package Search is disabled in Phantom IDEA")
+      throw IOException("JetBrains Package Search is disabled in Phantom")
     }
   }
 

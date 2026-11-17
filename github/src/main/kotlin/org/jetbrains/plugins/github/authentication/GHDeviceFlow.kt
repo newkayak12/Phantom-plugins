@@ -1,4 +1,4 @@
-// Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package org.jetbrains.plugins.github.authentication
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -26,7 +26,7 @@ import java.nio.charset.StandardCharsets
 internal object GHDeviceFlow {
   private val LOG = logger<GHDeviceFlow>()
 
-  /** The client id of the "Phantom IDEA" OAuth app (device flow enabled); `-Dphantom.github.oauth.client.id` overrides it. */
+  /** The client id of the "Phantom" OAuth app (device flow enabled); `-Dphantom.github.oauth.client.id` overrides it. */
   private const val PHANTOM_CLIENT_ID = ""
 
   val clientId: String? get() = System.getProperty("phantom.github.oauth.client.id")?.takeIf { it.isNotBlank() } ?: PHANTOM_CLIENT_ID.ifBlank { null }

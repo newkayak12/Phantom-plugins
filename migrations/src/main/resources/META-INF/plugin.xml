@@ -4,7 +4,7 @@
   <vendor>Phantom</vendor>
   <category>Database</category>
   <description><![CDATA[
-  Flyway and Liquibase checks for Phantom IDEA. Flyway: migration file names Flyway would skip or reject
+  Flyway and Liquibase checks for Phantom. Flyway: migration file names Flyway would skip or reject
   (<code>V1_init.sql</code>, an empty description, a lower-case prefix) and two migrations with the same version, in
   <code>db/migration</code> and the locations set by <code>spring.flyway.locations</code>. Liquibase: changesets with
   the same id and author in one changelog, and include / includeAll paths that do not exist, in XML, YAML and

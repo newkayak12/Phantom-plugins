@@ -1,4 +1,4 @@
-// Copyright 2026 Phantom IDEA contributors. Use of this source code is governed by the Apache 2.0 license.
+// Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.cpu
 
 import org.junit.Assert.assertArrayEquals
@@ -72,7 +72,7 @@ class WorkClassifierTest {
   fun psOutputIsParsed() {
     val out = """
       |  %CPU COMM
-      | 87.5 /Applications/Phantom IDEA.app/Contents/MacOS/phantom
+      | 87.5 /Applications/Phantom.app/Contents/MacOS/phantom
       | 12,0 /System/Library/Frameworks/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.xpc/Contents/MacOS/com.apple.WebKit.WebContent
       |  3.1 Google Chrome Helper (Renderer)
       |  1.0 kernel_task

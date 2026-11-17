@@ -4,7 +4,7 @@
   <vendor>Phantom</vendor>
   <category>Frameworks</category>
   <description><![CDATA[
-  MyBatis support for Phantom IDEA: gutter navigation between mapper interfaces and their XML statements, statement ids,
+  MyBatis support for Phantom: gutter navigation between mapper interfaces and their XML statements, statement ids,
   <code>resultMap</code>, <code>refid</code>, <code>resultType</code> and <code>property</code> references with
   completion, rename and errors, mapper methods without a statement with a quick fix that writes one into the mapper XML,
   <code>#{...}</code> parameter completion, and SQL highlighting and completion inside mapper XML statements and
@@ -15,7 +15,7 @@
   <dependencies>
     <plugin id="com.intellij.modules.lang"/>
     <plugin id="com.intellij.java"/>
-    <!-- Java classes live in the Java plugin's content modules: without these they do not load in Phantom IDEA -->
+    <!-- Java classes live in the Java plugin's content modules: without these they do not load in Phantom -->
     <module name="intellij.java.psi"/>
     <module name="intellij.java.frontback.psi"/>
     <module name="intellij.java.indexing"/>

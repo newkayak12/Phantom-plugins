@@ -13,7 +13,7 @@
   <dependencies>
     <plugin id="com.intellij.modules.lang"/>
     <plugin id="com.intellij.java"/>
-    <!-- Java classes live in the Java plugin's content modules: without these they do not load in Phantom IDEA -->
+    <!-- Java classes live in the Java plugin's content modules: without these they do not load in Phantom -->
     <module name="intellij.java.psi"/>
     <module name="intellij.java.frontback.psi"/>
     <module name="intellij.java.indexing"/>

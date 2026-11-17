@@ -1,6 +1,6 @@
 # phantom-plugins
 
-[Phantom IDEA](https://github.com/newkayak12/Phantom-IDEA)용 플러그인 모음입니다.
+[Phantom](https://github.com/newkayak12/Phantom-IDEA)용 플러그인 모음입니다.
 IDE에 기본으로 넣지 않고 따로 설치하게 해서, 프로젝트가 실제로 쓰는 기술만 비용을 냅니다. [English](./README.md)
 
 ## 설치
@@ -93,7 +93,7 @@ Phantom은 저장소의 기본 브랜치(`@` 뒤에 적으면 그 브랜치)에�
 
 ## 빌드와 배포
 
-플러그인은 설치된 Phantom IDEA에 대고 컴파일합니다. 그 위치가 `gradle.properties`의 `phantomIde`입니다.
+플러그인은 설치된 Phantom에 대고 컴파일합니다. 그 위치가 `gradle.properties`의 `phantomIde`입니다.
 JDK 25가 필요하고, Phantom에 들어 있는 것을 씁니다.
 
 ```
