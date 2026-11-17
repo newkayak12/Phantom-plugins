@@ -1,4 +1,4 @@
-# Mermaid (Phantom)
+# Mermaid Support
 
 `com.phantom.mermaid` · [한국어](./KOR.md)
 

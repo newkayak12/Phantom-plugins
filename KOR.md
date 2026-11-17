@@ -25,17 +25,17 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | 플러그인 | 폴더 | 설명 |
 |----------|------|------|
 | Phantom Database Console | [db](./db/KOR.md) · [English](./db/README.md) | 드라이버를 추가할 수 있는 JDBC 콘솔(MySQL, PostgreSQL, H2, AWS, Oracle 등). 에디터에서 SQL 실행, 결과 그리드, 스키마 트리 |
-| Phantom Spring | [spring](./spring/KOR.md) · [English](./spring/README.md) | 빈 주입 이동, 자동 주입 검사, Spring MVC 엔드포인트, Security 경로·표현식, Kafka·RabbitMQ·JMS 이동 (Java, Kotlin) |
-| Phantom Spring Boot | [spring-boot](./spring-boot/KOR.md) · [English](./spring-boot/README.md) | Spring Initializr로 새 Spring Boot 프로젝트 만들기, `application.yml` / `.properties` 키·값 자동완성과 문서 |
-| Phantom JPA | [jpa](./jpa/KOR.md) · [English](./jpa/README.md) | `@Query` 안의 JPQL, 파생 쿼리·`@Modifying` 검사, 엔티티 매핑 검사, 리포지토리·엔티티 이동 |
-| Phantom MyBatis | [mybatis](./mybatis/KOR.md) · [English](./mybatis/README.md) | 매퍼 인터페이스 ↔ XML 이동, statement / resultMap / property 참조와 오류, 빠진 statement 빠른 수정, `#{}` 자동완성, 매퍼 XML 안 SQL |
-| Phantom Reactive Streams | [reactive-streams](./reactive-streams/KOR.md) · [English](./reactive-streams/README.md) | 구독하지 않은 `Mono`/`Flux`, 연산자 안의 블로킹 호출 (Reactor, RxJava) |
-| Phantom Ktor | [ktor](./ktor/KOR.md) · [English](./ktor/README.md) | Ktor 라우트를 Endpoints 툴 윈도우에 표시 (`Route` 확장 함수 안의 라우트 포함) |
-| Phantom Kubernetes | [kubernetes](./kubernetes/KOR.md) · [English](./kubernetes/README.md) | Helm 템플릿: `.Values` 자동완성, 이동, 없는 값 경고 |
+| Spring Support | [spring](./spring/KOR.md) · [English](./spring/README.md) | 빈 주입 이동, 자동 주입 검사, Spring MVC 엔드포인트, Security 경로·표현식, Kafka·RabbitMQ·JMS 이동 (Java, Kotlin) |
+| Spring Boot Support | [spring-boot](./spring-boot/KOR.md) · [English](./spring-boot/README.md) | Spring Initializr로 새 Spring Boot 프로젝트 만들기, `application.yml` / `.properties` 키·값 자동완성과 문서 |
+| JPA Support | [jpa](./jpa/KOR.md) · [English](./jpa/README.md) | `@Query` 안의 JPQL, 파생 쿼리·`@Modifying` 검사, 엔티티 매핑 검사, 리포지토리·엔티티 이동 |
+| MyBatis Support | [mybatis](./mybatis/KOR.md) · [English](./mybatis/README.md) | 매퍼 인터페이스 ↔ XML 이동, statement / resultMap / property 참조와 오류, 빠진 statement 빠른 수정, `#{}` 자동완성, 매퍼 XML 안 SQL |
+| Reactive Streams Support | [reactive-streams](./reactive-streams/KOR.md) · [English](./reactive-streams/README.md) | 구독하지 않은 `Mono`/`Flux`, 연산자 안의 블로킹 호출 (Reactor, RxJava) |
+| Ktor Support | [ktor](./ktor/KOR.md) · [English](./ktor/README.md) | Ktor 라우트를 Endpoints 툴 윈도우에 표시 (`Route` 확장 함수 안의 라우트 포함) |
+| Kubernetes Support | [kubernetes](./kubernetes/KOR.md) · [English](./kubernetes/README.md) | Helm 템플릿: `.Values` 자동완성, 이동, 없는 값 경고 |
 | Phantom Profiler | [profiler](./profiler/KOR.md) · [English](./profiler/README.md) | JFR 프로파일링: Profile 실행, 실행 중인 JVM 녹화, 플레임 그래프·콜 트리 보기 |
-| Phantom Bean Validation | [validation](./validation/KOR.md) · [English](./validation/README.md) | 모순된 범위, 맞지 않는 타입의 제약, Kotlin `@field:` 대상, 빠진 `@Valid` / `@Validated` |
+| Bean Validation Support | [validation](./validation/KOR.md) · [English](./validation/README.md) | 모순된 범위, 맞지 않는 타입의 제약, Kotlin `@field:` 대상, 빠진 `@Valid` / `@Validated` |
 | Phantom Migrations | [migrations](./migrations/KOR.md) · [English](./migrations/README.md) | Flyway 파일 이름과 중복 버전, Liquibase 중복 changeset과 없는 include |
-| Phantom OpenAPI | [openapi](./openapi/KOR.md) · [English](./openapi/README.md) | OpenAPI/Swagger 스펙의 `$ref` 이동·자동완성·오류, 스펙 ↔ 핸들러 거터 |
+| OpenAPI Support | [openapi](./openapi/KOR.md) · [English](./openapi/README.md) | OpenAPI/Swagger 스펙의 `$ref` 이동·자동완성·오류, 스펙 ↔ 핸들러 거터 |
 | Phantom HTTP Client | [http-client](./http-client/KOR.md) · [English](./http-client/README.md) | `.http` / `.rest` 요청을 에디터에서 실행: 환경 변수, `import` / `run`, 검사, 응답 창 |
 | Phantom Icon Pack | [icons](./icons/KOR.md) · [English](./icons/README.md) | Material 파일·폴더 아이콘; Java 파일은 찻잔, Kotlin 파일은 로고, Java 클래스는 종류별 |
 | Phantom Tab Groups | [tabs](./tabs/KOR.md) · [English](./tabs/README.md) | 브라우저처럼 에디터 탭 그룹: 이름, 색, 첫 탭으로 접기, 끌어서 넣고 빼기, 분할마다 |
@@ -46,38 +46,38 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom Rainbow | [rainbow](./rainbow/KOR.md) · [English](./rainbow/README.md) | 모든 언어에서 괄호를 중첩 깊이별로, 들여쓰기를 단계별로 색칠 |
 | Phantom Ignore Files | [ignore](./ignore/KOR.md) · [English](./ignore/README.md) | .dockerignore, .npmignore, .helmignore 등을 .gitignore처럼 편집; ignore 파일 템플릿 |
 | Phantom Bytecode Viewer | [bytecode](./bytecode/KOR.md) · [English](./bytecode/README.md) | 컴파일된 Java·Kotlin 클래스의 ASM 바이트코드, 에디터 캐럿과 동기화 |
-| Phantom WebP | [webp](./webp/KOR.md) · [English](./webp/README.md) | 네이티브 라이브러리 없이 Java로 디코딩하는 WebP 이미지 보기 |
+| WebP Support | [webp](./webp/KOR.md) · [English](./webp/README.md) | 네이티브 라이브러리 없이 Java로 디코딩하는 WebP 이미지 보기 |
 | Phantom Modal Commit | [modal-commit](./modal-commit/KOR.md) · [English](./modal-commit/README.md) | Git·Mercurial에서 Commit 도구 창 대신 모달 커밋 대화상자 |
 | Phantom TOML | [toml](./toml/KOR.md) · [English](./toml/README.md) | TOML 파일, Gradle 버전 카탈로그 지원의 바탕 (IntelliJ 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom YAML | [yaml](./yaml/KOR.md) · [English](./yaml/README.md) | JSON Schema를 지원하는 YAML 파일. docker, kubernetes, openapi, migrations가 이것을 씀 (IntelliJ 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Shell Script | [sh](./sh/KOR.md) · [English](./sh/README.md) | 셸 스크립트: 자동완성, 실행 구성, ShellCheck와 shfmt (IntelliJ 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Phantom Lombok | [lombok](./lombok/KOR.md) · [English](./lombok/README.md) | 에디터에서 Project Lombok이 만드는 멤버, 인스펙션, Delombok (IntelliJ 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Phantom Java Bytecode Decompiler | [decompiler](./decompiler/KOR.md) · [English](./decompiler/README.md) | `.class` 파일을 소스 없이 열 때 디컴파일한 Java 소스 (IntelliJ 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Lombok Support | [lombok](./lombok/KOR.md) · [English](./lombok/README.md) | 에디터에서 Project Lombok이 만드는 멤버, 인스펙션, Delombok (IntelliJ 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Phantom Bytecode Decompiler for Java | [decompiler](./decompiler/KOR.md) · [English](./decompiler/README.md) | `.class` 파일을 소스 없이 열 때 디컴파일한 Java 소스 (IntelliJ 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Code Coverage for Java | [coverage](./coverage/KOR.md) · [English](./coverage/README.md) | IntelliJ 또는 JaCoCo 러너로 Run with Coverage (IntelliJ 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Phantom TextMate Bundles | [textmate](./textmate/KOR.md) · [English](./textmate/README.md) | 다른 파일 형식을 TextMate와 VS Code 문법으로 하이라이팅 (IntelliJ 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Phantom Markdown | [markdown](./markdown/KOR.md) · [English](./markdown/README.md) | Markdown 편집과 미리보기. Shell Script, Kotlin 등이 이것을 씀 (IntelliJ 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Phantom GitHub | [github](./github/KOR.md) · [English](./github/README.md) | GitHub 계정, 클론, 프로젝트 공유, 풀 리퀘스트, Gist, Actions 스키마 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Phantom EditorConfig | [editorconfig](./editorconfig/KOR.md) · [English](./editorconfig/README.md) | .editorconfig를 코드 스타일·들여쓰기·인코딩에 적용하고 파일 자체 편집도 지원 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| TextMate Bundles Support | [textmate](./textmate/KOR.md) · [English](./textmate/README.md) | 다른 파일 형식을 TextMate와 VS Code 문법으로 하이라이팅 (IntelliJ 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Markdown Support | [markdown](./markdown/KOR.md) · [English](./markdown/README.md) | Markdown 편집과 미리보기. Shell Script, Kotlin 등이 이것을 씀 (IntelliJ 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| GitHub Support | [github](./github/KOR.md) · [English](./github/README.md) | GitHub 계정, 클론, 프로젝트 공유, 풀 리퀘스트, Gist, Actions 스키마 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| EditorConfig Support | [editorconfig](./editorconfig/KOR.md) · [English](./editorconfig/README.md) | .editorconfig를 코드 스타일·들여쓰기·인코딩에 적용하고 파일 자체 편집도 지원 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Copyright | [copyright](./copyright/KOR.md) · [English](./copyright/README.md) | Velocity 템플릿으로 저작권 문구를 넣고, 저장이나 커밋 전에 갱신 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom HTML Tools | [htmltools](./htmltools/KOR.md) · [English](./htmltools/README.md) | HTML 검사(폐기된 마크업, 접근성, 이미지 크기, 링크)와 편집 기능 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Phantom TestNG | [testng](./testng/KOR.md) · [English](./testng/README.md) | TestNG 실행 구성, 테스트 생성, 참조, 검사 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Phantom Java Internationalization | [java-i18n](./java-i18n/KOR.md) · [English](./java-i18n/README.md) | Java 하드코딩 문자열 검사, I18nize, properties 키 참조 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| TestNG Support | [testng](./testng/KOR.md) · [English](./testng/README.md) | TestNG 실행 구성, 테스트 생성, 참조, 검사 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Phantom Internationalization for Java | [java-i18n](./java-i18n/KOR.md) · [English](./java-i18n/README.md) | Java 하드코딩 문자열 검사, I18nize, properties 키 참조 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Terminal | [terminal](./terminal/KOR.md) · [English](./terminal/README.md) | 셸 통합과 명령 자동 완성을 갖춘 Terminal 도구 창 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Natural Languages | [grazie](./grazie/KOR.md) · [English](./grazie/README.md) | 교정: 텍스트·주석·문자열의 문법, 맞춤법, 문체 검사 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Properties | [properties](./properties/KOR.md) · [English](./properties/README.md) | .properties 파일 강조, 자동 완성, 키 이름 변경, Resource Bundle 편집기, 검사 (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Phantom JUnit | [junit](./junit/KOR.md) · [English](./junit/README.md) | JUnit 3~6 실행 구성, 거터 실행, 테스트 생성, 검사 (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| JUnit Support | [junit](./junit/KOR.md) · [English](./junit/README.md) | JUnit 3~6 실행 구성, 거터 실행, 테스트 생성, 검사 (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Repository Search | [repository-search](./repository-search/KOR.md) · [English](./repository-search/README.md) | Maven·Gradle 빌드 파일의 의존성 자동 완성(로컬 인덱스·캐시 기반) (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom JSON | [json](./json/KOR.md) · [English](./json/README.md) | JSON·JSON5·JSON Lines 편집과 JSON Schema 검증·자동 완성 (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Phantom Gradle DSL | [gradle-dsl](./gradle-dsl/KOR.md) · [English](./gradle-dsl/README.md) | Gradle 빌드 파일(Groovy, Kotlin 스크립트, 버전 카탈로그)을 모델로 읽고 고치는 API (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Phantom Groovy Scripting | [groovy-scripting](./groovy-scripting/KOR.md) · [English](./groovy-scripting/README.md) | Groovy 스크립트 엔진과 Groovy 3 라이브러리. Phantom 262.261116 빌드부터 기본 포함 (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Phantom Groovy | [groovy](./groovy/KOR.md) · [English](./groovy/README.md) | IntelliJ Groovy를 대체하는 Groovy 언어 지원. Phantom 262.261116 빌드부터 기본 포함 (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Phantom Groovy Live Templates | [groovy-live-templates](./groovy-live-templates/KOR.md) · [English](./groovy-live-templates/README.md) | groovyScript() 라이브 템플릿 매크로. Phantom 262.261116 빌드부터 기본 포함 (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Gradle DSL Support | [gradle-dsl](./gradle-dsl/KOR.md) · [English](./gradle-dsl/README.md) | Gradle 빌드 파일(Groovy, Kotlin 스크립트, 버전 카탈로그)을 모델로 읽고 고치는 API (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Groovy Scripting Support | [groovy-scripting](./groovy-scripting/KOR.md) · [English](./groovy-scripting/README.md) | Groovy 스크립트 엔진과 Groovy 3 라이브러리. Phantom 262.261116 빌드부터 기본 포함 (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Groovy Support | [groovy](./groovy/KOR.md) · [English](./groovy/README.md) | IntelliJ Groovy를 대체하는 Groovy 언어 지원. Phantom 262.261116 빌드부터 기본 포함 (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Groovy Live Templates Support | [groovy-live-templates](./groovy-live-templates/KOR.md) · [English](./groovy-live-templates/README.md) | groovyScript() 라이브 템플릿 매크로. Phantom 262.261116 빌드부터 기본 포함 (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Images | [images](./images/KOR.md) · [English](./images/README.md) | 이미지 뷰어와 편집 도구(확대, 격자, 체스판, 배경 이미지, 과학용 보기)와 SVG 언어 (IntelliJ 플러그인 기반. Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom CPU Indicator | [cpu](./cpu/KOR.md) · [English](./cpu/README.md) | 상태바에 IDE·시스템 CPU, 호버하면 IDE가 CPU를 어디에 썼는지(인덱싱, 분석, GC, JIT) |
 | Phantom Log Console | [logs](./logs/KOR.md) · [English](./logs/README.md) | JSON 로그를 읽기 쉬운 줄과 스택트레이스로, 레벨 색, traceId를 누르면 그 요청의 줄 목록 |
-| Phantom QueryDSL | [querydsl](./querydsl/KOR.md) · [English](./querydsl/README.md) | Q클래스 경로에서 엔티티로 이동, 엔티티 필드 Find Usages에 QueryDSL 경로 포함, 오래된 Q클래스 경고 |
-| Phantom Testcontainers | [testcontainers](./testcontainers/KOR.md) · [English](./testcontainers/README.md) | 시작되지 않거나 테스트마다 시작하는 컨테이너, 버전 없는 이미지, static이어야 하는 Spring 멤버 |
-| Mermaid (Phantom) | [mermaid](./mermaid/KOR.md) · [English](./mermaid/README.md) | Mermaid 편집과 미리보기. 대신하는 JetBrains 사본보다 빠름 (IntelliJ 플러그인을 Phantom id로 빌드) |
+| QueryDSL Support | [querydsl](./querydsl/KOR.md) · [English](./querydsl/README.md) | Q클래스 경로에서 엔티티로 이동, 엔티티 필드 Find Usages에 QueryDSL 경로 포함, 오래된 Q클래스 경고 |
+| Testcontainers Support | [testcontainers](./testcontainers/KOR.md) · [English](./testcontainers/README.md) | 시작되지 않거나 테스트마다 시작하는 컨테이너, 버전 없는 이미지, static이어야 하는 Spring 멤버 |
+| Mermaid Support | [mermaid](./mermaid/KOR.md) · [English](./mermaid/README.md) | Mermaid 편집과 미리보기. 대신하는 JetBrains 사본보다 빠름 (IntelliJ 플러그인을 Phantom id로 빌드) |
 
 ## 저장소 형식
 

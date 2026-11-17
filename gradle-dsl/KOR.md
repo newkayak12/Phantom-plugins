@@ -1,4 +1,4 @@
-# Phantom Gradle DSL
+# Gradle DSL Support
 
 `dev.phantom.gradle-dsl` · [English](./README.md)
 

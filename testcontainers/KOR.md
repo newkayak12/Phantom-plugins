@@ -1,4 +1,4 @@
-# Phantom Testcontainers
+# Testcontainers Support
 
 `dev.phantom.testcontainers` · [English](./README.md)
 

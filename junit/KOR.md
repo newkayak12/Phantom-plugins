@@ -1,4 +1,4 @@
-# Phantom JUnit
+# JUnit Support
 
 `dev.phantom.junit` · [English](./README.md)
 

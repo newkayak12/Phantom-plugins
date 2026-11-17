@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>com.phantom.mermaid</id>
-  <name>Mermaid (Phantom)</name>
+  <name>Mermaid Support</name>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Languages</category>
   <description><![CDATA[

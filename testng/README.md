@@ -1,4 +1,4 @@
-# Phantom TestNG
+# TestNG Support
 
 `dev.phantom.testng` · [한국어](./KOR.md)
 

@@ -1,4 +1,4 @@
-# Phantom Java Bytecode Decompiler
+# Phantom Bytecode Decompiler for Java
 
 `dev.phantom.decompiler` · [English](./README.md)
 

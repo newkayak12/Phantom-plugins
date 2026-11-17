@@ -1,4 +1,4 @@
-# Phantom Kubernetes
+# Kubernetes Support
 
 `dev.phantom.kubernetes` · [한국어](./KOR.md)
 

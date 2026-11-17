@@ -57,7 +57,7 @@ private class RowsModel<T>(private val columns: List<String>, private val cells:
  * thread and closed when the window is hidden.
  */
 class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(BorderLayout()), Disposable {
-  private val executor = AppExecutorUtil.createBoundedApplicationPoolExecutor("Phantom Kafka", 1)
+  private val executor = AppExecutorUtil.createBoundedApplicationPoolExecutor("Kafka Support", 1)
   private val clusters = ComboBox<KafkaCluster>()
   private val topicFilter = SearchTextField(false)
   private val showInternal = JBCheckBox("Internal")

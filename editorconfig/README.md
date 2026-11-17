@@ -1,4 +1,4 @@
-# Phantom EditorConfig
+# EditorConfig Support
 
 `dev.phantom.editorconfig` · [한국어](./KOR.md)
 

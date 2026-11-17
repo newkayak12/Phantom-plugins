@@ -1,4 +1,4 @@
-# Phantom TextMate Bundles
+# TextMate Bundles Support
 
 `dev.phantom.textmate` · [한국어](./KOR.md)
 

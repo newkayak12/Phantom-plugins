@@ -3,7 +3,7 @@
        DevKit's i18n, the UI Designer) resolve to this one. The bundled IntelliJ Java Internationalization plugin has to be
        gone, or both claim the same id. One module (intellij.java.i18n), so no content modules. -->
   <id>dev.phantom.java-i18n</id>
-  <name>Phantom Java Internationalization</name>
+  <name>Phantom Internationalization for Java</name>
   <module value="com.intellij.java-i18n"/>
   <category>JVM Tools</category>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>

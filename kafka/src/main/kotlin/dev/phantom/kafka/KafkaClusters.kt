@@ -64,7 +64,7 @@ class KafkaClusters : PersistentStateComponent<KafkaClusters.State> {
 
     fun getInstance(project: Project): KafkaClusters = project.service()
 
-    private fun credentials(id: String) = CredentialAttributes(generateServiceName("Phantom Kafka", id))
+    private fun credentials(id: String) = CredentialAttributes(generateServiceName("Phantom Kafka", id))  // keychain entries are stored under this name; kept when the plugin was renamed
   }
 }
 

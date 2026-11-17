@@ -1,4 +1,4 @@
-# Phantom Groovy Scripting
+# Groovy Scripting Support
 
 `dev.phantom.groovy-scripting` · [한국어](./KOR.md)
 

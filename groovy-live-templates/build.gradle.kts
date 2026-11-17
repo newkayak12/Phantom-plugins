@@ -11,7 +11,7 @@ sourceSets {
 
 dependencies {
   intellijPlatform {
-    // Groovy itself (intellij.libraries.groovy) comes from Phantom Groovy Scripting, which this plugin depends on
+    // Groovy itself (intellij.libraries.groovy) comes from Groovy Scripting Support, which this plugin depends on
     localPlugin(project(":groovy-scripting"))
   }
   // which localPlugin doesn't put on the compile classpath: the same Groovy, compile only

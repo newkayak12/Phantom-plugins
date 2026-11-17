@@ -97,7 +97,7 @@ dependencies {
     // Ant isn't bundled in IntelliJ IDEA Community 262 or in Phantom; JetBrains publishes it on the Marketplace, and the
     // Ant integration (intellij.groovy.ant) compiles against that
     plugin("AntSupport", "262.8665.176")
-    // Groovy itself (intellij.libraries.groovy) comes from Phantom Groovy Scripting, which this plugin depends on
+    // Groovy itself (intellij.libraries.groovy) comes from Groovy Scripting Support, which this plugin depends on
     localPlugin(project(":groovy-scripting"))
     // GroovyScriptMacroTest (in IntelliJ's Groovy tests) tests Groovy Live Templates
     testLocalPlugin(project(":groovy-live-templates"))

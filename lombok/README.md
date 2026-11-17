@@ -1,4 +1,4 @@
-# Phantom Lombok
+# Lombok Support
 
 `dev.phantom.lombok` · [한국어](./KOR.md)
 

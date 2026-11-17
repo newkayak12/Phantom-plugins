@@ -1,4 +1,4 @@
-# Phantom WebP
+# WebP Support
 
 `dev.phantom.webp` · [한국어](./KOR.md)
 

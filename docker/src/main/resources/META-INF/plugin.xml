@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.docker</id>
-  <name>Phantom Docker</name>
+  <name>Docker Support</name>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Cloud</category>
   <description><![CDATA[
@@ -29,7 +29,7 @@
     <runDashboardDefaultTypesProvider implementation="dev.phantom.docker.ComposeDashboardTypes"/>
     <toolWindow id="Docker" anchor="bottom" secondary="false" icon="/icons/phantom/toolwindow/docker.svg" doNotActivateOnStart="true"
                 factoryClass="dev.phantom.docker.DockerToolWindowFactory"/>
-    <notificationGroup id="Phantom Docker" displayType="BALLOON"/>
+    <notificationGroup id="Docker Support" displayType="BALLOON"/>
 
     <!-- Compose and Dockerfile checks; the Dockerfile ones run on files named like a Dockerfile (TextMate-highlighted) -->
     <localInspection language="yaml" enabledByDefault="true" level="WARNING" shortName="PhantomComposeUnknownKeys"

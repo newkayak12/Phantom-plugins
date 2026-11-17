@@ -1,4 +1,4 @@
-# Phantom Kubernetes
+# Kubernetes Support
 
 `dev.phantom.kubernetes` · [English](./README.md)
 

@@ -1,4 +1,4 @@
-# Phantom Spring Boot
+# Spring Boot Support
 
 `dev.phantom.spring.boot` · [한국어](./KOR.md)
 

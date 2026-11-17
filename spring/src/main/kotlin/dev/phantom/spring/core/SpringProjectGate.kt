@@ -8,7 +8,7 @@ import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.search.GlobalSearchScope
 
 /**
- * Every Phantom Spring extension calls this first and returns immediately when it is false,
+ * Every Spring Support extension calls this first and returns immediately when it is false,
  * so projects without Spring pay nothing beyond this check.
  */
 object SpringProjectGate {

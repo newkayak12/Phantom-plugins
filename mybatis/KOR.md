@@ -1,4 +1,4 @@
-# Phantom MyBatis
+# MyBatis Support
 
 `dev.phantom.mybatis` · [English](./README.md)
 

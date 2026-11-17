@@ -70,7 +70,7 @@ class RedisServers : PersistentStateComponent<RedisServers.State> {
 
     fun getInstance(project: Project): RedisServers = project.service()
 
-    private fun credentials(id: String) = CredentialAttributes(generateServiceName("Phantom Redis", id))
+    private fun credentials(id: String) = CredentialAttributes(generateServiceName("Phantom Redis", id))  // keychain entries are stored under this name; kept when the plugin was renamed
   }
 }
 

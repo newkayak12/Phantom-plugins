@@ -1,4 +1,4 @@
-# Phantom JPA
+# JPA Support
 
 `dev.phantom.jpa` · [English](./README.md)
 

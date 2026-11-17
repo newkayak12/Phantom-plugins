@@ -1,4 +1,4 @@
-# Phantom TextMate Bundles
+# TextMate Bundles Support
 
 `dev.phantom.textmate` · [English](./README.md)
 

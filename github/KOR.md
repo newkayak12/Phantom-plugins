@@ -1,4 +1,4 @@
-# Phantom GitHub
+# GitHub Support
 
 `dev.phantom.github` · [English](./README.md)
 

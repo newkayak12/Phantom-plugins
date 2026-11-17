@@ -1,4 +1,4 @@
-# Phantom Groovy Live Templates
+# Groovy Live Templates Support
 
 `dev.phantom.groovy-live-templates` · [한국어](./KOR.md)
 

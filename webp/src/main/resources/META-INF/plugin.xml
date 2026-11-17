@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.webp</id>
-  <name>Phantom WebP</name>
+  <name>WebP Support</name>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Images</category>
   <description><![CDATA[

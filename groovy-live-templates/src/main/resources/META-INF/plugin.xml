@@ -3,7 +3,7 @@
        plugin has to be gone, or both claim the same id. The Groovy Scripting dependency keeps the IntelliJ id, which Phantom
        Groovy Scripting (dev.phantom.groovy-scripting) has as an alias. -->
   <id>dev.phantom.groovy-live-templates</id>
-  <name>Phantom Groovy Live Templates</name>
+  <name>Groovy Live Templates Support</name>
   <module value="org.intellij.groovy.live.templates"/>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <description><![CDATA[

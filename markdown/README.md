@@ -1,4 +1,4 @@
-# Phantom Markdown
+# Markdown Support
 
 `dev.phantom.markdown` · [한국어](./KOR.md)
 

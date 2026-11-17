@@ -11,7 +11,7 @@
       "name": "Phantom Database Console",
       "version": "0.25.8",
       "source": "db",
-      "description": "Connect to MySQL, MariaDB, PostgreSQL, H2, AWS JDBC Wrapper, Redshift, Athena, Oracle, SQL Server, SQLite, ClickHouse, Snowflake or any JDBC driver you add, and run SQL from the editor: highlighting for .sql files, Ctrl+Enter to run the statement at the caret, results in a sortable grid, and a lazily loaded schema tree. Drivers are data you can edit: each is found in the project's own dependencies, the local Gradle/Maven cache or jars you choose, and is downloaded from Maven only when you ask (Download, Test Connection). Nothing runs at startup. A data source in manual-commit mode keeps changes in an open transaction: review them in the Database Changes tool window and commit or roll them back; closing the project asks first. A result from one table with its primary key can be edited in the grid, and Compare With on a schema diffs two schemas and writes the SQL to make them match. SQL in Spring Data `@Query(nativeQuery = true)`, `@NativeQuery` and JdbcTemplate / JdbcClient strings is highlighted and completed like a console. JPA entities are checked against the data source's schema (tables and columns that do not exist, nullable columns mapped to non-null attributes), and @Table / @Column names complete from it. A data source can have a color (as in DataGrip): its consoles and .sql files get it as editor background and tab color, its tree rows and result tabs too. A console or .sql file can run in a chosen schema (catalog in MySQL), which unqualified table names in completion and checks also resolve against. The Database tree groups each schema's tables, views, routines, triggers and sequences in folders, can be filtered by name, and Navigate → Database Object (a Database tab in Search Everywhere) finds loaded tables, views, routines and columns without connecting. A data source can have several consoles (New Console), kept in Scratches and Consoles. In the editor: after JOIN, completion offers the tables a foreign key links to the ones in FROM with their ON clause, and after ON whole join conditions from foreign keys (then by column name); SQL (Phantom) live templates sel, selc, selw, ins, upd, del, crt; Find Usages and Rename of tables, views and columns across .sql files, consoles and SQL strings (and JPA mappings), changing SQL text only, never the database; unknown tables and columns are reported with quick fixes. Connections can go through an SSH tunnel (password, key file or OpenSSH agent; unknown host keys confirmed and added to ~/.ssh/known_hosts) and use SSL (mode, CA, client certificate and key mapped to each driver's properties), set in the SSH/SSL tab. Diagram on a schema or selected tables draws them with their foreign keys (pan, zoom, drag, PNG export); Import Data from CSV on a table maps columns by header and inserts in batches in one transaction; Explain Plan shows the plan as a tree with cost, rows and time and the costliest step highlighted. Results grid: WHERE / ORDER BY fields with column completion and history, header clicks sorting a table on the server, a Value Viewer (JSON, XML, hex, images), Transpose, selection sum/avg/min/max, pinned result tabs, and Copy/Export as TSV, CSV, JSON, SQL INSERT, Markdown or HTML (a whole table streamed to a file). 0.17.0: unreachable routine code, cursor state, routine side effects vs. NO SQL/READS SQL DATA, invalid date/time literals, LOAD DATA paths, too many joins, SQL files without a data source; CREATE TABLE to entity marker. 0.17.1: a data source entry the IDE cannot read is skipped instead of breaking the Database Changes tool window and the JPA schema checks. 0.17.2: no completion right after a number (Enter no longer turns `id = 2` into `id = 2EMAIL`); opening a table no longer logs a read-access error. 0.18.0: as in DataGrip: Make Global keeps a data source (with its passwords) in the IDE for every project; passwords saved Forever, Until restart or Never, read once per IDE run, and asked again when the database refuses them; DataGrip's shortcuts in the tree, editor and grid; grid edits wait as changes until Submit (Cmd/Ctrl+Enter) or Submit and Commit, with Revert Selected and Submit Changes Immediately; Set NULL / Set DEFAULT, Select Row / Column, Edit Filter Criteria; SQL Generator and Copy DDL; data source groups, copy, paste and duplicate; single session mode or a session per console with a session switcher, Sessions and the Services tool window; schema scope and introspection levels. 0.18.1: Add Row and Clone Row in the grid, inserted on Submit; Preview Pending Changes. 0.18.2: dates and times in the grid show as stored and save as typed (east of UTC a TIMESTAMP or TIME showed hours early and a DATE the day before); changed, new and deleted cells are colored until Submit; a row inserted on Submit shows its generated key and defaults, so it can be edited again. 0.19.0: grid changes not yet submitted are asked about (Submit, Discard, Cancel) before the result is replaced or its tab closed; Add Row starts editing the new row and shows unfilled cells as <default>; Run 'file.sql' from the project view and editor tab; Dump to File and Restore from File with mysqldump / mysql and pg_dump / psql (not over SSH); TIMESTAMP fractional seconds show in the grid. 0.19.1: MySQL's DATETIME and TIMESTAMP(n) show their fraction and open the calendar on their value; dump and restore reach localhost over TCP; all data source passwords are kept in one keychain entry, so macOS asks once, not once per data source. 0.20.0: Copy As and the grid's Data Extractor list (used by Copy, Cmd/Ctrl+C) add SQL INSERT Multirow, SQL UPDATE, One-Row, XML and Pretty; Paste of copied rows into the grid fills the cells and adds rows. 0.21.0: Filter by on a cell (=, <>, LIKE, IS NULL, IN) adds to WHERE and runs; Column Statistics; pasted text takes the column's type; Copy Table To copies a table's rows into another schema or data source, creating the table when it is missing. 0.22.0: Full-text Search on a data source or schema finds a text (or number) in every table and opens the matching rows; Export saves Excel (.xlsx) workbooks, a whole table page by page too. 0.23.0: Quick Documentation on tables and columns in SQL; Structure view of SQL files; Run Again and Auto Refresh for query results; Compare Content of two tables, with the SQL that makes one match the other. 0.24.0: a join's result is editable: each cell updates its own table by that table's primary key. 0.24.1: the format picked in the result toolbar's Copy As stays what Copy (Cmd/Ctrl+C) uses, in new results too, and is checked in the list. 0.24.2: Cmd/Ctrl+Enter runs the statement in a console or .sql file again instead of splitting the line, and the Database tree's toolbar and commands no longer hold up the IDE by reading the clipboard. 0.25.0: ERD Design (.erd files kept in git): draw tables and relations, load a schema from a data source, and get CREATE or ALTER SQL against it; the SQL editor underlines misspelled keywords, missing commas, tables and conditions, clauses out of order and unclosed parentheses and quotes as you type, with quick fixes, and marks where a failed statement went wrong; completion by clause (keywords, functions, types, subquery and CTE columns) that opens after a dot and after FROM or JOIN; colors by what a name is (Color Scheme → SQL (Phantom)); parameter info for built-in functions, column names before INSERT values, Expand * to columns, folding, paired quotes, Extend Selection by clause and parentheses, Surround With, Complete Current Statement, and a Code Style page (indent, keyword case); the Database tree's toolbar keeps Add, Refresh, New Console and Data, the rest under More. 0.25.1: Diagram and ERD Design draw tables as cards (header band, key and link icons, types aligned right) on a dotted grid, with relations between the columns they join and a crow's foot on the many side. 0.25.2: SQL that Phantom MyBatis injects as a whole statement shows syntax errors. 0.25.3: the syntax check is open to Phantom MyBatis for statements with <choose> and ${}. 0.25.4: Run and Explain take only the statement at the caret when the one above has no ; and consoles open without the Non-Project Files Protection prompt. 0.25.5: the Java and Kotlin part (SQL in strings, JPA entities against the schema) loads in Phantom again. 0.25.6: Cmd/Ctrl+click on a table or column name in SQL selects it in the Database tree also when the tool window was not open yet, and says so when the tree does not show it. 0.25.7: Copy on a Database tree node puts its name on the clipboard, not the node object. 0.25.8: Modify Table shows and edits column comments and has room for long column and index names; changing a MySQL column keeps its comment and AUTO_INCREMENT (MODIFY COLUMN restated the column without them).",
+      "description": "Connect to MySQL, MariaDB, PostgreSQL, H2, AWS JDBC Wrapper, Redshift, Athena, Oracle, SQL Server, SQLite, ClickHouse, Snowflake or any JDBC driver you add, and run SQL from the editor: highlighting for .sql files, Ctrl+Enter to run the statement at the caret, results in a sortable grid, and a lazily loaded schema tree. Drivers are data you can edit: each is found in the project's own dependencies, the local Gradle/Maven cache or jars you choose, and is downloaded from Maven only when you ask (Download, Test Connection). Nothing runs at startup. A data source in manual-commit mode keeps changes in an open transaction: review them in the Database Changes tool window and commit or roll them back; closing the project asks first. A result from one table with its primary key can be edited in the grid, and Compare With on a schema diffs two schemas and writes the SQL to make them match. SQL in Spring Data `@Query(nativeQuery = true)`, `@NativeQuery` and JdbcTemplate / JdbcClient strings is highlighted and completed like a console. JPA entities are checked against the data source's schema (tables and columns that do not exist, nullable columns mapped to non-null attributes), and @Table / @Column names complete from it. A data source can have a color (as in DataGrip): its consoles and .sql files get it as editor background and tab color, its tree rows and result tabs too. A console or .sql file can run in a chosen schema (catalog in MySQL), which unqualified table names in completion and checks also resolve against. The Database tree groups each schema's tables, views, routines, triggers and sequences in folders, can be filtered by name, and Navigate → Database Object (a Database tab in Search Everywhere) finds loaded tables, views, routines and columns without connecting. A data source can have several consoles (New Console), kept in Scratches and Consoles. In the editor: after JOIN, completion offers the tables a foreign key links to the ones in FROM with their ON clause, and after ON whole join conditions from foreign keys (then by column name); SQL (Phantom) live templates sel, selc, selw, ins, upd, del, crt; Find Usages and Rename of tables, views and columns across .sql files, consoles and SQL strings (and JPA mappings), changing SQL text only, never the database; unknown tables and columns are reported with quick fixes. Connections can go through an SSH tunnel (password, key file or OpenSSH agent; unknown host keys confirmed and added to ~/.ssh/known_hosts) and use SSL (mode, CA, client certificate and key mapped to each driver's properties), set in the SSH/SSL tab. Diagram on a schema or selected tables draws them with their foreign keys (pan, zoom, drag, PNG export); Import Data from CSV on a table maps columns by header and inserts in batches in one transaction; Explain Plan shows the plan as a tree with cost, rows and time and the costliest step highlighted. Results grid: WHERE / ORDER BY fields with column completion and history, header clicks sorting a table on the server, a Value Viewer (JSON, XML, hex, images), Transpose, selection sum/avg/min/max, pinned result tabs, and Copy/Export as TSV, CSV, JSON, SQL INSERT, Markdown or HTML (a whole table streamed to a file). 0.17.0: unreachable routine code, cursor state, routine side effects vs. NO SQL/READS SQL DATA, invalid date/time literals, LOAD DATA paths, too many joins, SQL files without a data source; CREATE TABLE to entity marker. 0.17.1: a data source entry the IDE cannot read is skipped instead of breaking the Database Changes tool window and the JPA schema checks. 0.17.2: no completion right after a number (Enter no longer turns `id = 2` into `id = 2EMAIL`); opening a table no longer logs a read-access error. 0.18.0: as in DataGrip: Make Global keeps a data source (with its passwords) in the IDE for every project; passwords saved Forever, Until restart or Never, read once per IDE run, and asked again when the database refuses them; DataGrip's shortcuts in the tree, editor and grid; grid edits wait as changes until Submit (Cmd/Ctrl+Enter) or Submit and Commit, with Revert Selected and Submit Changes Immediately; Set NULL / Set DEFAULT, Select Row / Column, Edit Filter Criteria; SQL Generator and Copy DDL; data source groups, copy, paste and duplicate; single session mode or a session per console with a session switcher, Sessions and the Services tool window; schema scope and introspection levels. 0.18.1: Add Row and Clone Row in the grid, inserted on Submit; Preview Pending Changes. 0.18.2: dates and times in the grid show as stored and save as typed (east of UTC a TIMESTAMP or TIME showed hours early and a DATE the day before); changed, new and deleted cells are colored until Submit; a row inserted on Submit shows its generated key and defaults, so it can be edited again. 0.19.0: grid changes not yet submitted are asked about (Submit, Discard, Cancel) before the result is replaced or its tab closed; Add Row starts editing the new row and shows unfilled cells as <default>; Run 'file.sql' from the project view and editor tab; Dump to File and Restore from File with mysqldump / mysql and pg_dump / psql (not over SSH); TIMESTAMP fractional seconds show in the grid. 0.19.1: MySQL's DATETIME and TIMESTAMP(n) show their fraction and open the calendar on their value; dump and restore reach localhost over TCP; all data source passwords are kept in one keychain entry, so macOS asks once, not once per data source. 0.20.0: Copy As and the grid's Data Extractor list (used by Copy, Cmd/Ctrl+C) add SQL INSERT Multirow, SQL UPDATE, One-Row, XML and Pretty; Paste of copied rows into the grid fills the cells and adds rows. 0.21.0: Filter by on a cell (=, <>, LIKE, IS NULL, IN) adds to WHERE and runs; Column Statistics; pasted text takes the column's type; Copy Table To copies a table's rows into another schema or data source, creating the table when it is missing. 0.22.0: Full-text Search on a data source or schema finds a text (or number) in every table and opens the matching rows; Export saves Excel (.xlsx) workbooks, a whole table page by page too. 0.23.0: Quick Documentation on tables and columns in SQL; Structure view of SQL files; Run Again and Auto Refresh for query results; Compare Content of two tables, with the SQL that makes one match the other. 0.24.0: a join's result is editable: each cell updates its own table by that table's primary key. 0.24.1: the format picked in the result toolbar's Copy As stays what Copy (Cmd/Ctrl+C) uses, in new results too, and is checked in the list. 0.24.2: Cmd/Ctrl+Enter runs the statement in a console or .sql file again instead of splitting the line, and the Database tree's toolbar and commands no longer hold up the IDE by reading the clipboard. 0.25.0: ERD Design (.erd files kept in git): draw tables and relations, load a schema from a data source, and get CREATE or ALTER SQL against it; the SQL editor underlines misspelled keywords, missing commas, tables and conditions, clauses out of order and unclosed parentheses and quotes as you type, with quick fixes, and marks where a failed statement went wrong; completion by clause (keywords, functions, types, subquery and CTE columns) that opens after a dot and after FROM or JOIN; colors by what a name is (Color Scheme → SQL (Phantom)); parameter info for built-in functions, column names before INSERT values, Expand * to columns, folding, paired quotes, Extend Selection by clause and parentheses, Surround With, Complete Current Statement, and a Code Style page (indent, keyword case); the Database tree's toolbar keeps Add, Refresh, New Console and Data, the rest under More. 0.25.1: Diagram and ERD Design draw tables as cards (header band, key and link icons, types aligned right) on a dotted grid, with relations between the columns they join and a crow's foot on the many side. 0.25.2: SQL that MyBatis Support injects as a whole statement shows syntax errors. 0.25.3: the syntax check is open to MyBatis Support for statements with <choose> and ${}. 0.25.4: Run and Explain take only the statement at the caret when the one above has no ; and consoles open without the Non-Project Files Protection prompt. 0.25.5: the Java and Kotlin part (SQL in strings, JPA entities against the schema) loads in Phantom again. 0.25.6: Cmd/Ctrl+click on a table or column name in SQL selects it in the Database tree also when the tool window was not open yet, and says so when the tree does not show it. 0.25.7: Copy on a Database tree node puts its name on the clipboard, not the node object. 0.25.8: Modify Table shows and edits column comments and has room for long column and index names; changing a MySQL column keeps its comment and AUTO_INCREMENT (MODIFY COLUMN restated the column without them).",
       "vendor": "Phantom",
       "category": "Database",
       "since": "262",
@@ -40,7 +40,7 @@
     },
     {
       "id": "dev.phantom.spring",
-      "name": "Phantom Spring",
+      "name": "Spring Support",
       "version": "0.9.0",
       "source": "spring",
       "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, Spring MVC handlers for the Endpoints tool window, Spring Security path and expression support, and Kafka/RabbitMQ/JMS sender-receiver navigation. 0.4.0: proxy pitfalls (self-invocation of @Transactional/@Cacheable/@Async, private/final/static proxied methods, Kotlin classes not opened by kotlin-spring), @Scheduled/@Async/@EventListener contracts, field and static injection, duplicate bean names, @Scope values, @Sql paths, @DirtiesContext, publishEvent ↔ listener gutters, @Qualifier/@DependsOn bean name completion and Ctrl+B. Wave 6: @Value placeholders (follows spring.config.import), SpEL syntax, cache names, caching on interfaces, @Qualifier/@DependsOn near-miss names, MVC path variables, endpoint and AOP advice gutters, method security not enabled, pointcut syntax. Wave 7: @Cacheable+@CachePut, abstract beans, @Value literal types, @Bean method shape, scan packages, AspectJ autoproxy, @Autowired outside beans, resource locations, @TestBean factories, @Around/pointcut/argNames/@DeclareParents, Security debug/self-invocation/bean refs. Wave 8: @Bean init/destroy methods, @Lookup, Resource @Value, @Profile expressions and unknown profiles, bean name convention, argNames bindings; cache, @Scheduled and @Import gutters. Waves 9-10: @Transactional/@Async, component scan and advised-method gutters; Spring 7 API versioning checks; HTTP header and media type typos; broken @Value placeholders; JDK proxy injection. Wave 11: test transaction pitfalls, @Value with @Qualifier/@Resource, removed @Required, @Qualifier bean type, ROLE_ prefix misuse.",
@@ -61,7 +61,7 @@
     },
     {
       "id": "dev.phantom.spring.boot",
-      "name": "Phantom Spring Boot",
+      "name": "Spring Boot Support",
       "version": "0.8.0",
       "source": "spring-boot",
       "description": "Spring Boot support: File → New → Project → Spring Boot generates projects with Spring Initializr, and application*.yml / application*.properties get completion and quick documentation for keys and values, from library metadata and the project's own @ConfigurationProperties, in Java and Kotlin. An Actuator tab beside the console of a running app (health, beans, mappings, environment, polled only while shown; only for modules with spring-boot-starter-actuator), and completion and Ctrl+B for ${...} placeholders in @Value from the project's application.yml/properties and Spring Boot metadata. Wave 7: datasource driver missing, config key <-> @Value/@ConfigurationProperties gutters, spring.config.import files count as config. Wave 8: profile override gutters between application-<profile> and base config, @SpringBootApplication -> config files. Wave 9: @ConditionalOnProperty, @EnableConfigurationProperties, test property, @ConfigurationProperties field and profile value gutters. Wave 11: unread bootstrap.yml, Spring Cloud Stream bindings without a function bean.",
@@ -81,7 +81,7 @@
     },
     {
       "id": "dev.phantom.jpa",
-      "name": "Phantom JPA",
+      "name": "JPA Support",
       "version": "0.7.0",
       "source": "jpa",
       "description": "JPA, Hibernate and Spring Data JPA for Java and Kotlin: JPQL in @Query with completion and errors, derived query method checks, a @Modifying check, entity mapping checks, and repository/entity gutter navigation. An Entity Diagram tool window: entities, columns and relations drawn from the code, copyable as a Mermaid erDiagram. 0.3.0: entity checks (several @Id, no-arg constructor, mappedBy, raw collections, converters), attribute checks (@Column on associations, LAZY on the inverse @OneToOne, @ManyToMany cascade REMOVE, unmapped entity fields, @Enumerated), Kotlin entity checks (kotlin-jpa/all-open, data class, val attributes, read-only collections), Lombok on entities, repository return and parameter types and Pageable. Wave 6: JPQL undeclared aliases and function arity, entity graph attributes, entity listener callback signatures. Wave 7: entity listener usage, named queries, JPQL in createQuery, Kotlin non-null vs nullable columns, Lombok @AllArgsConstructor without no-arg. Wave 9: derived query JPQL gutter, attribute <-> repository methods, @EntityGraph navigation. Wave 11: SQL injection through string-built JDBC/JPA queries, Criteria attribute names (check, completion, Ctrl+B), Jakarta Data repositories, Hibernate @Find, Spring Data JDBC aggregates and mappings.",
@@ -104,7 +104,7 @@
     },
     {
       "id": "dev.phantom.mybatis",
-      "name": "Phantom MyBatis",
+      "name": "MyBatis Support",
       "version": "0.3.1",
       "source": "mybatis",
       "description": "MyBatis mapper support (what MyBatisX does): interface ↔ XML statement gutters, statement id / resultMap / refid / resultType / property references with completion, rename and errors, mapper methods without a statement with a quick fix that writes it, #{...} parameter completion, and SQL highlighting and completion in mapper XML and @Select/@Insert/@Update/@Delete with Phantom Database Console. 0.1.1: Go to Implementation from mapper method calls opens the XML statement; Cmd+click on #{a.b}, <if test>, <foreach collection> and @Select placeholders goes to the parameter, property or foreach item. 0.2.0 (with Phantom Database Console 0.25.2): dynamic tags read as MyBatis builds them (<where> AND/OR, <set> commas, <trim>, <include>), syntax errors in whole statements, a run icon on each statement that runs it in the console asking for #{} values, and Reformat Code formats the SQL of plain statements. 0.3.0 (with Phantom Database Console 0.25.3): syntax errors in each <choose> branch and with ${}, Run asks which <if> parts and <choose> branches to take and builds <where>/<set>/<trim> by MyBatis rules, and Reformat Code formats statements with dynamic tags. 0.3.1: loads in Phantom again (Java classes come from the Java plugin modules), so mapper SQL highlights and the inspections run.",
@@ -126,7 +126,7 @@
     },
     {
       "id": "dev.phantom.reactive",
-      "name": "Phantom Reactive Streams",
+      "name": "Reactive Streams Support",
       "version": "0.1.1",
       "source": "reactive-streams",
       "description": "Reactor and RxJava checks for Java and Kotlin: a Mono, Flux or RxJava source created and dropped without being subscribed, and blocking calls inside reactive operators.",
@@ -148,7 +148,7 @@
     },
     {
       "id": "dev.phantom.ktor",
-      "name": "Phantom Ktor",
+      "name": "Ktor Support",
       "version": "0.1.1",
       "source": "ktor",
       "description": "Ktor server routes from the routing DSL, including routes in Route extension functions with the prefixes of their callers, in the Endpoints tool window.",
@@ -169,7 +169,7 @@
     },
     {
       "id": "dev.phantom.kubernetes",
-      "name": "Phantom Kubernetes",
+      "name": "Kubernetes Support",
       "version": "0.6.0",
       "source": "kubernetes",
       "description": "Helm chart templates: .Values completion and navigation from values.yaml, .Release/.Chart fields, include/define navigation, and a warning for values that values.yaml does not define. 0.2.0: manifest checks for built-in kinds (removed API versions, unknown and missing keys with key completion, duplicate env vars, selector/template label mismatch); YAML in Markdown fences is skipped. Wave 7: unknown kinds, enum values, deprecated keys/resources, server-set fields, Chart.yaml. Wave 8: gutters Service <-> workloads, ConfigMap/Secret/ServiceAccount references, Ingress backends. Wave 10: kinds that are not stored (reviews, Binding, Eviction). Wave 11: deprecated labels/annotations, required list-item keys, unknown Helm templates, risky whitespace trimming, define to include markers.",
@@ -204,7 +204,7 @@
     },
     {
       "id": "dev.phantom.docker",
-      "name": "Phantom Docker",
+      "name": "Docker Support",
       "version": "0.6.0",
       "source": "docker",
       "description": "Docker Compose through the docker CLI: run icons on compose services, a Docker Compose run configuration shown in Services, and a Docker tool window listing containers by compose project with start, stop, restart, remove, logs and compose down. Polls only while open. 0.2.0: Compose checks (unknown keys and values, undefined services/networks/volumes with Ctrl+B and completion, missing image, unquoted base-60 ports, duplicate container names) and Dockerfile checks (continuations, argument counts, exec form, heredocs, stages, COPY/ADD paths). Wave 7: Compose pull_policy and network_mode values. Wave 8: Compose build -> Dockerfile and depends_on gutters, Dockerfile stage Ctrl+B. Wave 10: COPY/ADD here-documents BuildKit rejects. Wave 11: FROM ... AS stage to its usages marker.",
@@ -227,7 +227,7 @@
     },
     {
       "id": "dev.phantom.redis",
-      "name": "Phantom Redis",
+      "name": "Redis Support",
       "version": "0.1.1",
       "source": "redis",
       "description": "A Redis browser and console: keys by SCAN pattern, values of every type with JSON indented, delete, and a redis-cli style command line with history. Password, ACL user, database and TLS. Connects only while the Redis tool window is shown.",
@@ -248,7 +248,7 @@
     },
     {
       "id": "dev.phantom.kafka",
-      "name": "Phantom Kafka",
+      "name": "Kafka Support",
       "version": "0.1.2",
       "source": "kafka",
       "description": "A Kafka browser: topics with partitions and offsets, latest/earliest/since-time messages read without joining a group, sending with key, headers and partition, consumer group lag, create and delete topics. SASL/SSL via client properties in the password safe.",
@@ -268,7 +268,7 @@
     },
     {
       "id": "dev.phantom.validation",
-      "name": "Phantom Bean Validation",
+      "name": "Bean Validation Support",
       "version": "0.2.0",
       "source": "validation",
       "description": "Bean Validation checks for Java and Kotlin: contradictory bounds (@Min above @Max, @Size min above max), constraints on types they cannot validate, Kotlin constructor properties whose constraint lands on the parameter (quick fix: @field:), nested objects with constraints but no @Valid, and Spring beans with method constraints but no @Validated. Wave 7: custom @Constraint definitions.",
@@ -310,7 +310,7 @@
     },
     {
       "id": "dev.phantom.openapi",
-      "name": "Phantom OpenAPI",
+      "name": "OpenAPI Support",
       "version": "0.2.0",
       "source": "openapi",
       "description": "OpenAPI and Swagger specs in YAML and JSON: $ref navigation to local pointers and other files, #/components/... completion, unresolved $ref errors, and gutter links between a spec operation and its handler (Spring MVC and any framework in the Endpoints view). Wave 10: specs not recognized because of a misspelled version key, unsupported versions, unknown top-level keys.",
@@ -504,7 +504,7 @@
     },
     {
       "id": "dev.phantom.webp",
-      "name": "Phantom WebP",
+      "name": "WebP Support",
       "version": "0.1.1",
       "source": "webp",
       "description": "WebP images (lossy, lossless, alpha) open in the image editor and as thumbnails, decoded in Java by the TwelveMonkeys ImageIO reader (BSD) with no native library. Reading only. Replaces the bundled WebP plugin; turn that one off if your Phantom still bundles it. 0.1.1: the WebP decoder loads when a WebP image is first opened, not at startup.",
@@ -567,7 +567,7 @@
     },
     {
       "id": "dev.phantom.querydsl",
-      "name": "Phantom QueryDSL",
+      "name": "QueryDSL Support",
       "version": "0.1.0",
       "source": "querydsl",
       "description": "QueryDSL Q classes followed back to their entities: Go to Declaration on a Q class path (order.customer.name, QOrder.order) goes to the entity property or entity, in Java and Kotlin code; Find Usages of a Java entity field also finds its QueryDSL paths; Java entities whose Q class is out of date (a field added or removed since the last build) are reported.",
@@ -590,7 +590,7 @@
     },
     {
       "id": "dev.phantom.testcontainers",
-      "name": "Phantom Testcontainers",
+      "name": "Testcontainers Support",
       "version": "0.1.0",
       "source": "testcontainers",
       "description": "Testcontainers checks for Java and Kotlin tests: a @Container that never starts (no @Testcontainers on its class, or not a container), one started again for every test (an instance field), an image without a version tag or with :latest, and Spring's @DynamicPropertySource methods and @ServiceConnection fields that are not static and so are not found. Java fixes make them static.",
@@ -611,7 +611,7 @@
     },
     {
       "id": "com.phantom.mermaid",
-      "name": "Mermaid (Phantom)",
+      "name": "Mermaid Support",
       "version": "0.1.2",
       "source": "mermaid",
       "description": "Editing support and diagram preview for Mermaid in .mmd and .mermaid files and in Markdown code fences: highlighting, completion, formatting, folding, rename and Find Usages of node ids, inspections, and a preview next to the editor. The IntelliJ Community Mermaid plugin (Apache 2.0) under its own id, so Phantom can stop bundling the JetBrains copy (com.intellij.mermaid), which has to be disabled for this one to load. Faster: the preview draws only the latest text after typing pauses and skips text that did not change, Markdown diagrams that did not change are not drawn again (and replaced blocks no longer stay in memory), and mermaid.js is read once and no longer kept stale in the browser after an update.",
@@ -675,7 +675,7 @@
     },
     {
       "id": "dev.phantom.lombok",
-      "name": "Phantom Lombok",
+      "name": "Lombok Support",
       "version": "0.1.0",
       "source": "lombok",
       "description": "Project Lombok in the editor: generated getters, setters, constructors, builders, loggers and more resolve and complete; lombok.config, inspections, quick fixes and Delombok. Based on the IntelliJ Community Lombok plugin (Apache 2.0); Lombook Plugin stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -691,7 +691,7 @@
     },
     {
       "id": "dev.phantom.decompiler",
-      "name": "Phantom Java Bytecode Decompiler",
+      "name": "Phantom Bytecode Decompiler for Java",
       "version": "0.1.0",
       "source": "decompiler",
       "description": "Opening a .class file without sources shows Java source decompiled by Fernflower instead of a stub, with the debugger mapping its lines back; Kotlin's bytecode decompiler builds on it. Based on the IntelliJ Community Java Bytecode Decompiler plugin (Apache 2.0); org.jetbrains.java.decompiler stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -723,7 +723,7 @@
     },
     {
       "id": "dev.phantom.textmate",
-      "name": "Phantom TextMate Bundles",
+      "name": "TextMate Bundles Support",
       "version": "0.1.0",
       "source": "textmate",
       "description": "Highlighting, brace matching, commenting and snippets from TextMate and VS Code grammars for file types no other plugin covers: 64 bundled grammars and any you add. Based on the IntelliJ Community TextMate Bundles plugin (Apache 2.0); org.jetbrains.plugins.textmate stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -739,7 +739,7 @@
     },
     {
       "id": "dev.phantom.markdown",
-      "name": "Phantom Markdown",
+      "name": "Markdown Support",
       "version": "0.1.0",
       "source": "markdown",
       "description": "Markdown files: highlighting, completion, navigation, inspections, table and list editing, images, language injection in code fences, front matter, and the JCEF preview; Shell Script, Kotlin and others build on it. Based on the IntelliJ Community Markdown plugin (Apache 2.0); org.intellij.plugins.markdown stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -755,7 +755,7 @@
     },
     {
       "id": "dev.phantom.github",
-      "name": "Phantom GitHub",
+      "name": "GitHub Support",
       "version": "0.1.0",
       "source": "github",
       "description": "GitHub in the IDE: GitHub and GitHub Enterprise accounts (OAuth or token), cloning, Share Project on GitHub, pull requests (list, review with comments in the diff and editor, create, merge), gists, Open on GitHub, and GitHub Actions workflow schemas. Based on the IntelliJ Community GitHub plugin (Apache 2.0); org.jetbrains.plugins.github stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -771,7 +771,7 @@
     },
     {
       "id": "dev.phantom.editorconfig",
-      "name": "Phantom EditorConfig",
+      "name": "EditorConfig Support",
       "version": "0.1.0",
       "source": "editorconfig",
       "description": "EditorConfig files: properties from .editorconfig applied to the code style, indentation, encoding and trailing spaces of every supported language, plus editing support for the files themselves (highlighting, completion, inspections and quick fixes, navigation, rename, a preview of affected files, and code style scheme export). Based on the IntelliJ Community EditorConfig plugin (Apache 2.0); org.editorconfig.editorconfigjetbrains stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -820,7 +820,7 @@
     },
     {
       "id": "dev.phantom.testng",
-      "name": "Phantom TestNG",
+      "name": "TestNG Support",
       "version": "0.1.0",
       "source": "testng",
       "description": "TestNG for Java: run configurations for classes, methods, packages, groups, patterns and suite files with the test tree, forked runs and debugging; test generation; references from dataProvider, dependsOnMethods, groups and testng.xml; inspections and quick fixes such as converting JUnit tests to TestNG. Based on the IntelliJ Community TestNG plugin (Apache 2.0); TestNG-J stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -836,7 +836,7 @@
     },
     {
       "id": "dev.phantom.java-i18n",
-      "name": "Phantom Java Internationalization",
+      "name": "Phantom Internationalization for Java",
       "version": "0.1.0",
       "source": "java-i18n",
       "description": "Java internationalization: inspections for hard-coded strings, unresolved property keys, message format parameters, inconsistent resource bundles and title capitalization; I18nize to move literals into properties files; folding of message calls to their text; references, find usages and rename between Java and properties keys. Based on the IntelliJ Community Java Internationalization plugin (Apache 2.0); com.intellij.java-i18n stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -901,7 +901,7 @@
     },
     {
       "id": "dev.phantom.junit",
-      "name": "Phantom JUnit",
+      "name": "JUnit Support",
       "version": "0.1.0",
       "source": "junit",
       "description": "JUnit 3, 4, 5 and 6 for Java: run configurations for a class, method, package, directory, pattern, tags or unique id, run from the gutter with the test tree, rerun of failed tests, forked runs and debugging; test generation and navigation between a test and its subject; references from @MethodSource, @FieldSource and @EnumSource to their targets; and inspections and quick fixes such as malformed test declarations and JUnit 4 to 5 migration. Based on the IntelliJ Community JUnit plugin (Apache 2.0); JUnit stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -949,7 +949,7 @@
     },
     {
       "id": "dev.phantom.gradle-dsl",
-      "name": "Phantom Gradle DSL",
+      "name": "Gradle DSL Support",
       "version": "0.1.0",
       "source": "gradle-dsl",
       "description": "A technical plugin with no UI of its own: an API that reads Gradle build files (Groovy, Kotlin script, version catalog TOML) as a model and edits them in place — dependencies, plugins, repositories, ext properties, Android blocks; Gradle-Java's dependency updater and build analysis use it. The Kotlin script parser switches on only with the Kotlin plugin installed. Based on the IntelliJ Community Gradle DSL API plugin (Apache 2.0); org.jetbrains.idea.gradle.dsl stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -987,7 +987,7 @@
     },
     {
       "id": "dev.phantom.groovy-scripting",
-      "name": "Phantom Groovy Scripting",
+      "name": "Groovy Scripting Support",
       "version": "0.1.0",
       "source": "groovy-scripting",
       "description": "The Groovy JSR223 engine for the IDE Scripting Console, and the Groovy 3 library (with Ivy for Grape) that Groovy, Groovy Live Templates and others load through intellij.libraries.groovy. Based on the IntelliJ Community Groovy Scripting plugin (Apache 2.0); com.intellij.groovy.scripting stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -1003,7 +1003,7 @@
     },
     {
       "id": "dev.phantom.groovy",
-      "name": "Phantom Groovy",
+      "name": "Groovy Support",
       "version": "0.1.0",
       "source": "groovy",
       "description": "Groovy: highlighting, completion, inspections and quick fixes, intentions, refactorings, formatting, structural search, GDSL scripts, Groovy and Gant run configurations with debugger hot swap, the Groovy console, Grape, compilation in the IDE build (Groovy or Eclipse compiler, stub generation), Spock and Geb support, and the Ant, Git and Copyright integrations; Gradle, Maven and others build on it. Based on the IntelliJ Community Groovy plugin (Apache 2.0); org.intellij.groovy stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -1021,7 +1021,7 @@
     },
     {
       "id": "dev.phantom.groovy-live-templates",
-      "name": "Phantom Groovy Live Templates",
+      "name": "Groovy Live Templates Support",
       "version": "0.1.0",
       "source": "groovy-live-templates",
       "description": "The groovyScript() live template macro: a template variable computed by a Groovy script, inline or from a file, with the macro's arguments and the editor at hand. Based on the IntelliJ Community Groovy Live Templates plugin (Apache 2.0); org.intellij.groovy.live.templates stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",

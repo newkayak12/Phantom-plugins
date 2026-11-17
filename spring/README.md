@@ -1,4 +1,4 @@
-# Phantom Spring
+# Spring Support
 
 `dev.phantom.spring` · [한국어](./KOR.md)
 
@@ -21,4 +21,4 @@ Phantom suggests this plugin when a project depends on `spring-context` or `spri
 
 - **Spring Beans** tool window: every bean of the project by module and stereotype (controllers, services, repositories, components, configurations with their `@Bean` methods). Each bean expands into what it depends on, with the bean that fills each injection point, and where it is injected. Double-click opens the source. Computed when the window opens or on Refresh, never in the background.
 
-Not yet: WebFlux functional routes, Spring Security filter chain views. Spring Data repositories are in [Phantom JPA](../jpa/README.md).
+Not yet: WebFlux functional routes, Spring Security filter chain views. Spring Data repositories are in [JPA Support](../jpa/README.md).

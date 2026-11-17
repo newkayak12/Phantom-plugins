@@ -1,4 +1,4 @@
-# Phantom Groovy
+# Groovy Support
 
 `dev.phantom.groovy` · [English](./README.md)
 

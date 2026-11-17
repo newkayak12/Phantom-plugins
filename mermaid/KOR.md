@@ -1,4 +1,4 @@
-# Mermaid (Phantom)
+# Mermaid Support
 
 `com.phantom.mermaid` · [English](./README.md)
 

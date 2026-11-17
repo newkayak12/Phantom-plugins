@@ -1,4 +1,4 @@
-# Phantom JUnit
+# JUnit Support
 
 `dev.phantom.junit` · [한국어](./KOR.md)
 

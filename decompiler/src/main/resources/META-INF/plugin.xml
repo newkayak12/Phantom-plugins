@@ -3,7 +3,7 @@
        content module names stay the IntelliJ ones, as bundled modules depend on them by name. The bundled IntelliJ
        Java Bytecode Decompiler plugin has to be gone, or both claim the same id and modules. -->
   <id>dev.phantom.decompiler</id>
-  <name>Phantom Java Bytecode Decompiler</name>
+  <name>Phantom Bytecode Decompiler for Java</name>
   <module value="org.jetbrains.java.decompiler"/>
   <category>JVM Tools</category>
   <description>

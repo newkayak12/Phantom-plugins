@@ -1,4 +1,4 @@
-# Phantom Reactive Streams
+# Reactive Streams Support
 
 `dev.phantom.reactive` · [English](./README.md)
 

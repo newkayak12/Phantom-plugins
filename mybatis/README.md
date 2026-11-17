@@ -1,4 +1,4 @@
-# Phantom MyBatis
+# MyBatis Support
 
 `dev.phantom.mybatis` · [한국어](./KOR.md)
 

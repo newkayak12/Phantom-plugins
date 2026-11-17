@@ -1,4 +1,4 @@
-# Phantom GitHub
+# GitHub Support
 
 `dev.phantom.github` · [한국어](./KOR.md)
 

@@ -1,4 +1,4 @@
-# Phantom Bean Validation
+# Bean Validation Support
 
 `dev.phantom.validation` · [English](./README.md)
 

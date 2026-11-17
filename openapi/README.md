@@ -1,4 +1,4 @@
-# Phantom OpenAPI
+# OpenAPI Support
 
 `dev.phantom.openapi` · [한국어](./KOR.md)
 

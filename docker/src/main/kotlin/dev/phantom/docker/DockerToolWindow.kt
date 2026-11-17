@@ -170,7 +170,7 @@ class ContainersPanel(private val project: Project, parent: Disposable) : JPanel
       val failure = output.exceptionOrNull()?.message
                     ?: output.getOrNull()?.takeIf { it.exitCode != 0 || it.isTimeout }?.let { it.stderr.trim().ifEmpty { "exit code ${it.exitCode}" } }
       if (failure != null) {
-        NotificationGroupManager.getInstance().getNotificationGroup("Phantom Docker").createNotification("$title failed", failure, NotificationType.ERROR).notify(project)
+        NotificationGroupManager.getInstance().getNotificationGroup("Docker Support").createNotification("$title failed", failure, NotificationType.ERROR).notify(project)
       }
       schedule(0)
     }

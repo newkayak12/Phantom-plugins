@@ -1,4 +1,4 @@
-# Phantom Ktor
+# Ktor Support
 
 `dev.phantom.ktor` · [English](./README.md)
 

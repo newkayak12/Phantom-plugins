@@ -1,4 +1,4 @@
-# Phantom Lombok
+# Lombok Support
 
 `dev.phantom.lombok` · [English](./README.md)
 

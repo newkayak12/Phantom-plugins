@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.testcontainers</id>
-  <name>Phantom Testcontainers</name>
+  <name>Testcontainers Support</name>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>JVM Frameworks</category>
   <description><![CDATA[

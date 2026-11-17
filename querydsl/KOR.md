@@ -1,4 +1,4 @@
-# Phantom QueryDSL
+# QueryDSL Support
 
 `dev.phantom.querydsl` · [English](./README.md)
 

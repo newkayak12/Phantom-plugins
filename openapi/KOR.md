@@ -1,4 +1,4 @@
-# Phantom OpenAPI
+# OpenAPI Support
 
 `dev.phantom.openapi` · [English](./README.md)
 

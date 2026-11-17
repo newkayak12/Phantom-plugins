@@ -1,4 +1,4 @@
-# Phantom Gradle DSL
+# Gradle DSL Support
 
 `dev.phantom.gradle-dsl` · [한국어](./KOR.md)
 

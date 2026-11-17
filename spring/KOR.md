@@ -1,4 +1,4 @@
-# Phantom Spring
+# Spring Support
 
 `dev.phantom.spring` · [English](./README.md)
 
@@ -21,4 +21,4 @@ Java와 Kotlin 프로젝트를 위한 Spring 지원입니다.
 
 - **Spring Beans** 툴 윈도우: 프로젝트의 모든 빈을 모듈과 종류(컨트롤러, 서비스, 리포지터리, 컴포넌트, 설정 클래스와 그 `@Bean` 메서드)별로 보여 줍니다. 빈을 펼치면 주입받는 빈과 각 주입 지점을 채우는 빈, 그리고 이 빈을 주입받는 곳이 나옵니다. 두 번 클릭하면 소스로 이동합니다. 창을 열 때나 Refresh를 누를 때만 계산합니다.
 
-아직 없는 것: WebFlux 함수형 라우트, Spring Security 필터 체인 보기. Spring Data 리포지토리는 [Phantom JPA](../jpa/KOR.md)에 있습니다.
+아직 없는 것: WebFlux 함수형 라우트, Spring Security 필터 체인 보기. Spring Data 리포지토리는 [JPA Support](../jpa/KOR.md)에 있습니다.

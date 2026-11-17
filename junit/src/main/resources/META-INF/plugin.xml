@@ -3,7 +3,7 @@
        Groovy's Spock support, Kotlin's JUnit run configurations) resolve to this one. The bundled IntelliJ JUnit plugin
        has to be gone, or both claim the same id. -->
   <id>dev.phantom.junit</id>
-  <name>Phantom JUnit</name>
+  <name>JUnit Support</name>
   <module value="JUnit"/>
   <description>
       <![CDATA[

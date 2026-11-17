@@ -1,4 +1,4 @@
-# Phantom QueryDSL
+# QueryDSL Support
 
 `dev.phantom.querydsl` · [한국어](./KOR.md)
 

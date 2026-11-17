@@ -6,7 +6,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.module.Module
 import com.intellij.psi.JavaPsiFacade
 
-/** Every Phantom Spring Boot extension calls this first; modules without Spring Boot pay one cached lookup. */
+/** Every Spring Boot Support extension calls this first; modules without Spring Boot pay one cached lookup. */
 object SpringBootGate {
   private const val SPRING_BOOT_MAVEN = "org.springframework.boot:spring-boot"
   private const val SPRING_APPLICATION = "org.springframework.boot.SpringApplication"

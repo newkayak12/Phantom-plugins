@@ -1,4 +1,4 @@
-# Phantom Java Internationalization
+# Phantom Internationalization for Java
 
 `dev.phantom.java-i18n` · [English](./README.md)
 
