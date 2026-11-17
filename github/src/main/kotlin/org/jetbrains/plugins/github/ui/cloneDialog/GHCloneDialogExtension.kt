@@ -27,6 +27,7 @@ import com.intellij.util.ui.cloneDialog.AccountMenuItem
 import kotlinx.coroutines.CoroutineScope
 import org.jetbrains.plugins.github.api.GithubServerPath
 import org.jetbrains.plugins.github.authentication.GHAccountsUtil
+import org.jetbrains.plugins.github.authentication.GHDeviceFlow
 import org.jetbrains.plugins.github.authentication.accounts.GHAccountManager
 import org.jetbrains.plugins.github.authentication.accounts.GithubAccount
 import org.jetbrains.plugins.github.authentication.accounts.isGHAccount
@@ -64,7 +65,9 @@ private class GHCloneDialogExtensionComponent(project: Project, parentCs: Corout
     }
 
   override fun createAccountMenuLoginActions(account: GithubAccount?): Collection<AccountMenuItem.Action> =
-    listOf(createLoginAction(account), createLoginWithTokenAction(account))
+    // phantom-idea: no browser login item while no OAuth client id is configured; the token item then takes the separator
+    if (GHDeviceFlow.isBrowserLoginAvailable) listOf(createLoginAction(account), createLoginWithTokenAction(account))
+    else listOf(createLoginWithTokenAction(account, showSeparatorAbove = account == null))
 
   private fun createLoginAction(account: GithubAccount?): AccountMenuItem.Action {
     val isExistingAccount = account != null
@@ -78,13 +81,14 @@ private class GHCloneDialogExtensionComponent(project: Project, parentCs: Corout
     )
   }
 
-  private fun createLoginWithTokenAction(account: GithubAccount?): AccountMenuItem.Action =
+  private fun createLoginWithTokenAction(account: GithubAccount?, showSeparatorAbove: Boolean = false): AccountMenuItem.Action =
     AccountMenuItem.Action(
       CollaborationToolsBundle.message("clone.dialog.login.with.token.action"),
       {
         switchToLogin(account)
         getLoginPanel()?.setTokenUi()
-      }
+      },
+      showSeparatorAbove = showSeparatorAbove
     )
 
   private fun getLoginPanel(): GHCloneDialogLoginPanel? = content as? GHCloneDialogLoginPanel
@@ -110,11 +114,14 @@ private class GHCloneDialogLoginPanel(
 
       row {
         cell(HorizontalListPanel().apply {
-          val loginViaGHButton = JButton(message("login.via.github.action")).apply { addActionListener { setOAuthLoginUi() } }
           val useTokenLink = ActionLink(message("link.label.use.token")) { setTokenUi() }
 
-          add(loginViaGHButton)
-          add(JBLabel(message("label.login.option.separator")).apply { border = empty(0, 6, 0, 4) })
+          // phantom-idea: no browser login button (nor the "or" separator) while no OAuth client id is configured
+          if (GHDeviceFlow.isBrowserLoginAvailable) {
+            val loginViaGHButton = JButton(message("login.via.github.action")).apply { addActionListener { setOAuthLoginUi() } }
+            add(loginViaGHButton)
+            add(JBLabel(message("label.login.option.separator")).apply { border = empty(0, 6, 0, 4) })
+          }
           add(useTokenLink)
         })
       }
