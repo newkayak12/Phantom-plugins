@@ -1,6 +1,6 @@
 # phantom-plugins
 
-Plugins for [Phantom](https://github.com/newkayak12/Phantom-IDEA), kept out of the IDE so that a project only
+Plugins for [Phantom](https://github.com/newkayak12/Phantom), kept out of the IDE so that a project only
 pays for the technology it uses. [한국어](./KOR.md)
 
 ## Install
