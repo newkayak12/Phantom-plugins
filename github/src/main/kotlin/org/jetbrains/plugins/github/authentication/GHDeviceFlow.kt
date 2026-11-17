@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.plugins.github.authentication.util.GHSecurityUtil
 import org.jetbrains.plugins.github.api.GithubServerPath
 import org.jetbrains.plugins.github.exceptions.GithubAuthenticationException
+import org.jetbrains.plugins.github.i18n.GithubBundle.message
 import java.io.File
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -38,7 +39,7 @@ internal object GHDeviceFlow {
 
   suspend fun requestCode(server: GithubServerPath, clientId: String): Code {
     val json = post("${server.toUrl()}/login/device/code", "client_id" to clientId, "scope" to GHSecurityUtil.MASTER_SCOPES.joinToString(" "))
-    val deviceCode = json["device_code"] as? String ?: throw GithubAuthenticationException(errorText(json, "GitHub did not return a device code"))
+    val deviceCode = json["device_code"] as? String ?: throw GithubAuthenticationException(errorText(json, message("phantom.login.device.no.code")))
     return Code(deviceCode, json["user_code"] as String, json["verification_uri"] as? String ?: "${server.toUrl()}/login/device",
                 (json["interval"] as? Number)?.toInt() ?: 5, (json["expires_in"] as? Number)?.toInt() ?: 900)
   }
@@ -55,10 +56,10 @@ internal object GHDeviceFlow {
       when (json["error"]) {
         "authorization_pending" -> Unit
         "slow_down" -> interval = (json["interval"] as? Number)?.toInt() ?: (interval + 5)
-        else -> throw GithubAuthenticationException(errorText(json, "GitHub login failed"))
+        else -> throw GithubAuthenticationException(errorText(json, message("phantom.login.device.failed")))
       }
     }
-    throw GithubAuthenticationException("The login code expired. Try again.")
+    throw GithubAuthenticationException(message("phantom.login.device.expired"))
   }
 
   private fun errorText(json: Map<String, Any?>, fallback: String): String =

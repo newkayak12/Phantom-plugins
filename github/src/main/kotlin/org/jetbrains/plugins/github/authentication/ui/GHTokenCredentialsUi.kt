@@ -50,7 +50,7 @@ internal class GHTokenCredentialsUi(
         .resizableColumn()
       button(message("credentials.button.generate")) { browseNewTokenUrl() }
         .enabledIf(serverTextField.serverValid)
-      button("From gh CLI") { fillFromGhCli() }
+      button(message("phantom.credentials.button.from.gh.cli")) { fillFromGhCli() }
         .enabledIf(serverTextField.serverValid)
     }
   }
@@ -62,7 +62,8 @@ internal class GHTokenCredentialsUi(
       val token = GHDeviceFlow.ghCliTokenBlocking(server)
       ApplicationManager.getApplication().invokeLater({
         if (token != null) tokenTextField.text = token
-        else Messages.showWarningDialog(tokenTextField, "No GitHub CLI login for ${server.host}. Run `gh auth login` first.", "GitHub CLI")
+        else Messages.showWarningDialog(tokenTextField, message("phantom.credentials.gh.cli.no.login", server.host),
+                                        message("phantom.credentials.gh.cli.title"))
       }, ModalityState.stateForComponent(tokenTextField))
     }
   }
