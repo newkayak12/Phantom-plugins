@@ -1050,6 +1050,23 @@
       "since": "262.261117",
       "until": "262.*",
       "download": "kotlin-262.261117/Kotlin-262.261117.zip"
+    },
+    {
+      "id": "org.jetbrains.idea.maven",
+      "name": "Maven Support",
+      "category": "Build Tools",
+      "description": "Maven projects: import and sync of pom.xml, the Maven tool window, running goals, pom.xml editing and completion, repositories and indexes. IntelliJ's Maven plugin (Apache 2.0) built with each Phantom release; not bundled, since Gradle projects never use it. org.jetbrains.idea.maven stays its id, so plugins depending on Maven keep working.",
+      "depends": [
+        "com.intellij.modules.java"
+      ],
+      "detectFiles": [
+        "pom.xml"
+      ],
+      "version": "262.261117.0",
+      "vendor": "Phantom",
+      "since": "262.261117",
+      "until": "262.*",
+      "download": "maven-262.261117/Maven-262.261117.zip"
     }
   ]
 }
