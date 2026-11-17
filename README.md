@@ -154,7 +154,8 @@ Use JDK 25; on headless Linux, run the command under `xvfb-run --auto-servernum`
 `strings/build/reports/jacoco/test/jacocoTestReport.xml`.
 
 Codecov receives that measured report with the `strings` flag. SonarQube Cloud analyzes only Strings
-sources and tests and imports the same JaCoCo report; its quality gate is awaited. Configure repository
+production sources and imports the same JaCoCo report; its quality gate is awaited. Test sources are
+excluded from production coverage because Cloud ignores explicit test-scope settings. Configure repository
 secrets `CODECOV_TOKEN` and `SONAR_TOKEN`, plus variables `SONAR_HOST_URL`, `SONAR_PROJECT_KEY` and
 `SONAR_ORGANIZATION`. Disable SonarQube Cloud automatic analysis before enabling CI analysis.
 Trusted runs fail when configuration or an upload fails. Fork pull requests run tests and save reports
