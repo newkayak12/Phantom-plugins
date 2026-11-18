@@ -17,7 +17,6 @@ class ColumnLocalFilterClearAllAction : DumbAwareAction(), GridAction, ActionRem
     e.presentation.isEnabledAndVisible = grid != null && grid.resultView is TableResultView
   }
 
-
   override fun actionPerformed(e: AnActionEvent) {
     val grid = e.getData(DatabaseDataKeys.DATA_GRID_KEY) ?: return
     val resultView = grid.resultView as? TableResultView ?: return

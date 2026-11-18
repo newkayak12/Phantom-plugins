@@ -7,7 +7,6 @@ import com.intellij.database.datagrid.GridUtil
 import com.intellij.database.datagrid.ModelIndex
 import com.intellij.database.run.ui.DataAccessType
 
-
 interface Node {
   val name: String
   val value: Any?

@@ -12,7 +12,6 @@ import com.intellij.database.settings.DataGridSettings
 import com.intellij.openapi.util.ModificationTracker
 import com.intellij.psi.util.CachedValueProvider
 
-
 fun DataGrid.getCacheValueProvider(): CachedValueProvider<Map<ModelIndex<GridColumn>, DatabaseDisplayObjectFormatterConfig>> {
   return CachedValueProvider<Map<ModelIndex<GridColumn>, DatabaseDisplayObjectFormatterConfig>> {
     val allowedTypes = GridUtil.getAllowedTypes(this) // depend on settings

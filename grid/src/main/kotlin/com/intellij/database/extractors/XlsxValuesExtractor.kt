@@ -33,7 +33,7 @@ class XlsxValuesExtractor(private val myFormatter: ObjectFormatter) : DataExtrac
   override fun getFileExtension() = "xlsx"
 
   override fun supportsText(): Boolean {
-    return false;
+    return false
   }
 
   override fun startExtraction(
@@ -325,7 +325,6 @@ class XlsxValuesExtractor(private val myFormatter: ObjectFormatter) : DataExtrac
       return text.length < 32767
     }
   }
-
 
   private class XlsxSheetBuilder(private val sharedStrings: SharedStrings) {
     private var headerAppended = false

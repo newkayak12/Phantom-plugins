@@ -56,7 +56,7 @@ class LocalFilterState(@NotNull grid: DataGrid, @Volatile var isEnabled: Boolean
   }
 
   fun shiftColumns(columnIndices: ModelIndexSet<GridColumn>, toOriginalIndex: (ModelIndex<GridColumn>) -> ModelIndex<GridColumn>) {
-    val originalValues= allowedValuesForColumn.toMap()
+    val originalValues = allowedValuesForColumn.toMap()
     allowedValuesForColumn.clear()
     columnIndices.asIterable().forEach {
       val originalValue = originalValues[toOriginalIndex(it)]
