@@ -48,4 +48,3 @@ abstract class GitSubmoduleContentRevision(val submodule: GitRepository,
     }
   }
 }
-

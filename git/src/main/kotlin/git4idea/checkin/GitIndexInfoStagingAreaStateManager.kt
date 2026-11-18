@@ -232,4 +232,3 @@ internal class GitIndexInfoStagingAreaStateManager(val repository: GitRepository
     private val LOG = logger<GitIndexInfoStagingAreaStateManager>()
   }
 }
-

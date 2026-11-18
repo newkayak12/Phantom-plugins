@@ -48,7 +48,7 @@ object GitBranchesTreeUtil {
   }
 
   private fun JTree.selectFirstRow(project: Project): Boolean {
-    val path = getPathForRow(0)?:return false
+    val path = getPathForRow(0) ?: return false
     if (!canSelect(project, this, path.lastPathComponent)) return false
 
     scrollPathToVisible(path)

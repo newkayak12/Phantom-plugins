@@ -20,7 +20,7 @@ internal class GitCommandOutputConsolePrinter(private val project: Project) : Gi
     val lineChunks = mutableListOf<Pair<String?, Key<*>>>()
     //TODO: async processing as stated in AnsiEscapeDecoder documentation
     ansiEscapeDecoder.escapeText(line, outputType) { text, key -> lineChunks.add(Pair.create(text, key)) }
-    GitVcsConsoleWriter.getInstance(project).showMessage(lineChunks);
+    GitVcsConsoleWriter.getInstance(project).showMessage(lineChunks)
   }
 
   override fun showCommandFinished(processId: String, workingDir: Path, exitCode: Int) = Unit

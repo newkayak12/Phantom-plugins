@@ -21,5 +21,5 @@ internal enum class GitIncomingCheckStrategy {
   /**
    * Do not perform incoming commits checks.
    */
-  Never;
+  Never
 }

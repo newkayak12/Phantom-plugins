@@ -116,7 +116,6 @@ abstract class GitLogIndexTest(val useSqlite: Boolean) : GitSingleRepoTest() {
                                                        project.getService(VcsLogObjectsFactory::class.java))
     val actualPresentation = commits.map { actualMetadata[it] }.joinToString("\n\n") { it?.presentation() ?: "NOT LOADED" }
 
-
     TestCase.assertEquals(expectedPresentation, actualPresentation)
   }
 

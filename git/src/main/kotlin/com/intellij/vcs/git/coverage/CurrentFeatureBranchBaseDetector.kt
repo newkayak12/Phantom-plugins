@@ -30,7 +30,6 @@ import java.util.WeakHashMap
 private data class CachedResult(val status: Status, val state: CachedState)
 private data class CachedState(val headHash: String, val protectedBranchHashes: List<Pair<String, String>>)
 
-
 @Service(Service.Level.PROJECT)
 private class CurrentFeatureBranchBaseDetectorCache {
   val cache = WeakHashMap<GitRepository, CachedResult>()
@@ -213,4 +212,3 @@ private fun findProtectedBranchNodeId(nodeId: VcsLogGraphNodeId, linearGraph: Li
   }
   return protectedNodeId
 }
-

@@ -88,7 +88,7 @@ class GitRevertTest : GitSingleRepoTest() {
 
     revertAutoCommit(commit2, commit1)
 
-    assertErrorNotification("Revert failed","""
+    assertErrorNotification("Revert failed", """
       ${commit1.id.toShortString()} ${commit1.subject}
       """ + GitBundle.message("warning.your.local.changes.would.be.overwritten.by", "revert", "shelve") + """
       """ + GitBundle.message("apply.changes.operation.successful.for.commits", "revert", 1) + """
@@ -169,7 +169,7 @@ class GitRevertTest : GitSingleRepoTest() {
     revertAutoCommit(commit3, conflictingCommit, commit1)
 
     assertSuccessfulNotification("Revert successful", listOf(commit3, conflictingCommit, commit1).joinToString("<br/>")
-      { "${it.id.toShortString()} ${it.subject}"})
+      { "${it.id.toShortString()} ${it.subject}" })
     repo.assertLatestSubjects(
       "Revert \"${commit1.subject}\"",
       "Revert \"${conflictingCommit.subject}\"",

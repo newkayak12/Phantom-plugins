@@ -126,7 +126,6 @@ internal class GitHistoryTraverserImpl(
       GitLogUtil.collectMetadata(project, root, commits.map { toHash(it).asString() })
     }.flatten()
 
-
   override fun loadFullDetails(
     ids: List<VcsLogCommitStorageIndex>,
     requirements: GitCommitRequirements,

@@ -274,7 +274,7 @@ internal class GitStagePanel(
     val isVertical = isVertical()
     val hasSplitterPreview = shouldHaveSplitterDiffPreview(project, isVertical)
     val isPreviewPanelShown = hasSplitterPreview && VcsConfiguration.getInstance(project).LOCAL_CHANGES_DETAILS_PREVIEW_SHOWN
-    val isMessageSplitterVertical = isVertical || isPreviewPanelShown;
+    val isMessageSplitterVertical = isVertical || isPreviewPanelShown
     if (treeMessageSplitter.orientation != isMessageSplitterVertical) {
       treeMessageSplitter.orientation = isMessageSplitterVertical
     }

@@ -245,7 +245,6 @@ class GitPartialCommitTest : GitSingleRepoTest() {
     assertCommittedContent("a.java", "A\nB\nZ\nD\nY")
   }
 
-
   private fun assertCommittedContent(fileName: String, expectedContent: String, useFilters: Boolean = false) {
     val actualContent = repo.gitAsBytes("cat-file" +
                                         (if (useFilters) " --filters" else " -p") +

@@ -223,7 +223,6 @@ private class GitUserNameCheckinHandler(project: Project) : GitCheckinHandler(pr
       defined.putAll(getDefinedUserNames(project, allRoots, true))
     }
 
-
     val data = withContext(Dispatchers.EDT) {
       val dialog = GitUserNameNotDefinedDialog(project, notDefined, affectedRoots, defined, commitInfo.commitActionText)
       val setUserNameEmail = dialog.showAndGet()

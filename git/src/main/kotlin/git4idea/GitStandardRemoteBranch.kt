@@ -54,7 +54,6 @@ class GitStandardRemoteBranch(remote: GitRemote, nameAtRemote: String) :
   }
 }
 
-
 private object GitStandardRemoteBranchSerializer : KSerializer<GitStandardRemoteBranch> {
   override val descriptor: SerialDescriptor = buildClassSerialDescriptor("git4idea.GitStandardRemoteBranch") {
     element("nameForRemoteOperations", String.serializer().descriptor)

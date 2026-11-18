@@ -161,7 +161,6 @@ object MergeConflictResolveUtil {
     }
   }
 
-
   class NotificationProvider : EditorNotificationProvider, DumbAware {
     override fun collectNotificationData(project: Project, file: VirtualFile): Function<in FileEditor, out JComponent?>? {
       if (hasActiveMergeWindow(file)) {

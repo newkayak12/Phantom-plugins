@@ -76,7 +76,6 @@ class GitCommitCompletionCharFilter : CharFilter() {
     val file = lookup.psiFile
     if (file == null || !isCommitMessageFile(lookup.project, file)) return null
 
-
     val currentItem = lookup.currentItem ?: return null
     if (matchesAfterAppendingChar(lookup, currentItem, c)) {
       return Result.ADD_TO_PREFIX

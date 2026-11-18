@@ -20,7 +20,6 @@ import git4idea.rebase.log.GitCommitEditingActionBase.Companion.checkHeadLinearH
 import git4idea.rebase.log.GitCommitEditingActionBase.Companion.findContainingBranches
 import git4idea.repo.GitRepository
 
-
 class GitPushUpToCommitAction : GitLogSingleCommitAction() {
 
   override fun actionPerformed(e: AnActionEvent) {
@@ -29,7 +28,6 @@ class GitPushUpToCommitAction : GitLogSingleCommitAction() {
     val logData = e.getData(VcsLogDataKeys.VCS_LOG_DATA_PROVIDER) as? VcsLogData ?: return
     val commit = selection.commits.first()
     val repository: GitRepository = getRepositoryForRoot(project, commit.root)!!
-
 
     //get the current branch or the first local branch which has the selected commit
     val currentBranch = repository.currentBranch

@@ -28,7 +28,7 @@ import org.jetbrains.annotations.ApiStatus
 @ApiStatus.Experimental
 enum class ResolveConflictsMethod {
   REBASE,
-  MERGE;
+  MERGE
 }
 
 @ApiStatus.Experimental

@@ -84,7 +84,6 @@ internal class GitHostingUrlUtilTest {
     noMatch("someserver.net/ghe", "someserver.net")
   }
 
-
   private fun match(serverHost: String, host: String, path: String = "user/repo.git") = checkMatch(true, serverHost, host, path)
   private fun noMatch(serverHost: String, host: String, path: String = "user/repo.git") = checkMatch(false, serverHost, host, path)
 

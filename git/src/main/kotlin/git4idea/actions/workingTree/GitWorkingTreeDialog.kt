@@ -229,12 +229,12 @@ internal class GitWorkingTreeDialog(
   }
 
   private fun ValidationInfoBuilder.validateNewBranchNameField(): ValidationInfo? {
-    if (!createNewBranch.get()){
+    if (!createNewBranch.get()) {
       return null
     }
     val name = newBranchName.get()
     checkRefName(name)?.let { return it }
-    if (localBranchNames.contains(name)){
+    if (localBranchNames.contains(name)) {
       return error(GitBundle.message("working.tree.dialog.branch.validation.already.exists", name))
     }
     return null

@@ -426,7 +426,6 @@ class GitIgnoredFileTest : GitSingleRepoTest() {
     """)
   }
 
-
   fun `test add to ignore file without trailing newline`() {
     val gitIgnore = file(GITIGNORE).create().file
     gitIgnore.writeText("foo")

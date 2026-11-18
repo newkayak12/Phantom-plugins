@@ -151,4 +151,3 @@ private class GitRebaseMergeDialogCustomizer(
     return getTitleWithCommitsRangeDetailsCustomizer(title, repository, file, Pair(mergeBase.asString(), GitUtil.HEAD))
   }
 }
-

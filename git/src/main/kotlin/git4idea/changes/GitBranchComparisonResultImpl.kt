@@ -144,7 +144,6 @@ internal class GitBranchComparisonResultImpl(
     return result
   }
 
-
   companion object {
     private val LOG = logger<GitBranchComparisonResult>()
   }

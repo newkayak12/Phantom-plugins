@@ -57,7 +57,6 @@ import kotlin.test.DefaultAsserter.assertTrue
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-
 internal abstract class GitCommitTestBase(@Suppress("unused") val eelHolder: EelHolder, val gitCommitFixture: TestFixture<GitCommitContext>) {
 
   protected abstract fun `verify test commit case rename & don't commit a file which is both staged and unstaged, should reset and restore unstaged`()
@@ -505,7 +504,6 @@ internal abstract class GitCommitTestBase(@Suppress("unused") val eelHolder: Eel
     rm("a.before")
     touch("a.after", "after content")
     git("add a.after")
-
 
     val changes = assertChangesWithRefresh {
       deleted("a.before")

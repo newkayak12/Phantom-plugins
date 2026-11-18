@@ -12,7 +12,7 @@ import git4idea.repo.GitRepositoryManager
 import kotlin.reflect.KProperty1
 
 internal class GitSetupProjectConfig : ProjectActivity {
-  override suspend fun execute(project: Project): Unit {
+  override suspend fun execute(project: Project) {
     ProjectLevelVcsManager.getInstance(project).runAfterInitialization {
       setupConfigIfNeeded(project)
     }

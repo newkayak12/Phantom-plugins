@@ -39,7 +39,6 @@ internal class GitOptionsPopupBuilder<T>(
         )
       }
 
-
       override fun handleSelect(handleFinalChoices: Boolean) {
         if (handleFinalChoices) {
           handleSelect()

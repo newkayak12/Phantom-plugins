@@ -96,7 +96,6 @@ class GitDefaultBranchesTreeRenderer(treePopupStep: GitBranchesPopupStepBase) : 
     }
   }
 
-
   private fun getSecondaryText(treeNode: Any?): @NlsSafe String? {
     return when (treeNode) {
       is PopupFactoryImpl.ActionItem -> KeymapUtil.getFirstKeyboardShortcutText(treeNode.action)

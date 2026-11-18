@@ -182,7 +182,6 @@ internal class BranchesVcsLogUi(
     }
     expandablePanelController.toggleExpand(properties[SHOW_GIT_BRANCHES_LOG_PROPERTY])
 
-
     val branchViewSplitter = OnePixelSplitter(false, "vcs.branch.view.splitter.proportion", 0.3f).apply {
       name = "Log Branches Panel Splitter"
       firstComponent = treePanel

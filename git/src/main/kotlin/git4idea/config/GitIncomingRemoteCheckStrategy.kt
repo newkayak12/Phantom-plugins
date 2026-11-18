@@ -7,5 +7,5 @@ package git4idea.config
 enum class GitIncomingRemoteCheckStrategy {
   FETCH,
   LS_REMOTE,
-  NONE;
+  NONE
 }

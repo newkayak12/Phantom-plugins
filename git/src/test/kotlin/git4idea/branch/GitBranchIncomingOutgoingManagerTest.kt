@@ -113,7 +113,6 @@ internal class GitBranchIncomingOutgoingManagerTest : GitPlatformTest() {
     assertEquals(2, state.totalIncoming())
   }
 
-
   fun `test ls-remote command disables native credential helper when not previously authenticated`() {
     GitVcsSettings.getInstance(myProject).setIncomingCommitsCheckStrategy(GitIncomingRemoteCheckStrategy.LS_REMOTE)
     GitVcsApplicationSettings.getInstance().isUseCredentialHelper = true

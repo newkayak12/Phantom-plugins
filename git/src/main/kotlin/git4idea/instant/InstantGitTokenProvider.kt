@@ -5,12 +5,12 @@ import com.intellij.openapi.extensions.ExtensionPointName
 import org.jetbrains.annotations.ApiStatus.Experimental
 import org.jetbrains.annotations.ApiStatus.Internal
 
-@Experimental
-@Internal
 /**
  * If authentication is done via bearer token, [git4idea.instant.InstantGitTokenProvider.getAuthToken] could be implemented,
  * otherwise, [git4idea.instant.InstantGitTokenProvider.getAuthHeaders] should provide authentication headers.
  */
+@Experimental
+@Internal
 interface InstantGitTokenProvider {
 
   companion object {

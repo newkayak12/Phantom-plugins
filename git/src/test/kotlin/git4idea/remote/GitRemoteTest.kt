@@ -183,7 +183,6 @@ class GitRemoteTest : GitPlatformTest() {
       return username
     }
 
-
     internal fun supplyPassword(password: String) {
       this.password = password
       passwordSuppliedWaiter.countDown()

@@ -128,7 +128,7 @@ internal class GitInteractiveRebaseDialog<T : GitRebaseEntry>(
     )
 
     val diffAction = fullCommitDetailsListPanel.changesBrowser.diffAction
-    diffAction.registerCustomShortcutSet(commitsTable, null);
+    diffAction.registerCustomShortcutSet(commitsTable, null)
 
     title = GitBundle.message("rebase.interactive.dialog.title")
     setOKButtonText(GitBundle.message("rebase.interactive.dialog.start.rebase"))

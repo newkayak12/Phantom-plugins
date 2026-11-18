@@ -272,5 +272,3 @@ abstract class GitRebaseBaseTest : GitPlatformTest() {
 }
 
 private fun GitRepository.gitStatus() = this.git("status --porcelain").trim()
-
-

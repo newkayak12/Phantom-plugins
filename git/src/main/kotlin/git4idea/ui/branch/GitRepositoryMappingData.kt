@@ -4,7 +4,7 @@ package git4idea.ui.branch
 import git4idea.repo.GitRemote
 import git4idea.repo.GitRepository
 
-interface GitRepositoryMappingData{
+interface GitRepositoryMappingData {
   val gitRemote: GitRemote
   val gitRepository: GitRepository
 

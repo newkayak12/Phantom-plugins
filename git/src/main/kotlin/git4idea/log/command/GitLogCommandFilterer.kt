@@ -84,7 +84,6 @@ internal class GitLogCommandFilterer(private val project: Project,
     collectorTask = null
   }
 
-
   companion object {
     fun collectRevisions(project: Project,
                          storage: VcsLogStorage,

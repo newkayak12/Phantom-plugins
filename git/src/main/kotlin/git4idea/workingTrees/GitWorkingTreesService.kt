@@ -280,7 +280,6 @@ internal class GitWorkingTreesService(private val project: Project, val coroutin
     RecentProjectsManager.getInstance().updateLastProjectPath()
   }
 
-
   private fun isPermissionDenied(result: GitCommandResult): Boolean {
     return result.errorOutput.any { it.contains("permission denied", ignoreCase = true) }
   }
@@ -324,7 +323,6 @@ internal class GitWorkingTreesService(private val project: Project, val coroutin
 
     notifyWorkingTreeDeletedSuccess(project, repository, tree)
   }
-
 
   fun pruneWorkingTrees(project: Project, repository: GitRepository) {
     coroutineScope.launch {

@@ -145,7 +145,6 @@ class MergeDirectionComponentFactory<RepoMapping : GitRepositoryMappingData>(
       popup.showUnderneathOf(parentComponent)
     }
 
-
     private fun <RepoMapping : GitRepositoryMappingData> chooseHeadRepoAndBranch(parentComponent: JComponent,
                                                                                  currentRepo: RepoMapping?,
                                                                                  currentBranch: GitBranch?,

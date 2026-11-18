@@ -225,7 +225,6 @@ class GitSubmoduleTest : GitSubmoduleTestBase() {
     }
   }
 
-
   private fun insertLogMarker(title: String) {
     LOG.info("")
     LOG.info("--------- STARTING ${title.uppercase(Locale.getDefault())} -----------")

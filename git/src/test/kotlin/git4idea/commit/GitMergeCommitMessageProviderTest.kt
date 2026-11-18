@@ -86,7 +86,6 @@ class GitMergeCommitMessageProviderTest: GitSingleRepoTest() {
     verifyCommitMessageSet(message)
   }
 
-
   fun `test merge message based on MERGE_MSG + SQUASH_MSG`() {
     val newBranch = "new-branch"
     prepareConflict(newBranch)
