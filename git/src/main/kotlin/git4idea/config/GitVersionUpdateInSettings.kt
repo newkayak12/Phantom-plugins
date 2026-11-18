@@ -84,6 +84,10 @@ internal class GitVersionUpdateSettingsEntryProvider : SettingsEntryPointAction.
 
 internal class GitNewVersionCheckerStarter(private val project: Project) : VcsListener {
   override fun directoryMappingChanged() {
+    // Phantom: the idle check (Windows only) downloads download.jetbrains.com/jdk/feed/v1/gits.json.xz to offer a Git update;
+    // it does not start unless -Dphantom.jetbrains.services=true. "Download and Install" on a missing Git still works. The
+    // property is read here, not through Phantom's MarketplaceRequests.jetBrainsServicesEnabled, which IntelliJ doesn't have
+    if (!java.lang.Boolean.getBoolean("phantom.jetbrains.services")) return
     if (afterIdleCheckRegistryValue >= 0) {
       project.service<GitNewVersionChecker>().restart()
     }
