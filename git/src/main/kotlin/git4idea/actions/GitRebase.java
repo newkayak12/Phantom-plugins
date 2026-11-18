@@ -12,7 +12,6 @@ import com.intellij.openapi.progress.Task;
 import com.intellij.openapi.project.DumbAwareAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
-import git4idea.GitOperationsCollector;
 import git4idea.branch.GitBranchUtil;
 import git4idea.branch.GitRebaseParams;
 import git4idea.i18n.GitBundle;
@@ -68,7 +67,6 @@ public class GitRebase extends DumbAwareAction {
     if (dialog.showAndGet()) {
       GitRepository selectedRepository = Objects.requireNonNull(dialog.getSelectedRepo());
       GitRebaseParams selectedParams = dialog.getSelectedParams();
-      GitOperationsCollector.logRebaseFromDialog(project, selectedRepository, selectedParams);
       ProgressManager.getInstance().run(new Task.Backgroundable(project, GitBundle.message("rebase.progress.indicator.title")) {
         @Override
         public void run(@NotNull ProgressIndicator indicator) {

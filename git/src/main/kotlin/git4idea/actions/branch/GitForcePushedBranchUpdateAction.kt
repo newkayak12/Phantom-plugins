@@ -19,7 +19,6 @@ import com.intellij.platform.ide.progress.withBackgroundProgress
 import com.intellij.vcs.VcsActivity
 import com.intellij.vcs.log.VcsCommitMetadata
 import git4idea.GitNotificationIdsHolder
-import git4idea.GitOperationsCollector.UPDATE_FORCE_PUSHED_BRANCH_ACTIVITY
 import git4idea.GitRemoteBranch
 import git4idea.GitUtil.HEAD
 import git4idea.GitVcs
@@ -87,16 +86,10 @@ internal class GitForcePushedBranchUpdateExecutor(private val project: Project, 
         val updateResults = hashMapOf<GitRepository, GitUpdateResult>()
         val (toUpdate, skippedRoots) = calculateToUpdate(repositories)
         val updateRanges = GitUpdatedRanges.calcInitialPositions(project, toUpdate)
-        val updateActivity = UPDATE_FORCE_PUSHED_BRANCH_ACTIVITY.started(project)
 
-        try {
-          for ((repository, branchPair) in toUpdate) {
-            val result = updateRepository(repository, branchPair)
-            updateResults[repository] = result
-          }
-        }
-        finally {
-          updateActivity.finished()
+        for ((repository, branchPair) in toUpdate) {
+          val result = updateRepository(repository, branchPair)
+          updateResults[repository] = result
         }
 
         val updatedPositions = updateRanges.calcCurrentPositions()

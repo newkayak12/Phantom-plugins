@@ -1,7 +1,6 @@
 // Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package git4idea.status;
 
-import com.intellij.internal.statistic.StructuredIdeActivity;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.progress.util.BackgroundTaskUtil;
 import com.intellij.openapi.project.Project;
@@ -13,7 +12,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.messages.Topic;
 import com.intellij.vcsUtil.VcsUtil;
-import git4idea.GitRefreshUsageCollector;
 import git4idea.GitVcsDirtyScope;
 import git4idea.commands.GitHandler;
 import git4idea.index.GitFileStatus;
@@ -111,9 +109,7 @@ public class GitStagingAreaHolder {
   public @NotNull List<GitFileStatus> refresh(@NotNull RootDirtySet dirtyPaths) throws VcsException {
     VirtualFile root = myRepository.getRoot();
 
-    StructuredIdeActivity activity = GitRefreshUsageCollector.logStatusRefresh(myProject, dirtyPaths.isEverythingDirty());
     List<GitFileStatus> rootRecords = GitIndexStatusUtilKt.getStatus(myProject, root, dirtyPaths.collectFilePaths(), true, false, false);
-    activity.finished();
 
     removeUnwantedRecords(rootRecords, dirtyPaths);
 

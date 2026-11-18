@@ -17,7 +17,6 @@ import com.intellij.ui.components.JBScrollPane;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
-import git4idea.GitStashUsageCollector;
 import git4idea.GitUtil;
 import git4idea.i18n.GitBundle;
 import git4idea.repo.GitRepository;
@@ -421,10 +420,6 @@ public class GitUnstashDialog extends DialogWrapper {
 
   @Override
   protected void doOKAction() {
-    GitStashUsageCollector.logStashPopDialog(!StringUtil.isEmpty(myBranchTextField.getText()),
-                                             myReinstateIndexCheckBox.isSelected(),
-                                             myPopStashCheckBox.isSelected());
-
     boolean completed = GitStashOperations.unstash(myProject, getSelectedStash(), myBranchTextField.getText(),
                                                    myPopStashCheckBox.isSelected(), myReinstateIndexCheckBox.isSelected());
     if (completed) {

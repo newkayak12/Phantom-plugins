@@ -40,7 +40,6 @@ import com.intellij.util.textCompletion.DefaultTextCompletionValueDescriptor
 import com.intellij.util.textCompletion.TextCompletionProviderBase
 import com.intellij.util.textCompletion.TextFieldWithCompletion
 import com.intellij.util.ui.JBUI
-import git4idea.GitBranchesUsageCollector.branchDialogRepositoryManuallySelected
 import git4idea.branch.GitBranchOperationType.CHECKOUT
 import git4idea.branch.GitBranchOperationType.CREATE
 import git4idea.config.GitVcsSettings
@@ -63,7 +62,6 @@ data class GitNewBranchOptions @JvmOverloads constructor(
   @get:JvmName("repositories") val repositories: Collection<GitRepository> = emptyList(),
   @get:JvmName("shouldUnsetUpstream") val unsetUpstream: Boolean = false,
 )
-
 
 enum class GitBranchOperationType(@Nls val text: String, @Nls val description: String = "") {
   CREATE(GitBundle.message("new.branch.dialog.operation.create.name"),
@@ -141,8 +139,6 @@ internal class GitNewBranchDialog @JvmOverloads constructor(
   private val initialRepositories = repositories.toList()
 
   private val warningVisibilityProperty = AtomicBooleanProperty(false)
-  private var repositoryManuallySelected = false
-
   init {
     title = dialogTitle
     setOKButtonText(operation.text)
@@ -195,8 +191,6 @@ internal class GitNewBranchDialog @JvmOverloads constructor(
             && repository != ALL_REPOSITORIES
             && initialRepositories == allRepositories
           )
-          repositoryManuallySelected =
-            if (repository == ALL_REPOSITORIES) initialRepositories != allRepositories else initialRepositories.singleOrNull() != repository
         }
     }.visible(allRepositories.size > 1 && operation != GitBranchOperationType.RENAME)
     row("") { //align all cells to the right
@@ -226,12 +220,6 @@ internal class GitNewBranchDialog @JvmOverloads constructor(
       text(GitBundle.message("new.branch.dialog.branch.root.all.override.warning"), maxLineLength = 50)
     }
       .visibleIf(warningVisibilityProperty)
-
-    onApply {
-      if (repositoryManuallySelected) {
-        branchDialogRepositoryManuallySelected()
-      }
-    }
   }
 
   private fun createRepositoriesCombobox(): ComboBox<GitRepository?> {

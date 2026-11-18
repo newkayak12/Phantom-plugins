@@ -4,7 +4,6 @@ package git4idea.actions.workingTree
 import com.intellij.dvcs.ui.CloneDvcsValidationUtils
 import com.intellij.ide.trustedProjects.TrustedProjects
 import com.intellij.ide.util.PropertiesComponent
-import com.intellij.internal.statistic.StructuredIdeActivity
 import com.intellij.openapi.application.UiWithModelAccess
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.components.Service
@@ -19,7 +18,6 @@ import com.intellij.util.concurrency.annotations.RequiresReadLock
 import com.intellij.util.containers.ContainerUtil
 import git4idea.GitNotificationIdsHolder
 import git4idea.GitReference
-import git4idea.GitOperationsCollector
 import git4idea.GitWorkingTree
 import git4idea.i18n.GitBundle
 import git4idea.repo.GitRepository
@@ -56,15 +54,15 @@ internal class GitCreateWorkingTreeService(private val coroutineScope: Coroutine
   internal fun collectDataAndCreateWorkingTree(
     repository: GitRepository,
     refFromContext: GitReference?,
-    place: String,
+    // Phantom: only usage statistics read the place; the parameter stays so the callers stay as they are
+    @Suppress("UNUSED_PARAMETER") place: String,
   ) {
     val project = repository.project
-    val ideActivity = GitOperationsCollector.logCreateWorktreeActionInvoked(project, place, refFromContext)
     coroutineScope.launch(Dispatchers.Default) {
       val preDialogData = readAction {
         val lastParentPath = loadLastParentPath(project)
         val initialParentPath = computeInitialParentPath(project, repository)?.path
-        GitWorkingTreePreDialogData(project, repository, ideActivity, refFromContext,
+        GitWorkingTreePreDialogData(project, repository, refFromContext,
                                     lastParentPath ?: initialParentPath)
       }
 
@@ -74,7 +72,7 @@ internal class GitCreateWorkingTreeService(private val coroutineScope: Coroutine
           val workingTreeData = dialog.getWorkTreeData()
           workingTreeData.workingTreePath.parentPath?.path?.let { saveLastParentPath(project, it) }
           withContext(Dispatchers.Default) {
-            doCreateWorkingTree(preDialogData.project, preDialogData.repository, preDialogData.ideActivity, workingTreeData)
+            doCreateWorkingTree(preDialogData.project, preDialogData.repository, workingTreeData)
           }
         }
       }
@@ -98,11 +96,8 @@ internal class GitCreateWorkingTreeService(private val coroutineScope: Coroutine
   private suspend fun doCreateWorkingTree(
     project: Project,
     repository: GitRepository,
-    ideActivity: StructuredIdeActivity,
     workingTreeData: GitWorkingTreeDialogData,
   ) {
-    GitOperationsCollector.logWorktreeCreationDialogExitedWithOk(ideActivity, workingTreeData)
-
     val path = workingTreeData.workingTreePath.path
     val destinationValidation = CloneDvcsValidationUtils.createDestination(path)
     if (destinationValidation != null) {
@@ -134,9 +129,7 @@ internal class GitCreateWorkingTreeService(private val coroutineScope: Coroutine
 
     val worktreeProject = gitWTService.openProjectInNewWindow(Path(workingTreeData.workingTreePath.path))
 
-    if (worktreeProject != null) {
-      GitOperationsCollector.logWorktreeProjectOpenedAfterCreation(ideActivity)
-    } else {
+    if (worktreeProject == null) {
       repository.workingTreeHolder.scheduleReload()
     }
   }

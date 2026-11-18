@@ -2,7 +2,6 @@
 package git4idea.branch;
 
 import com.intellij.dvcs.DvcsUtil;
-import com.intellij.internal.statistic.StructuredIdeActivity;
 import com.intellij.notification.NotificationAction;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.AccessToken;
@@ -11,7 +10,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.NlsContexts;
 import com.intellij.openapi.util.NlsSafe;
 import com.intellij.openapi.util.Pair;
-import com.intellij.openapi.util.Ref;
 import com.intellij.openapi.util.text.HtmlBuilder;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.openapi.vcs.VcsNotifier;
@@ -21,7 +19,6 @@ import com.intellij.platform.diagnostic.telemetry.TelemetryManager;
 import com.intellij.platform.diagnostic.telemetry.helpers.TraceKt;
 import com.intellij.vcs.log.Hash;
 import git4idea.GitActivity;
-import git4idea.GitProtectedBranchesKt;
 import git4idea.changes.GitChangeUtils;
 import git4idea.commands.Git;
 import git4idea.commands.GitCommandResult;
@@ -31,7 +28,6 @@ import git4idea.commands.GitMessageWithFilesDetector;
 import git4idea.commands.GitSimpleEventDetector;
 import git4idea.commands.GitUntrackedFilesOverwrittenByOperationDetector;
 import git4idea.config.GitSaveChangesPolicy;
-import git4idea.config.GitSharedSettings;
 import git4idea.config.GitVcsSettings;
 import git4idea.i18n.GitBundle;
 import git4idea.repo.GitRepository;
@@ -51,12 +47,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static com.intellij.dvcs.DvcsUtil.joinShortNames;
 import static com.intellij.platform.vcs.impl.shared.telemetry.VcsScopeKt.VcsScope;
 import static com.intellij.util.containers.UtilKt.getIfSingle;
-import static git4idea.GitBranchesUsageCollector.CHECKOUT_ACTIVITY;
-import static git4idea.GitBranchesUsageCollector.CHECKOUT_OPERATION;
-import static git4idea.GitBranchesUsageCollector.FINISHED_SUCCESSFULLY;
-import static git4idea.GitBranchesUsageCollector.IS_BRANCH_PROTECTED;
-import static git4idea.GitBranchesUsageCollector.IS_NEW_BRANCH;
-import static git4idea.GitBranchesUsageCollector.VFS_REFRESH;
 import static git4idea.GitNotificationIdsHolder.CHECKOUT_ROLLBACK_ERROR;
 import static git4idea.GitNotificationIdsHolder.CHECKOUT_SUCCESS;
 import static git4idea.GitUtil.getHead;
@@ -111,31 +101,12 @@ class GitCheckoutOperation extends GitBranchOperation {
   private void doExecuteWithTracing() {
     Tracer tracer = TelemetryManager.getInstance().getTracer(VcsScope);
     TraceKt.use(tracer.spanBuilder(Operation.Checkout.getName()).setAttribute("branch", myNewBranch != null ? myNewBranch : "null"), _ -> {
-      StructuredIdeActivity checkoutActivity = CHECKOUT_ACTIVITY.started(myProject, () -> List.of(
-        IS_BRANCH_PROTECTED.with(isBranchProtected()),
-        IS_NEW_BRANCH.with(myNewBranch != null)
-      ));
-      Ref<Boolean> finishedSuccessfullyRef = Ref.create(false);
-
-      try {
-        finishedSuccessfullyRef.set(doExecute(checkoutActivity));
-      }
-      finally {
-        checkoutActivity.finished(() -> {
-          return List.of(FINISHED_SUCCESSFULLY.with(finishedSuccessfullyRef.get()));
-        });
-      }
+      doExecute();
       return null;
     });
   }
 
-  private boolean isBranchProtected() {
-    GitSharedSettings sharedSettings = GitSharedSettings.getInstance(myProject);
-    return sharedSettings.isBranchProtected(myStartPointReference) ||
-           GitProtectedBranchesKt.isRemoteBranchProtected(getRepositories(), myStartPointReference);
-  }
-
-  private boolean doExecute(StructuredIdeActivity activity) {
+  private boolean doExecute() {
     saveAllDocuments();
     boolean success = false;
     boolean fatalErrorHappened = false;
@@ -154,24 +125,11 @@ class GitCheckoutOperation extends GitBranchOperation {
         GitUntrackedFilesOverwrittenByOperationDetector untrackedOverwrittenByCheckout =
           new GitUntrackedFilesOverwrittenByOperationDetector(root);
 
-        StructuredIdeActivity checkoutOperation = CHECKOUT_OPERATION.startedWithParent(myProject, activity);
-        GitCommandResult result;
-        try {
-          result = myGit.checkout(repository, myStartPointReference, myNewBranch, false, myDetach, myReset,
-                                  localChangesDetector, unmergedFiles, unknownPathspec, untrackedOverwrittenByCheckout);
-        }
-        finally {
-          checkoutOperation.finished();
-        }
+        GitCommandResult result = myGit.checkout(repository, myStartPointReference, myNewBranch, false, myDetach, myReset,
+                                                 localChangesDetector, unmergedFiles, unknownPathspec, untrackedOverwrittenByCheckout);
 
         if (result.success()) {
-          StructuredIdeActivity vfsRefresh = VFS_REFRESH.startedWithParent(myProject, activity);
-          try {
-            updateAndRefreshChangedVfs(repository, startHash);
-          }
-          finally {
-            vfsRefresh.finished();
-          }
+          updateAndRefreshChangedVfs(repository, startHash);
           markSuccessful(repository);
         }
         else if (unmergedFiles.isDetected()) {
@@ -179,7 +137,7 @@ class GitCheckoutOperation extends GitBranchOperation {
           fatalErrorHappened = true;
         }
         else if (localChangesDetector.isDetected()) {
-          boolean smartCheckoutSucceeded = smartCheckoutOrNotify(repository, localChangesDetector, activity);
+          boolean smartCheckoutSucceeded = smartCheckoutOrNotify(repository, localChangesDetector);
           if (!smartCheckoutSucceeded) {
             fatalErrorHappened = true;
           }
@@ -240,8 +198,7 @@ class GitCheckoutOperation extends GitBranchOperation {
   }
 
   private boolean smartCheckoutOrNotify(@NotNull GitRepository repository,
-                                        @NotNull GitMessageWithFilesDetector localChangesOverwrittenByCheckout,
-                                        @NotNull StructuredIdeActivity activity) {
+                                        @NotNull GitMessageWithFilesDetector localChangesOverwrittenByCheckout) {
     Pair<List<GitRepository>, List<Change>> conflictingRepositoriesAndAffectedChanges =
       getConflictingRepositoriesAndAffectedChanges(repository, localChangesOverwrittenByCheckout, myCurrentHeads.get(repository),
                                                    myStartPointReference);
@@ -250,20 +207,17 @@ class GitCheckoutOperation extends GitBranchOperation {
 
     Collection<String> absolutePaths = toAbsolute(repository.getRoot(), localChangesOverwrittenByCheckout.getRelativeFilePaths());
 
-    //activity.stageWithDurationStarted(IN_UI);
     GitSmartOperationDialog.Choice decision = myUiHandler.showSmartOperationDialog(myProject, affectedChanges, absolutePaths,
                                                                                    GitBundle.message("checkout.operation.name"),
                                                                                    GitBundle.message("checkout.operation.force.checkout"));
     if (decision == SMART) {
       Hash startHash = getHead(repository);
       boolean smartCheckedOutSuccessfully
-        = smartCheckout(allConflictingRepositories, myStartPointReference, myNewBranch, getIndicator(), activity);
+        = smartCheckout(allConflictingRepositories, myStartPointReference, myNewBranch, getIndicator());
       if (smartCheckedOutSuccessfully) {
         for (GitRepository conflictingRepository : allConflictingRepositories) {
           markSuccessful(conflictingRepository);
-          StructuredIdeActivity vfsRefresh = VFS_REFRESH.startedWithParent(myProject, activity);
           updateAndRefreshChangedVfs(conflictingRepository, startHash);
-          vfsRefresh.finished();
         }
         return true;
       }
@@ -276,13 +230,11 @@ class GitCheckoutOperation extends GitBranchOperation {
       Map<GitRepository, Collection<Change>> changesToRefresh = StreamEx.of(allConflictingRepositories).toMap(repo -> {
         return GitChangeUtils.getDiffWithWorkingTree(repo, myStartPointReference, false);
       });
-      boolean forceCheckoutSucceeded = checkoutOrNotify(allConflictingRepositories, myStartPointReference, myNewBranch, true, activity);
+      boolean forceCheckoutSucceeded = checkoutOrNotify(allConflictingRepositories, myStartPointReference, myNewBranch, true);
       if (forceCheckoutSucceeded) {
         markSuccessful(allConflictingRepositories.toArray(new GitRepository[0]));
         updateRepositories(allConflictingRepositories);
-        StructuredIdeActivity vfsRefresh = VFS_REFRESH.startedWithParent(myProject, activity);
         allConflictingRepositories.forEach(repo -> refreshVfs(repo.getRoot(), changesToRefresh.get(repo)));
-        vfsRefresh.finished();
       }
       return forceCheckoutSucceeded;
     }
@@ -370,8 +322,7 @@ class GitCheckoutOperation extends GitBranchOperation {
   private boolean smartCheckout(final @NotNull List<? extends GitRepository> repositories,
                                 final @NotNull @NlsSafe String reference,
                                 final @Nullable String newBranch,
-                                @NotNull ProgressIndicator indicator,
-                                @NotNull StructuredIdeActivity activity) {
+                                @NotNull ProgressIndicator indicator) {
     AtomicBoolean result = new AtomicBoolean();
     GitSaveChangesPolicy saveMethod = GitVcsSettings.getInstance(myProject).getSaveChangesPolicy();
     GitPreservingProcess preservingProcess =
@@ -382,7 +333,7 @@ class GitCheckoutOperation extends GitBranchOperation {
                                reference,
                                saveMethod,
                                indicator,
-                               () -> result.set(checkoutOrNotify(repositories, reference, newBranch, false, activity)));
+                               () -> result.set(checkoutOrNotify(repositories, reference, newBranch, false)));
     preservingProcess.execute();
     return result.get();
   }
@@ -393,14 +344,11 @@ class GitCheckoutOperation extends GitBranchOperation {
   private boolean checkoutOrNotify(@NotNull List<? extends GitRepository> repositories,
                                    @NotNull String reference,
                                    @Nullable String newBranch,
-                                   boolean force,
-                                   @NotNull StructuredIdeActivity activity) {
+                                   boolean force) {
     GitCompoundResult compoundResult = new GitCompoundResult(myProject);
-    StructuredIdeActivity checkoutOperation = CHECKOUT_OPERATION.startedWithParent(myProject, activity);
     for (GitRepository repository : repositories) {
       compoundResult.append(repository, myGit.checkout(repository, reference, newBranch, force, myDetach, myReset));
     }
-    checkoutOperation.finished();
     if (compoundResult.totalSuccess()) {
       return true;
     }

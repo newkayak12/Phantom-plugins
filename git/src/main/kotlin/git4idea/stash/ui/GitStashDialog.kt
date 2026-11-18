@@ -12,7 +12,6 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.util.ui.JBUI
-import git4idea.GitStashUsageCollector
 import git4idea.i18n.GitBundle
 import git4idea.rebase.log.commitMessageWithLabelAndToolbar
 import git4idea.util.GitUIUtil
@@ -46,12 +45,6 @@ internal class GitStashDialog(private val project: Project, roots: List<VirtualF
       commitMessageWithLabelAndToolbar(stashMessageEditor, GitBundle.message("stash.message"))
       row { cell(keepIndexCheckBox) }
     }
-  }
-
-  override fun doOKAction() {
-    super.doOKAction()
-
-    GitStashUsageCollector.logStashPushDialog(message.isNotEmpty(), keepIndex)
   }
 
   override fun dispose() {

@@ -1,7 +1,6 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package git4idea.inMemory.rebase
 
-import com.intellij.internal.statistic.StructuredIdeActivity
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vcs.VcsException
 import com.intellij.openapi.vcs.VcsNotifier
@@ -9,7 +8,6 @@ import com.intellij.platform.util.progress.reportSequentialProgress
 import com.intellij.vcs.log.Hash
 import com.intellij.vcs.log.impl.HashImpl
 import git4idea.GitNotificationIdsHolder
-import git4idea.GitOperationsCollector
 import git4idea.config.GitVersionSpecialty
 import git4idea.i18n.GitBundle
 import git4idea.inMemory.GitObjectRepository
@@ -25,7 +23,6 @@ import git4idea.rebase.log.notifySuccess
 import git4idea.repo.GitRepository
 import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.NonNls
-import kotlin.coroutines.cancellation.CancellationException
 import kotlin.reflect.KClass
 
 /**
@@ -153,7 +150,6 @@ internal class GitInMemoryInteractiveRebaseProcess(
   }
 }
 
-
 /**
  * Main entry point for performing an in-memory interactive rebase.
  * In-memory rebase doesn't support stops (in this case we would have to modify the working directory).
@@ -165,7 +161,8 @@ internal suspend fun performInMemoryRebase(
   objectRepo: GitObjectRepository,
   entries: List<GitRebaseEntry>,
   model: GitRebaseTodoModel<out GitRebaseEntry>,
-  origin: InMemoryRebaseOrigin,
+  // Phantom: only usage statistics read the origin; the parameter stays so the callers and IntelliJ's tests stay as they are
+  @Suppress("UNUSED_PARAMETER") origin: InMemoryRebaseOrigin,
   notifySuccess: Boolean = true,
 ): GitCommitEditingOperationResult {
   val unsupportedGitVersionResult = checkInMemoryRebaseSupport(objectRepo.repository)
@@ -176,26 +173,16 @@ internal suspend fun performInMemoryRebase(
 
   val rebaseData = createRebaseData(model, entries, objectRepo.repository, showFailureNotification)
                    ?: return GitCommitEditingOperationResult.Incomplete.Unspecified
-  val rebaseActivity = GitOperationsCollector.startInMemoryInteractiveRebase(objectRepo.repository.project, origin)
-  val operationResult = executeRebase(objectRepo, rebaseData, showFailureNotification, rebaseActivity)
+  val operationResult = executeRebase(objectRepo, rebaseData, showFailureNotification)
 
-  when (operationResult) {
-    is GitCommitEditingOperationResult.Complete -> {
-      GitOperationsCollector.endInMemoryInteractiveRebase(rebaseActivity, InMemoryRebaseResult.SUCCESS)
-      if (notifySuccess) {
-        operationResult.notifySuccess(
-          GitBundle.message("in.memory.rebase.log.interactive.action.notification.successful"),
-          null,
-          GitBundle.message("in.memory.rebase.log.interactive.action.progress.indicator.undo.title"),
-          GitBundle.message("in.memory.rebase.log.interactive.action.notification.undo.not.allowed.title"),
-          GitBundle.message("in.memory.rebase.log.interactive.action.notification.undo.failed.title")
-        )
-      }
-    }
-    is GitCommitEditingOperationResult.Incomplete.Conflict ->
-      GitOperationsCollector.endInMemoryInteractiveRebase(rebaseActivity, InMemoryRebaseResult.CONFLICT)
-    is GitCommitEditingOperationResult.Incomplete ->
-      GitOperationsCollector.endInMemoryInteractiveRebase(rebaseActivity, InMemoryRebaseResult.ERROR)
+  if (operationResult is GitCommitEditingOperationResult.Complete && notifySuccess) {
+    operationResult.notifySuccess(
+      GitBundle.message("in.memory.rebase.log.interactive.action.notification.successful"),
+      null,
+      GitBundle.message("in.memory.rebase.log.interactive.action.progress.indicator.undo.title"),
+      GitBundle.message("in.memory.rebase.log.interactive.action.notification.undo.not.allowed.title"),
+      GitBundle.message("in.memory.rebase.log.interactive.action.notification.undo.failed.title")
+    )
   }
   return operationResult
 }
@@ -232,7 +219,6 @@ private suspend fun executeRebase(
   objectRepo: GitObjectRepository,
   rebaseData: GitInMemoryRebaseData,
   showFailureNotification: Boolean,
-  rebaseActivity: StructuredIdeActivity,
 ): GitCommitEditingOperationResult {
   return try {
     GitInMemoryInteractiveRebaseProcess(objectRepo, rebaseData).execute(showFailureNotification)
@@ -242,14 +228,6 @@ private suspend fun executeRebase(
       notifyMergeConflict(objectRepo.repository, e)
     }
     GitCommitEditingOperationResult.Incomplete.Conflict(e.description)
-  }
-  catch (e: CancellationException) {
-    GitOperationsCollector.endInMemoryInteractiveRebase(rebaseActivity, InMemoryRebaseResult.CANCELED)
-    throw e
-  }
-  catch (e: Exception) {
-    GitOperationsCollector.endInMemoryInteractiveRebase(rebaseActivity, InMemoryRebaseResult.ERROR)
-    throw e
   }
 }
 
@@ -335,13 +313,6 @@ internal class GitRebaseRewordEntryWithMessage(
   entry: GitRebaseEntry,
   val newMessage: String,
 ) : GitRebaseEntry(entry.action, entry.commit, entry.subject)
-
-internal enum class InMemoryRebaseResult {
-  SUCCESS,
-  CONFLICT,
-  CANCELED,
-  ERROR
-}
 
 internal enum class InMemoryRebaseOrigin {
   INTERACTIVE_REBASE,
