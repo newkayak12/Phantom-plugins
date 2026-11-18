@@ -23,6 +23,7 @@ YouTrack.
 and bundled modules that depend on them (Kotlin, Python, TOML, Maven, YAML, Markdown, ...) keep working.
 
 **0.2.1**: other languages' LanguageTool bundles are downloaded from this repository's GitHub release
-`languagetool-6.8.27` instead of resources.jetbrains.com; the files and checksums are the same. The plugin jar lists its
+`languagetool-6.8.27` instead of resources.jetbrains.com; the files and checksums are the same. Downloads work again:
+0.2.0 asked for upper-case file names (`DE-6.8.27.jar`), which the server refused. The plugin jar lists its
 libraries and their licenses in `META-INF/THIRD-PARTY-NOTICES.txt` and carries the LGPL, GPL 3.0 (which LGPL 3.0
 builds on), MIT and BSD texts in `META-INF/licenses/`; NOTICE says where the LGPL sources are.

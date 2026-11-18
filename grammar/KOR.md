@@ -20,6 +20,7 @@ Grazie 라이브러리(`ai.grazie.*`)는 쓰지 않습니다. IDE 부분이 거�
 플러그인과 번들 모듈(Kotlin, Python, TOML, Maven, YAML, Markdown 등)이 그대로 동작합니다.
 
 **0.2.1**: 다른 언어의 LanguageTool 번들을 resources.jetbrains.com 대신 이 저장소의 GitHub 릴리스 `languagetool-6.8.27`에서
-내려받습니다. 파일과 체크섬은 같습니다. 플러그인 jar의 `META-INF/THIRD-PARTY-NOTICES.txt`에 라이브러리와 라이선스 목록이
+내려받습니다. 파일과 체크섬은 같습니다. 0.2.0은
+대문자 파일 이름(`DE-6.8.27.jar`)을 요청해 서버가 거절했는데, 이제 다시 내려받아집니다. 플러그인 jar의 `META-INF/THIRD-PARTY-NOTICES.txt`에 라이브러리와 라이선스 목록이
 있고, `META-INF/licenses/`에 LGPL, GPL 3.0(LGPL 3.0의 바탕), MIT, BSD 전문이 들어 있습니다. LGPL 소스를 받는 곳은 NOTICE에
 있습니다.

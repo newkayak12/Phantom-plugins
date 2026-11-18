@@ -85,7 +85,9 @@ enum class LanguageToolDescriptor(
   UKRAINIAN(listOf("Ukrainian"), 7, LanguageISO.UK, UK_CHECKSUM),
   CHINESE(listOf("Chinese"), 8, LanguageISO.ZH, ZH_CHECKSUM);
 
-  override val storageName: String by lazy { "$iso-${GraziePlugin.LanguageTool.version}.jar" }
+  // phantom: the bundles are named in lower case (de-6.8.27.jar), as upstream's LanguageISO printed itself; Phantom's
+  // LanguageISO prints its upper-case name, which asked for DE-6.8.27.jar (403 from JetBrains, missing on GitHub)
+  override val storageName: String by lazy { "${iso.name.lowercase()}-${GraziePlugin.LanguageTool.version}.jar" }
   override val file: Path by lazy { Path(storageName) }
   override val url: String by lazy { "${GraziePlugin.LanguageTool.url}/$storageName" } // phantom: the release tag holds the version
 }
