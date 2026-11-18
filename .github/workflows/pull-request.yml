@@ -16,7 +16,8 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # a buildSrc change tests every plugin, which takes more than 90 minutes
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v4
         with:
