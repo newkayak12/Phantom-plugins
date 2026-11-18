@@ -43,6 +43,13 @@
     <ID>ComplexCondition:GHPullRequestReviewThread.kt:threadData.startSide == Side.RIGHT &amp;&amp; threadData.side == Side.RIGHT &amp;&amp; diffData.patch.afterVersionId == threadData.commit?.oid &amp;&amp; threadData.line != null</ID>
     <ID>ComplexCondition:GeneratedConstructorAnnotationChecker.kt:GeneratedConstructorAnnotationChecker$callSuper != null &amp;&amp; pre != null &amp;&amp; GrAnnotationUtil.inferBooleanAttribute(annotation, CALL_SUPER) == true &amp;&amp; isSuperCalledInPre(annotation)</ID>
     <ID>ComplexCondition:GinqFragmentBlock.kt:GinqFragmentBlock$child1 is GroovyMacroBlock &amp;&amp; child1.node == actualChildren.firstOrNull() &amp;&amp; child2 is GroovyBlock &amp;&amp; child2.node.elementType == GroovyElementTypes.ARGUMENT_LIST</ID>
+    <ID>ComplexCondition:GitCheckinEnvironment.kt:GitCheckinEnvironment.Companion$change.changelistIds != null &amp;&amp; change.virtualFile != null &amp;&amp; change.beforePath != null &amp;&amp; change.afterPath != null</ID>
+    <ID>ComplexCondition:GitLogCommandFilterer.kt:GitLogCommandFilterer$!isInitial &amp;&amp; oldTask != null &amp;&amp; !oldTask.isCancelled &amp;&amp; oldCollector is GitLogRevisionCollector &amp;&amp; oldCollector.commandFilter == commandFilter</ID>
+    <ID>ComplexCondition:GitReftableReader.kt:GitReftableReader$buf.size &lt; 4 || buf[0] != 'R'.code.toByte() || buf[1] != 'E'.code.toByte() || buf[2] != 'F'.code.toByte() || buf[3] != 'T'.code.toByte()</ID>
+    <ID>ComplexCondition:GitRepositoryUpdater.kt:GitRepositoryUpdater$headChanged || configChanged || branchFileChanged || packedRefsChanged || reftableChanged || rebaseFileChanged || mergeFileChanged</ID>
+    <ID>ComplexCondition:GitRepositoryUpdater.kt:GitRepositoryUpdater$indexChanged || externallyCommitted || headMoved || headChanged || currentBranchChanged || gitignoreChanged</ID>
+    <ID>ComplexCondition:GitStageCompareWithVersionAction.kt:GitStageCompareWithVersionAction$project == null || !isStagingAreaAvailable(project) || file == null || (file is GitIndexVirtualFile != (currentVersion == ContentVersion.STAGED))</ID>
+    <ID>ComplexCondition:GitStageShowVersionAction.kt:GitStageShowVersionAction$project == null || !isStagingAreaAvailable(project) || file == null || (file is GitIndexVirtualFile == showStaged)</ID>
     <ID>ComplexCondition:GrNamedParamsConverter.kt:GrNamedParamsConverter$actualType !is GrMapTypeFromNamedArgs || targetType !is PsiClassType || !PsiTypesUtil.classNameEquals(targetType, CommonClassNames.JAVA_UTIL_MAP) || context !is GrMethodCallExpression</ID>
     <ID>ComplexCondition:GrPrimitiveCastConverter.kt:GrPrimitiveCastConverter$lType == PsiTypes.booleanType() || lType.unbox() == PsiTypes.booleanType() || rType == PsiTypes.booleanType() || rType.unbox() == PsiTypes.booleanType()</ID>
     <ID>ComplexCondition:GroovyAnnotator25.kt:GroovyAnnotator25$element is GrLiteral || element is GrListOrMap || element is GrLambdaExpression || element is GrClosableBlock</ID>
@@ -89,6 +96,7 @@
     <ID>ComplexCondition:LanguageDetectionInspection.kt:LanguageDetectionInspection$!isOnTheFly || InjectedLanguageManager.getInstance(holder.project).isInjectedFragment(file) || GrazieInspection.ignoreGrammarChecking(file) || InspectionProfileManager.hasTooLowSeverity(session, this)</ID>
     <ID>ComplexCondition:LanguageToolChecker.kt:LanguageToolChecker.Problem$highlightRange.startOffset == 0 &amp;&amp; (ruleId == "SENTENCE_FRAGMENT" || ruleId == "SENT_START_CONJUNCTIVE_LINKING_ADVERB_COMMA" || ruleId == "AGREEMENT_SENT_START")</ID>
     <ID>ComplexCondition:LanguageToolChecker.kt:match.rule.id == "A_RB_NN" &amp;&amp; text.substring(match.fromPos, match.toPos).equals("finally block", ignoreCase = true) &amp;&amp; (text.domain == TextContent.TextDomain.DOCUMENTATION || text.domain == TextContent.TextDomain.COMMENTS)</ID>
+    <ID>ComplexCondition:LightGitPresentation.kt:index == '!' || workTree == '!' || index == '?' || workTree == '?'</ID>
     <ID>ComplexCondition:LightOverlay.kt:LightOverlay$i >= lr.size || lr[i] == 0f &amp;&amp; lg[i] == 0f &amp;&amp; lb[i] == 0f</ID>
     <ID>ComplexCondition:ListItemIndentInfo.kt:ListItemIndentInfo$realIndent == null || fullIndentStr == null || realIndent &lt; indent || lineIsBlank</ID>
     <ID>ComplexCondition:MapperSqlInjector.kt:MapperSql$pending.isEmpty() &amp;&amp; last != null &amp;&amp; c.host != null &amp;&amp; last.host === c.host</ID>
@@ -104,6 +112,7 @@
     <ID>ComplexCondition:OfficeLayout.kt:OfficeLayout$u >= 6 &amp;&amp; v >= 6 &amp;&amp; u &lt;= ROOM - 6 &amp;&amp; v &lt;= ROOM - 6 &amp;&amp; u + v > st.u + st.v + 4</ID>
     <ID>ComplexCondition:OfficeLayout.kt:OfficeLayout.Companion$sx == 0 &amp;&amp; sy == 0 || kotlin.math.abs(sx) > HELPER_REACH_X || kotlin.math.abs(sy) > HELPER_REACH_Y</ID>
     <ID>ComplexCondition:OpenApiShape.kt:OpenApiSpecShapeInspection.Companion$i > 1 &amp;&amp; j > 1 &amp;&amp; a[i - 1] == b[j - 2] &amp;&amp; a[i - 2] == b[j - 1]</ID>
+    <ID>ComplexCondition:OpenWorkingTreeAction.kt:OpenWorkingTreeAction$project == null || trees == null || trees.size != 1 || trees[0].isCurrent</ID>
     <ID>ComplexCondition:ProjectConfigKeys.kt:ConfigText$c == '#' &amp;&amp; (i == 0 || line[i - 1] == ' ' || line[i - 1] == '\t')</ID>
     <ID>ComplexCondition:ProjectConfigKeys.kt:ConfigText$v.length >= 2 &amp;&amp; (v.first() == '"' &amp;&amp; v.last() == '"' || v.first() == '\'' &amp;&amp; v.last() == '\'')</ID>
     <ID>ComplexCondition:ProjectTabs.kt:ProjectTabs$from !in order.indices || gap !in 0..order.size || gap == from || gap == from + 1</ID>
@@ -227,12 +236,15 @@
     <ID>CyclomaticComplexMethod:BootConfigGotoDeclarationHandler.kt:BootConfigNavigation$private fun fromSource: PsiElement?</ID>
     <ID>CyclomaticComplexMethod:BootConfigImports.kt:BootConfigImports$fun importValues: String</ID>
     <ID>CyclomaticComplexMethod:BootConfigKeyInspection.kt:BootConfigKeyInspection$private fun keyRanges: List&lt;TextRange></ID>
+    <ID>CyclomaticComplexMethod:BranchesDashboardActions.kt:BranchesDashboardActions.BranchActionsBuilder$@RequiresBackgroundThread fun build: ActionGroup?</ID>
+    <ID>CyclomaticComplexMethod:BranchesInGitLogUiFactoryProvider.kt:BranchesVcsLogUi$private fun createMainComponent: JComponent</ID>
     <ID>CyclomaticComplexMethod:BrowserLogin.kt:BrowserLogin$fun await</ID>
     <ID>CyclomaticComplexMethod:CallReferenceHighlighter.kt:CallReferenceHighlighter$open fun highlightMethodApplicability: Boolean</ID>
     <ID>CyclomaticComplexMethod:CascadeInspections.kt:KotlinConstraintTargetInspection$override fun check</ID>
     <ID>CyclomaticComplexMethod:CascadeInspections.kt:MissingValidInspection$override fun check</ID>
     <ID>CyclomaticComplexMethod:CascadeInspections.kt:MissingValidInspection$private fun nestedClass: PsiClass?</ID>
     <ID>CyclomaticComplexMethod:CascadeInspections.kt:MissingValidatedInspection$override fun check</ID>
+    <ID>CyclomaticComplexMethod:CleanupBranchesDialog.kt:CleanupBranchesDialog$private fun populateLastCommitDates</ID>
     <ID>CyclomaticComplexMethod:ClosureInferenceUtil.kt:fun analyzeClosureUsages</ID>
     <ID>CyclomaticComplexMethod:CodeDetector.kt:CodeDetector$private fun looksLikeCodeToken: Boolean</ID>
     <ID>CyclomaticComplexMethod:CodeIndex.kt:CodeQueries$private fun signature: String?</ID>
@@ -241,7 +253,9 @@
     <ID>CyclomaticComplexMethod:ComposeInspections.kt:ComposeValuesInspection$override fun check</ID>
     <ID>CyclomaticComplexMethod:ComposeLineMarkers.kt:ComposeLineMarkerProvider$private fun dockerfileOf: VirtualFile?</ID>
     <ID>CyclomaticComplexMethod:ConfigMetadata.kt:MetadataParser$fun parse: ParsedMetadata</ID>
+    <ID>CyclomaticComplexMethod:ConvertLanguageExplicitMovementProvider.kt:ConvertLanguageExplicitMovementProvider$override fun collectExplicitMovements: Collection&lt;Movement></ID>
     <ID>CyclomaticComplexMethod:CpuSampler.kt:CpuSampler$private fun sampleDetail: Detail</ID>
+    <ID>CyclomaticComplexMethod:CurrentFeatureBranchBaseDetector.kt:@VisibleForTesting internal fun findBaseCommit: Status</ID>
     <ID>CyclomaticComplexMethod:DbActions.kt:SqlDataSourceNotificationProvider$override fun collectNotificationData: Function&lt;in FileEditor, out JComponent?>?</ID>
     <ID>CyclomaticComplexMethod:DbAlter.kt:DbAlter$fun statements: List&lt;String></ID>
     <ID>CyclomaticComplexMethod:DbConnections.kt:DbConnectionService$private fun open: Connection</ID>
@@ -293,6 +307,7 @@
     <ID>CyclomaticComplexMethod:ErdModel.kt:ErdJson$private fun table</ID>
     <ID>CyclomaticComplexMethod:ErdSql.kt:ErdSql$private fun changedAttributes: List&lt;String></ID>
     <ID>CyclomaticComplexMethod:ExpressionConstraint.kt:ExpressionConstraint$override fun reduce: Boolean</ID>
+    <ID>CyclomaticComplexMethod:FindMergedLocalBranchesAction.kt:FindMergedLocalBranchesAction$override fun actionPerformed</ID>
     <ID>CyclomaticComplexMethod:GHGQLDataTest.kt:GHGQLDTOTest$private fun verifyQuery: Pair&lt;GQLTypeDefinition, List&lt;GQLSelection>>?</ID>
     <ID>CyclomaticComplexMethod:GHPRCreateViewModel.kt:GHPRCreateViewModelImpl$override fun create</ID>
     <ID>CyclomaticComplexMethod:GHPRFileEditorComponentFactory.kt:GHPRFileEditorComponentFactory$fun create: JComponent</ID>
@@ -307,6 +322,20 @@
     <ID>CyclomaticComplexMethod:GinqCompletionUtils.kt:GinqCompletionUtils$fun CompletionResultSet.addGinqKeywords</ID>
     <ID>CyclomaticComplexMethod:GinqParser.kt:private fun gatherGinqExpression: Pair&lt;List&lt;ParsingError>, GinqExpression?></ID>
     <ID>CyclomaticComplexMethod:GinqWindowCollector.kt:GinqWindowCollector$override fun visitMethodCallExpression</ID>
+    <ID>CyclomaticComplexMethod:GitBranchComparisonResultImpl.kt:GitBranchComparisonResultImpl$private fun initForLinearHistory</ID>
+    <ID>CyclomaticComplexMethod:GitBranchesPopupBase.kt:GitBranchesPopupBase$private fun traverseNodesAndExpand: Boolean</ID>
+    <ID>CyclomaticComplexMethod:GitCheckinEnvironment.kt:GitCheckinEnvironment.Companion$@Throws(VcsException::class) private fun addExplicitMovementsToIndex: Pair&lt;List&lt;CommitChange>, List&lt;CommitChange>>?</ID>
+    <ID>CyclomaticComplexMethod:GitCheckinEnvironment.kt:GitCheckinEnvironment.Companion$@Throws(VcsException::class) private fun addPartialChangesToIndex: Pair&lt;List&lt;PartialCommitHelper>, List&lt;CommitChange>></ID>
+    <ID>CyclomaticComplexMethod:GitCheckinEnvironment.kt:GitCheckinEnvironment.Companion$private fun collectChangesToCommit: List&lt;CommitChange></ID>
+    <ID>CyclomaticComplexMethod:GitDownloadAndInstall.kt:private fun parse : List&lt;GitInstaller></ID>
+    <ID>CyclomaticComplexMethod:GitLogProvider.kt:GitLogProvider.Companion$internal fun getGitLogParameters: GitLogCommandParameters?</ID>
+    <ID>CyclomaticComplexMethod:GitRebaseTodoModelConverter.kt:internal fun &lt;T : GitRebaseEntry> convertToModel: GitRebaseTodoModel&lt;T></ID>
+    <ID>CyclomaticComplexMethod:GitReftableReader.kt:GitReftableReader$@Throws(IOException::class) private fun findHeadInBlock: String?</ID>
+    <ID>CyclomaticComplexMethod:GitRepositoryUpdater.kt:GitRepositoryUpdater$override suspend fun filesChanged</ID>
+    <ID>CyclomaticComplexMethod:GitSearchEverywhereContributor.kt:GitSearchEverywhereContributor$override fun fetchWeightedElements</ID>
+    <ID>CyclomaticComplexMethod:GitStageLineStatusTracker.kt:GitStageLineStatusTracker.MyLineStatusMarkerPopupRenderer$private fun paintStageLines</ID>
+    <ID>CyclomaticComplexMethod:GitStageTracker.kt:GitStageTracker$private fun doUpdateState</ID>
+    <ID>CyclomaticComplexMethod:GitWorkingTree.kt:GitWorkingTreeSerializer$override fun deserialize: GitWorkingTree</ID>
     <ID>CyclomaticComplexMethod:GithubApiRequestExecutor.kt:GithubApiRequestExecutor.Companion$@VisibleForTesting internal fun isAuthorizedUrl: Boolean</ID>
     <ID>CyclomaticComplexMethod:GrAnnotatorImpl.kt:GrAnnotatorImpl$override fun annotate</ID>
     <ID>CyclomaticComplexMethod:GrGeneratedConstructorUtils.kt:private fun acceptClass</ID>
@@ -422,6 +451,7 @@
     <ID>CyclomaticComplexMethod:LangTool.kt:LangTool$internal fun createTool: JLanguageTool</ID>
     <ID>CyclomaticComplexMethod:LanguageDetector.kt:LanguageDetector$fun detect: Result</ID>
     <ID>CyclomaticComplexMethod:LanguageToolChecker.kt:private fun isKnownLTBug: Boolean</ID>
+    <ID>CyclomaticComplexMethod:LightGitPresentation.kt:@Nls private fun LightFileStatus.StatusRecord.getPresentation: String</ID>
     <ID>CyclomaticComplexMethod:LightOverlay.kt:LightOverlay$fun apply</ID>
     <ID>CyclomaticComplexMethod:LiquibaseProperties.kt:LiquibaseProperties.Companion$fun of: LiquibaseProperties</ID>
     <ID>CyclomaticComplexMethod:LogConsole.kt:LogInputFilter$override fun applyFilter: List&lt;Pair&lt;String, ConsoleViewContentType>>?</ID>
@@ -475,6 +505,7 @@
     <ID>CyclomaticComplexMethod:RemoteControlConfigurable.kt:RemoteControlConfigurable$override fun createComponent: JComponent</ID>
     <ID>CyclomaticComplexMethod:RemoteControlServer.kt:RemoteControlServer.Router$private fun http</ID>
     <ID>CyclomaticComplexMethod:RenameGrFieldProcessor.kt:RenameGrFieldProcessor$override fun renameElement</ID>
+    <ID>CyclomaticComplexMethod:RepositoryAndAccountSelectorComponentFactory.kt:RepositoryAndAccountSelectorComponentFactory$fun create: JComponent</ID>
     <ID>CyclomaticComplexMethod:RepositoryMethodInspection.kt:RepositoryMethodInspection.Visitor$override fun visitMethod: Boolean</ID>
     <ID>CyclomaticComplexMethod:SharedParserUtils.kt:fun GradleDslFile.getPropertiesElement: GradlePropertiesDslElement?</ID>
     <ID>CyclomaticComplexMethod:ShellCommandTreeBuilder.kt:ShellCommandTreeBuilder$private suspend fun buildSubcommandTree</ID>
@@ -612,6 +643,7 @@
     <ID>DestructuringDeclarationWithTooManyEntries:ImageUtils.kt:ImageUtils$val (path, width, height, title, description) = imageData</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:InsertImageAction.kt:InsertImageAction$val (path, _, _, title, description) = imageData</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:SpringProxyLineMarkers.kt:AopAdviceMatching.Evaluator$val (modifiers, returnType, declaration, parameters) = m.destructured</ID>
+    <ID>EmptyCatchBlock:GitHistoryTraverserImplTest.kt:GitHistoryTraverserImplTest${ }</ID>
     <ID>EmptyClassBlock:GrParameterWrapper.kt:GrParameterWrapper${ }</ID>
     <ID>EmptyClassBlock:PsiSourceResolveResult.kt:PsiSourceResolveResult${ }</ID>
     <ID>EmptyClassBlock:SpringAutowiringInspectionTest.kt:SpringAutowiringInspectionTest.Companion${ }</ID>
@@ -619,7 +651,15 @@
     <ID>EmptyDefaultConstructor:ColumnVisualizationData.kt:ColumnVisualizationData</ID>
     <ID>EmptyDefaultConstructor:EditorCellViewer.kt:ValueParserCache</ID>
     <ID>EmptyDefaultConstructor:ErrorNotificationPanel.kt:ErrorNotificationPanel.EmptySpace</ID>
+    <ID>EmptyDefaultConstructor:BranchesDashboardActions.kt:BranchesDashboardActions.HeadAndBranchActions</ID>
+    <ID>EmptyDefaultConstructor:BranchesDashboardActions.kt:BranchesDashboardActions.ShowArbitraryBranchesDiffAction</ID>
+    <ID>EmptyDefaultConstructor:BranchesDashboardActions.kt:BranchesDashboardActions.ShowArbitraryBranchesFileDiffAction</ID>
     <ID>EmptyDefaultConstructor:GHPRTimelineThreadViewModel.kt:UpdateableGHPRTimelineThreadViewModel.ReplyViewModel</ID>
+    <ID>EmptyDefaultConstructor:GitConfigurationCache.kt:GitConfigurationCache</ID>
+    <ID>EmptyDefaultConstructor:GitConfigurationCache.kt:GitConfigurationCacheBase</ID>
+    <ID>EmptyDefaultConstructor:GitRepositoryReaderNewTest.kt:GitRepositoryReaderNewTest.UsingPackedRefs</ID>
+    <ID>EmptyDefaultConstructor:GitRepositoryReaderNewTest.kt:GitRepositoryReaderNewTest.UsingReftable</ID>
+    <ID>EmptyDefaultConstructor:GitShallowRepositoryCheck.kt:GitShallowRepositoryCheck</ID>
     <ID>EmptyDefaultConstructor:ModalCommitSettingsListener.kt:ModalCommitSettingsListener</ID>
     <ID>EmptyDefaultConstructor:SLRUTextMateCache.kt:SLRUTextMateCache.LRUSegment</ID>
     <ID>EmptyElseBlock:AiIntegrationsScenario.kt:AiIntegrationsScenario$if (n &lt; 0) break</ID>
@@ -639,6 +679,7 @@
     <ID>EmptyElseBlock:SpringConfigKeys.kt:SpringConfigKeys$if (trimmed == "---") stack.clear()</ID>
     <ID>EmptyElseBlock:SpringMessaging.kt:ConfigPlaceholders$if (line.startsWith("---")) path.clear()</ID>
     <ID>EmptyElseBlock:WorkspacesScenario.kt:WorkspacesRun$if (isMax(geomOf(f))) f.extendedState = 0</ID>
+    <ID>EmptyFinallyBlock:GitStashCache.kt:GitStashCache${ }</ID>
     <ID>EmptyFunctionBlock:ActuatorTab.kt:ActuatorTab${}</ID>
     <ID>EmptyFunctionBlock:ActuatorTest.kt:ActuatorTest.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:AggregateView.kt:AggregateView${ }</ID>
@@ -647,6 +688,7 @@
     <ID>EmptyFunctionBlock:BlockTerminalCommandExecutionTest.kt:MyHyperlinkFilter.NopHyperlinkInfo${}</ID>
     <ID>EmptyFunctionBlock:BlockTerminalView.kt:BlockTerminalView${}</ID>
     <ID>EmptyFunctionBlock:DataGridFontOptionsPanel.kt:DataGridFontOptionsPanel.&lt;no name provided>${ }</ID>
+    <ID>EmptyFunctionBlock:CleanupBranchesDialog.kt:CleanupBranchesDialog.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:DataSources.kt:DbDataSourceService${}</ID>
     <ID>EmptyFunctionBlock:DbColors.kt:DbColorService${}</ID>
     <ID>EmptyFunctionBlock:DbDiagram.kt:DbDiagramEditor${}</ID>
@@ -663,6 +705,22 @@
     <ID>EmptyFunctionBlock:ErdEditor.kt:ErdEditor${}</ID>
     <ID>EmptyFunctionBlock:GHPRReviewSuggestedChangeComponentFactory.kt:GHPRReviewSuggestedChangeComponentFactory.CommitSuggestedChangeAction.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:GHPRSubmitReviewPopup.kt:GHPRSubmitReviewPopup.&lt;no name provided>${}</ID>
+    <ID>EmptyFunctionBlock:GitBranchesPopupBase.kt:GitBranchesPopupBase${}</ID>
+    <ID>EmptyFunctionBlock:GitBranchesPopupStepBase.kt:GitBranchesPopupStepBase${}</ID>
+    <ID>EmptyFunctionBlock:GitCheckinEnvironment.kt:GitCheckinEnvironment.GitCheckinOptions${ }</ID>
+    <ID>EmptyFunctionBlock:GitCompareWithBranchPopup.kt:GitBranchesTreeMinimalRenderer${ }</ID>
+    <ID>EmptyFunctionBlock:GitConflictsPanel.kt:GitConflictsPanel${ }</ID>
+    <ID>EmptyFunctionBlock:GitConflictsView.kt:GitConflictsView${ }</ID>
+    <ID>EmptyFunctionBlock:GitDisposable.kt:GitDisposable${ }</ID>
+    <ID>EmptyFunctionBlock:GitIgnoreInStoreDirGenerator.kt:GitIgnoreInStoreDirGenerator${ }</ID>
+    <ID>EmptyFunctionBlock:GitIndexFileSystem.kt:GitIndexFileSystem${}</ID>
+    <ID>EmptyFunctionBlock:GitLogRecordBuilder.kt:DefaultGitLogRecordBuilder${ }</ID>
+    <ID>EmptyFunctionBlock:GitPushUpToCommitAction.kt:GitPushUpToCommitAction${ }</ID>
+    <ID>EmptyFunctionBlock:GitRemoteBranchSelectionPopup.kt:GitBranchesTreeMinimalRenderer${ }</ID>
+    <ID>EmptyFunctionBlock:GitRemoteTest.kt:GitRemoteTest.TestAuthenticator${}</ID>
+    <ID>EmptyFunctionBlock:GitRevertProcess.kt:GitRevertProcess${ }</ID>
+    <ID>EmptyFunctionBlock:GitUpdateSession.kt:GitUpdateSession${}</ID>
+    <ID>EmptyFunctionBlock:GpgAgentConfigurator.kt:GpgAgentConfigurator${}</ID>
     <ID>EmptyFunctionBlock:GrazieFolderConfig.kt:GrazieFolderConfig${}</ID>
     <ID>EmptyFunctionBlock:GrazieInspection.kt:GrazieInspection.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:GrazieLanguagesList.kt:GrazieLanguagesList${}</ID>
@@ -687,6 +745,7 @@
     <ID>EmptyFunctionBlock:JsonSchemaVfsListener.kt:JsonSchemaUpdater${ }</ID>
     <ID>EmptyFunctionBlock:JsonTextLiteralService.kt:JsonTextLiteralService${ }</ID>
     <ID>EmptyFunctionBlock:LocalFilterPopup.kt:LocalFilterPopup.&lt;no name provided>${}</ID>
+    <ID>EmptyFunctionBlock:LightGitTracker.kt:LightGitTracker${ }</ID>
     <ID>EmptyFunctionBlock:LoopbackTtyConnector.kt:LoopbackTtyConnector${}</ID>
     <ID>EmptyFunctionBlock:MarkdownHtmlExportProvider.kt:MarkdownHtmlExportProvider.SaveSettingsListener${}</ID>
     <ID>EmptyFunctionBlock:MarkdownPreviewFileEditor.kt:MarkdownPreviewFileEditor${}</ID>
@@ -696,11 +755,15 @@
     <ID>EmptyFunctionBlock:MemoListPanel.kt:MemoListPanel${}</ID>
     <ID>EmptyFunctionBlock:MemoSender.kt:MemoSender${}</ID>
     <ID>EmptyFunctionBlock:MemoSenderInIdeTest.kt:MemoSenderInIdeTest.FakeIo${}</ID>
+    <ID>EmptyFunctionBlock:MergeDirectionComponentFactory.kt:MergeDirectionComponentFactory.Companion.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:MermaidBrowserExtension.kt:MermaidBrowserExtension${}</ID>
+    <ID>EmptyFunctionBlock:MockGitRepository.kt:MockGitRepository${ }</ID>
+    <ID>EmptyFunctionBlock:MockGitRepository.kt:MockGitRepository.&lt;no name provided>${ }</ID>
     <ID>EmptyFunctionBlock:ModelUpdatingTerminalDisplay.kt:ModelUpdatingTerminalDisplay${}</ID>
     <ID>EmptyFunctionBlock:MoveColumnListener.kt:MoveColumnListener${ }</ID>
     <ID>EmptyFunctionBlock:MoveTerminalSessionToEditorAction.kt:TerminalEditorWidgetListener${ }</ID>
     <ID>EmptyFunctionBlock:NestedTableGridPagingModel.kt:NestedTableGridPagingModel.StaticMultiPageModel${}</ID>
+    <ID>EmptyFunctionBlock:NotificationErrorNotifier.kt:NotificationErrorNotifier${ }</ID>
     <ID>EmptyFunctionBlock:OldPlainTerminalView.kt:OldPlainTerminalView${}</ID>
     <ID>EmptyFunctionBlock:PlainTerminalView.kt:PlainTerminalView${}</ID>
     <ID>EmptyFunctionBlock:RecordView.kt:RecordView${ }</ID>
@@ -737,6 +800,7 @@
     <ID>EqualsWithHashCodeExist:GrazieRulesTreeNode.kt:GrazieRulesTreeNode : CheckedTreeNode</ID>
     <ID>ExplicitGarbageCollectionCall:CheckingBenchmarkTest.kt:CheckingBenchmarkTest$gc()</ID>
     <ID>ExplicitItLambdaParameter:BlockTerminalCommandExecutionTest.kt:BlockTerminalCommandExecutionTest${ it -> session.commandManager.addListener(it, session) }</ID>
+    <ID>ExplicitItLambdaParameter:GitTestAssertions.kt:ChangesBuilder.AChange${ it -> matcher(it.status, it.beforePath, it.afterPath) }</ID>
     <ID>ExplicitItLambdaParameter:GrSignatureWrapper.kt:GrSignatureWrapper${ it -> GrParameterWrapper( it.name, it.type, it.defaultInitializer ) }</ID>
     <ID>ExplicitItLambdaParameter:GrStaticExpressionReference.kt:GrStaticExpressionReference.Resolver${ it -> arrayOf(it) }</ID>
     <ID>ForbiddenComment:CodeInsightFixtureExtension.kt:CodeInsightFixtureExtension$// TODO: Investigate why createLightFixtureBuilder is not working correctly with TestApplicationExtension</ID>
@@ -767,6 +831,22 @@
     <ID>ForbiddenComment:GHPRReviewFlowViewModelImpl.kt:GHPRReviewFlowViewModelImpl$//TODO: show error in UI</ID>
     <ID>ForbiddenComment:GHPRReviewThreadComponentFactory.kt:GHPRReviewThreadComponentFactory$//TODO: show resolve when available separately from reply</ID>
     <ID>ForbiddenComment:GHPRStatusViewModel.kt:GHPRStatusViewModelImpl$// TODO: Implement after switching to version 3.2</ID>
+    <ID>ForbiddenComment:GitAliasContributor.kt:* Parses a Git alias string of the general format 'alias.{alias name} [!]{replacement}' into its parts. * * TODO: Implement special handling of commands starting with exclamation marks * Example: given `alias.ls !ll -la`, `git ls` should suggest arguments for `ls -la`, not `git ls -la`.</ID>
+    <ID>ForbiddenComment:GitBranchComparisonResult.kt:// TODO: exception with attachments</ID>
+    <ID>ForbiddenComment:GitCheckoutFromInputAction.kt:GitCheckoutFromInputAction$// TODO: on type check ref validity, on OK check ref existence.</ID>
+    <ID>ForbiddenComment:GitCherryPickAutoCommitTest.kt:GitCherryPickAutoCommitTest$// TODO: Investigate why it's super flaky for this case</ID>
+    <ID>ForbiddenComment:GitCommandOutputConsolePrinter.kt:GitCommandOutputConsolePrinter$//TODO: async processing as stated in AnsiEscapeDecoder documentation</ID>
+    <ID>ForbiddenComment:GitFetchSupportImpl.kt:GitFetchSupportImpl$// TODO: support 'GitStandardProgressAnalyzer' for multiple remotes</ID>
+    <ID>ForbiddenComment:GitFileHistory.kt:GitFileHistory$* An implementation of file history algorithm with renames detection. * &lt;p> * 'git log --follow' does detect renames, but it has a bug - merge commits aren't handled properly: they just disappear from the history. * See http://kerneltrap.org/mailarchive/git/2009/1/30/4861054 and the whole thread about that: --follow is buggy, but maybe it won't be fixed. * To get the whole history through renames we do the following: * 1. 'git log &lt;file>' - and we get the history since the first rename, if there was one. * 2. 'git show -M --follow --name-status &lt;first_commit_id> -- &lt;file>' * where &lt;first_commit_id> is the hash of the first commit in the history we got in #1. * With this command we get the rename-detection-friendly information about the first commit of the given file history. * (by specifying the &lt;file> we filter out other changes in that commit; but in that case rename detection requires '--follow' to work, * that's safe for one commit though) * If the first commit was ADDING the file, then there were no renames with this file, we have the full history. * But if the first commit was RENAMING the file, we are going to query for the history before rename. * Now we have the previous name of the file: * &lt;p> * ~/sandbox/git # git show --oneline --name-status -M 4185b97 * 4185b97 renamed a to b * R100 a b * &lt;p> * 3. 'git log &lt;rename_commit_id> -- &lt;previous_file_name>' - get the history of a before the given commit. * We need to specify &lt;rename_commit_id> here, because &lt;previous_file_name> could have some new history, which has nothing common with our &lt;file>. * Then we repeat 2 and 3 until the first commit is ADDING the file, not RENAMING it. * &lt;p> * TODO: handle multiple repositories configuration: a file can be moved from one repo to another</ID>
+    <ID>ForbiddenComment:GitGpgConfigUtils.kt:// TODO: "tag.gpgSign" ?</ID>
+    <ID>ForbiddenComment:GitRemote.kt:GitRemote$// TODO: LOG.warn if other parameters differ</ID>
+    <ID>ForbiddenComment:GitShellCommandOverrideSpec.kt:// TODO: Check if this is the best thing to replace templates: filepaths + folders / only filepaths with</ID>
+    <ID>ForbiddenComment:GitShellCommandOverrideSpec.kt:// TODO: Fix this after there's some 'parsedOptions' or something in context to check for here.</ID>
+    <ID>ForbiddenComment:GitShellCommandOverrideSpec.kt:// TODO: Maybe add low-priority commit hash suggestions</ID>
+    <ID>ForbiddenComment:GitShellCommandOverrideSpec.kt:// TODO: Maybe show all branches for the time being?</ID>
+    <ID>ForbiddenComment:GitShellCommandOverrideSpec.kt:// TODO: hidden?</ID>
+    <ID>ForbiddenComment:GitTextFilePatchWithHistoryTest.kt:GitTextFilePatchWithHistoryTest$// no mapping, just use the easy side TODO: fix with complex start-in-the-middle tests</ID>
+    <ID>ForbiddenComment:GitWorkingTreeHolderImpl.kt:GitWorkingTreeHolderImpl$// TODO: cancel the scheduled update to reduce wait times</ID>
     <ID>ForbiddenComment:GithubApiRequest.kt:GithubApiRequest.Patch.Json$// TODO: Mark as PATCH, currently this likely sends POSTs?</ID>
     <ID>ForbiddenComment:GithubApiRequests.kt:GithubApiRequests$* Collection of factory methods for API requests used in plugin * TODO: improve url building (DSL?)</ID>
     <ID>ForbiddenComment:GradlePropertyModelTest.kt:GradlePropertyModelTest$/*, "0", "ext.prop1.0" TODO: FIX THIS */</ID>
@@ -777,6 +857,7 @@
     <ID>ForbiddenComment:GroovySliceUsage.kt:GroovySliceUsage$// TODO: This is a simple implementation created mainly for the purpose of cross-language graph testing</ID>
     <ID>ForbiddenComment:HeaderAnchorLinkDestinationReference.kt:HeaderAnchorLinkDestinationReference$// TODO: Replace with actual header icon</ID>
     <ID>ForbiddenComment:HeaderLevelInferenceTypedHandler.kt:HeaderLevelInferenceTypedHandler.Companion$// TODO: Handle headers inside block quotes</ID>
+    <ID>ForbiddenComment:HostedGitRepositoryReferenceUtil.kt:HostedGitRepositoryReference.File$//TODO: check pushed</ID>
     <ID>ForbiddenComment:IdentifierRenameTarget.kt:IdentifierRenameTarget$// TODO: Replace with delegating pointer to the symbol after dereference is fixed in the platform?</ID>
     <ID>ForbiddenComment:JsonSchemaHighlightingNetworkntTest.kt:JsonSchemaHighlightingNetworkntTest$// TODO: target is Variant 1 (ADR-001) — restore old IJ format post-MVP</ID>
     <ID>ForbiddenComment:MermaidGitGraphBranchIdentifierHolder.kt:// TODO: Probably should return [MermaidIdentifier]</ID>
@@ -809,6 +890,7 @@
     <ID>FunctionNaming:GHUIUtil.kt:GHUIUtil.SelectionPresenters$fun Labels: (GHLabel) -> PopupItemPresentation.Simple</ID>
     <ID>FunctionNaming:GHUIUtil.kt:GHUIUtil.SelectionPresenters$fun PRReviewers: (GHPullRequestRequestedReviewer) -> PopupItemPresentation.Simple</ID>
     <ID>FunctionNaming:GHUIUtil.kt:GHUIUtil.SelectionPresenters$fun Users: (GHUser) -> PopupItemPresentation.Simple</ID>
+    <ID>FunctionNaming:GitStageTree.kt:NodeKind$abstract fun `is`: Boolean</ID>
     <ID>FunctionNaming:_Json5Lexer.kt:_Json5Lexer.Companion$@JvmStatic private fun zzUnpackcmap_blocks: Int</ID>
     <ID>FunctionNaming:_Json5Lexer.kt:_Json5Lexer.Companion$@JvmStatic private fun zzUnpackcmap_blocks: IntArray</ID>
     <ID>FunctionNaming:_Json5Lexer.kt:_Json5Lexer.Companion$@JvmStatic private fun zzUnpackcmap_top: Int</ID>
@@ -883,10 +965,15 @@
     <ID>InvalidPackageDeclaration:yamlIndentPreservationUtils.kt:package org.jetbrains.yaml.smart</ID>
     <ID>InvalidPackageDeclaration:yamlPsiUtil.kt:package org.jetbrains.yaml.psi</ID>
     <ID>InvalidPackageDeclaration:yamlSearchEverywhereResultsCollector.kt:package org.jetbrains.yaml.navigation</ID>
+    <ID>InvalidRange:GitTextFilePatchWithHistoryTest.kt:GitTextFilePatchWithHistoryTest.Companion$0..&lt;0</ID>
+    <ID>InvalidRange:GitTextFilePatchWithHistoryTest.kt:GitTextFilePatchWithHistoryTest.Companion$5..&lt;5</ID>
     <ID>IteratorNotThrowingNoSuchElementException:GHCloneDialogExtensionComponentBase.kt:GHCloneDialogExtensionComponentBase.Companion$&lt;no name provided> : Iterator</ID>
     <ID>LargeClass:AndroidModelTest.kt:AndroidModelTest : AndroidGradleFileModelTestCase</ID>
     <ID>LargeClass:BytecodeLineMappingTest.kt:BytecodeLineMappingTest : BasePlatformTestCase</ID>
     <ID>LargeClass:GHGQLDataTest.kt:MetaTest</ID>
+    <ID>LargeClass:GitBranchWorkerTest.kt:GitBranchWorkerTest : GitPlatformTest</ID>
+    <ID>LargeClass:GitCommitTest.kt:GitCommitTestBase</ID>
+    <ID>LargeClass:GitSingleRepoRebaseTest.kt:GitSingleRepoRebaseTest : GitRebaseBaseTest</ID>
     <ID>LargeClass:GradlePropertyModelTest.kt:GradlePropertyModelTest : GradleFileModelTestCase</ID>
     <ID>LargeClass:JUnitMalformedDeclarationInspection.kt:JUnitMalformedSignatureVisitor : AbstractUastNonRecursiveVisitor</ID>
     <ID>LargeClass:JavaJUnitMalformedDeclarationInspectionTest.kt:JavaJUnitMalformedDeclarationInspectionTest$Latest : JUnitMalformedDeclarationInspectionTestBase</ID>
@@ -902,6 +989,8 @@
     <ID>LongMethod:AiIntegrationsScenario.kt:AiIntegrationsScenario$override suspend fun run</ID>
     <ID>LongMethod:AiVisualizationScenario.kt:AiVisualizationScenario$override suspend fun run</ID>
     <ID>LongMethod:BlockTest.kt:BlockTest$fun `test complex block diagram`</ID>
+    <ID>LongMethod:BranchesDashboardTreeComponent.kt:BranchesDashboardTreeComponent$fun create: JComponent</ID>
+    <ID>LongMethod:BranchesInGitLogUiFactoryProvider.kt:BranchesVcsLogUi$private fun createMainComponent: JComponent</ID>
     <ID>LongMethod:ClassDiagramTest.kt:ClassDiagramTest$fun `test keywords in identifiers`</ID>
     <ID>LongMethod:CoverageIntegrationTest.kt:CoverageIntegrationTest$@Test fun `test sub coverage`: Unit</ID>
     <ID>LongMethod:DbGridEditing.kt:DbGridEdits$private fun apply</ID>
@@ -912,11 +1001,24 @@
     <ID>LongMethod:DockerfileInspections.kt:DockerfileInspectionImpl$override fun check</ID>
     <ID>LongMethod:EditorConfigOptionDescriptorJsonDeserializerTest.kt:EditorConfigOptionDescriptorJsonDeserializerTest$@Test fun `test parsing options with complex keys`</ID>
     <ID>LongMethod:EditorConfigOptionDescriptorJsonDeserializerTest.kt:EditorConfigOptionDescriptorJsonDeserializerTest$@Test fun `test that gson correctly deserializes complex descriptor`</ID>
+    <ID>LongMethod:FindMergedLocalBranchesAction.kt:FindMergedLocalBranchesAction$override fun actionPerformed</ID>
     <ID>LongMethod:GHPRCreateViewModel.kt:GHPRCreateViewModelImpl$override fun create</ID>
     <ID>LongMethod:GHPRDataContextRepository.kt:GHPRDataContextRepository$@Throws(IOException::class) private fun CoroutineScope.getContextAsync : Deferred&lt;GHPRDataContext></ID>
     <ID>LongMethod:GHPRFileEditorComponentFactory.kt:GHPRFileEditorComponentFactory$fun create: JComponent</ID>
+    <ID>LongMethod:GitApplyChangesProcess.kt:GitApplyChangesProcess$protected open fun executeForCommitChunk: Boolean</ID>
+    <ID>LongMethod:GitCheckinEnvironment.kt:GitCheckinEnvironment.Companion$@Throws(VcsException::class) private fun addExplicitMovementsToIndex: Pair&lt;List&lt;CommitChange>, List&lt;CommitChange>>?</ID>
+    <ID>LongMethod:GitForcePushedBranchUpdateAction.kt:GitForcePushedBranchUpdateExecutor$private suspend fun updateRepository: GitUpdateResult</ID>
     <ID>LongMethod:GitGraphInspection.kt:GitGraphInspection.GitGraphProblemsCollector$override fun visitCherryPickStatement</ID>
     <ID>LongMethod:GitGraphInspection.kt:GitGraphInspection.GitGraphProblemsCollector$override fun visitMergeStatement</ID>
+    <ID>LongMethod:GitIgnoredFileTest.kt:GitIgnoredFileTest$fun `test add elements to middle ignore block`</ID>
+    <ID>LongMethod:GitLogProvider.kt:GitLogProvider.Companion$internal fun getGitLogParameters: GitLogCommandParameters?</ID>
+    <ID>LongMethod:GitNewBranchDialog.kt:GitNewBranchDialog$override fun createCenterPanel</ID>
+    <ID>LongMethod:GitNotificationIdsHolder.kt:GitNotificationIdsHolder$override fun getNotificationIds: List&lt;String></ID>
+    <ID>LongMethod:GitRepositoryUpdater.kt:GitRepositoryUpdater$override suspend fun filesChanged</ID>
+    <ID>LongMethod:GitShareProjectService.kt:GitShareProjectService$private suspend fun performFirstCommitIfRequired: Boolean</ID>
+    <ID>LongMethod:GitStageLineStatusTracker.kt:GitStageLineStatusTracker.MyLineStatusMarkerPopupRenderer$private fun paintStageLines</ID>
+    <ID>LongMethod:GitTextFilePatchWithHistoryTest.kt:GitTextFilePatchWithHistoryTest.Companion$@JvmStatic fun testCases: Array&lt;TestCase></ID>
+    <ID>LongMethod:GitVcsPanel.kt:GitVcsPanel$override fun createPanel: DialogPanel</ID>
     <ID>LongMethod:GradleCatalogVersionsTest.kt:GradleCatalogVersionsTest$@Test fun testAllDependencies</ID>
     <ID>LongMethod:GradlePropertyModelTest.kt:GradlePropertyModelTest$@Test fun testProperties</ID>
     <ID>LongMethod:GradlePropertyModelTest.kt:GradlePropertyModelTest$@Test fun testSetToListValues</ID>
@@ -950,6 +1052,7 @@
     <ID>LongMethod:KotlinDslWriter.kt:KotlinDslWriter$override fun createDslMethodCall: PsiElement?</ID>
     <ID>LongMethod:MarkdownCodeStyleSettingsProvider.kt:MarkdownCodeStyleSettingsProvider$override fun customizeSettings</ID>
     <ID>LongMethod:MarkdownSmartKeysConfigurable.kt:MarkdownSmartKeysConfigurable$override fun Panel.createContent</ID>
+    <ID>LongMethod:MergeDirectionComponentFactory.kt:MergeDirectionComponentFactory$fun create: JComponent</ID>
     <ID>LongMethod:MermaidCodeStyleSettingsProvider.kt:MermaidCodeStyleSettingsProvider$override fun customizeSettings</ID>
     <ID>LongMethod:MermaidHighlighter.kt:MermaidHighlighter.Companion$private fun addBaseHighlights</ID>
     <ID>LongMethod:MermaidSpacingBuilder.kt:MermaidSpacingBuilder$private fun SpacingBuilder.addCustomizableRules: SpacingBuilder</ID>
@@ -968,6 +1071,7 @@
     <ID>LongMethod:ProductFlavorModelTest.kt:ProductFlavorModelTest$@Test fun testRemoveAndApplyElements</ID>
     <ID>LongMethod:ProductFlavorModelTest.kt:ProductFlavorModelTest$@Test fun testRemoveAndResetElements</ID>
     <ID>LongMethod:PropertyDependencyTest.kt:PropertyDependencyTest$@Test fun testParsingDependenciesMultiFile</ID>
+    <ID>LongMethod:RepositoryAndAccountSelectorComponentFactory.kt:RepositoryAndAccountSelectorComponentFactory$fun create: JComponent</ID>
     <ID>LongMethod:RequirementTest.kt:RequirementTest$fun `test full complex requirement diagram`</ID>
     <ID>LongMethod:SmokeScenario.kt:SmokeScenario$override suspend fun run</ID>
     <ID>LongMethod:SqlRoutineInspections.kt:SqlRoutine.Companion$fun of: SqlRoutine?</ID>
@@ -996,7 +1100,9 @@
     <ID>MatchingDeclarationName:BootProfileValueLineMarkers.kt:BootProfileValueLineMarkerProvider : LineMarkerProviderDescriptor</ID>
     <ID>MatchingDeclarationName:ChangePageSizeAction.kt:ChangePageSizeActionNew : ToggleAction</ID>
     <ID>MatchingDeclarationName:ColumnLocalFilterClearAction.kt:ColumnLocalFilterClearAllAction : DumbAwareActionGridActionFrontendOtherwiseBackend</ID>
+    <ID>MatchingDeclarationName:CherryPickProcess.kt:GitCherryPickProcess : GitApplyChangesProcess</ID>
     <ID>MatchingDeclarationName:ComposeLineMarkers.kt:ComposeLineMarkerProvider : LineMarkerProviderDescriptor</ID>
+    <ID>MatchingDeclarationName:CopyRepositoryRootPathProvider.kt:CopyPathFromRepositoryRootProvider : DumbAwareCopyPathProvider</ID>
     <ID>MatchingDeclarationName:DbRunFile.kt:DbRunSqlFileAction : DumbAwareAction</ID>
     <ID>MatchingDeclarationName:DisableGridFloatingPagingAction.kt:MoveGridFloatingPagingAction : DumbAwareActionGridAction</ID>
     <ID>MatchingDeclarationName:DockerfileStageLineMarkers.kt:DockerfileStageLineMarkerProvider : LineMarkerProviderDescriptor</ID>
@@ -1006,6 +1112,11 @@
     <ID>MatchingDeclarationName:FileLinkDestinationReferenceRenameWithExtensionTest.kt:FileLinkDestinationReferenceWithExtensionTest : BaseLinkDestinationReferenceTestCase</ID>
     <ID>MatchingDeclarationName:FunctionalExpressionFlowUtil.kt:InvocationKind</ID>
     <ID>MatchingDeclarationName:GHPRDataProviderUtil.kt:LoaderWithMutableCache&lt;T></ID>
+    <ID>MatchingDeclarationName:GitCommitEditingActionContext.kt:CommitEditingActionContext</ID>
+    <ID>MatchingDeclarationName:GitPushTagsAction.kt:GitPushTagAction : GitSingleTagAction</ID>
+    <ID>MatchingDeclarationName:GitSilentFileAdderProvider.kt:GitSilentFileAdderProviderImpl : GitSilentFileAdderProvider</ID>
+    <ID>MatchingDeclarationName:GitSingleRepoTestContext.kt:GitSingleRepoContext : GitPlatformTestContext</ID>
+    <ID>MatchingDeclarationName:GitlNavigateRevisionResolver.kt:GitNavigateRevisionResolver : JBProtocolRevisionResolver</ID>
     <ID>MatchingDeclarationName:GrVisibilityUtils.kt:Visibility</ID>
     <ID>MatchingDeclarationName:GrazieSpellchecker.kt:GrazieCheckers : GrazieStateLifecycle</ID>
     <ID>MatchingDeclarationName:GrazieStartupActivity.kt:GrazieNotificationComponent : ProjectActivity</ID>
@@ -1036,16 +1147,23 @@
     <ID>MayBeConstant:AndroidCommonConfigurationNames.kt:AndroidCommonConfigurationNames$@JvmField @NonNls val ANDROID_TEST_COMPILE: String = "androidTestCompile"</ID>
     <ID>MayBeConstant:AndroidCommonConfigurationNames.kt:AndroidCommonConfigurationNames$@JvmField @NonNls val ANDROID_TEST_IMPLEMENTATION: String = "androidTestImplementation"</ID>
     <ID>MayBeConstant:AndroidCommonConfigurationNames.kt:AndroidCommonConfigurationNames$@JvmField @NonNls val SCREENSHOT_TEST_IMPLEMENTATION: String = "screenshotTestImplementation"</ID>
+    <ID>MayBeConstant:CherryPickProcess.kt:GitCherryPickProcess.Companion$private val AUTO_COMMIT = true</ID>
     <ID>MayBeConstant:CompilerOptionsModelImpl.kt:CompilerOptionsModelImpl.Companion$@JvmField val JVM_TARGET = "mJvmTarget"</ID>
     <ID>MayBeConstant:DbTableEdits.kt:SingleTableSelect$private val IDENT = """(?:"[^"]+"|`[^`]+`|\[[^\]]+]|[A-Za-z_][\w$]*)"""</ID>
+    <ID>MayBeConstant:GitCheckinEnvironment.kt:GitCheckinEnvironment.Companion$private val GIT_COMMIT_MSG_FILE_EXT: @NonNls String = ".txt" // the file extension for commit message file</ID>
+    <ID>MayBeConstant:GitCheckinEnvironment.kt:GitCheckinEnvironment.Companion$private val GIT_COMMIT_MSG_FILE_PREFIX: @NonNls String = "git-commit-msg-" // the file name prefix for commit message file</ID>
+    <ID>MayBeConstant:GitCheckinHandlerFactory.kt:GitFileNameCheckinHandler.Companion$private val WINDOWS_INVALID_CHARS = "&lt;&gt;:\"\\|?*"</ID>
+    <ID>MayBeConstant:GitRecentProjectsBranchesProvider.kt:GitRecentProjectsBranchesService.Companion$private val INVALID = ".invalid"</ID>
     <ID>NestedBlockDepth:ActuatorTab.kt:ActuatorJson$fun mappings: List&lt;Mapping></ID>
     <ID>NestedBlockDepth:AstUtil.kt:fun visitTopLevelKeyPairs : Boolean</ID>
+    <ID>NestedBlockDepth:BranchesTreeModel.kt:NodeDescriptorsModel$private fun groupByRepoAndPrefixIfApplicable: List&lt;BranchNodeDescriptor></ID>
     <ID>NestedBlockDepth:CheckerRunner.kt:CheckerRunner.Companion$private fun ignoredRules: RuleGroup</ID>
     <ID>NestedBlockDepth:DbCsvImport.kt:DbCsvReader$fun next: List&lt;String?>?</ID>
     <ID>NestedBlockDepth:DbParameters.kt:DbParameters$fun find: List&lt;Occurrence></ID>
     <ID>NestedBlockDepth:DbSshTunnel.kt:DbSshTunnelOpener$override fun open: DbTunnel</ID>
     <ID>NestedBlockDepth:Dockerfile.kt:Dockerfile.Companion$fun parse: Dockerfile</ID>
     <ID>NestedBlockDepth:EditorConfigCodeStyleSettingsModifier.kt:private fun processOptions: Boolean</ID>
+    <ID>NestedBlockDepth:GitBranchComparisonResultImpl.kt:GitBranchComparisonResultImpl$private fun initForLinearHistory</ID>
     <ID>NestedBlockDepth:HelpersTest.kt:HelpersTest$@Test fun helpersSitOnTheirRugBesideTheParentClearOfPeopleAndFurniture</ID>
     <ID>NestedBlockDepth:HelpersTest.kt:HelpersTest$@Test fun twoSubagentsDrawExtraPixelsNextToTheParentInEveryTheme</ID>
     <ID>NestedBlockDepth:JUnitMalformedDeclarationInspection.kt:JUnitMalformedSignatureVisitor$private fun checkEnumConstants</ID>
@@ -1059,6 +1177,7 @@
     <ID>NestedBlockDepth:KotlinDslUtil.kt:internal fun convertToExternalTextValue: String?</ID>
     <ID>NestedBlockDepth:MarkdownTablePipeInCodeSpanInspection.kt:MarkdownTablePipeInCodeSpanInspection$private fun scanCodeSpansForPipes</ID>
     <ID>NestedBlockDepth:PeopleSpotsTest.kt:PeopleSpotsTest$@Test fun tagsKeepOffNamePlatesBubblesAndEachOther</ID>
+    <ID>NestedBlockDepth:PinentryService.kt:PinentryService$private suspend fun handleClient</ID>
     <ID>NestedBlockDepth:RedisClient.kt:RedisText$fun split: List&lt;String></ID>
     <ID>NestedBlockDepth:SpringBeanContractInspections.kt:KnownProfiles$private fun computeKnown: Set&lt;String>?</ID>
     <ID>NestedBlockDepth:SpringConfigKeys.kt:SpringConfigKeys$private fun compute: Keys</ID>
@@ -1073,13 +1192,715 @@
     <ID>NestedBlockDepth:TomlDslParser.kt:TomlDslParser$private fun replaceVersionRefsWithInjections</ID>
     <ID>NestedBlockDepth:TomlJsonPsiWalker.kt:TomlJsonPsiWalker$override fun findPosition: JsonPointerPosition</ID>
     <ID>PackageNaming:AddGenericToDeclarationFixTest.kt:package com.phantom.mermaid.lang.intention.undeclared_generic</ID>
+    <ID>PackageNaming:AnActionOptionButton.kt:package git4idea.rebase.interactive.dialog</ID>
+    <ID>PackageNaming:BranchIconUtil.kt:package git4idea.ui.branch</ID>
+    <ID>PackageNaming:BranchTreeNodeComparator.kt:package git4idea.ui.branch.dashboard</ID>
+    <ID>PackageNaming:BranchesDashboardActions.kt:package git4idea.ui.branch.dashboard</ID>
+    <ID>PackageNaming:BranchesDashboardFilteringLogic.kt:package git4idea.ui.branch.dashboard</ID>
+    <ID>PackageNaming:BranchesDashboardTreeComponent.kt:package git4idea.ui.branch.dashboard</ID>
+    <ID>PackageNaming:BranchesDashboardTreeController.kt:package git4idea.ui.branch.dashboard</ID>
+    <ID>PackageNaming:BranchesDashboardTreeModel.kt:package git4idea.ui.branch.dashboard</ID>
+    <ID>PackageNaming:BranchesDashboardUtil.kt:package git4idea.ui.branch.dashboard</ID>
+    <ID>PackageNaming:BranchesDataKeys.kt:package git4idea.ui.branch.dashboard</ID>
+    <ID>PackageNaming:BranchesInGitLogUiFactoryProvider.kt:package git4idea.ui.branch.dashboard</ID>
+    <ID>PackageNaming:BranchesTree.kt:package git4idea.ui.branch.dashboard</ID>
+    <ID>PackageNaming:BranchesTreeModel.kt:package git4idea.ui.branch.dashboard</ID>
+    <ID>PackageNaming:BranchesTreeSelection.kt:package git4idea.ui.branch.dashboard</ID>
+    <ID>PackageNaming:BufferingTextSplitterTest.kt:package git4idea.commands</ID>
+    <ID>PackageNaming:CaffeineUtil.kt:package git4idea.util</ID>
+    <ID>PackageNaming:ChangeEntryStateActions.kt:package git4idea.rebase.interactive.dialog</ID>
+    <ID>PackageNaming:CherryPickContinueCommand.kt:package git4idea.cherrypick</ID>
+    <ID>PackageNaming:CherryPickProcess.kt:package git4idea.cherrypick</ID>
+    <ID>PackageNaming:CherryPickedCommitsHighlighter.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:CleanupBranchesAction.kt:package git4idea.ui.branch.cleanup</ID>
+    <ID>PackageNaming:CleanupBranchesDialog.kt:package git4idea.ui.branch.cleanup</ID>
+    <ID>PackageNaming:CmdLabel.kt:package git4idea.merge.dialog</ID>
+    <ID>PackageNaming:CollectionUtil.kt:package git4idea.util</ID>
+    <ID>PackageNaming:ComboBoxWithAutoCompletion.kt:package git4idea.ui</ID>
     <ID>PackageNaming:CommandBlockIntegration.kt:package org.jetbrains.plugins.terminal.shell_integration</ID>
+    <ID>PackageNaming:CommitMessageCellEditor.kt:package git4idea.rebase.interactive.dialog.view</ID>
+    <ID>PackageNaming:ConvertExcludedToGitIgnoredTest.kt:package git4idea.ignore</ID>
+    <ID>PackageNaming:ConvertLanguageExplicitMovementProvider.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:CopyOnWriteFilePathSet.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:CopyRepositoryRootPathProvider.kt:package git4idea.actions</ID>
+    <ID>PackageNaming:CurrentReviewBranchFlowTest.kt:package git4idea.remote.hosting</ID>
+    <ID>PackageNaming:DeepComparator.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:EmptyCherryPickResolutionStrategy.kt:package git4idea.cherrypick</ID>
+    <ID>PackageNaming:EmptyCommitTest.kt:package git4idea.cherrypick</ID>
+    <ID>PackageNaming:ExpandStripeButton.kt:package git4idea.ui.branch.dashboard</ID>
+    <ID>PackageNaming:ExpandablePanelController.kt:package git4idea.ui.branch.dashboard</ID>
+    <ID>PackageNaming:FindMergedLocalBranchesAction.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:FixTrackedBranchDialog.kt:package git4idea.update</ID>
+    <ID>PackageNaming:FlatComboBoxUI.kt:package git4idea.merge.dialog</ID>
+    <ID>PackageNaming:GitAbortOperationAction.kt:package git4idea.actions</ID>
+    <ID>PackageNaming:GitActionIdsHolder.kt:package git4idea</ID>
+    <ID>PackageNaming:GitActivityPresentationProvider.kt:package git4idea</ID>
+    <ID>PackageNaming:GitAdd.kt:package git4idea.actions</ID>
+    <ID>PackageNaming:GitAddCommitToRemoteBranchAction.kt:package git4idea.actions.addCommit</ID>
+    <ID>PackageNaming:GitAddCommitToRemoteBranchOperation.kt:package git4idea.actions.addCommit</ID>
+    <ID>PackageNaming:GitAddCommitToRemoteBranchOperationTest.kt:package git4idea.actions.addCommit</ID>
+    <ID>PackageNaming:GitAddTest.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:GitAdvancedSettingsListener.kt:package git4idea.annotate</ID>
+    <ID>PackageNaming:GitAmendCommitService.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:GitAmendSpecificCommitSquasher.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:GitAnnotationPerformanceListener.kt:package git4idea.annotate</ID>
+    <ID>PackageNaming:GitAnnotationProvider.kt:package git4idea.annotate</ID>
+    <ID>PackageNaming:GitAnnotationService.kt:package git4idea.annotate</ID>
+    <ID>PackageNaming:GitAnnotationWarnings.kt:package git4idea.annotate</ID>
+    <ID>PackageNaming:GitAnnotationsListener.kt:package git4idea.annotate</ID>
+    <ID>PackageNaming:GitApiProvider.kt:package git4idea.remoteApi</ID>
+    <ID>PackageNaming:GitApplyChangesCanRestoreNotification.kt:package git4idea.applyChanges</ID>
+    <ID>PackageNaming:GitApplyChangesCommitStrategy.kt:package git4idea.applyChanges</ID>
+    <ID>PackageNaming:GitApplyChangesConflictNotification.kt:package git4idea.applyChanges</ID>
+    <ID>PackageNaming:GitApplyChangesConflictResolver.kt:package git4idea.applyChanges</ID>
+    <ID>PackageNaming:GitApplyChangesLocalChangesDetectedNotification.kt:package git4idea.applyChanges</ID>
+    <ID>PackageNaming:GitApplyChangesNotificationsHandler.kt:package git4idea.applyChanges</ID>
+    <ID>PackageNaming:GitApplyChangesProcess.kt:package git4idea.applyChanges</ID>
+    <ID>PackageNaming:GitAutoFetchNotificationsService.kt:package git4idea.fetch</ID>
+    <ID>PackageNaming:GitAutoSquashCommitAction.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitAutomaticRebaseEditor.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitBackendBranchesWidgetUiDataRule.kt:package git4idea.actions.branch</ID>
+    <ID>PackageNaming:GitBackendTelemetrySpan.kt:package git4idea.telemetry</ID>
+    <ID>PackageNaming:GitBackendVcsSettingsListener.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitBareWorkTreeTest.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitBranch.kt:package git4idea</ID>
+    <ID>PackageNaming:GitBranchActionWrapper.kt:package git4idea.ui.branch</ID>
+    <ID>PackageNaming:GitBranchActionsDataKeys.kt:package git4idea.actions.branch</ID>
+    <ID>PackageNaming:GitBranchActionsUtil.kt:package git4idea.actions.branch</ID>
+    <ID>PackageNaming:GitBranchActionsUtil.kt:package git4idea.ui.branch</ID>
+    <ID>PackageNaming:GitBranchCheckoutOperation.kt:package git4idea.ui.branch</ID>
+    <ID>PackageNaming:GitBranchComparisonResult.kt:package git4idea.changes</ID>
+    <ID>PackageNaming:GitBranchComparisonResultImpl.kt:package git4idea.changes</ID>
+    <ID>PackageNaming:GitBranchContextTest.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitBranchIncomingOutgoingManagerTest.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitBranchManager.kt:package git4idea.ui.branch</ID>
+    <ID>PackageNaming:GitBranchPair.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitBranchPopupFetchAction.kt:package git4idea.ui.branch</ID>
+    <ID>PackageNaming:GitBranchState.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitBranchStateProvider.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitBranchSyncStatus.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitBranchValidator.kt:package git4idea.validators</ID>
+    <ID>PackageNaming:GitBranchWidget.kt:package git4idea.ui.branch</ID>
+    <ID>PackageNaming:GitBranchWorkerTest.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitBranchesTreeActionPromoter.kt:package git4idea.ui.branch.dashboard</ID>
+    <ID>PackageNaming:GitBranchesTreeActionsForSelectionTest.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitBranchesTreePopupOnBackend.kt:package git4idea.ui.branch.popup</ID>
+    <ID>PackageNaming:GitBranchesTreeSelectionTest.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitBranchesTreeStructureTest.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitBranchesTreeTest.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitBranchesUIHandler.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitBrowseRepoAtRevisionAction.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitBundleExtensions.kt:package git4idea.i18n</ID>
+    <ID>PackageNaming:GitChangeProviderConflictTest.kt:package git4idea.tests</ID>
+    <ID>PackageNaming:GitChangeProviderNestedRepositoriesTest.kt:package git4idea.tests</ID>
+    <ID>PackageNaming:GitChangeProviderTest.kt:package git4idea.tests</ID>
+    <ID>PackageNaming:GitChangeProviderVersionedTest.kt:package git4idea.tests</ID>
+    <ID>PackageNaming:GitChangesViewConflictNodeTest.kt:package git4idea.commit</ID>
+    <ID>PackageNaming:GitChangesViewNodeAction.kt:package git4idea.merge</ID>
+    <ID>PackageNaming:GitChangesViewWorkflowManagerAmendMode.kt:package git4idea.commit</ID>
+    <ID>PackageNaming:GitCheckinEnvironment.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:GitCheckinHandlerFactory.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:GitCheckoutAction.kt:package git4idea.actions.ref</ID>
+    <ID>PackageNaming:GitCheckoutActionGroup.kt:package git4idea.actions</ID>
+    <ID>PackageNaming:GitCheckoutAndRebaseRemoteBranchWorkflow.kt:package git4idea.ui.branch</ID>
+    <ID>PackageNaming:GitCheckoutAndUpdateTest.kt:package git4idea.remoteApi</ID>
+    <ID>PackageNaming:GitCheckoutAsNewBranch.kt:package git4idea.actions.branch</ID>
+    <ID>PackageNaming:GitCheckoutFromInputAction.kt:package git4idea.actions.branch</ID>
+    <ID>PackageNaming:GitCheckoutListener.kt:package git4idea.checkout</ID>
+    <ID>PackageNaming:GitCheckoutWithRebaseAction.kt:package git4idea.actions.branch</ID>
+    <ID>PackageNaming:GitCherryPickAutoCommitTest.kt:package git4idea.cherrypick</ID>
+    <ID>PackageNaming:GitCherryPickContinueAction.kt:package git4idea.actions</ID>
+    <ID>PackageNaming:GitCherryPickContinueCheckinHandlerFactory.kt:package git4idea.cherrypick</ID>
+    <ID>PackageNaming:GitCherryPickContinueProcess.kt:package git4idea.cherrypick</ID>
+    <ID>PackageNaming:GitCherryPickTest.kt:package git4idea.cherrypick</ID>
+    <ID>PackageNaming:GitCloneDialogComponent.kt:package git4idea.ui</ID>
+    <ID>PackageNaming:GitCloneLongPathsTest.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitCloneUtils.kt:package git4idea.checkout</ID>
+    <ID>PackageNaming:GitCodeReviewUtils.kt:package git4idea.remote.hosting</ID>
+    <ID>PackageNaming:GitCommandCreator.kt:package git4idea.commands</ID>
+    <ID>PackageNaming:GitCommandOutputConsolePrinter.kt:package git4idea.commands</ID>
+    <ID>PackageNaming:GitCommandOutputPrinter.kt:package git4idea.commands</ID>
+    <ID>PackageNaming:GitCommitAmendSpecificTest.kt:package git4idea.tests</ID>
+    <ID>PackageNaming:GitCommitAndPushExecutor.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:GitCommitAndPushExecutorAction.kt:package git4idea.actions</ID>
+    <ID>PackageNaming:GitCommitCompletionContributor.kt:package git4idea.commit</ID>
+    <ID>PackageNaming:GitCommitEditingActionBase.kt:package git4idea.rebase.log</ID>
+    <ID>PackageNaming:GitCommitEditingActionContext.kt:package git4idea.rebase.log</ID>
+    <ID>PackageNaming:GitCommitEditingEditorHandler.kt:package git4idea.rebase.log</ID>
+    <ID>PackageNaming:GitCommitEditingNotifications.kt:package git4idea.rebase.log</ID>
+    <ID>PackageNaming:GitCommitEditingOperation.kt:package git4idea.rebase.log</ID>
+    <ID>PackageNaming:GitCommitEditingOperationResult.kt:package git4idea.rebase.log</ID>
+    <ID>PackageNaming:GitCommitEditingOperationUtils.kt:package git4idea.rebase.log</ID>
+    <ID>PackageNaming:GitCommitEditingUiUtils.kt:package git4idea.rebase.log</ID>
+    <ID>PackageNaming:GitCommitFixupBySubjectAction.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitCommitMessageFormatter.kt:package git4idea.inMemory</ID>
+    <ID>PackageNaming:GitCommitOptions.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:GitCommitRequirements.kt:package git4idea.history</ID>
+    <ID>PackageNaming:GitCommitShaWithPatches.kt:package git4idea.changes</ID>
+    <ID>PackageNaming:GitCommitSignature.kt:package git4idea.commit.signature</ID>
+    <ID>PackageNaming:GitCommitSignatureLoader.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitCommitSignatureLoaderSharedCache.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitCommitSignatureStatusProvider.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitCommitSquashBySubjectAction.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitCommitSuccessNotificationRewordProvider.kt:package git4idea.rebase.log</ID>
+    <ID>PackageNaming:GitCommitTemplateTest.kt:package git4idea.tests</ID>
+    <ID>PackageNaming:GitCommitTemplateTracker.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitCommitTest.kt:package git4idea.tests</ID>
+    <ID>PackageNaming:GitCommitWithStagingAreaAction.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:GitCompareBranchesFile.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitCompareBranchesFilesManager.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitCompareBranchesLogProperties.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitCompareBranchesUi.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitCompareBranchesVirtualFileSystem.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitCompareUtil.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitCompareWithBranchAction.kt:package git4idea.actions.branch</ID>
+    <ID>PackageNaming:GitCompareWithBranchPopup.kt:package git4idea.ui.branch.compareWith</ID>
+    <ID>PackageNaming:GitComplexSubmoduleTest.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitCompressedDetailsCollector.kt:package git4idea.history</ID>
+    <ID>PackageNaming:GitConfig.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitConfigHelper.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitConfigListener.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitConfigTest.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitConfigUtilTest.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitConfigurationCache.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitConfigurationCacheTest.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitConfigureRemotesAction.kt:package git4idea.remote</ID>
+    <ID>PackageNaming:GitConfigureRemotesDialog.kt:package git4idea.remote</ID>
+    <ID>PackageNaming:GitConflictActions.kt:package git4idea.merge</ID>
+    <ID>PackageNaming:GitConflictsPanel.kt:package git4idea.conflicts</ID>
+    <ID>PackageNaming:GitConflictsUtil.kt:package git4idea.conflicts</ID>
+    <ID>PackageNaming:GitConflictsView.kt:package git4idea.conflicts</ID>
+    <ID>PackageNaming:GitConsoleFoldingImpl.kt:package git4idea.console</ID>
+    <ID>PackageNaming:GitCreateBranchOperation.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitCreateNewBranchAction.kt:package git4idea.actions</ID>
+    <ID>PackageNaming:GitCreateNewBranchFromCommitAction.kt:package git4idea.log.action</ID>
+    <ID>PackageNaming:GitCreateWorkingTreeAction.kt:package git4idea.actions.workingTree</ID>
+    <ID>PackageNaming:GitCreateWorkingTreeService.kt:package git4idea.actions.workingTree</ID>
+    <ID>PackageNaming:GitCreateWorkingTreeTest.kt:package git4idea.workingTrees</ID>
+    <ID>PackageNaming:GitCurrentBranchPresenter.kt:package git4idea.ui.branch</ID>
+    <ID>PackageNaming:GitDefaultMergeDialogCustomizer.kt:package git4idea.merge</ID>
+    <ID>PackageNaming:GitDefineRemoteDialog.kt:package git4idea.remote</ID>
+    <ID>PackageNaming:GitDeleteRefAction.kt:package git4idea.actions.ref</ID>
+    <ID>PackageNaming:GitDetailsCollector.kt:package git4idea.history</ID>
+    <ID>PackageNaming:GitDiffRevisionMetadataProvider.kt:package git4idea.diff</ID>
+    <ID>PackageNaming:GitDirectoryVirtualFile.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitDirtyScopeTest.kt:package git4idea.tests</ID>
+    <ID>PackageNaming:GitDisposable.kt:package git4idea</ID>
+    <ID>PackageNaming:GitDownloadAndInstall.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitDropLogAction.kt:package git4idea.rebase.log.drop</ID>
+    <ID>PackageNaming:GitDropOperation.kt:package git4idea.rebase.log.drop</ID>
+    <ID>PackageNaming:GitDropOperationTest.kt:package git4idea.rebase.log.drop</ID>
+    <ID>PackageNaming:GitDropOperationTestBase.kt:package git4idea.rebase.log.drop</ID>
+    <ID>PackageNaming:GitDropSelectedChangesAction.kt:package git4idea.rebase.log.changes</ID>
+    <ID>PackageNaming:GitDropSelectedChangesOperation.kt:package git4idea.rebase.log.changes</ID>
+    <ID>PackageNaming:GitDropSelectedChangesOperationTest.kt:package git4idea.rebase.log.changes</ID>
+    <ID>PackageNaming:GitEditorPromo.kt:package git4idea.ui</ID>
+    <ID>PackageNaming:GitEelExecutableDetectionHelper.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitEnableStagingAreaAction.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:GitExcludeActions.kt:package git4idea.ignore.actions</ID>
+    <ID>PackageNaming:GitExcludeViewProvider.kt:package git4idea.ignore.lang</ID>
+    <ID>PackageNaming:GitExecutable.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitExecutableManagerTrustCacheTest.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitExecutableProblemHandlers.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitExecutableSelectorPanel.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitExecutor.kt:package git4idea.test</ID>
+    <ID>PackageNaming:GitExternalLogTabsProperties.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitExtractSelectedChangesAction.kt:package git4idea.inMemory.rebase.log.changes</ID>
+    <ID>PackageNaming:GitExtractSelectedChangesOperation.kt:package git4idea.inMemory.rebase.log.changes</ID>
+    <ID>PackageNaming:GitExtractSelectedChangesOperationTest.kt:package git4idea.inMemory.rebase.log.changes</ID>
+    <ID>PackageNaming:GitFetchHandler.kt:package git4idea.fetch</ID>
+    <ID>PackageNaming:GitFetchInProgressListener.kt:package git4idea.fetch</ID>
+    <ID>PackageNaming:GitFetchResult.kt:package git4idea.fetch</ID>
+    <ID>PackageNaming:GitFetchSpec.kt:package git4idea.fetch</ID>
+    <ID>PackageNaming:GitFetchSupportImpl.kt:package git4idea.fetch</ID>
+    <ID>PackageNaming:GitFetchTagsMode.kt:package git4idea.fetch</ID>
+    <ID>PackageNaming:GitFetchTest.kt:package git4idea.fetch</ID>
+    <ID>PackageNaming:GitFileActionGroup.kt:package git4idea.actions</ID>
+    <ID>PackageNaming:GitFileHistory.kt:package git4idea.changes</ID>
+    <ID>PackageNaming:GitFileHistory.kt:package git4idea.history</ID>
+    <ID>PackageNaming:GitFileHistoryTest.kt:package git4idea.history</ID>
+    <ID>PackageNaming:GitFileStatus.kt:package git4idea.index</ID>
+    <ID>PackageNaming:GitFileStatusNodeAction.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:GitFileUtils.kt:package git4idea.util</ID>
+    <ID>PackageNaming:GitForcePushedBranchUpdateAction.kt:package git4idea.actions.branch</ID>
+    <ID>PackageNaming:GitForcePushedBranchUpdateBaseTest.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitFreezingProcess.kt:package git4idea.util</ID>
+    <ID>PackageNaming:GitGpgConfigDialog.kt:package git4idea.config.gpg</ID>
+    <ID>PackageNaming:GitGpgConfigUtils.kt:package git4idea.config.gpg</ID>
+    <ID>PackageNaming:GitGpgMultiRootConfigDialog.kt:package git4idea.config.gpg</ID>
+    <ID>PackageNaming:GitHistoryTraverser.kt:package git4idea.history</ID>
+    <ID>PackageNaming:GitHistoryTraverserImpl.kt:package git4idea.history</ID>
+    <ID>PackageNaming:GitHistoryTraverserImplTest.kt:package git4idea.history</ID>
+    <ID>PackageNaming:GitHistoryTraverserProvider.kt:package git4idea.history</ID>
+    <ID>PackageNaming:GitHistoryUtilsTest.kt:package git4idea.history</ID>
+    <ID>PackageNaming:GitHooksInfo.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitHostingUrlUtil.kt:package git4idea.remote.hosting</ID>
+    <ID>PackageNaming:GitHostingUrlUtilTest.kt:package git4idea.remote.hosting</ID>
+    <ID>PackageNaming:GitHttpAuthService.kt:package git4idea.commands</ID>
+    <ID>PackageNaming:GitHttpGuiAuthenticatorTest.kt:package git4idea.commands</ID>
+    <ID>PackageNaming:GitHttpLoginDialog.kt:package git4idea.commands</ID>
+    <ID>PackageNaming:GitIgnoreChecker.kt:package git4idea.ignore</ID>
+    <ID>PackageNaming:GitIgnoreFileActionGroup.kt:package git4idea.ignore.actions</ID>
+    <ID>PackageNaming:GitIgnoreInStoreDirGenerator.kt:package git4idea.ignore</ID>
+    <ID>PackageNaming:GitIgnoreSearchScope.kt:package git4idea.search</ID>
+    <ID>PackageNaming:GitIgnoreSearchScopeTest.kt:package git4idea.scope</ID>
+    <ID>PackageNaming:GitIgnoredCheckerTest.kt:package git4idea.ignore</ID>
+    <ID>PackageNaming:GitIgnoredFileContentProvider.kt:package git4idea.ignore</ID>
+    <ID>PackageNaming:GitIgnoredFileTest.kt:package git4idea.ignore</ID>
+    <ID>PackageNaming:GitIgnoredFilesHolder.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitIgnoredToExcludedSynchronizerTest.kt:package git4idea.ignore</ID>
+    <ID>PackageNaming:GitInMemoryCommitEditingOperation.kt:package git4idea.inMemory.rebase.log</ID>
+    <ID>PackageNaming:GitInMemoryDropOperationTest.kt:package git4idea.inMemory.rebase.log.drop</ID>
+    <ID>PackageNaming:GitInMemoryInteractiveRebaseProcess.kt:package git4idea.inMemory.rebase</ID>
+    <ID>PackageNaming:GitInMemoryInteractiveRebaseProcessTest.kt:package git4idea.inMemory.rebase</ID>
+    <ID>PackageNaming:GitInMemoryOperationTest.kt:package git4idea.inMemory.rebase.log</ID>
+    <ID>PackageNaming:GitInMemoryRewordOperation.kt:package git4idea.inMemory.rebase.log.reword</ID>
+    <ID>PackageNaming:GitInMemoryRewordOperationTest.kt:package git4idea.inMemory.rebase.log.reword</ID>
+    <ID>PackageNaming:GitInMemorySquashOperationTest.kt:package git4idea.inMemory.rebase.log.squash</ID>
+    <ID>PackageNaming:GitIncomingCheckStrategy.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitIncomingOutgoingStateApiImpl.kt:package git4idea.remoteApi</ID>
+    <ID>PackageNaming:GitIncomingRemoteCheckStrategy.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitIndexActionPromoter.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:GitIndexFileSystem.kt:package git4idea.index.vfs</ID>
+    <ID>PackageNaming:GitIndexFileSystemRefresher.kt:package git4idea.index.vfs</ID>
+    <ID>PackageNaming:GitIndexInfoStagingAreaStateManager.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:GitIndexInfoStagingAreaStateManagerTest.kt:package git4idea.tests</ID>
+    <ID>PackageNaming:GitIndexStatusTest.kt:package git4idea.index</ID>
+    <ID>PackageNaming:GitIndexStatusUtil.kt:package git4idea.index</ID>
+    <ID>PackageNaming:GitIndexTest.kt:package git4idea.index</ID>
+    <ID>PackageNaming:GitIndexVirtualFile.kt:package git4idea.index.vfs</ID>
+    <ID>PackageNaming:GitIndexVirtualFileBaseContentProvider.kt:package git4idea.index.vfs</ID>
+    <ID>PackageNaming:GitIndexVirtualFileEditorNotificationProvider.kt:package git4idea.index.vfs</ID>
+    <ID>PackageNaming:GitIndexVirtualFileStatusProvider.kt:package git4idea.index.vfs</ID>
+    <ID>PackageNaming:GitIndexVirtualFileTabTitleProvider.kt:package git4idea.index.vfs</ID>
+    <ID>PackageNaming:GitInteractiveRebaseAction.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitInteractiveRebaseDialog.kt:package git4idea.rebase.interactive.dialog</ID>
+    <ID>PackageNaming:GitInteractiveRebaseEntriesProvider.kt:package git4idea.rebase.log</ID>
+    <ID>PackageNaming:GitInteractiveRebaseUsingLog.kt:package git4idea.rebase.interactive</ID>
+    <ID>PackageNaming:GitInteractiveRebaseUsingLogTest.kt:package git4idea.rebase.interactive</ID>
+    <ID>PackageNaming:GitLineEventDetector.kt:package git4idea.commands</ID>
+    <ID>PackageNaming:GitLinkToCommitResolver.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitLinkToCommitResolverTest.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitLocalBranch.kt:package git4idea</ID>
+    <ID>PackageNaming:GitLocalChangesConflictDetector.kt:package git4idea.cherrypick</ID>
+    <ID>PackageNaming:GitLogCommandFilterUi.kt:package git4idea.log.command</ID>
+    <ID>PackageNaming:GitLogCommandFilterer.kt:package git4idea.log.command</ID>
+    <ID>PackageNaming:GitLogCommandParameters.kt:package git4idea.history</ID>
+    <ID>PackageNaming:GitLogCommandUi.kt:package git4idea.log.command</ID>
+    <ID>PackageNaming:GitLogCommitDetailsLoader.kt:package git4idea.rebase.log</ID>
+    <ID>PackageNaming:GitLogCommitEditingConfigurable.kt:package git4idea.rebase.log</ID>
+    <ID>PackageNaming:GitLogExperimentalProvider.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitLogHistoryHandler.kt:package git4idea.history</ID>
+    <ID>PackageNaming:GitLogIndexTest.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitLogIndexer.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitLogParserTest.kt:package git4idea.history</ID>
+    <ID>PackageNaming:GitLogPerformanceTest.kt:package git4idea.history</ID>
+    <ID>PackageNaming:GitLogProvider.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitLogProviderTest.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitLogRecordBuilder.kt:package git4idea.history</ID>
+    <ID>PackageNaming:GitLogRefreshActionListener.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitLogUtilTest.kt:package git4idea.history</ID>
+    <ID>PackageNaming:GitMainMenuActionGroup.kt:package git4idea.actions</ID>
+    <ID>PackageNaming:GitMergeCommitAction.kt:package git4idea.actions</ID>
+    <ID>PackageNaming:GitMergeCommitMessagePolicy.kt:package git4idea.commit</ID>
+    <ID>PackageNaming:GitMergeCommitMessageProviderTest.kt:package git4idea.commit</ID>
+    <ID>PackageNaming:GitMergeCommitMessageReader.kt:package git4idea.commit</ID>
+    <ID>PackageNaming:GitMergeConflictEditorNotificationProviderTest.kt:package git4idea.conflicts</ID>
+    <ID>PackageNaming:GitMergeDialog.kt:package git4idea.merge</ID>
+    <ID>PackageNaming:GitMergeDialogCustomizerHelper.kt:package git4idea.merge</ID>
+    <ID>PackageNaming:GitMergeMergeProviderTest.kt:package git4idea.merge</ID>
+    <ID>PackageNaming:GitMergeOption.kt:package git4idea.merge</ID>
+    <ID>PackageNaming:GitMergeProviderTestBase.kt:package git4idea.merge</ID>
+    <ID>PackageNaming:GitMergeProviderTestCase.kt:package git4idea.merge</ID>
+    <ID>PackageNaming:GitMergeRebaseWidget.kt:package git4idea.ui.toolbar</ID>
+    <ID>PackageNaming:GitMergeRefAction.kt:package git4idea.actions.ref</ID>
+    <ID>PackageNaming:GitModalCommitDeprecationNotifier.kt:package git4idea.commit</ID>
+    <ID>PackageNaming:GitModulesFileReader.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitMoveTest.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:GitMultiRepoForcePushedBranchUpdateTest.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitMultiRepoRebaseTest.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitMultiRepoUpdateBaseTest.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitMultiRepoUpdateTest.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitMultipleCommitEditingAction.kt:package git4idea.rebase.log</ID>
+    <ID>PackageNaming:GitNewBranchDialog.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitNewCommitMessageActionDialog.kt:package git4idea.rebase.log</ID>
+    <ID>PackageNaming:GitNewResetDialog.kt:package git4idea.reset</ID>
+    <ID>PackageNaming:GitNotificationIdsHolder.kt:package git4idea</ID>
+    <ID>PackageNaming:GitObject.kt:package git4idea.inMemory.objects</ID>
+    <ID>PackageNaming:GitObjectRepository.kt:package git4idea.inMemory</ID>
+    <ID>PackageNaming:GitObjectRepositoryExtensions.kt:package git4idea.inMemory</ID>
+    <ID>PackageNaming:GitObjectRepositoryTest.kt:package git4idea.inMemory</ID>
+    <ID>PackageNaming:GitObjectType.kt:package git4idea.commands</ID>
+    <ID>PackageNaming:GitOpenExistingWorkingTreeForLocalBranchAction.kt:package git4idea.actions.workingTree</ID>
+    <ID>PackageNaming:GitOperationActionBase.kt:package git4idea.actions</ID>
+    <ID>PackageNaming:GitOperationsApiImpl.kt:package git4idea.remoteApi</ID>
+    <ID>PackageNaming:GitOptionsPanel.kt:package git4idea.merge.dialog</ID>
+    <ID>PackageNaming:GitOptionsPopupBuilder.kt:package git4idea.merge.dialog</ID>
+    <ID>PackageNaming:GitOptionsTopHitProvider.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitPartialCommitTest.kt:package git4idea.tests</ID>
+    <ID>PackageNaming:GitPathsToRefreshProvider.kt:package git4idea.merge</ID>
+    <ID>PackageNaming:GitPlatformTest.kt:package git4idea.test</ID>
+    <ID>PackageNaming:GitPlatformTestContext.kt:package git4idea.test</ID>
+    <ID>PackageNaming:GitPostCommitChangeConverter.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:GitPostUpdateHandler.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitPreservingProcess.kt:package git4idea.util</ID>
+    <ID>PackageNaming:GitProjectOriginInfoProvider.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitProtectedBranchProvider.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitProtectedBranches.kt:package git4idea</ID>
+    <ID>PackageNaming:GitPullBranchAction.kt:package git4idea.actions.branch</ID>
+    <ID>PackageNaming:GitPullDialog.kt:package git4idea.pull</ID>
+    <ID>PackageNaming:GitPullOption.kt:package git4idea.pull</ID>
+    <ID>PackageNaming:GitPushBranchAction.kt:package git4idea.actions.branch</ID>
+    <ID>PackageNaming:GitPushListener.kt:package git4idea.push</ID>
+    <ID>PackageNaming:GitPushNativeResultParserTest.kt:package git4idea.push</ID>
+    <ID>PackageNaming:GitPushNotificationCustomizer.kt:package git4idea.push</ID>
+    <ID>PackageNaming:GitPushNotificationUtil.kt:package git4idea.push</ID>
+    <ID>PackageNaming:GitPushOperationBaseTest.kt:package git4idea.push</ID>
+    <ID>PackageNaming:GitPushOperationMultiRepoTest.kt:package git4idea.push</ID>
+    <ID>PackageNaming:GitPushOperationSingleRepoTest.kt:package git4idea.push</ID>
+    <ID>PackageNaming:GitPushSpecParser.kt:package git4idea.push</ID>
+    <ID>PackageNaming:GitPushTagMode.kt:package git4idea.push</ID>
+    <ID>PackageNaming:GitPushTagsAction.kt:package git4idea.actions.tag</ID>
+    <ID>PackageNaming:GitPushTagsActionGroup.kt:package git4idea.actions.tag</ID>
+    <ID>PackageNaming:GitPushUpToCommitAction.kt:package git4idea.actions</ID>
+    <ID>PackageNaming:GitPushUtil.kt:package git4idea</ID>
+    <ID>PackageNaming:GitPusher.kt:package git4idea.push</ID>
+    <ID>PackageNaming:GitQuickActionsToolbarPopup.kt:package git4idea.actions</ID>
+    <ID>PackageNaming:GitRebaseBaseTest.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitRebaseBranchAction.kt:package git4idea.actions.branch</ID>
+    <ID>PackageNaming:GitRebaseCheckinHandlerFactory.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitRebaseCommandResult.kt:package git4idea.commands</ID>
+    <ID>PackageNaming:GitRebaseCommandsDialog.kt:package git4idea.rebase.interactive.dialog</ID>
+    <ID>PackageNaming:GitRebaseCommitsTableModel.kt:package git4idea.rebase.interactive.dialog</ID>
+    <ID>PackageNaming:GitRebaseCommitsTableView.kt:package git4idea.rebase.interactive.dialog</ID>
+    <ID>PackageNaming:GitRebaseDialog.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitRebaseEditingResult.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitRebaseEditorService.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitRebaseEntry.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitRebaseHelpPopupPanel.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitRebaseInteractiveMergeProviderTest.kt:package git4idea.merge</ID>
+    <ID>PackageNaming:GitRebaseMergeDialogCustomizer.kt:package git4idea.rebase.conflict</ID>
+    <ID>PackageNaming:GitRebaseMergeProviderTest.kt:package git4idea.merge</ID>
+    <ID>PackageNaming:GitRebaseOntoCommitAction.kt:package git4idea.ui.branch</ID>
+    <ID>PackageNaming:GitRebaseOption.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitRebaseParams.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitRebaseStagingAreaHelper.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitRebaseTodoModel.kt:package git4idea.rebase.interactive</ID>
+    <ID>PackageNaming:GitRebaseTodoModelConverter.kt:package git4idea.rebase.interactive</ID>
+    <ID>PackageNaming:GitRecentCheckoutBranches.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRecentCheckoutBranchesParseTest.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitRecentCommitsProvider.kt:package git4idea.commit</ID>
+    <ID>PackageNaming:GitRecentCommitsProviderTest.kt:package git4idea.commit</ID>
+    <ID>PackageNaming:GitRecentProjectsBranchesProvider.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRecentProjectsBranchesServiceReftableTest.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRecentProjectsBranchesServiceTest.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRefManager.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitRefType.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitReference.kt:package git4idea</ID>
+    <ID>PackageNaming:GitReferenceSimpleSerializer.kt:package git4idea</ID>
+    <ID>PackageNaming:GitRefreshStashesAction.kt:package git4idea.stash.ui</ID>
+    <ID>PackageNaming:GitReftableReader.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitReftableReaderTest.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRejectedPushUpdateDialog.kt:package git4idea.push</ID>
+    <ID>PackageNaming:GitRemote.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRemoteBranch.kt:package git4idea</ID>
+    <ID>PackageNaming:GitRemoteBranchSelectionPopup.kt:package git4idea.ui.branch.addCommit</ID>
+    <ID>PackageNaming:GitRemoteBranchesUtil.kt:package git4idea.remote.hosting</ID>
+    <ID>PackageNaming:GitRemoteBranchesUtilTest.kt:package git4idea.remote.hosting</ID>
+    <ID>PackageNaming:GitRemoteOperationQueue.kt:package git4idea.fetch</ID>
+    <ID>PackageNaming:GitRemoteOperationQueueImpl.kt:package git4idea.fetch</ID>
+    <ID>PackageNaming:GitRemoteSettingsInfoProvider.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitRemoteTest.kt:package git4idea.remote</ID>
+    <ID>PackageNaming:GitRemoteUrlCoordinates.kt:package git4idea.remote</ID>
+    <ID>PackageNaming:GitRenameBranchAction.kt:package git4idea.actions.branch</ID>
+    <ID>PackageNaming:GitRepoInfo.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRepositoriesFrontendHolderTest.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRepositoriesHolderExt.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRepositoryApiImpl.kt:package git4idea.remoteApi</ID>
+    <ID>PackageNaming:GitRepositoryCommitter.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:GitRepositoryDataHolder.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRepositoryFrontendSynchronizer.kt:package git4idea.remoteApi</ID>
+    <ID>PackageNaming:GitRepositoryIdCache.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRepositoryIgnoredFilesHolder.kt:package git4idea.ignore</ID>
+    <ID>PackageNaming:GitRepositoryImpl.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRepositoryMappingData.kt:package git4idea.ui.branch</ID>
+    <ID>PackageNaming:GitRepositoryReader.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRepositoryReaderNewTest.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRepositoryStateActionGroup.kt:package git4idea.actions</ID>
+    <ID>PackageNaming:GitRepositoryStateChangeListener.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRepositoryTagsHolder.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRepositoryTagsHolderImpl.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRepositoryTagsHolderTest.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRepositoryToDtoConverter.kt:package git4idea.remoteApi</ID>
+    <ID>PackageNaming:GitRepositoryUpdateListener.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitRepositoryUpdater.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitResetAddStagingAreaStateManager.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:GitResetTest.kt:package git4idea.reset</ID>
+    <ID>PackageNaming:GitResetUpdater.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitResolvedConflictsFilesHolder.kt:package git4idea.merge</ID>
+    <ID>PackageNaming:GitResolvedMergeConflictsFilesHolder.kt:package git4idea.merge</ID>
+    <ID>PackageNaming:GitRestoreSavedChangesNotificationAction.kt:package git4idea</ID>
+    <ID>PackageNaming:GitRevertAction.kt:package git4idea.revert</ID>
+    <ID>PackageNaming:GitRevertProcess.kt:package git4idea.revert</ID>
+    <ID>PackageNaming:GitRevertResolvedAction.kt:package git4idea.actions</ID>
+    <ID>PackageNaming:GitRevertTest.kt:package git4idea.revert</ID>
+    <ID>PackageNaming:GitRevisionContentPreLoader.kt:package git4idea.stash</ID>
+    <ID>PackageNaming:GitRevisionContentPreLoaderTest.kt:package git4idea.shelf</ID>
+    <ID>PackageNaming:GitRewordAction.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitRewordOperation.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitRewordService.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitRewordTest.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitRewordedCommitMessageProvider.kt:package git4idea.rebase.interactive</ID>
+    <ID>PackageNaming:GitRmTest.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:GitRootTest.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitSearchEverywhereContributor.kt:package git4idea.search</ID>
+    <ID>PackageNaming:GitSearchEverywhereFilterConfiguration.kt:package git4idea.search</ID>
+    <ID>PackageNaming:GitSearchEverywhereItemType.kt:package git4idea.search</ID>
+    <ID>PackageNaming:GitSearchScope.kt:package git4idea.search</ID>
+    <ID>PackageNaming:GitSearchScopeProvider.kt:package git4idea.search</ID>
+    <ID>PackageNaming:GitSearchScopeTest.kt:package git4idea.scope</ID>
+    <ID>PackageNaming:GitSearchUtils.kt:package git4idea.search</ID>
+    <ID>PackageNaming:GitSelectRootDialog.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitSetupProjectConfig.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitSha1Test.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitShallowCloneOptions.kt:package git4idea.commands</ID>
+    <ID>PackageNaming:GitShallowCloneViewModel.kt:package git4idea.ui</ID>
+    <ID>PackageNaming:GitShallowRepoTest.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitShallowRepositoryCheck.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitShareProjectService.kt:package git4idea.remote.hosting</ID>
+    <ID>PackageNaming:GitShelveTest.kt:package git4idea.shelf</ID>
+    <ID>PackageNaming:GitShowDiffWithBranchPanel.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitShowDiffWithRefAction.kt:package git4idea.actions.ref</ID>
+    <ID>PackageNaming:GitShowExternalLogAction.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitShowStagingAreaAction.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:GitShowStashTabAction.kt:package git4idea.stash.ui</ID>
+    <ID>PackageNaming:GitSilentFileAdderProvider.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitSimpleEventDetectorTest.kt:package git4idea.commands</ID>
+    <ID>PackageNaming:GitSingleBranchAction.kt:package git4idea.actions.branch</ID>
+    <ID>PackageNaming:GitSingleCommitActionGroup.kt:package git4idea.actions</ID>
+    <ID>PackageNaming:GitSingleCommitEditingAction.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitSingleRefAction.kt:package git4idea.actions.ref</ID>
+    <ID>PackageNaming:GitSingleRepoForcePushedBranchUpdateTest.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitSingleRepoRebaseTest.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitSingleRepoTest.kt:package git4idea.test</ID>
+    <ID>PackageNaming:GitSingleRepoTestContext.kt:package git4idea.test</ID>
+    <ID>PackageNaming:GitSingleRepoUpdateTest.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitSingleTagAction.kt:package git4idea.actions.tag</ID>
+    <ID>PackageNaming:GitSkipHooksCommitHandlerFactory.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:GitSpecialRefRemoteBranch.kt:package git4idea.push</ID>
+    <ID>PackageNaming:GitSquashLogAction.kt:package git4idea.rebase.log.squash</ID>
+    <ID>PackageNaming:GitSquashOperation.kt:package git4idea.rebase.log.squash</ID>
+    <ID>PackageNaming:GitSquashOperationTest.kt:package git4idea.rebase.log.squash</ID>
+    <ID>PackageNaming:GitSquashOperationTestBase.kt:package git4idea.rebase.log.squash</ID>
+    <ID>PackageNaming:GitSquashedCommitsMessage.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitSquashedCommitsMessageTest.kt:package git4idea.rebase</ID>
+    <ID>PackageNaming:GitStageAllAction.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:GitStageChangesViewRefresher.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:GitStageCommitMessagePolicy.kt:package git4idea.index</ID>
+    <ID>PackageNaming:GitStageCommitPanel.kt:package git4idea.index.ui</ID>
+    <ID>PackageNaming:GitStageCommitWorkflow.kt:package git4idea.index</ID>
+    <ID>PackageNaming:GitStageCommitWorkflowHandler.kt:package git4idea.index</ID>
+    <ID>PackageNaming:GitStageCommitter.kt:package git4idea.index</ID>
+    <ID>PackageNaming:GitStageCompareThreeVersionsAction.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:GitStageCompareWithVersionAction.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:GitStageConflictActions.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:GitStageContentProvider.kt:package git4idea.index</ID>
+    <ID>PackageNaming:GitStageCreatePatchActionProvider.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:GitStageDataKeys.kt:package git4idea.index.ui</ID>
+    <ID>PackageNaming:GitStageDiffAction.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:GitStageDiffRequestProcessor.kt:package git4idea.index.ui</ID>
+    <ID>PackageNaming:GitStageDiffUtil.kt:package git4idea.index</ID>
+    <ID>PackageNaming:GitStageEditorDiffPreview.kt:package git4idea.index.ui</ID>
+    <ID>PackageNaming:GitStageIndexFileMenuGroup.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:GitStageLineStatusTracker.kt:package git4idea.index</ID>
+    <ID>PackageNaming:GitStageLineStatusTrackerProvider.kt:package git4idea.index</ID>
+    <ID>PackageNaming:GitStageLineStatusTrackerTest.kt:package git4idea.index</ID>
+    <ID>PackageNaming:GitStageManager.kt:package git4idea.index</ID>
+    <ID>PackageNaming:GitStagePanel.kt:package git4idea.index.ui</ID>
+    <ID>PackageNaming:GitStageRootInclusionModel.kt:package git4idea.index.ui</ID>
+    <ID>PackageNaming:GitStageShowNotificationCommitResultHandler.kt:package git4idea.index</ID>
+    <ID>PackageNaming:GitStageShowVersionAction.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:GitStageStashFilesAction.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:GitStageTracker.kt:package git4idea.index</ID>
+    <ID>PackageNaming:GitStageTrackerTest.kt:package git4idea.index</ID>
+    <ID>PackageNaming:GitStageTree.kt:package git4idea.index.ui</ID>
+    <ID>PackageNaming:GitStageUiSettings.kt:package git4idea.index.ui</ID>
+    <ID>PackageNaming:GitStagingAreaCommitMode.kt:package git4idea.commit</ID>
+    <ID>PackageNaming:GitStagingAreaStateManager.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:GitStandardLocalBranch.kt:package git4idea</ID>
+    <ID>PackageNaming:GitStandardRemoteBranch.kt:package git4idea</ID>
+    <ID>PackageNaming:GitStandardWorkTreeTest.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitStashActions.kt:package git4idea.stash.ui</ID>
+    <ID>PackageNaming:GitStashBranchComponent.kt:package git4idea.stash.ui</ID>
+    <ID>PackageNaming:GitStashCache.kt:package git4idea.stash</ID>
+    <ID>PackageNaming:GitStashContentProvider.kt:package git4idea.stash.ui</ID>
+    <ID>PackageNaming:GitStashDialog.kt:package git4idea.stash.ui</ID>
+    <ID>PackageNaming:GitStashProvider.kt:package git4idea.stash.ui</ID>
+    <ID>PackageNaming:GitStashSilentlyAction.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:GitStashTest.kt:package git4idea.stash</ID>
+    <ID>PackageNaming:GitStashToggleSplitPreviewAction.kt:package git4idea.stash.ui</ID>
+    <ID>PackageNaming:GitStashTracker.kt:package git4idea.stash</ID>
+    <ID>PackageNaming:GitStashUIHandler.kt:package git4idea.stash.ui</ID>
+    <ID>PackageNaming:GitStashUtils.kt:package git4idea.stash</ID>
+    <ID>PackageNaming:GitSubmodule.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitSubmoduleContentRevision.kt:package git4idea.diff</ID>
+    <ID>PackageNaming:GitSubmoduleDiffRequestProvider.kt:package git4idea.diff</ID>
+    <ID>PackageNaming:GitSubmoduleInfo.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitSubmoduleTest.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitSubmoduleTestBase.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitSubmoduleUpdater.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitSubmoduleWorkingTreeTest.kt:package git4idea.workingTrees</ID>
+    <ID>PackageNaming:GitSvnRemoteBranch.kt:package git4idea</ID>
+    <ID>PackageNaming:GitTag.kt:package git4idea</ID>
+    <ID>PackageNaming:GitTagHolder.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitTemplateCommitMessageProvider.kt:package git4idea.commit</ID>
+    <ID>PackageNaming:GitTestAssertions.kt:package git4idea.test</ID>
+    <ID>PackageNaming:GitTestUtil.kt:package git4idea.test</ID>
+    <ID>PackageNaming:GitTextFilePatchWithHistory.kt:package git4idea.changes</ID>
+    <ID>PackageNaming:GitTextFilePatchWithHistoryTest.kt:package git4idea.changes</ID>
+    <ID>PackageNaming:GitToggleStageSettingAction.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:GitTrackedBranchActionGroup.kt:package git4idea.actions.branch</ID>
+    <ID>PackageNaming:GitTrackedSearchScope.kt:package git4idea.search</ID>
+    <ID>PackageNaming:GitTrackedSearchScopeTest.kt:package git4idea.scope</ID>
+    <ID>PackageNaming:GitTroubleInfoCollector.kt:package git4idea.troubleshooting</ID>
+    <ID>PackageNaming:GitUiSettingsApiImpl.kt:package git4idea.remoteApi</ID>
+    <ID>PackageNaming:GitUnresolvedMergeCheckProvider.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:GitUnsetUpstreamTest.kt:package git4idea.commands</ID>
+    <ID>PackageNaming:GitUnshallowRepositoryAction.kt:package git4idea.actions</ID>
+    <ID>PackageNaming:GitUnstashAsDialog.kt:package git4idea.stash.ui</ID>
+    <ID>PackageNaming:GitUntrackedDirtyScopeListener.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitUntrackedFilesHolder.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitUnversionedFilesHolder.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitUpdateBaseTest.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitUpdateExecutionProcess.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitUpdateInfoAsLog.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitUpdateMethodTest.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitUpdateNotifications.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitUpdateOptionsDialog.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitUpdateOptionsDialogProvider.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitUpdateOptionsPanel.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitUpdateSelectedBranchAction.kt:package git4idea.actions.branch</ID>
+    <ID>PackageNaming:GitUpdateSession.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitUpdatedRanges.kt:package git4idea.update</ID>
+    <ID>PackageNaming:GitUpstreamBranches.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitUserNameNotDefinedDialog.kt:package git4idea.checkin</ID>
+    <ID>PackageNaming:GitVcsDirtyScope.kt:package git4idea</ID>
+    <ID>PackageNaming:GitVcsOptions.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitVcsPanel.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitVcsPushOptionValue.kt:package git4idea.push</ID>
+    <ID>PackageNaming:GitVersionSpecialty.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitVersionUpdateInSettings.kt:package git4idea.config</ID>
+    <ID>PackageNaming:GitWarmupConfigurator.kt:package git4idea.log</ID>
+    <ID>PackageNaming:GitWidgetApiImpl.kt:package git4idea.remoteApi</ID>
+    <ID>PackageNaming:GitWidgetTreeStructureTest.kt:package git4idea.branch</ID>
+    <ID>PackageNaming:GitWorkTreeBaseTest.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitWorkingTree.kt:package git4idea</ID>
+    <ID>PackageNaming:GitWorkingTreeCurrentDetectionTest.kt:package git4idea.workingTrees</ID>
+    <ID>PackageNaming:GitWorkingTreeDialog.kt:package git4idea.actions.workingTree</ID>
+    <ID>PackageNaming:GitWorkingTreeDialogData.kt:package git4idea.actions.workingTree</ID>
+    <ID>PackageNaming:GitWorkingTreeFromRemoteBranchesTest.kt:package git4idea.workingTrees</ID>
+    <ID>PackageNaming:GitWorkingTreeFromTagTest.kt:package git4idea.workingTrees</ID>
+    <ID>PackageNaming:GitWorkingTreeHolder.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitWorkingTreeHolderImpl.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitWorkingTreePreDialogData.kt:package git4idea.actions.workingTree</ID>
+    <ID>PackageNaming:GitWorkingTreeTabActionsDataKeys.kt:package git4idea.actions.workingTree</ID>
+    <ID>PackageNaming:GitWorkingTreeTest.kt:package git4idea.workingTrees</ID>
+    <ID>PackageNaming:GitWorkingTreeTestBase.kt:package git4idea.workingTrees</ID>
+    <ID>PackageNaming:GitWorkingTreesContentProvider.kt:package git4idea.workingTrees.ui</ID>
+    <ID>PackageNaming:GitWorkingTreesNewBadgeUtil.kt:package git4idea.workingTrees</ID>
+    <ID>PackageNaming:GitWorkingTreesService.kt:package git4idea.workingTrees</ID>
+    <ID>PackageNaming:GitWorktreeListParser.kt:package git4idea.workingTrees</ID>
+    <ID>PackageNaming:GitWorktreeSupportStatusTest.kt:package git4idea.workingTrees</ID>
+    <ID>PackageNaming:GitWorktreeUpdateListener.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitWorktreeUpdateListenerTest.kt:package git4idea.repo</ID>
+    <ID>PackageNaming:GitlNavigateRevisionResolver.kt:package git4idea</ID>
+    <ID>PackageNaming:GlobalHostedGitRepositoryReferenceActionGroup.kt:package git4idea.remote.hosting.action</ID>
+    <ID>PackageNaming:GpgAgentConfig.kt:package git4idea.commit.signing</ID>
+    <ID>PackageNaming:GpgAgentConfigException.kt:package git4idea.commit.signing</ID>
+    <ID>PackageNaming:GpgAgentConfigurationAction.kt:package git4idea.commit.signing</ID>
+    <ID>PackageNaming:GpgAgentConfigurationNotificator.kt:package git4idea.commit.signing</ID>
+    <ID>PackageNaming:GpgAgentConfigurator.kt:package git4idea.commit.signing</ID>
+    <ID>PackageNaming:GpgAgentPathsLocator.kt:package git4idea.commit.signing</ID>
+    <ID>PackageNaming:GpgSignConfigurableRow.kt:package git4idea.config.gpg</ID>
+    <ID>PackageNaming:HashRange.kt:package git4idea.update</ID>
+    <ID>PackageNaming:HostedGitAuthenticationFailureManager.kt:package git4idea.remote.hosting.http</ID>
+    <ID>PackageNaming:HostedGitRepositoriesManager.kt:package git4idea.remote.hosting</ID>
+    <ID>PackageNaming:HostedGitRepositoryConnection.kt:package git4idea.remote.hosting</ID>
+    <ID>PackageNaming:HostedGitRepositoryConnectionFactory.kt:package git4idea.remote.hosting</ID>
+    <ID>PackageNaming:HostedGitRepositoryReferenceActionGroup.kt:package git4idea.remote.hosting.action</ID>
+    <ID>PackageNaming:HostedGitRepositoryReferenceUtil.kt:package git4idea.remote.hosting.action</ID>
+    <ID>PackageNaming:InMemoryRebaseOperations.kt:package git4idea.inMemory.rebase.log</ID>
+    <ID>PackageNaming:InlineErrorNotifier.kt:package git4idea.config</ID>
+    <ID>PackageNaming:InstantGitTokenProvider.kt:package git4idea.instant</ID>
+    <ID>PackageNaming:LightGitEditorHighlighterManager.kt:package git4idea.light</ID>
+    <ID>PackageNaming:LightGitPresentation.kt:package git4idea.light</ID>
+    <ID>PackageNaming:LightGitStatusBarWidget.kt:package git4idea.light</ID>
+    <ID>PackageNaming:LightGitTabAttributesProvider.kt:package git4idea.light</ID>
+    <ID>PackageNaming:LightGitTracker.kt:package git4idea.light</ID>
+    <ID>PackageNaming:LightGitUtil.kt:package git4idea.light</ID>
+    <ID>PackageNaming:MacExecutableProblemHandler.kt:package git4idea.config</ID>
+    <ID>PackageNaming:MergeConflictResolveUtil.kt:package git4idea.conflicts</ID>
+    <ID>PackageNaming:MergeDirectionComponentFactory.kt:package git4idea.ui.branch</ID>
+    <ID>PackageNaming:MergeDirectionModel.kt:package git4idea.ui.branch</ID>
+    <ID>PackageNaming:MockGitRepository.kt:package git4idea.test</ID>
+    <ID>PackageNaming:MockGitRepositoryModel.kt:package git4idea.test</ID>
+    <ID>PackageNaming:MockVcsHelper.kt:package git4idea.test</ID>
+    <ID>PackageNaming:ModuleExtensions.kt:package git4idea.ignore</ID>
+    <ID>PackageNaming:MoveTableItemRunnable.kt:package git4idea.rebase.interactive.dialog.view</ID>
+    <ID>PackageNaming:MutableLinearGitFileHistory.kt:package git4idea.changes</ID>
+    <ID>PackageNaming:NotificationErrorNotifier.kt:package git4idea.config</ID>
+    <ID>PackageNaming:Oid.kt:package git4idea.inMemory.objects</ID>
+    <ID>PackageNaming:OpenWorkingTreeAction.kt:package git4idea.workingTrees.ui</ID>
+    <ID>PackageNaming:OptionButton.kt:package git4idea.merge.dialog</ID>
+    <ID>PackageNaming:OptionInfo.kt:package git4idea.merge.dialog</ID>
+    <ID>PackageNaming:OptionListCellRenderer.kt:package git4idea.merge.dialog</ID>
+    <ID>PackageNaming:PinentryDataEncryptTest.kt:package git4idea.commit.signing</ID>
+    <ID>PackageNaming:PinentryExecutionTest.kt:package git4idea.commit.signing</ID>
+    <ID>PackageNaming:PinentryService.kt:package git4idea.commit.signing</ID>
+    <ID>PackageNaming:PinentryTestUtil.kt:package git4idea.commit.signing</ID>
+    <ID>PackageNaming:PruneWorkingTreesAction.kt:package git4idea.workingTrees.ui</ID>
+    <ID>PackageNaming:PruneWorkingTreesActionTest.kt:package git4idea.workingTrees</ID>
+    <ID>PackageNaming:RefreshWorkingTreesAction.kt:package git4idea.workingTrees.ui</ID>
+    <ID>PackageNaming:RefsCollection.kt:package git4idea.ui.branch.dashboard</ID>
     <ID>PackageNaming:RemoveGenericFixTest.kt:package com.phantom.mermaid.lang.intention.undeclared_generic</ID>
     <ID>PackageNaming:RemoveGenericToDeclarationFixTest.kt:package com.phantom.mermaid.lang.intention.undeclared_generic</ID>
+    <ID>PackageNaming:RemoveWorkingTreeAction.kt:package git4idea.workingTrees.ui</ID>
+    <ID>PackageNaming:RepoBuilder.kt:package git4idea.test</ID>
+    <ID>PackageNaming:RepositoryAndAccountSelectorComponentFactory.kt:package git4idea.remote.hosting.ui</ID>
+    <ID>PackageNaming:RepositoryAndAccountSelectorViewModel.kt:package git4idea.remote.hosting.ui</ID>
+    <ID>PackageNaming:RepositoryAndAccountSelectorViewModelBase.kt:package git4idea.remote.hosting.ui</ID>
+    <ID>PackageNaming:ResolveConflictsLocallyCoordinates.kt:package git4idea.remote.hosting.ui</ID>
+    <ID>PackageNaming:ResolveConflictsLocallyDialogComponentFactory.kt:package git4idea.remote.hosting.ui</ID>
+    <ID>PackageNaming:ResolveConflictsLocallyViewModel.kt:package git4idea.remote.hosting.ui</ID>
+    <ID>PackageNaming:RunConfigurationVcsIgnoreTest.kt:package git4idea.ignore</ID>
+    <ID>PackageNaming:ShareProjectExistingRemotesDialog.kt:package git4idea.remote.hosting.ui</ID>
+    <ID>PackageNaming:ShareProjectUntrackedFilesDialog.kt:package git4idea.remote.hosting.ui</ID>
+    <ID>PackageNaming:ShowGitLogCommandAction.kt:package git4idea.log.command</ID>
+    <ID>PackageNaming:ShowWorkingTreesAction.kt:package git4idea.actions.workingTree</ID>
+    <ID>PackageNaming:SilentHostedGitHttpAuthDataProvider.kt:package git4idea.remote.hosting.http</ID>
+    <ID>PackageNaming:SingleHostedGitRepositoryConnectionManager.kt:package git4idea.remote.hosting</ID>
+    <ID>PackageNaming:StagePopupVerticalLayout.kt:package git4idea.index</ID>
+    <ID>PackageNaming:StagingAreaOperation.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:StagingAreaOperationAction.kt:package git4idea.index.actions</ID>
+    <ID>PackageNaming:StashInfo.kt:package git4idea.ui</ID>
+    <ID>PackageNaming:SuspendingGitCommitSignatureLoader.kt:package git4idea.log</ID>
     <ID>PackageNaming:TerminalPSReadLineUpdateUtil.kt:package org.jetbrains.plugins.terminal.shell_integration</ID>
+    <ID>PackageNaming:TestDataUtil.kt:package git4idea.test</ID>
+    <ID>PackageNaming:TestDialogManager.kt:package git4idea.test</ID>
+    <ID>PackageNaming:TestGit.kt:package git4idea.test</ID>
+    <ID>PackageNaming:TestVcsRefsSequences.kt:package git4idea.log</ID>
     <ID>PackageNaming:UndeclaredGenericUsageInspectionTest.kt:package com.phantom.mermaid.lang.intention.undeclared_generic</ID>
+    <ID>PackageNaming:UnsupportedWSLVersionException.kt:package git4idea.config</ID>
     <ID>PackageNaming:UnusedAttributesInspectionTest.kt:package com.phantom.mermaid.lang.intention.unused_attributes</ID>
+    <ID>PackageNaming:VcsLogDataExtensions.kt:package git4idea.log</ID>
+    <ID>PackageNaming:VcsLogNavigatable.kt:package git4idea.ui.branch.dashboard</ID>
+    <ID>PackageNaming:VcsLogObjectsFactoryExt.kt:package git4idea.log</ID>
+    <ID>PackageNaming:WindowsExecutableProblemHandler.kt:package git4idea.config</ID>
+    <ID>PackageNaming:gitAsyncExtensions.kt:package git4idea.remote.hosting</ID>
+    <ID>PackageNaming:repositoryMapping.kt:package git4idea.remote.hosting</ID>
     <ID>PrintStackTrace:GHGQLData.kt:e</ID>
+    <ID>ProtectedMemberInFinalClass:GitChangeProviderVersionedTest.kt:GitChangeProviderVersionedTest$protected fun assertProviderChangesIn</ID>
+    <ID>ProtectedMemberInFinalClass:GitStageLineStatusTracker.kt:GitStageLineStatusTracker$protected var isInitialized: Boolean = false private set</ID>
     <ID>ProtectedMemberInFinalClass:TomlDslWriter.kt:TomlDslWriter$protected fun TomlElement?.deleteToComma</ID>
     <ID>ProtectedMemberInFinalClass:TomlDslWriter.kt:TomlDslWriter$protected fun TomlPsiFactory.createComma</ID>
     <ID>ProtectedMemberInFinalClass:TomlDslWriter.kt:TomlDslWriter$protected fun TomlPsiFactory.createDot</ID>
@@ -1114,6 +1935,7 @@
     <ID>SwallowedException:EditorConfigJsonFileOptionDescriptorProviderBase.kt:EditorConfigJsonFileOptionDescriptorProviderBase$ex: JsonSyntaxException</ID>
     <ID>SwallowedException:EditorConfigWrongFileEncodingNotificationProvider.kt:EditorConfigWrongFileEncodingNotificationProvider$e: NullPointerException</ID>
     <ID>SwallowedException:EditorConfigWrongFileEncodingNotificationProvider.kt:EditorConfigWrongFileEncodingNotificationProvider$e: UnsupportedOperationException</ID>
+    <ID>SwallowedException:EmptyCommitTest.kt:EmptyCommitTest$e: Exception</ID>
     <ID>SwallowedException:GHAccountsDetailsProvider.kt:GHAccountsDetailsProvider$e: Exception</ID>
     <ID>SwallowedException:GHCloneDialogExtensionComponentBase.kt:GHCloneDialogExtensionComponentBase$e: Throwable</ID>
     <ID>SwallowedException:GHPRChangesViewModel.kt:GHPRChangesViewModelImpl$e: CancellationException</ID>
@@ -1122,10 +1944,23 @@
     <ID>SwallowedException:GHPRDetailsActionsComponentFactory.kt:GHPRDetailsActionsComponentFactory$e: Exception</ID>
     <ID>SwallowedException:GHPRInfoViewModel.kt:GHPRInfoViewModel$ce: CancellationException</ID>
     <ID>SwallowedException:GHPRSearchQuery.kt:GHPRSearchQuery.Term.Qualifier.Enum.Companion$e: IllegalArgumentException</ID>
+    <ID>SwallowedException:GitBranchCheckoutOperation.kt:GitBranchCheckoutOperation.Companion$ex: VcsException</ID>
+    <ID>SwallowedException:GitCommandCreator.kt:e: NoSuchFieldException</ID>
+    <ID>SwallowedException:GitCompareBranchesFile.kt:GitCompareBranchesFile$e: Exception</ID>
+    <ID>SwallowedException:GitFetchSupportImpl.kt:GitFetchSupportImpl$e: ExecutionException</ID>
+    <ID>SwallowedException:GitHistoryTraverserImplTest.kt:GitHistoryTraverserImplTest$e: IllegalArgumentException</ID>
+    <ID>SwallowedException:GitHostingUrlUtil.kt:GitHostingUrlUtil$e: URISyntaxException</ID>
+    <ID>SwallowedException:GitHttpAuthService.kt:GitHttpAuthService.AuthAppHandler$e: ProcessCanceledException</ID>
+    <ID>SwallowedException:GitIgnoredFileTest.kt:GitIgnoredFileTest$e: FileAlreadyExistsException</ID>
+    <ID>SwallowedException:GitModulesFileReader.kt:GitModulesFileReader$e: IOException</ID>
+    <ID>SwallowedException:GitStashCache.kt:GitStashCache.Companion$e: Throwable</ID>
+    <ID>SwallowedException:GitSubmoduleUpdater.kt:GitSubmoduleUpdater$pce: ProcessCanceledException</ID>
+    <ID>SwallowedException:GitUpdatedRanges.kt:GitUpdatedRanges$t: Throwable</ID>
     <ID>SwallowedException:GithubApiRequestExecutor.kt:GithubApiRequestExecutor.Base$jse: GithubJsonException</ID>
     <ID>SwallowedException:GithubLoginPanel.kt:GithubLoginPanel$e: Exception</ID>
     <ID>SwallowedException:GrVisibilityUtils.kt:e: IllegalArgumentException</ID>
     <ID>SwallowedException:GrazieDynamic.kt:GrazieDynamic$e: MissingResourceException</ID>
+    <ID>SwallowedException:HostedGitRepositoryReferenceUtil.kt:HostedGitRepositoryReference.File$e: Exception</ID>
     <ID>SwallowedException:HtmlExporter.kt:HtmlExporter$exception: IOException</ID>
     <ID>SwallowedException:HttpRequestModel.kt:HttpRequestBuilder$e: Exception</ID>
     <ID>SwallowedException:HttpRunner.kt:HttpRunner$e: HttpTimeoutException</ID>
@@ -1144,8 +1979,10 @@
     <ID>SwallowedException:RemoveParenthesesFromMethodCallIntention.kt:RemoveParenthesesFromMethodCallIntention.Predicate$e: IncorrectOperationException</ID>
     <ID>SwallowedException:TerminalSearchSession.kt:TerminalSearchSession$e: PatternSyntaxException</ID>
     <ID>SwallowedException:TerminalShellInfoStatistics.kt:TerminalShellInfoStatistics$t: Throwable</ID>
+    <ID>SwallowedException:WindowsExecutableProblemHandler.kt:WindowsExecutableProblemHandler$e: Exception</ID>
     <ID>SwallowedException:_Json5Lexer.kt:_Json5Lexer$e: IndexOutOfBoundsException</ID>
     <ID>SwallowedException:_JsonLexer.kt:_JsonLexer$e: IndexOutOfBoundsException</ID>
+    <ID>SwallowedException:gitAsyncExtensions.kt:e: Exception</ID>
     <ID>ThrowingExceptionsWithoutMessageOrCause:EditorConfigComplexKeyFullTemplateCompletionProvider.kt:EditorConfigComplexKeyFullTemplateCompletionProvider$IllegalStateException()</ID>
     <ID>ThrowingExceptionsWithoutMessageOrCause:EditorConfigDescriptorUtil.kt:IllegalStateException()</ID>
     <ID>ThrowingExceptionsWithoutMessageOrCause:EditorConfigElementAwareDescriptorVisitor.kt:EditorConfigElementAwareDescriptorVisitor$IllegalStateException()</ID>
@@ -1159,6 +1996,10 @@
     <ID>ThrowingExceptionsWithoutMessageOrCause:EditorConfigTemplateUtil.kt:EditorConfigTemplateUtil.DescriptorType.Companion$IllegalStateException()</ID>
     <ID>ThrowingExceptionsWithoutMessageOrCause:EditorConfigValueCompletionCollector.kt:EditorConfigValueCompletionCollector$IllegalStateException()</ID>
     <ID>ThrowingExceptionsWithoutMessageOrCause:EditorConfigValueUniquenessInspection.kt:EditorConfigValueUniquenessInspection$IllegalStateException()</ID>
+    <ID>ThrowingExceptionsWithoutMessageOrCause:GitRebaseCommitsTableModel.kt:GitRebaseCommitsTableModel$IllegalStateException()</ID>
+    <ID>ThrowingExceptionsWithoutMessageOrCause:GitRebaseTodoModelConverter.kt:IllegalStateException()</ID>
+    <ID>ThrowingExceptionsWithoutMessageOrCause:GitRefType.kt:GitRefType.Companion$IllegalArgumentException()</ID>
+    <ID>ThrowingExceptionsWithoutMessageOrCause:GitRepositoriesHolder.kt:GitRepositoriesHolder$Throwable()</ID>
     <ID>ThrowingExceptionsWithoutMessageOrCause:GroovyBreadcrumbsInfoProvider.kt:GroovyBreadcrumbsInfoProvider$RuntimeException()</ID>
     <ID>ThrowingExceptionsWithoutMessageOrCause:InitialTypeProvider.kt:InitialTypeProvider$IllegalStateException()</ID>
     <ID>ThrowingExceptionsWithoutMessageOrCause:KotlinDslWriter.kt:KotlinDslWriter$Throwable()</ID>
@@ -1183,7 +2024,15 @@
     <ID>ThrowsCount:DbTableCopy.kt:DbTableCopy$suspend fun run: DbTableCopyResult</ID>
     <ID>ThrowsCount:DependencyCompletionServiceImpl.kt:DependencyCompletionServiceImpl$private fun &lt;C : DependencyCompletionContributor, R : BaseDependencyCompletionResult> parallelStream: Flow&lt;DependencyCompletionEvent&lt;R>></ID>
     <ID>ThrowsCount:EditorConfigJsonSchemaParser.kt:EditorConfigJsonSchemaParser$fun parse: EditorConfigDescriptor</ID>
+    <ID>ThrowsCount:GitAmendSpecificCommitSquasher.kt:GitAmendSpecificCommitSquasher$fun squashAmendCommitIntoTarget</ID>
+    <ID>ThrowsCount:GitFetchSupportImpl.kt:GitFetchSupportImpl$private fun waitForFetchTasks: List&lt;SingleRemoteResult></ID>
+    <ID>ThrowsCount:GitRebaseTodoModelConverter.kt:internal fun &lt;T : GitRebaseEntry> convertToModel: GitRebaseTodoModel&lt;T></ID>
+    <ID>ThrowsCount:GitReftableReader.kt:GitReftableReader$@Throws(IOException::class) private fun findHeadInBlock: String?</ID>
+    <ID>ThrowsCount:GitReftableReader.kt:GitReftableReader$@VisibleForTesting @Throws(IOException::class) internal fun findHeadInTable: String?</ID>
+    <ID>ThrowsCount:GitRepositoryCommitter.kt:GitRepositoryCommitter$@Throws(VcsException::class) private fun performCommit</ID>
+    <ID>ThrowsCount:GitWorkingTree.kt:GitWorkingTreeSerializer$override fun deserialize: GitWorkingTree</ID>
     <ID>ThrowsCount:GithubApiRequest.kt:GithubApiRequest.Post.GQLQuery$protected fun throwException: Nothing</ID>
+    <ID>ThrowsCount:HostedGitRepositoryConnectionFactory.kt:ValidatingHostedGitRepositoryConnectionFactory$override suspend fun connect: C</ID>
     <ID>ThrowsCount:HttpInspections.kt:JsonCheck.Parser$private fun obj</ID>
     <ID>ThrowsCount:HttpInspections.kt:JsonCheck.Parser$private fun string</ID>
     <ID>ThrowsCount:HttpRequestModel.kt:HttpRequestBuilder$fun build: HttpRequestModel</ID>
@@ -1223,6 +2072,7 @@
     <ID>TooGenericExceptionCaught:CopyOnSelectionHandler.kt:CopyOnSelectionHandler$e: Exception</ID>
     <ID>TooGenericExceptionCaught:CpuSampler.kt:CpuSampler$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:CpuSampler.kt:CpuSampler.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:CurrentFeatureBranchBaseDetector.kt:CurrentFeatureBranchBaseDetector$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:DbAgentTools.kt:DbAgentTools$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:DbConnections.kt:DbConnectionService$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:DbCsvImport.kt:DbCsvImport$e: Exception</ID>
@@ -1240,6 +2090,7 @@
     <ID>TooGenericExceptionCaught:DbTableCopyUi.kt:DbTableCopyUi.&lt;no name provided>$e: Exception</ID>
     <ID>TooGenericExceptionCaught:DbToolWindow.kt:DbExplorerPanel$e: Exception</ID>
     <ID>TooGenericExceptionCaught:DbTunnels.kt:DbTunnels$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:DeepComparator.kt:DeepComparator$e: Exception</ID>
     <ID>TooGenericExceptionCaught:DependencyCompletionFuzzyMatcher.kt:DependencyCompletionFuzzyMatcher$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:DependencyCompletionServiceImpl.kt:DependencyCompletionServiceImpl$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:DockerToolWindow.kt:ContainersPanel$e: Exception</ID>
@@ -1247,6 +2098,7 @@
     <ID>TooGenericExceptionCaught:EditorConfigCodeStyleSettingsModifier.kt:EditorConfigCodeStyleSettingsModifier$e: Exception</ID>
     <ID>TooGenericExceptionCaught:EditorConfigWrongFileEncodingNotificationProvider.kt:EditorConfigWrongFileEncodingNotificationProvider$e: NullPointerException</ID>
     <ID>TooGenericExceptionCaught:EnglishSpeller.kt:EnglishSpeller$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:FindMergedLocalBranchesAction.kt:FindMergedLocalBranchesAction$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:FrontendTerminalHyperlinksProcessing.kt:e: Exception</ID>
     <ID>TooGenericExceptionCaught:GHAccountsDetailsProvider.kt:GHAccountsDetailsProvider$e: Exception</ID>
     <ID>TooGenericExceptionCaught:GHAccountsDetailsProvider.kt:GHAccountsDetailsProvider$e: Throwable</ID>
@@ -1275,12 +2127,43 @@
     <ID>TooGenericExceptionCaught:GHProtectedBranchRulesLoader.kt:GHProtectedBranchRulesLoader$e: Exception</ID>
     <ID>TooGenericExceptionCaught:GHPushNotificationCustomizer.kt:GHPushNotificationCustomizer$e: Exception</ID>
     <ID>TooGenericExceptionCaught:GHSilentHttpAuthDataProvider.kt:GHSilentHttpAuthDataProvider.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitAddCommitToRemoteBranchOperation.kt:GitAddCommitToRemoteBranchOperation$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitApplyChangesCommitStrategy.kt:t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GitAutomaticRebaseEditor.kt:GitAutomaticRebaseEditor$ex: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitBranchComparisonResultImpl.kt:GitBranchComparisonResultImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitCheckinEnvironment.kt:GitCheckinEnvironment.Companion$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GitCheckoutAndRebaseRemoteBranchWorkflow.kt:GitCheckoutAndRebaseRemoteBranchWorkflow.&lt;no name provided>$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitCloneDialogComponent.kt:GitCloneDialogComponent$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GitCompareBranchesFile.kt:GitCompareBranchesFile$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitDownloadAndInstall.kt:e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitDownloadAndInstall.kt:e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GitDownloadAndInstall.kt:t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GitIndexFileSystemRefresher.kt:GitIndexFileSystemRefresher$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitMergeDialog.kt:GitMergeDialog$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitObjectRepository.kt:GitObjectRepository$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitProjectOriginInfoProvider.kt:GitProjectOriginInfoProvider$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitPusher.kt:GitPusher.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitRebaseHelpPopupPanel.kt:GitRebaseHelpPopupPanel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitRecentProjectsBranchesProvider.kt:GitRecentProjectsBranchesService.Companion$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitRepositoryReader.kt:GitRepositoryReader$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GitRevisionContentPreLoader.kt:GitRevisionContentPreLoader$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitShareProjectService.kt:GitShareProjectService$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GitShowDiffWithBranchPanel.kt:GitShowDiffWithBranchPanel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitStageCommitter.kt:GitStageCommitter$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GitStashCache.kt:GitStashCache$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitStashCache.kt:GitStashCache.Companion$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GitStashUtils.kt:GitStashOperations$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitTextFilePatchWithHistory.kt:GitTextFilePatchWithHistory$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitUntrackedFilesHolder.kt:GitUntrackedFilesHolder$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GitUpdatedRanges.kt:GitUpdatedRanges$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GitWorkingTreesService.kt:GitWorkingTreesService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:GithubLoginPanel.kt:GithubLoginPanel$e: Exception</ID>
     <ID>TooGenericExceptionCaught:GithubShareDialog.kt:GithubShareDialog$e: Exception</ID>
     <ID>TooGenericExceptionCaught:GrazieDynamic.kt:GrazieDynamic$e: RuntimeException</ID>
     <ID>TooGenericExceptionCaught:GrazieLanguagesPopupStep.kt:GrazieLanguagesPopupStep$e: Exception</ID>
     <ID>TooGenericExceptionCaught:HookInstallService.kt:HookInstallService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:HookServer.kt:HookServer$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:HostedGitRepositoryReferenceUtil.kt:HostedGitRepositoryReference.File$e: Exception</ID>
     <ID>TooGenericExceptionCaught:HttpExecutionService.kt:HttpExecutionService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:HttpRequestModel.kt:HttpRequestBuilder$e: Exception</ID>
     <ID>TooGenericExceptionCaught:HttpRunner.kt:HttpRunner$e: Exception</ID>
@@ -1298,8 +2181,10 @@
     <ID>TooGenericExceptionCaught:LanguageDownloader.kt:LanguageDownloader$e: Exception</ID>
     <ID>TooGenericExceptionCaught:LanguageDownloader.kt:LanguageDownloader$exception: Throwable</ID>
     <ID>TooGenericExceptionCaught:LanguageToolChecker.kt:LanguageToolChecker$exception: Throwable</ID>
+    <ID>TooGenericExceptionCaught:MacExecutableProblemHandler.kt:MacExecutableProblemHandler$e: Exception</ID>
     <ID>TooGenericExceptionCaught:MarkdownHtmlExportProvider.kt:MarkdownHtmlExportProvider$e: Exception</ID>
     <ID>TooGenericExceptionCaught:MarkdownLinkOpenerImpl.kt:MarkdownLinkOpenerImpl$exception: Throwable</ID>
+    <ID>TooGenericExceptionCaught:MergeConflictResolveUtil.kt:MergeConflictResolveUtil.MyProducer$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:MermaidEditorWithPreviewProvider.kt:MermaidEditorWithPreviewProvider$exception: Exception</ID>
     <ID>TooGenericExceptionCaught:NetworkntSchemaService.kt:FallbackDialectRegistry$e: Exception</ID>
     <ID>TooGenericExceptionCaught:NetworkntValidationService.kt:NetworkntValidationService$e: Exception</ID>
@@ -1322,6 +2207,7 @@
     <ID>TooGenericExceptionCaught:RedisClient.kt:RedisConnection.Companion$e: Exception</ID>
     <ID>TooGenericExceptionCaught:RemoteControlServer.kt:RemoteControlServer$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:RemoteControlServer.kt:RemoteControlServer.Router$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:RepositoryAndAccountSelectorViewModelBase.kt:RepositoryAndAccountSelectorViewModelBase$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:ShDocumentationProvider.kt:e: Exception</ID>
     <ID>TooGenericExceptionCaught:ShellCommandManager.kt:ShellCommandManager$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:ShellDataGeneratorProcessExecutorImpl.kt:ShellDataGeneratorProcessExecutorImpl$e: Exception</ID>
@@ -1376,17 +2262,22 @@
     <ID>TooGenericExceptionCaught:TransferableTerminalSession.kt:TransferableTerminalLifetime$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:TransferableTerminalSession.kt:TransferableTerminalSessionImpl$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:Utils.kt:exception: Throwable</ID>
+    <ID>TooGenericExceptionCaught:WindowsExecutableProblemHandler.kt:WindowsExecutableProblemHandler$e: Exception</ID>
     <ID>TooGenericExceptionCaught:WorkspacesScenario.kt:WorkspacesRun$e: Exception</ID>
     <ID>TooGenericExceptionCaught:WorkspacesScenario.kt:WorkspacesRun$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:XlsxValuesExtractor.kt:XlsxValuesExtractor.XlsxWorkbook$e: Exception</ID>
     <ID>TooGenericExceptionCaught:_Json5Lexer.kt:_Json5Lexer$e: IndexOutOfBoundsException</ID>
     <ID>TooGenericExceptionCaught:_JsonLexer.kt:_JsonLexer$e: IndexOutOfBoundsException</ID>
+    <ID>TooGenericExceptionCaught:gitAsyncExtensions.kt:e: Exception</ID>
     <ID>TooGenericExceptionCaught:jsonSchemaObjectRendering.kt:exception: Exception</ID>
     <ID>TooGenericExceptionCaught:terminalEelProcesses.kt:e: Exception</ID>
     <ID>TooGenericExceptionCaught:terminalStartup.kt:e: Exception</ID>
     <ID>TooGenericExceptionThrown:CustomContextProjectBuildModelTest.kt:CustomContextProjectBuildModelTest.&lt;no name provided>$throw RuntimeException("Method should not be called")</ID>
     <ID>TooGenericExceptionThrown:GHGQLData.kt:GHGQLTestSchemas$throw RuntimeException("Schema could not be parsed:\n\n${parsedSchema.issues.joinToString("\n") { it.message }}")</ID>
     <ID>TooGenericExceptionThrown:GHGQLData.kt:GHGQLTestSchemas$throw RuntimeException("Schema is invalid:\n\n${validatedSchema.issues.joinToString("\n") { it.message }}")</ID>
+    <ID>TooGenericExceptionThrown:GitBranchComparisonResultImpl.kt:GitBranchComparisonResultImpl$throw RuntimeException("Unable to build branch comparison result between $baseSha and $headSha via $mergeBaseSha - ${e.message}", e)</ID>
+    <ID>TooGenericExceptionThrown:GitDownloadAndInstall.kt:throw RuntimeException("Failed to parse the downloaded list of available Gits. ${t.message}", t)</ID>
+    <ID>TooGenericExceptionThrown:GitDownloadAndInstall.kt:throw RuntimeException("Failed to unpack the list of available Gits from $feedUrl. ${t.message}", t)</ID>
     <ID>TooGenericExceptionThrown:GroovyBreadcrumbsInfoProvider.kt:GroovyBreadcrumbsInfoProvider$throw RuntimeException()</ID>
     <ID>TooGenericExceptionThrown:LibraryDeclarationModelImpl.kt:LibraryDeclarationModelImpl$throw RuntimeException("Trying create version out of ${foundElement?.elementType}")</ID>
     <ID>TooGenericExceptionThrown:NetworkntSchemaValidatorTest.kt:NetworkntSchemaValidatorTest$throw RuntimeException("Validation cancelled")</ID>
@@ -1409,10 +2300,12 @@
     <ID>TooManyFunctions:BoardFileEditor.kt:BoardFileEditor : UserDataHolderBaseFileEditor</ID>
     <ID>TooManyFunctions:CallReferenceHighlighter.kt:CallReferenceHighlighter</ID>
     <ID>TooManyFunctions:CheckerRunner.kt:CheckerRunner$Companion</ID>
+    <ID>TooManyFunctions:CleanupBranchesDialog.kt:CleanupBranchesDialog : DialogWrapper</ID>
     <ID>TooManyFunctions:CloneDialogLoginPanel.kt:CloneDialogLoginPanel : JBPanelDisposable</ID>
     <ID>TooManyFunctions:ClosureInferenceUtil.kt:org.jetbrains.plugins.groovy.intentions.style.inference.driver.closure.ClosureInferenceUtil.kt</ID>
     <ID>TooManyFunctions:CodeIndex.kt:CodeQueries</ID>
     <ID>TooManyFunctions:CodeIndex.kt:IdeCodeIndex : CodeIndex</ID>
+    <ID>TooManyFunctions:ComboBoxWithAutoCompletion.kt:ComboBoxWithAutoCompletion&lt;E : Any> : ComboBox</ID>
     <ID>TooManyFunctions:CommandRunnerExtension.kt:CommandRunnerExtension : MarkdownBrowserPreviewExtension</ID>
     <ID>TooManyFunctions:CpuWidget.kt:CpuComponent : JComponentListener</ID>
     <ID>TooManyFunctions:DataGridSearchSessionWorker.kt:DataGridSearchSessionWorker</ID>
@@ -1450,6 +2343,7 @@
     <ID>TooManyFunctions:ErdEditor.kt:ErdEditor : UserDataHolderBaseFileEditor</ID>
     <ID>TooManyFunctions:ErdModel.kt:ErdDocument</ID>
     <ID>TooManyFunctions:ErdSql.kt:ErdSql</ID>
+    <ID>TooManyFunctions:FixTrackedBranchDialog.kt:FixTrackedBranchDialog : DialogWrapper</ID>
     <ID>TooManyFunctions:FlameGraph.kt:FlameGraph : JComponentScrollable</ID>
     <ID>TooManyFunctions:GHAccountsUtil.kt:GHAccountsUtil</ID>
     <ID>TooManyFunctions:GHCloneDialogExtensionComponentBase.kt:GHCloneDialogExtensionComponentBase : VcsCloneDialogExtensionComponent</ID>
@@ -1475,7 +2369,55 @@
     <ID>TooManyFunctions:GHPRReviewService.kt:GHPRReviewService</ID>
     <ID>TooManyFunctions:GHPRReviewServiceImpl.kt:GHPRReviewServiceImpl : GHPRReviewService</ID>
     <ID>TooManyFunctions:GinqParser.kt:org.jetbrains.plugins.groovy.ext.ginq.ast.GinqParser.kt</ID>
+    <ID>TooManyFunctions:GitApplyChangesProcess.kt:GitApplyChangesProcess</ID>
+    <ID>TooManyFunctions:GitBranchesPopupBase.kt:GitBranchesPopupBase&lt;T : GitBranchesPopupStepBase> : WizardPopupNextStepHandlerGitBranchesPopup</ID>
+    <ID>TooManyFunctions:GitBranchesPopupStepBase.kt:GitBranchesPopupStepBase : PopupStep</ID>
+    <ID>TooManyFunctions:GitBranchesTreeModel.kt:GitBranchesTreeModel : AbstractTreeModel</ID>
+    <ID>TooManyFunctions:GitBranchesTreeMultiRepoFilteringModel.kt:GitBranchesTreeMultiRepoFilteringModel : GitBranchesTreeModel</ID>
+    <ID>TooManyFunctions:GitBranchesTreeUtil.kt:GitBranchesTreeUtil</ID>
+    <ID>TooManyFunctions:GitCheckinEnvironment.kt:GitCheckinEnvironment : CheckinEnvironmentAmendCommitAware</ID>
+    <ID>TooManyFunctions:GitCheckinEnvironment.kt:GitCheckinEnvironment$Companion</ID>
+    <ID>TooManyFunctions:GitCommitEditingActionBase.kt:GitCommitEditingActionBase&lt;T : GitCommitEditingActionBase.MultipleCommitEditingData> : DumbAwareAction</ID>
+    <ID>TooManyFunctions:GitCommitOptions.kt:GitCommitOptionsUi : RefreshableOnComponentCheckinChangeListSpecificComponentAmendCommitModeListenerCommitAuthorListenerDisposable</ID>
+    <ID>TooManyFunctions:GitCommitTemplateTracker.kt:GitCommitTemplateTracker : GitConfigListenerAsyncVfsEventsListenerDisposable</ID>
+    <ID>TooManyFunctions:GitConfigureRemotesDialog.kt:GitConfigureRemotesDialog : DialogWrapper</ID>
+    <ID>TooManyFunctions:GitDefaultBranchesPopup.kt:GitDefaultBranchesPopup : GitBranchesPopupBase</ID>
+    <ID>TooManyFunctions:GitDefaultMergeDialogCustomizer.kt:git4idea.merge.GitDefaultMergeDialogCustomizer.kt</ID>
+    <ID>TooManyFunctions:GitFetchSupportImpl.kt:GitFetchSupportImpl : GitFetchSupport</ID>
+    <ID>TooManyFunctions:GitFileUtils.kt:GitFileUtils</ID>
+    <ID>TooManyFunctions:GitIgnoredFileContentProvider.kt:GitIgnoredFileContentProvider : IgnoredFileContentProvider</ID>
+    <ID>TooManyFunctions:GitIndexFileSystem.kt:GitIndexFileSystem : VirtualFileSystemNonPhysicalFileSystem</ID>
+    <ID>TooManyFunctions:GitIndexFileSystemRefresher.kt:GitIndexFileSystemRefresher : Disposable</ID>
+    <ID>TooManyFunctions:GitIndexStatusUtil.kt:git4idea.index.GitIndexStatusUtil.kt</ID>
+    <ID>TooManyFunctions:GitIndexVirtualFile.kt:GitIndexVirtualFile : VirtualFileVirtualFilePathWrapper</ID>
+    <ID>TooManyFunctions:GitLogProvider.kt:GitLogProvider : VcsLogProviderVcsIndexableLogProvider</ID>
+    <ID>TooManyFunctions:GitLogProvider.kt:GitLogProvider$Companion</ID>
+    <ID>TooManyFunctions:GitMergeDialog.kt:GitMergeDialog : DialogWrapper</ID>
+    <ID>TooManyFunctions:GitObjectRepository.kt:GitObjectRepository</ID>
+    <ID>TooManyFunctions:GitPullDialog.kt:GitPullDialog : DialogWrapper</ID>
+    <ID>TooManyFunctions:GitRebaseCommitsTableModel.kt:GitRebaseCommitsTableModel&lt;T : GitRebaseEntry> : AbstractTableModelEditableModel</ID>
+    <ID>TooManyFunctions:GitRebaseCommitsTableView.kt:GitRebaseCommitsTableView : JBTable</ID>
+    <ID>TooManyFunctions:GitRebaseDialog.kt:GitRebaseDialog : DialogWrapper</ID>
+    <ID>TooManyFunctions:GitRebaseTodoModel.kt:GitRebaseTodoModel&lt;T : GitRebaseEntry></ID>
+    <ID>TooManyFunctions:GitRemoteBranchesUtil.kt:GitRemoteBranchesUtil</ID>
+    <ID>TooManyFunctions:GitRepositoryImpl.kt:GitRepositoryImpl : RepositoryImplGitRepository</ID>
+    <ID>TooManyFunctions:GitRepositoryReader.kt:GitRepositoryReader</ID>
+    <ID>TooManyFunctions:GitSearchEverywhereContributor.kt:GitSearchEverywhereContributor : WeightedSearchEverywhereContributorDumbAware</ID>
+    <ID>TooManyFunctions:GitShowExternalLogAction.kt:git4idea.log.GitShowExternalLogAction.kt</ID>
+    <ID>TooManyFunctions:GitStageDiffUtil.kt:git4idea.index.GitStageDiffUtil.kt</ID>
+    <ID>TooManyFunctions:GitStageLineStatusTracker.kt:GitStageLineStatusTracker : LocalLineStatusTracker</ID>
+    <ID>TooManyFunctions:GitStageLineStatusTracker.kt:GitStageLineStatusTracker$MyLineStatusMarkerPopupRenderer : LineStatusTrackerMarkerRenderer</ID>
+    <ID>TooManyFunctions:GitStagePanel.kt:GitStagePanel$MyChangesTree : GitStageTree</ID>
+    <ID>TooManyFunctions:GitStageTree.kt:GitStageTree : AsyncChangesTree</ID>
+    <ID>TooManyFunctions:GitToolbarWidgetAction.kt:GitToolbarWidgetAction : ExpandableComboActionFrontendDumbAware</ID>
+    <ID>TooManyFunctions:GitUntrackedFilesHolder.kt:GitUntrackedFilesHolder</ID>
+    <ID>TooManyFunctions:GitUpdateInfoAsLog.kt:GitUpdateInfoAsLog</ID>
+    <ID>TooManyFunctions:GitVcsDirtyScope.kt:GitVcsDirtyScope : VcsModifiableDirtyScopeVcsDirtyScopeBuilder</ID>
+    <ID>TooManyFunctions:GitVcsPanel.kt:git4idea.config.GitVcsPanel.kt</ID>
+    <ID>TooManyFunctions:GitWorkingTreeDialog.kt:GitWorkingTreeDialog : DialogWrapper</ID>
+    <ID>TooManyFunctions:GitWorkingTreesService.kt:GitWorkingTreesService</ID>
     <ID>TooManyFunctions:GithubLoginPanel.kt:GithubLoginPanel : Wrapper</ID>
+    <ID>TooManyFunctions:GpgAgentConfigurator.kt:GpgAgentConfigurator : Disposable</ID>
     <ID>TooManyFunctions:GrCodeReferenceResolver.kt:org.jetbrains.plugins.groovy.lang.resolve.GrCodeReferenceResolver.kt</ID>
     <ID>TooManyFunctions:GrEmptyLightModifierList.kt:GrEmptyLightModifierList : GrLightModifierList</ID>
     <ID>TooManyFunctions:GrLambdaExpressionImpl.kt:GrLambdaExpressionImpl : GrExpressionImplGrLambdaExpression</ID>
@@ -1531,6 +2473,7 @@
     <ID>TooManyFunctions:LangTool.kt:LangTool : GrazieStateLifecycle</ID>
     <ID>TooManyFunctions:LogExtensions.kt:com.intellij.repository.search.completion.util.LogExtensions.kt</ID>
     <ID>TooManyFunctions:LogExtensions.kt:org.jetbrains.idea.reposearch.LogExtensions.kt</ID>
+    <ID>TooManyFunctions:MacExecutableProblemHandler.kt:MacExecutableProblemHandler : GitExecutableProblemHandler</ID>
     <ID>TooManyFunctions:MapperSqlInjector.kt:MapperSql</ID>
     <ID>TooManyFunctions:MarkdownCommenter.kt:MarkdownCommenter : CommenterSelfManagingCommenter</ID>
     <ID>TooManyFunctions:MarkdownFileActionsBaseDialog.kt:MarkdownFileActionsBaseDialog : DialogWrapper</ID>
@@ -1659,6 +2602,7 @@
     <ID>TooManyFunctions:_JsonLexer.kt:_JsonLexer$Companion</ID>
     <ID>TooManyFunctions:constructors.kt:org.jetbrains.plugins.groovy.lang.resolve.impl.constructors.kt</ID>
     <ID>TooManyFunctions:dataVariables.kt:org.jetbrains.plugins.groovy.ext.spock.dataVariables.kt</ID>
+    <ID>TooManyFunctions:gitAsyncExtensions.kt:git4idea.remote.hosting.gitAsyncExtensions.kt</ID>
     <ID>TooManyFunctions:modifiers.kt:org.jetbrains.plugins.groovy.lang.psi.impl.auxiliary.modifiers.modifiers.kt</ID>
     <ID>TooManyFunctions:parserUtils.kt:org.jetbrains.plugins.groovy.lang.parser.parserUtils.kt</ID>
     <ID>TooManyFunctions:psiImplUtil.kt:org.jetbrains.plugins.groovy.lang.psi.impl.psiImplUtil.kt</ID>
@@ -1676,6 +2620,10 @@
     <ID>TopLevelPropertyNaming:ExportDiagramAction.kt:private const val DefaultMermaidCliViewportWidth = 800</ID>
     <ID>TopLevelPropertyNaming:GinqResolveUtils.kt:@Suppress("ObjectPropertyName") private const val _G = "_g"</ID>
     <ID>TopLevelPropertyNaming:GinqResolveUtils.kt:@Suppress("ObjectPropertyName") private const val _RN: String = "_rn"</ID>
+    <ID>TopLevelPropertyNaming:GitCompareUtil.kt:private const val suffixStart = "cherry picked from commit" //NON-NLS</ID>
+    <ID>TopLevelPropertyNaming:GitDownloadAndInstall.kt:private const val feedUrl = "https://download.jetbrains.com/jdk/feed/v1/gits.json.xz"</ID>
+    <ID>TopLevelPropertyNaming:GitExecutor.kt:private const val DefaultInitBranch = "master"</ID>
+    <ID>TopLevelPropertyNaming:GitIgnoredCheckerTest.kt:private const val folderName = "new_folder"</ID>
     <ID>TopLevelPropertyNaming:GrReplaceMultiAssignmentFix.kt:internal const val defaultFixVariableName = "storedList"</ID>
     <ID>TopLevelPropertyNaming:NestedCompletions.kt:private const val dummyString = "jsonRulezzz111"</ID>
     <ID>TopLevelPropertyNaming:NewifyMemberContributor.kt:@NlsSafe internal const val newifyAnnotationFqn = "groovy.lang.Newify"</ID>
@@ -1740,6 +2688,7 @@
     <ID>UnusedPrivateClass:CopyrightManager.kt:CopyrightManagerDocumentListener : BulkFileListenerBackgroundable</ID>
     <ID>UnusedPrivateClass:MarkdownDefaultFlavour.kt:MarkdownDefaultFlavour$ExcludedElementProvider : GeneratingProvider</ID>
     <ID>UtilityClassWithPublicConstructor:LobInfoHelper.kt:LobInfoHelper</ID>
+    <ID>UtilityClassWithPublicConstructor:BranchIconUtil.kt:BranchIconUtil</ID>
     <ID>UtilityClassWithPublicConstructor:MarkdownHtmlAnchorPsiReferenceSearcher.kt:MarkdownHtmlAnchorPsiReferenceSearcher</ID>
     <ID>UtilityClassWithPublicConstructor:MermaidElementFactory.kt:MermaidElementFactory</ID>
     <ID>UtilityClassWithPublicConstructor:ProofreadingService.kt:ProofreadingService</ID>
@@ -1762,7 +2711,44 @@
     <ID>VariableNaming:EditorConfigWrongFileEncodingNotificationProvider.kt:EditorConfigWrongFileEncodingNotificationProvider$private val HIDDEN_KEY = Key.create&lt;Boolean>("editorconfig.wrong.encoding.notification.hidden")</ID>
     <ID>VariableNaming:EditorConfigWrongFileNameNotificationProvider.kt:EditorConfigWrongFileNameNotificationProvider$private val HIDDEN_KEY = Key.create&lt;Boolean>("editorconfig.wrong.name.notification.hidden")</ID>
     <ID>VariableNaming:EnterInEditorConfigFileHandler.kt:EnterInEditorConfigFileHandler$private val WHITE_SPACE = "\\s".toRegex()</ID>
+    <ID>VariableNaming:ExpandablePanelController.kt:ExpandablePanelController$@NonNls private val COLLAPSE = "collapse"</ID>
+    <ID>VariableNaming:ExpandablePanelController.kt:ExpandablePanelController$@NonNls private val EXPAND = "expand"</ID>
     <ID>VariableNaming:GHPRTimelineMergingModelTest.kt:GHPRTimelineMergingModelTest$private val YEAR = 365.days.inWholeMilliseconds</ID>
+    <ID>VariableNaming:GitChangeProviderTest.kt:GitChangeProviderTest$protected lateinit var dir_ctxt: VirtualFile</ID>
+    <ID>VariableNaming:GitChangeProviderTest.kt:GitChangeProviderTest$protected lateinit var subdir_dtxt: VirtualFile</ID>
+    <ID>VariableNaming:GitCloneDialogComponent.kt:GitCloneDialogComponent$private val LOG = Logger.getInstance(GitCloneDialogComponent::class.java)</ID>
+    <ID>VariableNaming:GitCommitTemplateTracker.kt:GitCommitTemplateTracker$private val TEMPLATES_LOCK = ReentrantReadWriteLock()</ID>
+    <ID>VariableNaming:GitCommitTest.kt:GitCommitTestBase$val PATH = "dir with spaces/file with spaces.txt"</ID>
+    <ID>VariableNaming:GitCompareBranchesLogProperties.kt:GitCompareBranchesLogProperties.MyState$var SHOW_DIFF_PREVIEW = false</ID>
+    <ID>VariableNaming:GitConfigTest.kt:GitConfigTest$private val HOOK_FAILURE_MESSAGE = "IJ_TEST_GIT_HOOK_FAILED"</ID>
+    <ID>VariableNaming:GitConfigureRemotesDialog.kt:GitConfigureRemotesDialog$private val NAME_COLUMN = 0</ID>
+    <ID>VariableNaming:GitConfigureRemotesDialog.kt:GitConfigureRemotesDialog$private val REMOTE_PADDING = 30</ID>
+    <ID>VariableNaming:GitConfigureRemotesDialog.kt:GitConfigureRemotesDialog$private val URL_COLUMN = 1</ID>
+    <ID>VariableNaming:GitConsoleFoldingImpl.kt:GitConsoleFolding$private val CONFIG_OPTIONS_REGEX: Pattern = Pattern.compile("(\\s-c\\s[\\w.]+=[^ ]*)+")</ID>
+    <ID>VariableNaming:GitInMemoryRewordOperationTest.kt:GitInMemoryRewordOperationTest$private val COMPLEX_MESSAGE = """ # This is a comment with default char Subject with trailing spaces # Another default comment ; Comment with different char Body line with trailing spaces Another body line ; comment at the end """.trimIndent()</ID>
+    <ID>VariableNaming:GitIndexTest.kt:GitIndexTest$private val FILE = "file.txt"</ID>
+    <ID>VariableNaming:GitMergeProviderTestCase.kt:GitMergeProviderTestCase$protected val FILE = "file.txt"</ID>
+    <ID>VariableNaming:GitMergeProviderTestCase.kt:GitMergeProviderTestCase$protected val FILE_CONTENT = "\nThis\nis\nsome\ncontent\nto\nmake\ngit\ntreat\nthis\nfile\nas\nrename\nrather\nthan\ninsertion\nand\ndeletion\n"</ID>
+    <ID>VariableNaming:GitMergeProviderTestCase.kt:GitMergeProviderTestCase$protected val FILE_RENAME = "file_rename.txt"</ID>
+    <ID>VariableNaming:GitModulesFileReader.kt:GitModulesFileReader$private val LOG = logger&lt;GitModulesFileReader>()</ID>
+    <ID>VariableNaming:GitModulesFileReader.kt:GitModulesFileReader$private val MODULE_SECTION = Pattern.compile("submodule \"(.*)\"", Pattern.CASE_INSENSITIVE)</ID>
+    <ID>VariableNaming:GitObjectRepositoryTest.kt:GitObjectRepositoryTest$private val SAMPLE_AUTHOR = GitObject.Commit.Author("John Doe &lt;john.doe@example.com>", 1234567890, "+0000")</ID>
+    <ID>VariableNaming:GitObjectRepositoryTest.kt:GitObjectRepositoryTest$private val SAMPLE_CONTENT = "Hello, World!"</ID>
+    <ID>VariableNaming:GitPushNativeResultParserTest.kt:GitPushNativeResultParserTest$val PUSH_DEFAULT_WARNING = """ warning: push.default is unset; its implicit value has changed in Git 2.0 from 'matching' to 'simple'. To squelch this message and maintain the traditional behavior, use: git config --global push.default matching To squelch this message and adopt the new behavior now, use: git config --global push.default simple When push.default is set to 'matching', git will push local branches to the remote branches that already exist with the same name. Since Git 2.0, Git defaults to the more conservative 'simple' behavior, which only pushes the current branch to the corresponding remote branch that 'git pull' uses to update the current branch. See 'git help config' and search for 'push.default' for further information. (the 'simple' mode was introduced in Git 1.7.11. Use the similar mode 'current' instead of 'simple' if you sometimes use older versions of Git) """.trimIndent()</ID>
+    <ID>VariableNaming:GitPushNativeResultParserTest.kt:GitPushNativeResultParserTest$val REJECT_SUFFIX = """ Done error: failed to push some refs to '/Users/loki/sandbox/git/parent.git' hint: Updates were rejected because the tip of your current branch is behind hint: its remote counterpart. Integrate the remote changes (e.g. hint: 'git pull ...') before pushing again. hint: See the 'Note about fast-forwards' in 'git push --help' for details. """.trimIndent()</ID>
+    <ID>VariableNaming:GitPushNativeResultParserTest.kt:GitPushNativeResultParserTest$val STANDARD_PREFIX = """ Counting objects: 20, done. Delta compression using up to 8 threads. Compressing objects: 100% (14/14), done. Writing objects: 100% (20/20), 1.70 KiB | 0 bytes/s, done. Total 20 (delta 7), reused 0 (delta 0) To /Users/loki/sandbox/git/parent.git """.trimIndent()</ID>
+    <ID>VariableNaming:GitPushNativeResultParserTest.kt:GitPushNativeResultParserTest$val SUCCESS_SUFFIX = "Done"</ID>
+    <ID>VariableNaming:GitPushNativeResultParserTest.kt:GitPushNativeResultParserTest$val TARGET_PREFIX = "To http://example.com/git/parent.git"</ID>
+    <ID>VariableNaming:GitRebaseBaseTest.kt:GitRebaseBaseTest$protected val LOCAL_CHANGES_WARNING: String = "Local changes were ${saved} before rebase."</ID>
+    <ID>VariableNaming:GitRemoteTest.kt:GitRemoteTest.TestAuthenticator$private val TIMEOUT = 10</ID>
+    <ID>VariableNaming:GitRepositoryReaderNewTest.kt:GitRepositoryReaderNewTest$val INVALID_REMOTE = "invalid-remote"</ID>
+    <ID>VariableNaming:GitRepositoryReaderNewTest.kt:GitRepositoryReaderNewTest$val INVALID_REMOTE_BRANCH = "master"</ID>
+    <ID>VariableNaming:GitResolvedMergeConflictsFilesHolder.kt:GitResolvedMergeConflictsFilesHolder$private val LOCK = ReentrantReadWriteLock()</ID>
+    <ID>VariableNaming:GitRevisionContentPreLoader.kt:GitRevisionContentPreLoader$private val RECORD_SEPARATOR = (1..10).map { "\u0001\u0002\u0003".random() }.joinToString("")</ID>
+    <ID>VariableNaming:GitRewordOperation.kt:GitRewordOperation$private val LOG = logger&lt;GitRewordOperation>()</ID>
+    <ID>VariableNaming:GitSha1Test.kt:GitSha1Test$private var A_FILE = "a.txt"</ID>
+    <ID>VariableNaming:GitStageLineStatusTracker.kt:GitStageLineStatusTracker$private val LOCK: DocumentTracker.Lock = DocumentTracker.Lock()</ID>
+    <ID>VariableNaming:GitUntrackedFilesHolder.kt:GitUntrackedFilesHolder$private val LOCK = Any()</ID>
     <ID>VariableNaming:GithubShareDialog.kt:GithubShareDialog$private val GITHUB_REPO_PATTERN = Pattern.compile("[a-zA-Z0-9_.-]+")</ID>
     <ID>VariableNaming:Groovy5ScriptRunConfigurationTest.kt:Groovy5ScriptRunConfigurationTest$private val DESCRIPTOR = object : LibraryLightProjectDescriptor(GroovyProjectDescriptors.LIB_GROOVY_5_0) { override fun configureModule(module: Module, model: ModifiableRootModel, contentEntry: ContentEntry) { super.configureModule(module, model, contentEntry) val version = "5.13.0" MavenDependencyUtil.addFromMaven(model, "org.junit.jupiter:junit-jupiter-api:$version") MavenDependencyUtil.addFromMaven(model, "org.junit.jupiter:junit-jupiter-params:$version") } }</ID>
     <ID>VariableNaming:GroovyInferenceSession.kt:GroovyInferenceSession$val right_ = if (isErased) { val currentSubstitutor = resolveSubset(myInferenceVariables, contextSubstitutor) TypeConversionUtil.erasure(currentSubstitutor.substitute(right)) } else { substituteWithInferenceVariables(contextSubstitutor.substitute(right)) }</ID>
@@ -1789,6 +2775,8 @@
     <ID>VariableNaming:ShellIntegrationTest.kt:ShellIntegrationTest$private val TAB_BYTES: ByteArray = byteArrayOf(Ascii.HT)</ID>
     <ID>VariableNaming:SqlCodeStyle.kt:SqlCodeStyleSettings$/** [AS_WRITTEN], [UPPER] or [LOWER]: what Reformat Code does to keywords. */ @JvmField var KEYWORD_CASE: Int = AS_WRITTEN</ID>
     <ID>VariableNaming:TerminalFontSettingsService.kt:TerminalFontSettingsState$var COLUMN_SPACING: Float = DEFAULT_TERMINAL_COLUMN_SPACING.floatValue</ID>
+    <ID>VariableNaming:TestDialogManager.kt:TestDialogManager$private val DEFAULT_MESSAGE_HANDLER : (String) -> Int = { throw IllegalStateException("Message is not expected: $it") }</ID>
+    <ID>VariableNaming:TestGit.kt:TestGitImpl$private val LOG = Logger.getInstance(TestGitImpl::class.java)</ID>
     <ID>VariableNaming:TextMateCachingSyntaxMatcher.kt:TextMateCachingSyntaxMatcher$private val CACHE = Caffeine.newBuilder() .maximumSize(10000) .expireAfterAccess(1, TimeUnit.MINUTES) .executor(Dispatchers.Default.asExecutor()) .build&lt;MatchKey, TextMateLexerState>()</ID>
     <ID>VariableNaming:TextMateLexerTestCase.kt:TextMateLexerTestCase$private val TEST_DATA_BASE_DIR: String = "${java.io.File("").absolutePath}/testData/lexer" // Phantom-plugins: the plugin folder, not the IDE home</ID>
     <ID>VariableNaming:TransformationContextImpl.kt:TransformationContextImpl$// Modifiers should be processed with care in transformation context to avoid recursion issues. // This code re-creates erasures computation to properly handle modifier querying private val AST_TRANSFORMATION_AWARE_METHOD_PARAMETERS_ERASURE_EQUALITY: Hash.Strategy&lt;MethodSignature> = object : Hash.Strategy&lt;MethodSignature> { override fun equals(a: MethodSignature?, b: MethodSignature?): Boolean { if (a === b) return true return (a != null &amp;&amp; b != null &amp;&amp; a.parameterTypes.map { erase(it) } == b.parameterTypes.map { erase(it) }) } override fun hashCode(signature: MethodSignature?): Int { return signature?.name?.hashCode() ?: 0 } }</ID>
