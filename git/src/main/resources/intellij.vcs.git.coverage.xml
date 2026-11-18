@@ -1,4 +1,4 @@
-<idea-plugin>
+<idea-plugin package="com.intellij.vcs.git.coverage">
   <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
   <dependencies>
     <plugin id="Git4Idea"/>
