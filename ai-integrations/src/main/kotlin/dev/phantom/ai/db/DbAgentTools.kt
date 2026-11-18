@@ -6,6 +6,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
+import dev.phantom.ai.core.AiState
 import dev.phantom.ai.mcp.AgentTool
 import dev.phantom.ai.mcp.AgentTools
 import dev.phantom.ai.mcp.McpToolError
@@ -35,9 +36,11 @@ import java.util.concurrent.atomic.AtomicBoolean
  * and SELECT-like queries. Connections are the console's own (its saved credentials, SSH tunnels and drivers); the
  * agent never sees a password. A query runs in a read-only transaction that is rolled back, whatever it was.
  * Changes are only drafted: [DRAFT] writes the statements into the data source's console for the user to read and run.
+ * Off until the user turns on the database tools in the settings: what these tools return goes into the agent's
+ * conversation, and so to the agent's AI provider.
  */
-class DbAgentTools : AgentTools {
-  override fun tools(): List<AgentTool> = listOf(
+class DbAgentTools(private val enabled: () -> Boolean = { AiState.getInstance().state.dbTools }) : AgentTools {
+  override fun tools(): List<AgentTool> = if (!enabled()) emptyList() else listOf(
     AgentTool(LIST, LIST_DESCRIPTION, JsonObject(), emptyList(), readOnly = true) { worktree, _ -> list(projectOf(worktree)) },
     AgentTool(TABLES, TABLES_DESCRIPTION, props("database" to DATABASE, "schema" to SCHEMA), listOf("database"), readOnly = true) { worktree, args ->
       val project = projectOf(worktree)

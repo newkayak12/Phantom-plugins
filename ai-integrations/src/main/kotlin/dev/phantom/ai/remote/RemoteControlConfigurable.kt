@@ -3,6 +3,7 @@ package dev.phantom.ai.remote
 
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.ConfigurationException
+import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBList
@@ -66,7 +67,9 @@ class RemoteControlConfigurable(
     val l = JBTextField(40).apply { name = "remote.link"; isEditable = false }
     val q = JBLabel().apply { name = "remote.qr" }
     val s = JBLabel().apply { name = "remote.status" }
-    val w = JBLabel(PhantomAiBundle.message("remote.warning")).apply { name = "remote.warning"; isVisible = false }
+    val w = JBLabel(PhantomAiBundle.message("remote.warning")).apply { name = "remote.warning"; isVisible = false; foreground = JBColor.RED }
+    // Always shown: the server has no TLS, so what it carries is readable on any network it is reachable from.
+    val n = JBLabel("<html><body style='width: 460px'>${PhantomAiBundle.message("remote.notice")}</body></html>").apply { name = "remote.notice" }
     val h = JBLabel(PhantomAiBundle.message("remote.hint.regenerate")).apply { name = "remote.hint"; isVisible = false }
     enable = e; address = a; custom = c; port = p; link = l; qr = q; statusLine = s; warning = w; hint = h
 
@@ -91,6 +94,7 @@ class RemoteControlConfigurable(
     fun row(vararg cs: JComponent) = JPanel(FlowLayout(FlowLayout.LEFT, 6, 2)).apply { cs.forEach { add(it) } }
     val panel = JPanel().apply { layout = BoxLayout(this, BoxLayout.Y_AXIS); border = JBUI.Borders.empty(4) }
     panel.add(row(e))
+    panel.add(row(n))
     panel.add(row(JBLabel(PhantomAiBundle.message("remote.address")), a, c, JBLabel(PhantomAiBundle.message("remote.port")), p))
     panel.add(row(generate))
     panel.add(row(JBLabel(PhantomAiBundle.message("remote.link")), l, copy))

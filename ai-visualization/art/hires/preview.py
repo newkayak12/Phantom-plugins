@@ -1,4 +1,4 @@
-"""sprites-preview.png (every sprite x3 on a checkerboard, labelled) + compare.png."""
+"""sprites-preview.png (every sprite x3 on a checkerboard, labelled)."""
 from PIL import Image, ImageDraw, ImageFont
 import people as P
 import props as Q
@@ -110,19 +110,5 @@ def sheet():
     print('sheet', out.size)
 
 
-def compare():
-    ref = Image.open('/tmp/phantom-ai-viz/reference.jpg').convert('RGBA')
-    # trim the white strip under the reference art
-    ref = ref.crop((0, 0, ref.width, 594))
-    sc = Image.open('/tmp/phantom-ai-hires/scene.png').convert('RGBA')
-    h = 900
-    r2 = ref.resize((round(ref.width * h / ref.height), h), Image.LANCZOS)
-    out = Image.new('RGBA', (r2.width + sc.width + 20, h), (30, 26, 30, 255))
-    out.paste(r2, (0, 0)); out.paste(sc, (r2.width + 20, 0))
-    out.save('/tmp/phantom-ai-hires/compare.png')
-    print('compare', out.size)
-
-
 if __name__ == '__main__':
     sheet()
-    compare()

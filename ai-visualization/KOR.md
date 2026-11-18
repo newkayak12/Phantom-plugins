@@ -4,6 +4,8 @@
 
 Phantom AI Integration의 에이전트 세션을 아이소메트릭 픽셀 아트 사무실로 보여 줍니다. Phantom AI Integration 0.3.1 이상(`dev.phantom.ai`)이 필요하며, 그 공개 API `dev.phantom.ai.api`만 씁니다.
 
+Claude는 Anthropic의, Codex는 OpenAI의 상표이며, 이름은 세션을 표시하는 데만 씁니다. 이 플러그인은 Anthropic이나 OpenAI와 제휴하거나 후원·보증을 받지 않았습니다. 픽셀 아트는 [art](./art/README.md)의 스크립트가 그리며, 플러그인에는 다른 곳의 그림이 들어 있지 않습니다.
+
 ![AI Visualization, 테마 A (Warm Wood)](docs/screenshots/office.png)
 ![확대](docs/screenshots/office-zoom.png)
 ![AI Visualization, 테마 B (Modern Bright)](docs/screenshots/office-b.png)
@@ -36,3 +38,5 @@ Phantom AI Integration의 에이전트 세션을 아이소메트릭 픽셀 아�
 ```
 
 CI와 플러그인 zip에는 들어가지 않습니다. `-PaivizRenderOut=<dir>`를 주면 단위 테스트가 샘플 렌더(A는 `render-zoom3.png`, B는 데스크 구역 3·4·6개의 `render-b-<n>-zoom3.png`)도 그 폴더에 씁니다.
+
+**0.6.3**: 플러그인 설명에 Claude와 Codex가 각 소유자의 상표이고 이 플러그인이 Anthropic, OpenAI와 제휴하지 않았다고 적었습니다. art 스크립트 옆에 있던 참고 그림과 비교 이미지를 지웠고, `art/`는 그림 파일을 무시하므로 스크립트와 그 스크립트가 만든 스프라이트만 남습니다.

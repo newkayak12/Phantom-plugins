@@ -753,9 +753,9 @@ def bubble(kind):
     return s.crop(0)
 
 
-# ------------------------------------------------------------------ CRT (oblique, reference-style)
+# ------------------------------------------------------------------ CRT (oblique)
 def crt2(screen='green', back=False, seed=0):
-    """CRT drawn with a near-frontal bezel (like the reference) and depth receding up-right.
+    """CRT drawn with a near-frontal bezel and depth receding up-right.
     Anchor = bottom-centre of the stand."""
     B = BEIGE
     W_, H_ = 26, 22          # front face

@@ -11,7 +11,6 @@ data class UsageWindow(val usedPercent: Double, val windowMinutes: Int, val rese
 data class ClaudeUsage(
   val session: UsageWindow?,
   val weekly: UsageWindow?,
-  val fableWeekly: UsageWindow?,
   val updatedAtMs: Long,
 )
 

@@ -12,7 +12,6 @@ object SystemDirs {
   const val CODEX_DIR_PROP = "phantom.ai.codexDir"
 
   const val AGENT_BIN_DIR_PROP = "phantom.ai.agentBinDir"
-  const val KEYCHAIN_PROP = "phantom.ai.keychain"
 
   /** The CLI to run for [kind]: `claude`/`codex` from PATH, or that name inside -Dphantom.ai.agentBinDir (probe stubs). */
   fun cli(kind: AgentKind): String {
@@ -20,9 +19,6 @@ object SystemDirs {
     val bin = System.getProperty(AGENT_BIN_DIR_PROP)?.takeIf { it.isNotBlank() } ?: return name
     return Path.of(bin, name).toString()
   }
-
-  /** False only with -Dphantom.ai.keychain=false (the probe sandbox): the macOS keychain is then never read. */
-  fun keychainAllowed(): Boolean = System.getProperty(KEYCHAIN_PROP)?.trim()?.lowercase() != "false"
 
   /** The redirected dir, or null when the property is not set (the System default then sets no env var). */
   fun redirect(kind: AgentKind): String? =

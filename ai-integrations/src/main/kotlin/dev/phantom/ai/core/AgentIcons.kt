@@ -4,7 +4,7 @@ package dev.phantom.ai.core
 import com.intellij.openapi.util.IconLoader
 import javax.swing.Icon
 
-/** The official Claude Code and Codex marks (16px, light and dark), as the bundled terminal plugin shows them. */
+/** Phantom's own generic glyphs for Claude Code and Codex (16px, light and dark): a prompt sign on the agent's color, no vendor logo. */
 object AgentIcons {
   @JvmField val CLAUDE: Icon = IconLoader.getIcon("/icons/agents/claude-code.svg", AgentIcons::class.java)
   @JvmField val CODEX: Icon = IconLoader.getIcon("/icons/agents/codex.svg", AgentIcons::class.java)

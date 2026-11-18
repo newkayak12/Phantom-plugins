@@ -8,6 +8,20 @@
   sessions, agent terminals in their own tool window, a workspace board, an agent dashboard and usage in the status bar.
   Needs Phantom Workspaces. The package dev.phantom.ai.api is the public API of this plugin: read-only sessions and worktrees,
   a change listener, and actions to focus or start a session; other plugins use it instead of internals.
+  <p>What it sends and changes:</p>
+  <ul>
+    <li>The agents are the claude and codex command-line tools you installed, run under your own Anthropic or OpenAI
+      account. Your prompts, the code and files a session reads, command output and, if you turn the database tools
+      on, database query results go to that provider under its terms. The plugin itself sends nothing to them.</li>
+    <li>Only after you allow it, it adds its hooks to ~/.claude/settings.json (with the statusLine) and
+      ~/.codex/hooks.json; turning this off in Settings | Tools | Phantom AI Integration or uninstalling the plugin
+      takes them out again.</li>
+    <li>Skipping the agents' permission prompts, the database tools and Remote Control (plain HTTP) are off until you
+      turn them on.</li>
+  </ul>
+  <p>Claude and Claude Code are trademarks of Anthropic; Codex and OpenAI are trademarks of OpenAI. This plugin is not
+  affiliated with, sponsored or endorsed by Anthropic or OpenAI. Parts are adapted from Orca (MIT License,
+  Copyright (c) 2026 Lovecast Inc.).</p>
   ]]></description>
 
   <depends>com.intellij.modules.platform</depends>
@@ -69,6 +83,8 @@
     <!-- ===== U2 hooks startup etc. (append here) ===== -->
     <listener class="dev.phantom.ai.hooks.HookStartup" topic="com.intellij.ide.AppLifecycleListener"/>
     <listener class="dev.phantom.ai.terminal.DetachedSessionsUnload" topic="com.intellij.ide.plugins.DynamicPluginListener"/>
+    <!-- uninstalling the plugin takes its hooks out of ~/.claude/settings.json and ~/.codex/hooks.json -->
+    <listener class="dev.phantom.ai.hooks.HookUninstall" topic="com.intellij.ide.plugins.DynamicPluginListener"/>
     <!-- the agent teams poller starts with the first Claude session that has a session id, not at startup -->
     <listener class="dev.phantom.ai.hooks.AgentTeamsStarter" topic="dev.phantom.ai.core.SessionListener"/>
   </applicationListeners>
