@@ -1,0 +1,13 @@
+{
+  "name": "phantom-terminal-fig-specs",
+  "private": true,
+  "description": "Converts the Fig autocomplete specs into the terminal plugin's command spec JSON",
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "convert": "node convert.mjs"
+  },
+  "dependencies": {
+    "@withfig/autocomplete": "2.692.3"
+  }
+}

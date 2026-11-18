@@ -1,0 +1,1 @@
+{"names":["git-profile"],"description":"Switch profiles","subcommands":[{"names":["use"],"description":"Use a profile","args":[{"name":"profile"}]}],"options":[{"names":["--help","-h"],"description":"Help for git-profile script"},{"names":["--config","-c"],"description":"Config file (default \"~/.gitprofile\")"}]}
