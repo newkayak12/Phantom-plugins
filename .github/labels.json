@@ -1,0 +1,12 @@
+{
+  "labels": [
+    {"name": "bug", "color": "d73a4a", "description": "A defect in a Phantom plugin", "titlePrefixes": ["bug:", "fix:"]},
+    {"name": "enhancement", "color": "a2eeef", "description": "New or improved plugin behavior", "titlePrefixes": ["feat:", "enhancement:"]},
+    {"name": "maintenance", "color": "ededed", "description": "Repository maintenance", "titlePrefixes": ["chore:"]},
+    {"name": "revert", "color": "e4e669", "description": "Reverts an earlier change", "titlePrefixes": ["revert ", "revert:"]},
+    {"name": "area: docs", "color": "0075ca", "description": "Plugin documentation and contributor guidance", "titlePrefixes": ["docs:"], "paths": ["(^|/)(README[^/]*|AGENTS|CLAUDE|CHANGELOG)\\.md$", "^docs/", "^\\.(ai|agents|claude)/"]},
+    {"name": "area: build", "color": "5319e7", "description": "Gradle conventions, build tools and plugin packaging", "paths": ["^buildSrc/", "^gradle/", "(^|/)(build|settings)\\.gradle\\.kts$", "^gradle\\.properties$", "^gradlew(\\.bat)?$", "^tools/"]},
+    {"name": "area: automation", "color": "1d76db", "description": "GitHub workflows and repository automation", "paths": ["^\\.github/"]},
+    {"name": "area: plugins", "color": "bfd4f2", "description": "Plugin implementation, tests and resources", "paths": ["^(?!buildSrc/)[^./][^/]*/src/"]}
+  ]
+}

@@ -1,0 +1,114 @@
+name: Affected plugin tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: affected-plugin-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plugins.outputs.matrix }}
+      has_plugins: ${{ steps.plugins.outputs.has_plugins }}
+    steps:
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Detect affected plugin modules
+        id: plugins
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+
+          def git(*args):
+              return subprocess.check_output(['git', *args])
+
+          base = os.environ['BASE_SHA']
+          if not re.fullmatch(r'[0-9a-fA-F]{40}', base):
+              raise SystemExit('Expected a full base commit SHA from the GitHub event.')
+          if set(base) == {'0'}:
+              changed = git('diff-tree', '--root', '--no-commit-id', '--name-only', '--no-renames', '-r', '-z', 'HEAD')
+          else:
+              ancestor = git('merge-base', base, 'HEAD').decode().strip()
+              changed = git('diff', '--name-only', '--no-renames', '-z', ancestor, 'HEAD', '--')
+          paths = changed.decode('utf-8', errors='surrogateescape').split('\0')
+          modules = set()
+          shared = False
+          for path in paths:
+              if path in {'settings.gradle.kts', 'build.gradle.kts', 'gradle.properties', 'gradlew', 'gradlew.bat'} or path.startswith(('buildSrc/', 'gradle/')):
+                  shared = True
+              parts = path.split('/', 1)
+              if len(parts) != 2:
+                  continue
+              module, relative = parts
+              if module == 'strings' or not re.fullmatch(r'[a-z][a-z0-9-]*', module):
+                  continue
+              if relative != 'build.gradle.kts' and not relative.startswith('src/'):
+                  continue
+              folder = Path(module)
+              if not folder.is_symlink() and (folder / 'build.gradle.kts').is_file() and (folder / 'src').is_dir():
+                  modules.add(module)
+          plugins = sorted(modules)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('matrix=' + json.dumps({'plugin': plugins}) + '\n')
+              output.write('has_plugins=' + str(bool(plugins)).lower() + '\n')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('## Affected plugin tests\n')
+              summary.write('Selected modules: ' + (', '.join(plugins) or 'none') + '.\n')
+              summary.write('Strings tests run separately in Plugin analysis. Documentation-only changes do not select modules.\n')
+              if shared:
+                  summary.write('Shared build configuration changed: Strings analysis provides a configuration smoke check. This workflow does not run every plugin or test downstream dependencies.\n')
+          PY
+
+  test:
+    name: Plugin tests (${{ matrix.plugin }})
+    needs: detect
+    if: needs.detect.outputs.has_plugins == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@017a9effdb900e5b5b2fddfb590a105619dca3c3 # v4.4.2
+      - name: Test affected plugin
+        env:
+          PLUGIN: ${{ matrix.plugin }}
+        run: |
+          [[ "$PLUGIN" =~ ^[a-z][a-z0-9-]*$ && -f "$PLUGIN/build.gradle.kts" && -d "$PLUGIN/src" ]]
+          xvfb-run --auto-servernum ./gradlew --no-configuration-cache \
+            -PplatformFromRepository=true -Porg.gradle.java.installations.paths="$JAVA_HOME" \
+            ":$PLUGIN:test"
+      - name: Preserve available test reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: plugin-tests-${{ matrix.plugin }}
+          path: |
+            ${{ matrix.plugin }}/build/test-results/test/
+            ${{ matrix.plugin }}/build/reports/tests/test/
+          if-no-files-found: warn

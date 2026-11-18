@@ -7,7 +7,15 @@ build/
 mermaid/browser-build/kotlin-js-store/
 # local files of the OS and of coding agents
 .DS_Store
-.claude/
+.claude/settings.local.json
+.claude/worktrees/
+.claude/sessions/
+.claude/projects/
+.ai/local.md
+.ai/state/
+.codex/config.local.toml
+.codex/sessions/
+.codex/worktrees/
 .superpowers/
 .teams_output/
 .harness-run/

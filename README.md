@@ -138,6 +138,9 @@ After publishing, commit and push `.phantom/marketplace.json`.
 
 ## Analysis CI
 
+Repository-wide changed-file quality checks, affected-plugin tests, PR routing and labels are described in
+[repository automation](.github/README.md). Claude and Codex instructions start at [AGENTS.md](AGENTS.md).
+
 The **Plugin analysis** workflow runs on pull requests and pushes to `main`. Its initial scope is the
 Phantom-owned `strings` plugin: all its unit and IDE fixture tests run on JDK 25, and JaCoCo 0.8.14
 generates XML and HTML coverage. Reports are retained as workflow artifacts. These numbers do not
