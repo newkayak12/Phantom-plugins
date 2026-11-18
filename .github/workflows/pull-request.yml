@@ -38,7 +38,8 @@ jobs:
           # root build.gradle.kts holds only Spotless and detekt)
           files=$(git diff --name-only "$BASE"...HEAD)
           if grep -qE '^(buildSrc/|settings\.gradle\.kts$|gradle\.properties$|gradle/)' <<< "$files"; then
-            dirs=$(for d in */build.gradle.kts; do dirname "$d"; done | grep -v '^buildSrc$')
+            # only the folders settings.gradle.kts always includes (realide-probe only with -PrealIde)
+            dirs=$(for d in */build.gradle.kts; do d=$(dirname "$d"); if grep -q "^include(\"$d\")" settings.gradle.kts; then echo "$d"; fi; done)
           else
             dirs=$(cut -d/ -f1 <<< "$files" | sort -u | while read -r d; do if [[ -f "$d/build.gradle.kts" && "$d" != buildSrc ]]; then echo "$d"; fi; done)
           fi
