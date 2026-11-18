@@ -130,7 +130,8 @@ python3 tools/release.py db                 # build, test, update marketplace.js
 python3 tools/release.py db --publish       # also create the GitHub release with the zip
 ```
 
-After publishing, commit and push `.phantom/marketplace.json`.
+After publishing, commit `.phantom/marketplace.json` on a branch and merge it with a pull request: `main` takes
+changes only through pull requests (CLAUDE.md → Git).
 
 ## Adding a plugin
 

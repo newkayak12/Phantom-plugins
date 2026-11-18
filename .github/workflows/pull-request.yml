@@ -1,0 +1,60 @@
+# Checks a pull request to main: Spotless (ktlint) and detekt on what changed, then the tests of every plugin it touches.
+# pull_request (not pull_request_target): a fork's PR runs with a read-only token and no secrets.
+name: Pull request
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pull-request-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Spotless compares against origin/main
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Changed plugins
+        id: changed
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          # top-level folders with a build.gradle.kts; a change to buildSrc, settings or gradle setup means all of them (the
+          # root build.gradle.kts holds only Spotless and detekt)
+          files=$(git diff --name-only "$BASE"...HEAD)
+          if grep -qE '^(buildSrc/|settings\.gradle\.kts$|gradle\.properties$|gradle/)' <<< "$files"; then
+            dirs=$(for d in */build.gradle.kts; do dirname "$d"; done | grep -v '^buildSrc$')
+          else
+            dirs=$(cut -d/ -f1 <<< "$files" | sort -u | while read -r d; do [[ -f "$d/build.gradle.kts" && "$d" != buildSrc ]] && echo "$d"; done)
+          fi
+          tasks=$(for d in $dirs; do printf ':%s:test :%s:buildPlugin ' "$d" "$d"; done)
+          echo "dirs=$(echo $dirs)" >> "$GITHUB_OUTPUT"
+          echo "tasks=$tasks" >> "$GITHUB_OUTPUT"
+          echo "plugins: ${dirs:-none}"
+
+      - name: Spotless and detekt
+        run: >
+          ./gradlew --no-configuration-cache -PplatformFromRepository=true
+          -Porg.gradle.java.installations.paths="$JAVA_HOME" -PspotlessRatchetFrom=origin/main spotlessCheck detekt
+
+      - name: Test and build
+        if: steps.changed.outputs.tasks != ''
+        run: >
+          ./gradlew --no-configuration-cache --continue -PplatformFromRepository=true
+          -Porg.gradle.java.installations.paths="$JAVA_HOME"
+          ${{ steps.changed.outputs.tasks }}
