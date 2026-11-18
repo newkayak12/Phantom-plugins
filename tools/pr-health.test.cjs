@@ -136,4 +136,3 @@ test('only already-existing label creation races are ignored', async () => {
   f.github.rest.issues.createLabel = async () => { throw { status: 422 }; };
   await assert.rejects(run(f), error => error.status === 422);
 });
-

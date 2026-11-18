@@ -22,8 +22,24 @@ export function changedFiles(cwd, base) {
   const commit = git(cwd, ['rev-parse', '--verify', `${base}^{commit}`]).trim();
   const ancestor = git(cwd, ['merge-base', commit, 'HEAD']).trim();
   const tracked = git(cwd, ['diff', '--name-only', '-z', '--diff-filter=ACMR', ancestor, '--']);
-  const untracked = git(cwd, ['ls-files', '--others', '--exclude-standard', '-z']);
-  return { ancestor, files: [...new Set((tracked + untracked).split('\0').filter(Boolean))].sort((a, b) => a.localeCompare(b, 'en')) };
+  const untracked = git(cwd, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean);
+  const files = [...new Set([...tracked.split('\0').filter(Boolean), ...untracked])].sort((a, b) => a.localeCompare(b, 'en'));
+  return { ancestor, files, untracked };
+}
+
+function whitespaceFailures(cwd, ancestor, untracked) {
+  const commands = [{ args: ['diff', '--check', ancestor, '--'], allowedStatus: 0 }];
+  for (const file of untracked) {
+    if (!lstatSync(resolve(cwd, file)).isFile()) continue;
+    // --no-index returns 1 for a clean new file and 3 for whitespace errors.
+    commands.push({ args: ['diff', '--no-index', '--check', '--', '/dev/null', resolve(cwd, file)], allowedStatus: 1 });
+  }
+  const failures = [];
+  for (const { args, allowedStatus } of commands) {
+    const result = spawnSync(GIT, ['-c', 'core.whitespace=blank-at-eol,blank-at-eof', ...args], { cwd, encoding: 'utf8' });
+    if (result.error || result.status > allowedStatus) failures.push(result.error?.message ?? result.stdout + result.stderr);
+  }
+  return failures;
 }
 
 export function syntaxCommand(file, source = '') {
@@ -48,10 +64,8 @@ function fileCommands(cwd, file, lint) {
 }
 
 export function check(cwd, base = DEFAULT_BASE, lint = false) {
-  const { ancestor, files } = changedFiles(cwd, base);
-  const failures = [];
-  const whitespace = spawnSync(GIT, ['-c', 'core.whitespace=blank-at-eol,blank-at-eof', 'diff', '--check', ancestor, '--'], { cwd, encoding: 'utf8' });
-  if (whitespace.error || whitespace.status !== 0) failures.push(whitespace.error?.message ?? whitespace.stdout + whitespace.stderr);
+  const { ancestor, files, untracked } = changedFiles(cwd, base);
+  const failures = whitespaceFailures(cwd, ancestor, untracked);
   let checked = 0;
   for (const file of files) {
     // Never follow changed symlinks outside the checkout.
