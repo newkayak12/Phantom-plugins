@@ -1,2 +1,0 @@
-{"five_hour":{"utilization":42.5,"resets_at":"2026-10-28T15:00:00Z"},"seven_day":{"utilization":13,"resets_at":1793000000},
- "limits":[{"kind":"weekly_scoped","percent":7,"resets_at":1793100000,"scope":{"model":{"display_name":"Fable"}}},{"kind":"weekly_scoped","percent":99,"resets_at":1,"scope":{"model":{"display_name":"Other"}}}]}

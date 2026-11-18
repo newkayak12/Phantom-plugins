@@ -4,6 +4,8 @@
 
 The agent sessions of Phantom AI Integration as an isometric pixel-art office. Needs Phantom AI Integration 0.3.1 or later (`dev.phantom.ai`), whose public API `dev.phantom.ai.api` it uses.
 
+Claude is a trademark of Anthropic and Codex a trademark of OpenAI; the names only label the sessions. This plugin is not affiliated with, sponsored or endorsed by Anthropic or OpenAI. The pixel art is drawn by the scripts in [art](./art/README.md); the plugin contains no third-party picture.
+
 ![AI Visualization, theme A (Warm Wood)](docs/screenshots/office.png)
 ![Zoomed in](docs/screenshots/office-zoom.png)
 ![AI Visualization, theme B (Modern Bright)](docs/screenshots/office-b.png)
@@ -36,3 +38,5 @@ The probe starts a real IDE with fixture worktrees and fake sessions in all four
 ```
 
 It is not part of CI or the plugin zip. `-PaivizRenderOut=<dir>` makes the unit tests also write sample renders (`render-zoom3.png` for A, `render-b-<n>-zoom3.png` for B with 3, 4 and 6 desk areas) there.
+
+**0.6.3**: the plugin description says that Claude and Codex are their owners' trademarks and the plugin is not affiliated with Anthropic or OpenAI. The reference picture and the comparison image that sat next to the art scripts are deleted, and `art/` ignores pictures, so only the scripts and the sprites they generate are kept.

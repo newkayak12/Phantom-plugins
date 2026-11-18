@@ -2,61 +2,54 @@
 package dev.phantom.ai
 
 import com.intellij.openapi.progress.ProcessCanceledException
-import dev.phantom.ai.usage.ClaudeUsage
 import dev.phantom.ai.usage.CodexUsage
 import dev.phantom.ai.usage.UsagePoller
 import dev.phantom.ai.usage.UsageSources
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class UsagePollerTest {
-  private class Fake(val onClaude: () -> ClaudeUsage?, val onCodex: () -> CodexUsage?) : UsageSources {
+  private class Fake(val onCodex: () -> CodexUsage?) : UsageSources {
     var codexPolled = 0
-    override fun claude(claudeDir: String?) = onClaude()
     override fun codex(codexHome: String?): CodexUsage? { codexPolled++; return onCodex() }
   }
 
-  private fun poller(s: UsageSources) = UsagePoller(s, { null }, { null }, { 0L }, 60)
-
-  @Test fun failingSourceBecomesNullOtherStillPolled() {
-    val f = Fake({ throw IllegalStateException("claude down") }, { null })
-    val p = poller(f)
+  @Test fun failingSourceBecomesNullAndIsPublished() {
+    val p = UsagePoller(Fake { throw IllegalStateException("codex down") }, { null }, { 0L })
     var published = 0
     p.listeners.add { published++ }
     p.pollOnce()
     assertNull(p.snapshot.claude)
     assertNull(p.snapshot.codex)
-    assertTrue(f.codexPolled == 1)
-    assertTrue(published == 1)
+    assertEquals(1, published)
   }
 
   @Test fun processCanceledFromSourcePropagates() {
     val pce = ProcessCanceledException()
-    val p = poller(Fake({ throw pce }, { null }))
+    val p = UsagePoller(Fake { throw pce }, { null }, { 0L })
     assertSame(pce, runCatching { p.pollOnce() }.exceptionOrNull())
   }
 
-  @Test fun tickSkipsWhileInactiveLooksAtCodexEveryFifthAndClaudeOnlyWithoutAStatusLine() {
-    var claudePolled = 0
-    val f = Fake({ claudePolled++; null }, { null })
+  @Test fun tickSkipsWhileInactive() {
+    val f = Fake { null }
     var active = false
-    var now = 1_000_000L
-    val p = UsagePoller(f, { null }, { null }, { now }, 60, 5, { active })
+    val p = UsagePoller(f, { null }, { 0L }, 300, { active })
     p.tick()
-    assertEquals(0, claudePolled + f.codexPolled)
+    assertEquals(0, f.codexPolled)
     active = true
-    repeat(6) { p.tick() }
-    assertEquals(6, claudePolled)
+    repeat(2) { p.tick() }
     assertEquals(2, f.codexPolled)
-    // a running Claude session sends its usage on the statusLine: no Claude poll until it goes quiet for two periods
+  }
+
+  // Claude usage has no poll at all: it stays unknown until a running Claude session sends a statusLine payload.
+  @Test fun claudeOnlyFromStatusLine() {
+    val p = UsagePoller(Fake { null }, { null }, { 7L })
+    p.pollOnce()
+    assertNull(p.snapshot.claude)
     p.onStatusLine("""{"rate_limits":{"five_hour":{"used_percentage":30,"resets_at":1790000000}}}""")
-    p.tick()
-    assertEquals(6, claudePolled)
-    now += 120_000
-    p.tick()
-    assertEquals(7, claudePolled)
+    assertEquals(30.0, p.snapshot.claude!!.session!!.usedPercent, 0.0001)
+    assertEquals(7L, p.snapshot.claude!!.updatedAtMs)
   }
 }

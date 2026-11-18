@@ -9,3 +9,6 @@ Based on the IntelliJ Community Groovy Scripting plugin (`plugins/groovy-scripti
 `libraries/groovy/jsr223` and `libraries/ivy`, Apache 2.0), under Phantom's own id. `com.intellij.groovy.scripting` stays
 as an alias and the library module names stay the IntelliJ ones, so plugins that depend on them keep working. Phantom
 bundles this build instead of the IntelliJ plugin.
+
+**0.1.1**: The plugin jar lists its packaged libraries (Apache Groovy, Apache Ivy) with their license and notice files
+in `META-INF/THIRD-PARTY-NOTICES.txt`.

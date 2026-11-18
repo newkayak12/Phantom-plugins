@@ -7,6 +7,8 @@
 [Phantom](https://github.com/newkayak12/Phantom)용 플러그인 모음입니다.
 백엔드 기능은 필요할 때 설치하고, 일부 언어·도구 플러그인은 IDE 빌드에 기본 포함됩니다. [English](./README.md)
 
+개인정보: Phantom과 플러그인이 네트워크로 보내는 내용은 Phantom의 [PRIVACY.md](https://github.com/newkayak12/Phantom/blob/main/PRIVACY.md)에 있습니다.
+
 ## 설치
 
 Phantom에는 이 저장소가 기본으로 등록돼 있습니다. **Settings | Plugins | Marketplace**에서 플러그인 이름으로 찾아 설치하면 됩니다.
@@ -57,7 +59,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom Shell Script | [sh](./sh/KOR.md) · [English](./sh/README.md) | 셸 스크립트: 자동완성, 실행 구성, ShellCheck와 shfmt (업스트림 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Lombok Support | [lombok](./lombok/KOR.md) · [English](./lombok/README.md) | 에디터에서 Project Lombok이 만드는 멤버, 인스펙션, Delombok (업스트림 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Bytecode Decompiler for Java | [decompiler](./decompiler/KOR.md) · [English](./decompiler/README.md) | `.class` 파일을 소스 없이 열 때 디컴파일한 Java 소스 (업스트림 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Phantom Code Coverage for Java | [coverage](./coverage/KOR.md) · [English](./coverage/README.md) | 플랫폼 또는 JaCoCo 러너로 Run with Coverage (업스트림 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Phantom Code Coverage for Java | [coverage](./coverage/KOR.md) · [English](./coverage/README.md) | IntelliJ 또는 JaCoCo 러너로 Run with Coverage (업스트림 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | TextMate Bundles Support | [textmate](./textmate/KOR.md) · [English](./textmate/README.md) | 다른 파일 형식을 TextMate와 VS Code 문법으로 하이라이팅 (업스트림 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Markdown Support | [markdown](./markdown/KOR.md) · [English](./markdown/README.md) | Markdown 편집과 미리보기. Shell Script, Kotlin 등이 이것을 씀 (업스트림 플러그인 기반. 262.261112 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | GitHub Support | [github](./github/KOR.md) · [English](./github/README.md) | GitHub 계정, 클론, 프로젝트 공유, 풀 리퀘스트, Gist, Actions 스키마 (업스트림 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
@@ -67,18 +69,19 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | TestNG Support | [testng](./testng/KOR.md) · [English](./testng/README.md) | TestNG 실행 구성, 테스트 생성, 참조, 검사 (업스트림 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Internationalization for Java | [java-i18n](./java-i18n/KOR.md) · [English](./java-i18n/README.md) | Java 하드코딩 문자열 검사, I18nize, properties 키 참조 (업스트림 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Terminal | [terminal](./terminal/KOR.md) · [English](./terminal/README.md) | 셸 통합과 명령 자동 완성을 갖춘 Terminal 도구 창 (업스트림 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Phantom Natural Languages | [grazie](./grazie/KOR.md) · [English](./grazie/README.md) | 교정: 텍스트·주석·문자열의 문법, 맞춤법, 문체 검사 (업스트림 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Phantom Grammar | [grammar](./grammar/KOR.md) · [English](./grammar/README.md) | 교정: LanguageTool로 텍스트·주석·문자열의 문법, 문체, 맞춤법 검사. 오픈 소스 코드만 사용 (IntelliJ Natural Languages 플러그인 기반. Phantom Natural Languages, dev.phantom.grazie를 대신함) |
 | Phantom Properties | [properties](./properties/KOR.md) · [English](./properties/README.md) | .properties 파일 강조, 자동 완성, 키 이름 변경, Resource Bundle 편집기, 검사 (업스트림 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | JUnit Support | [junit](./junit/KOR.md) · [English](./junit/README.md) | JUnit 3~6 실행 구성, 거터 실행, 테스트 생성, 검사 (업스트림 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Repository Search | [repository-search](./repository-search/KOR.md) · [English](./repository-search/README.md) | Maven·Gradle 빌드 파일의 의존성 자동 완성(로컬 인덱스·캐시 기반) (업스트림 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom JSON | [json](./json/KOR.md) · [English](./json/README.md) | JSON·JSON5·JSON Lines 편집과 JSON Schema 검증·자동 완성 (업스트림 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Gradle DSL Support | [gradle-dsl](./gradle-dsl/KOR.md) · [English](./gradle-dsl/README.md) | Gradle 빌드 파일(Groovy, Kotlin 스크립트, 버전 카탈로그)을 모델로 읽고 고치는 API (업스트림 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Groovy Scripting Support | [groovy-scripting](./groovy-scripting/KOR.md) · [English](./groovy-scripting/README.md) | Groovy 스크립트 엔진과 Groovy 3 라이브러리. Phantom 262.261116 빌드부터 기본 포함 (업스트림 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Groovy Support | [groovy](./groovy/KOR.md) · [English](./groovy/README.md) | Groovy 언어 지원. Phantom 262.261116 빌드부터 기본 포함 (업스트림 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Groovy Support | [groovy](./groovy/KOR.md) · [English](./groovy/README.md) | IntelliJ Groovy를 대체하는 Groovy 언어 지원. Phantom 262.261116 빌드부터 기본 포함 (업스트림 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Groovy Live Templates Support | [groovy-live-templates](./groovy-live-templates/KOR.md) · [English](./groovy-live-templates/README.md) | groovyScript() 라이브 템플릿 매크로. Phantom 262.261116 빌드부터 기본 포함 (업스트림 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Images | [images](./images/KOR.md) · [English](./images/README.md) | 이미지 뷰어와 편집 도구(확대, 격자, 체스판, 배경 이미지, 과학용 보기)와 SVG 언어 (업스트림 플러그인 기반. Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom CPU Indicator | [cpu](./cpu/KOR.md) · [English](./cpu/README.md) | 상태바에 IDE·시스템 CPU, 호버하면 IDE가 CPU를 어디에 썼는지(인덱싱, 분석, GC, JIT) |
 | Phantom Log Console | [logs](./logs/KOR.md) · [English](./logs/README.md) | JSON 로그를 읽기 쉬운 줄과 스택트레이스로, 레벨 색, traceId를 누르면 그 요청의 줄 목록 |
+| Phantom Key-Value Console | [redis](./redis/KOR.md) · [English](./redis/README.md) | Redis 호환 서버(Redis, Valkey, KeyDB…)용 키 브라우저와 콘솔: 패턴으로 SCAN, 모든 타입의 값, redis-cli 형식 명령줄 |
 | QueryDSL Support | [querydsl](./querydsl/KOR.md) · [English](./querydsl/README.md) | Q클래스 경로에서 엔티티로 이동, 엔티티 필드 Find Usages에 QueryDSL 경로 포함, 오래된 Q클래스 경고 |
 | Testcontainers Support | [testcontainers](./testcontainers/KOR.md) · [English](./testcontainers/README.md) | 시작되지 않거나 테스트마다 시작하는 컨테이너, 버전 없는 이미지, static이어야 하는 Spring 멤버 |
 | Mermaid Support | [mermaid](./mermaid/KOR.md) · [English](./mermaid/README.md) | Mermaid 편집과 미리보기 (업스트림 플러그인을 기반으로 Phantom id로 빌드) |
@@ -134,4 +137,6 @@ JDK 25를 사용하고 headless Linux에서는 `xvfb-run --auto-servernum`으로
 
 ## 라이선스
 
-Apache License 2.0.
+Apache License 2.0이고, 자체 LICENSE가 있는 플러그인 폴더는 그 라이선스를 따릅니다. 플러그인에 포함된 서드파티 코드와 그
+라이선스 위치는 [NOTICE](./NOTICE)에 있고, 각 플러그인 jar의 `META-INF/THIRD-PARTY-NOTICES.txt`에 포함된 라이브러리 목록이
+있습니다.

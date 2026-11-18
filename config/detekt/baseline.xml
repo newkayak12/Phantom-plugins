@@ -8,6 +8,9 @@
     <ID>ComplexCondition:BootConfigCompletionContributor.kt:BootConfigCompletionContributor.SuffixInsertHandler$tail &lt; document.textLength &amp;&amp; document.charsSequence[tail].let { it == '=' || it == ':' || it == '.' }</ID>
     <ID>ComplexCondition:BootConfigKeyInspection.kt:BootConfigKeyInspection$i &lt; end &amp;&amp; text[i] != '#' &amp;&amp; text[i] != '!' &amp;&amp; text[i] != '-'</ID>
     <ID>ComplexCondition:BootProfileValueLineMarkers.kt:BootProfileValueLineMarkerProvider.Companion$indent &lt; keyIndent || (indent == keyIndent &amp;&amp; !body.startsWith("- ")) || !body.startsWith("-")</ID>
+    <ID>ComplexCondition:CodeDetector.kt:CodeDetector$statementLine.matches(line) || keyValueLine.matches(line) || tokens.size >= 2 &amp;&amp; codeTokens.size * 2 >= tokens.size</ID>
+    <ID>ComplexCondition:CodeDetector.kt:CodeDetector$token.any { it == '{' || it == '}' || it == '&lt;' || it == '>' || it == '=' || it == '[' || it == ']' }</ID>
+    <ID>ComplexCondition:CodeDetector.kt:CodeDetector$token.contains("()") || token.endsWith(")") &amp;&amp; token.contains("(") &amp;&amp; !token.startsWith("(")</ID>
     <ID>ComplexCondition:ColumnBasedTableAction.kt:ColumnBasedTableAction$project == null || editor == null || file == null || offset == null || !file.language.isMarkdownLanguage()</ID>
     <ID>ComplexCondition:CommonDriver.kt:CommonDriver.Companion$type == null || type == PsiTypes.nullType() || (type is PsiWildcardType &amp;&amp; !type.isBounded)</ID>
     <ID>ComplexCondition:ComposeLineMarkers.kt:ComposeLineMarkerProvider$context.contains("://") || context.startsWith("git@") || context.contains('$') || dockerfile?.contains('$') == true</ID>
@@ -184,10 +187,10 @@
     <ID>ComplexCondition:TextMateLexerCore.kt:TextMateLexerCore$endMatch.matched &amp;&amp; (!currentMatch.matched || currentMatch.byteRange().start >= endMatch.byteRange().start || lastState == currentState)</ID>
     <ID>ComplexCondition:TextMateLexerCore.kt:TextMateLexerCore$lastRule.getCaptureRules(Constants.CaptureKey.END_CAPTURES) == null &amp;&amp; lastRule.getCaptureRules(Constants.CaptureKey.CAPTURES) == null || parseCaptures(output, Constants.CaptureKey.END_CAPTURES, lastRule, endMatch, string, line, lineStartOffset, states, checkCancelledCallback) || parseCaptures(output, Constants.CaptureKey.CAPTURES, lastRule, endMatch, string, line, lineStartOffset, states, checkCancelledCallback)</ID>
     <ID>ComplexCondition:TextMateSelectorParser.kt:TextMateSelectorParser.Selector$scopeName != null &amp;&amp; (selector.isEmpty() || scopeName.startsWith("$selector.") || scopeName.contentEquals(selector))</ID>
+    <ID>ComplexCondition:TextUtils.kt:Levenshtein$i > 1 &amp;&amp; j > 1 &amp;&amp; a[i - 1] == b[j - 2] &amp;&amp; a[i - 2] == b[j - 1]</ID>
     <ID>ComplexCondition:ThumbnailComponent.kt:ThumbnailComponent$oldValue != null &amp;&amp; oldValue != fileName || oldValue == null &amp;&amp; fileName != null</ID>
     <ID>ComplexCondition:ThumbnailComponent.kt:ThumbnailComponent$oldValue != null &amp;&amp; oldValue != format || oldValue == null &amp;&amp; format != null</ID>
     <ID>ComplexCondition:ToolWindowLayoutSync.kt:ToolWindowLayoutSync$from === to || from.isDisposed || to.isDisposed || !AdvancedSettings.getBoolean(SETTING_ID)</ID>
-    <ID>ComplexCondition:TreeRuleChecker.kt:TreeRuleChecker.Companion$rule.language() == Language.ENGLISH &amp;&amp; rule.id == "Typography.VARIANT_QUOTE_PUNCTUATION" &amp;&amp; text.domain != TextDomain.PLAIN_TEXT &amp;&amp; match.reportedRanges().size == 1 &amp;&amp; match.reportedRanges().first().substring(text.toString()).matches(Regex(".*['\"]\\p{P}"))</ID>
     <ID>ComplexCondition:Validation.kt:Constraints$qn == CommonClassNames.JAVA_LANG_OBJECT || qn.startsWith("java.util.Optional") || qn == "java.io.Serializable" || qn == "java.lang.Comparable"</ID>
     <ID>ComplexCondition:WindowStack.kt:WindowStack$front == null || window.isActive || single &amp;&amp; window.isShown</ID>
     <ID>ComplexCondition:WorkspaceBoardPanel.kt:WorkspaceBoardPanel$rendered &amp;&amp; nextCards == cards &amp;&amp; next.columns == boardLayout.columns &amp;&amp; next.placements() == boardLayout.placements()</ID>
@@ -228,6 +231,7 @@
     <ID>CyclomaticComplexMethod:CascadeInspections.kt:MissingValidInspection$private fun nestedClass: PsiClass?</ID>
     <ID>CyclomaticComplexMethod:CascadeInspections.kt:MissingValidatedInspection$override fun check</ID>
     <ID>CyclomaticComplexMethod:ClosureInferenceUtil.kt:fun analyzeClosureUsages</ID>
+    <ID>CyclomaticComplexMethod:CodeDetector.kt:CodeDetector$private fun looksLikeCodeToken: Boolean</ID>
     <ID>CyclomaticComplexMethod:CodeIndex.kt:CodeQueries$private fun signature: String?</ID>
     <ID>CyclomaticComplexMethod:CodexUsageClient.kt:CodexUsageClient$private fun viaRpc: CodexUsage?</ID>
     <ID>CyclomaticComplexMethod:CodexUsageClient.kt:CodexUsageClient.Companion$private fun classify: CodexUsage?</ID>
@@ -274,7 +278,6 @@
     <ID>CyclomaticComplexMethod:DerivedQuery.kt:DerivedQuery$fun resolvePath: List&lt;PsiMember>?</ID>
     <ID>CyclomaticComplexMethod:DerivedQueryCompletionContributor.kt:DerivedQueryCompletionContributor$fun suggestions: List&lt;String></ID>
     <ID>CyclomaticComplexMethod:DerivedQueryInspection.kt:DerivedQueryInspection.Visitor$override fun visitMethod: Boolean</ID>
-    <ID>CyclomaticComplexMethod:DetectionContext.kt:DetectionContext.Local$fun update</ID>
     <ID>CyclomaticComplexMethod:Dockerfile.kt:Dockerfile.Companion$fun jsonArray: List&lt;String>?</ID>
     <ID>CyclomaticComplexMethod:Dockerfile.kt:Dockerfile.Companion$fun parse: Dockerfile</ID>
     <ID>CyclomaticComplexMethod:DockerfileInspections.kt:DockerfileCopyPathsInspection$override fun check</ID>
@@ -308,6 +311,7 @@
     <ID>CyclomaticComplexMethod:GrStringStyleViolationInspection.kt:GrStringStyleViolationInspection$override fun buildErrorString: String</ID>
     <ID>CyclomaticComplexMethod:GradlePropertyModelTest.kt:GradlePropertyModelTest$@Test fun testVariables</ID>
     <ID>CyclomaticComplexMethod:GradleVersionCatalogLibrariesTest.kt:GradleVersionCatalogLibrariesTest$@Test fun testAllDependencies</ID>
+    <ID>CyclomaticComplexMethod:GrazieSpellCheckerEngine.kt:internal fun identifierParts: List&lt;IntRange></ID>
     <ID>CyclomaticComplexMethod:GroovyDeclarationHighlightingPassFactory.kt:private fun getDeclarationHighlightingAttribute: TextAttributesKey?</ID>
     <ID>CyclomaticComplexMethod:GroovyDeclarationHighlightingPassFactory.kt:private fun getReferenceHighlightingAttribute: TextAttributesKey?</ID>
     <ID>CyclomaticComplexMethod:GroovyFindUsagesProvider.kt:GroovyFindUsagesProvider$override fun getType: String</ID>
@@ -413,6 +417,7 @@
     <ID>CyclomaticComplexMethod:KotlinDslWriter.kt:KotlinDslWriter$override fun moveDslElement: PsiElement?</ID>
     <ID>CyclomaticComplexMethod:KotlinJpaEntityInspection.kt:KotlinJpaEntityInspection.Visitor$override fun visitClass: Boolean</ID>
     <ID>CyclomaticComplexMethod:LangTool.kt:LangTool$internal fun createTool: JLanguageTool</ID>
+    <ID>CyclomaticComplexMethod:LanguageDetector.kt:LanguageDetector$fun detect: Result</ID>
     <ID>CyclomaticComplexMethod:LanguageToolChecker.kt:private fun isKnownLTBug: Boolean</ID>
     <ID>CyclomaticComplexMethod:LightOverlay.kt:LightOverlay$fun apply</ID>
     <ID>CyclomaticComplexMethod:LiquibaseProperties.kt:LiquibaseProperties.Companion$fun of: LiquibaseProperties</ID>
@@ -472,6 +477,7 @@
     <ID>CyclomaticComplexMethod:ShellCommandTreeBuilder.kt:ShellCommandTreeBuilder$private suspend fun buildSubcommandTree</ID>
     <ID>CyclomaticComplexMethod:SmokeScenario.kt:SmokeScenario$override suspend fun run</ID>
     <ID>CyclomaticComplexMethod:SourceConfigProperties.kt:SourceConfigProperties.BindableProperty.Companion$fun of: List&lt;BindableProperty></ID>
+    <ID>CyclomaticComplexMethod:SpellingTextChecker.kt:SpellingTextChecker$private fun wordAround: TextRange</ID>
     <ID>CyclomaticComplexMethod:SpringAopInspections.kt:PointcutReader$private fun expression</ID>
     <ID>CyclomaticComplexMethod:SpringAutowiringInspection.kt:SpringAutowiringInspection.Visitor$private fun check</ID>
     <ID>CyclomaticComplexMethod:SpringBeanCatalog.kt:SpringBeanCatalog$private fun beansOf: List&lt;BeanInfo></ID>
@@ -569,6 +575,7 @@
     <ID>CyclomaticComplexMethod:TextMateSelectorLexer.kt:TextMateSelectorLexer$fun tokenize: List&lt;TextMateSelectorToken></ID>
     <ID>CyclomaticComplexMethod:TextMateSelectorParser.kt:TextMateSelectorParser.ScopeSelector$override fun weigh: TextMateWeigh</ID>
     <ID>CyclomaticComplexMethod:TextWithReplacement.kt:internal fun parseTextWithReplacement: TextWithReplacement</ID>
+    <ID>CyclomaticComplexMethod:ThirdPartyNotices.kt:ThirdPartyNotices.Companion$fun spdxId: String?</ID>
     <ID>CyclomaticComplexMethod:TomlDslWriter.kt:TomlDslWriter$override fun createDslElement: PsiElement?</ID>
     <ID>CyclomaticComplexMethod:TomlJsonPsiWalker.kt:TomlJsonPsiWalker$override fun findPosition: JsonPointerPosition</ID>
     <ID>CyclomaticComplexMethod:Validation.kt:Constraints$fun accepts: Boolean</ID>
@@ -596,10 +603,8 @@
     <ID>DestructuringDeclarationWithTooManyEntries:DefaultGithubGistContentsCollector.kt:DefaultGithubGistContentsCollector$val (project, editor, file, files) = gistEventData</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:HtmlFileDropHandler.kt:val (parent, insertionPoint, tagText, imageInfo) = readAction { val tagText = prepareTagText(target, tagTemplate, getRelativePath(target, droppedFile)) val offset = editor.caretModel.offset val element = target.findElementAt(offset) if (element == null || tagText == null) return@readAction null val parent: XmlElement = PsiTreeUtil.getParentOfType(element, XmlTag::class.java, XmlDocument::class.java) ?: return@readAction null var candidate: PsiElement? = null for (psiElement in parent.children) { if (psiElement.textRange.endOffset >= offset) { candidate = psiElement break } } if (parent is XmlTag &amp;&amp; candidate != null) { val startEnd = XmlChildRole.START_TAG_END_FINDER.findChild(parent.getNode()) if (startEnd != null &amp;&amp; startEnd.textRange.endOffset > candidate.textRange.endOffset) { candidate = startEnd.psi } val endStart = XmlChildRole.CLOSING_TAG_START_FINDER.findChild(parent.getNode()) if (endStart != null &amp;&amp; endStart.textRange.startOffset &lt;= candidate!!.textRange.startOffset) { candidate = endStart.psi.prevSibling } } val insertionPoint = candidate val imageInfo = ImageInfoIndex.getInfo(droppedFile, target.getProject()) InsertImageTagData(parent, insertionPoint, tagText, imageInfo) } ?: return</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:HtmlFileDropHandler.kt:val (relativePath, parent, existingPosition, tagText) = readAction { val relativePath = getRelativePath(target, droppedFile) val tagText = prepareTagText(target, tagTemplate, relativePath) val document = target.document if (document == null || tagText == null) return@readAction null val topLevelTags = PsiTreeUtil.getChildrenOfType(document, XmlTag::class.java) var html: XmlTag? = null var head: XmlTag? = null if (topLevelTags != null) { for (tag in topLevelTags) { if ("html" == tag.name) { html = tag break } if ("head" == tag.name) { head = tag break } } } if (html != null) { head = html.findFirstSubTag("head") } val parent: PsiElement = head ?: (html ?: document) val existingPosition = findExistingPosition(editor, tagTemplate, relativePath, parent) InsertTagData(relativePath, parent, existingPosition, tagText) } ?: return</ID>
-    <ID>DestructuringDeclarationWithTooManyEntries:HunspellDictionary.kt:HunspellDictionary$val (dic, aff, trigrams, replacingRules) = paths</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:ImageUtils.kt:ImageUtils$val (path, width, height, title, description) = imageData</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:InsertImageAction.kt:InsertImageAction$val (path, _, _, title, description) = imageData</ID>
-    <ID>DestructuringDeclarationWithTooManyEntries:Lang.kt:val (dic, aff, trigrams, replacingRules) = HunspellDictionary.getHunspellBundle(path)</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:SpringProxyLineMarkers.kt:AopAdviceMatching.Evaluator$val (modifiers, returnType, declaration, parameters) = m.destructured</ID>
     <ID>EmptyClassBlock:GrParameterWrapper.kt:GrParameterWrapper${ }</ID>
     <ID>EmptyClassBlock:PsiSourceResolveResult.kt:PsiSourceResolveResult${ }</ID>
@@ -712,6 +717,7 @@
     <ID>EmptyIfBlock:GHPRFilesManagerImpl.kt:GHPRFilesManagerImpl${ }</ID>
     <ID>EmptyIfBlock:jsonSchemaInheritance.kt:{ }</ID>
     <ID>EqualsWithHashCodeExist:GrazieRulesTreeNode.kt:GrazieRulesTreeNode : CheckedTreeNode</ID>
+    <ID>ExplicitGarbageCollectionCall:CheckingBenchmarkTest.kt:CheckingBenchmarkTest$gc()</ID>
     <ID>ExplicitItLambdaParameter:BlockTerminalCommandExecutionTest.kt:BlockTerminalCommandExecutionTest${ it -> session.commandManager.addListener(it, session) }</ID>
     <ID>ExplicitItLambdaParameter:GrSignatureWrapper.kt:GrSignatureWrapper${ it -> GrParameterWrapper( it.name, it.type, it.defaultInitializer ) }</ID>
     <ID>ExplicitItLambdaParameter:GrStaticExpressionReference.kt:GrStaticExpressionReference.Resolver${ it -> arrayOf(it) }</ID>
@@ -1215,6 +1221,7 @@
     <ID>TooGenericExceptionCaught:DockerToolWindow.kt:ContainersPanel$e: Exception</ID>
     <ID>TooGenericExceptionCaught:EditorConfigCodeStyleSettingsModifier.kt:EditorConfigCodeStyleSettingsModifier$e: Exception</ID>
     <ID>TooGenericExceptionCaught:EditorConfigWrongFileEncodingNotificationProvider.kt:EditorConfigWrongFileEncodingNotificationProvider$e: NullPointerException</ID>
+    <ID>TooGenericExceptionCaught:EnglishSpeller.kt:EnglishSpeller$e: Exception</ID>
     <ID>TooGenericExceptionCaught:FrontendTerminalHyperlinksProcessing.kt:e: Exception</ID>
     <ID>TooGenericExceptionCaught:GHAccountsDetailsProvider.kt:GHAccountsDetailsProvider$e: Exception</ID>
     <ID>TooGenericExceptionCaught:GHAccountsDetailsProvider.kt:GHAccountsDetailsProvider$e: Throwable</ID>
@@ -1343,7 +1350,6 @@
     <ID>TooGenericExceptionCaught:ToolWindowLayoutSync.kt:ToolWindowLayoutSync$e: Exception</ID>
     <ID>TooGenericExceptionCaught:TransferableTerminalSession.kt:TransferableTerminalLifetime$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:TransferableTerminalSession.kt:TransferableTerminalSessionImpl$t: Throwable</ID>
-    <ID>TooGenericExceptionCaught:TreeRuleChecker.kt:TreeRuleChecker.Companion$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:Utils.kt:exception: Throwable</ID>
     <ID>TooGenericExceptionCaught:WorkspacesScenario.kt:WorkspacesRun$e: Exception</ID>
     <ID>TooGenericExceptionCaught:WorkspacesScenario.kt:WorkspacesRun$e: Throwable</ID>
@@ -1452,8 +1458,6 @@
     <ID>TooManyFunctions:GrazieReplaceTypoQuickFix.kt:GrazieReplaceTypoQuickFix</ID>
     <ID>TooManyFunctions:GrazieReplaceTypoQuickFix.kt:GrazieReplaceTypoQuickFix$ChangeToVariantAction : ChoiceVariantIntentionActionHighPriorityActionIntentionActionWithFixAllOptionDumbAwareEventTrackingIntentionAction</ID>
     <ID>TooManyFunctions:GrazieSpellCheckerEngine.kt:GrazieSpellCheckerEngine : SpellCheckerEngineDisposable</ID>
-    <ID>TooManyFunctions:GrazieUtils.kt:com.intellij.grazie.utils.GrazieUtils.kt</ID>
-    <ID>TooManyFunctions:GrazieYtReportAction.kt:GrazieYtReportAction : IntentionAndQuickFixActionIconable</ID>
     <ID>TooManyFunctions:GroovyAnnotator40.kt:GroovyAnnotator40 : GroovyElementVisitor</ID>
     <ID>TooManyFunctions:GroovyAnnotatorPre30.kt:GroovyAnnotatorPre30 : GroovyElementVisitor</ID>
     <ID>TooManyFunctions:GroovyFileImportsImpl.kt:GroovyFileImportsImpl : GroovyFileImports</ID>
@@ -1534,6 +1538,7 @@
     <ID>TooManyFunctions:RemoteProtocol.kt:RemoteProtocol</ID>
     <ID>TooManyFunctions:RepositoryMethodInspection.kt:RepositoryMethodInspection$Visitor : AbstractUastNonRecursiveVisitor</ID>
     <ID>TooManyFunctions:ResolveUtil.kt:org.jetbrains.plugins.groovy.lang.resolve.ResolveUtil.kt</ID>
+    <ID>TooManyFunctions:RulesConfigurable.kt:RulesConfigurable : BoundConfigurableDisposableNoScroll</ID>
     <ID>TooManyFunctions:SLRUTextMateCache.kt:SLRUTextMateCache&lt;K : Any, V : Any?> : TextMateCache</ID>
     <ID>TooManyFunctions:ShellCommandExecutionManagerImpl.kt:ShellCommandExecutionManagerImpl : ShellCommandExecutionManager</ID>
     <ID>TooManyFunctions:ShellCommandManager.kt:ShellCommandManager</ID>
@@ -1555,7 +1560,6 @@
     <ID>TooManyFunctions:SqlResolve.kt:SqlDbTarget : FakePsiElement</ID>
     <ID>TooManyFunctions:SqlSchema.kt:SqlSchema</ID>
     <ID>TooManyFunctions:StringTransforms.kt:StringTransforms</ID>
-    <ID>TooManyFunctions:StyleConfigurable.kt:StyleConfigurable : BoundConfigurableDisposableNoScroll</ID>
     <ID>TooManyFunctions:TabGroupPaneController.kt:TabGroupPaneController</ID>
     <ID>TooManyFunctions:TabGroupsService.kt:TabGroupsService : PersistentStateComponentDisposable</ID>
     <ID>TooManyFunctions:TableModificationUtils.kt:TableModificationUtils</ID>
@@ -1591,7 +1595,6 @@
     <ID>TooManyFunctions:TerminalViewImpl.kt:TerminalViewImpl : TerminalView</ID>
     <ID>TooManyFunctions:TerminalWidgetImpl.kt:TerminalWidgetImpl : TerminalWidget</ID>
     <ID>TooManyFunctions:TextMateServiceImpl.kt:TextMateServiceImpl : TextMateService</ID>
-    <ID>TooManyFunctions:TextProblemAggregator.kt:TextProblemAggregator : ProblemAggregator</ID>
     <ID>TooManyFunctions:Theme.kt:Theme</ID>
     <ID>TooManyFunctions:Tmux.kt:Tmux</ID>
     <ID>TooManyFunctions:TomlDslParser.kt:TomlDslParser : GradleDslParserTomlDslNameConverter</ID>
@@ -1601,7 +1604,6 @@
     <ID>TooManyFunctions:TomlPsiFactory.kt:TomlPsiFactory</ID>
     <ID>TooManyFunctions:TomlVisitor.kt:TomlVisitor : PsiElementVisitor</ID>
     <ID>TooManyFunctions:TransformationContextImpl.kt:TransformationContextImpl : TransformationContext</ID>
-    <ID>TooManyFunctions:TreeRuleChecker.kt:TreeRuleChecker$Companion</ID>
     <ID>TooManyFunctions:UseJunitEngineModelImpl.kt:UseJunitEngineModelImpl : GradleDslBlockModelUseJunitEngineModel</ID>
     <ID>TooManyFunctions:Utils.kt:Utils</ID>
     <ID>TooManyFunctions:VerticalBarPresentation.kt:VerticalBarPresentation : BasePresentation</ID>

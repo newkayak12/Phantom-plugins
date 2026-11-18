@@ -92,4 +92,26 @@ class AccountsConfigurableInIdeTest : BasePlatformTestCase() {
     assertEquals("Work", after.text)
     c.disposeUIResources()
   }
+
+  // The choices that reach outside Phantom start off, say what they do, and are kept by Apply.
+  fun testOptionsStartOffAndApply() {
+    val state = AiState()
+    val c = AccountsConfigurable(AccountsService.getInstance(), dev.phantom.ai.hooks.HookInstallService { state }) { state }
+    val ui = c.createComponent()
+    val boxes = all(ui).filterIsInstance<com.intellij.ui.components.JBCheckBox>().associateBy { it.name }
+    val skip = boxes.getValue("settings.skip.permissions")
+    val db = boxes.getValue("settings.db.tools")
+    assertFalse(boxes.getValue("settings.hooks").isSelected); assertFalse(skip.isSelected); assertFalse(db.isSelected)
+    assertTrue(boxes.getValue("settings.hooks").text.contains("settings.json"))
+    val help = all(ui).filterIsInstance<com.intellij.ui.components.JBLabel>().associateBy { it.name }
+    assertTrue(help.getValue("settings.skip.permissions.help").text.contains("--dangerously-skip-permissions"))
+    assertTrue(help.getValue("settings.db.tools.help").text.contains("AI provider"))
+    assertFalse(c.isModified)
+    skip.isSelected = true; db.isSelected = true
+    assertTrue(c.isModified)
+    c.apply()
+    assertTrue(state.state.skipPermissions); assertTrue(state.state.dbTools)
+    assertEquals("an unticked hooks box leaves the question unanswered", dev.phantom.ai.core.HookConsent.ASK, state.state.hookConsent)
+    c.disposeUIResources()
+  }
 }

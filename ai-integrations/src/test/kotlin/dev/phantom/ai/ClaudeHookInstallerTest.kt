@@ -102,4 +102,24 @@ class ClaudeHookInstallerTest : TestCase() {
     ClaudeHookInstaller.install(cfg, scripts)
     assertEquals(listOf("settings.json"), Files.list(cfg).use { s -> s.map { it.fileName.toString() }.toList() })
   }
+
+  // Taking the hooks out leaves the file as the user had it: their keys, their hooks and their own status line command.
+  fun testUninstallGivesBackTheUserFile() {
+    val before = """{"theme":"dark","statusLine":{"type":"command","command":"echo 'it''s'","padding":2},
+      "hooks":{"Stop":[{"hooks":[{"type":"command","command":"user-stop.sh"}]}]}}"""
+    put(before)
+    ClaudeHookInstaller.install(cfg, scripts)
+    assertTrue(ClaudeHookInstaller.uninstall(cfg))
+    assertEquals(JsonParser.parseString(before), json())
+  }
+
+  fun testUninstallOfOurOwnStatusLineAndHooksLeavesAnEmptyFile() {
+    ClaudeHookInstaller.install(cfg, scripts)
+    assertTrue(ClaudeHookInstaller.uninstall(cfg))
+    assertEquals(0, json().size())
+    assertTrue("nothing to take out of a missing file", ClaudeHookInstaller.uninstall(root.resolve("none")))
+    put("{ not json")
+    assertFalse(ClaudeHookInstaller.uninstall(cfg))
+    assertEquals("{ not json", Files.readString(file))
+  }
 }

@@ -6,8 +6,8 @@ import dev.phantom.ai.core.AgentKind
 import dev.phantom.ai.core.SystemDirs
 
 /**
- * The exact shell commands and env of agent terminals. Pure. There is deliberately no parameter that changes the
- * permission flag: every command carries it.
+ * The exact shell commands and env of agent terminals. Pure. The agents ask before running commands and editing files
+ * unless [skipPermissions] is passed (the "Skip the agents' permission prompts" setting, off by default).
  */
 object LaunchCommand {
   const val CLAUDE_CONFIG_DIR = "CLAUDE_CONFIG_DIR"
@@ -23,14 +23,19 @@ object LaunchCommand {
    * A new agent; with [prompt], the agent starts on it as its first message. Claude takes it before its options, as
    * --mcp-config would take a word after it as one more config file.
    */
-  fun launch(kind: AgentKind, mcp: McpLink? = null, prompt: String? = null): String = when (kind) {
-    AgentKind.CLAUDE -> "${cli(kind)}${prompt?.let { " " + quote(it) } ?: ""} '--dangerously-skip-permissions'${mcpArgs(kind, mcp)}"
-    AgentKind.CODEX -> "${cli(kind)}${mcpArgs(kind, mcp)} '--dangerously-bypass-approvals-and-sandbox'${prompt?.let { " " + quote(it) } ?: ""}"
+  fun launch(kind: AgentKind, mcp: McpLink? = null, prompt: String? = null, skipPermissions: Boolean = false): String = when (kind) {
+    AgentKind.CLAUDE -> "${cli(kind)}${prompt?.let { " " + quote(it) } ?: ""}${skipArg(kind, skipPermissions)}${mcpArgs(kind, mcp)}"
+    AgentKind.CODEX -> "${cli(kind)}${mcpArgs(kind, mcp)}${skipArg(kind, skipPermissions)}${prompt?.let { " " + quote(it) } ?: ""}"
   }
 
-  fun resume(kind: AgentKind, id: String, mcp: McpLink? = null): String = when (kind) {
-    AgentKind.CLAUDE -> "${cli(kind)} '--dangerously-skip-permissions'${mcpArgs(kind, mcp)} '--resume' ${quote(id)}"
-    AgentKind.CODEX -> "${cli(kind)}${mcpArgs(kind, mcp)} resume '--dangerously-bypass-approvals-and-sandbox' ${quote(id)}"
+  fun resume(kind: AgentKind, id: String, mcp: McpLink? = null, skipPermissions: Boolean = false): String = when (kind) {
+    AgentKind.CLAUDE -> "${cli(kind)}${skipArg(kind, skipPermissions)}${mcpArgs(kind, mcp)} '--resume' ${quote(id)}"
+    AgentKind.CODEX -> "${cli(kind)}${mcpArgs(kind, mcp)} resume${skipArg(kind, skipPermissions)} ${quote(id)}"
+  }
+
+  private fun skipArg(kind: AgentKind, skip: Boolean): String = if (!skip) "" else when (kind) {
+    AgentKind.CLAUDE -> " '--dangerously-skip-permissions'"
+    AgentKind.CODEX -> " '--dangerously-bypass-approvals-and-sandbox'"
   }
 
   /**

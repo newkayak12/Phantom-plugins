@@ -18,41 +18,28 @@ import java.util.concurrent.TimeUnit
 
 data class UsageSnapshot(val claude: ClaudeUsage?, val codex: CodexUsage?)
 
-/** Where usage comes from for the active account dirs ([claudeDir] null = System default). Injected in tests. */
-interface UsageSources {
-  fun claude(claudeDir: String?): ClaudeUsage?
+/** Where Codex usage comes from for the active CODEX_HOME. Injected in tests; the real one asks `codex app-server`. */
+fun interface UsageSources {
   fun codex(codexHome: String?): CodexUsage?
 }
 
-class RealUsageSources(
-  private val credentials: ClaudeCredentials = ClaudeCredentials(),
-  private val claudeClient: ClaudeUsageClient = ClaudeUsageClient(),
-  private val codexClient: CodexUsageClient = CodexUsageClient(),
-) : UsageSources {
-  override fun claude(claudeDir: String?): ClaudeUsage? = credentials.readToken(claudeDir)?.let { claudeClient.fetch(it) }
-  override fun codex(codexHome: String?): CodexUsage? = codexClient.fetch(codexHome)
-}
-
 /**
- * Polls Claude and Codex usage of the active accounts off the EDT, and takes the Claude statusLine payloads too
- * (newest wins). [start] does nothing in unit-test mode, so tests never poll real dirs; they call [pollOnce].
+ * Usage only from the agents' own local channels: Claude's from the statusLine payloads Claude Code sends to the hook
+ * server (once the user allowed the hooks), Codex's from `codex app-server` account/rateLimits/read. The plugin reads
+ * no login tokens and calls no usage web endpoint itself. [start] does nothing in unit-test mode, so tests never start
+ * Codex; they call [pollOnce].
  */
 @Service(Service.Level.APP)
 class UsagePoller(
-  private val sources: UsageSources = RealUsageSources(),
-  private val claudeDir: () -> String? = { AccountsService.getInstance().active(AgentKind.CLAUDE)?.dir },
+  private val sources: UsageSources = UsageSources(CodexUsageClient()::fetch),
   private val codexHome: () -> String? = {
     AccountsService.getInstance().active(AgentKind.CODEX)?.dir ?: HookInstallService.getInstance().systemDir(AgentKind.CODEX).toString()
   },
   private val now: () -> Long = System::currentTimeMillis,
-  private val periodSeconds: Long = 60,
-  private val codexEvery: Int = 5,
+  private val periodSeconds: Long = 300,
   private val active: () -> Boolean = { ApplicationManager.getApplication().isActive },
 ) : com.intellij.openapi.Disposable {
   @Volatile private var statusLine: ClaudeUsage? = null
-  @Volatile private var statusLineAt = 0L
-  private var ticks = 0
-  @Volatile private var claudePoll: ClaudeUsage? = null
   @Volatile private var codex: CodexUsage? = null
   @Volatile var snapshot: UsageSnapshot = UsageSnapshot(null, null)
     private set
@@ -100,40 +87,22 @@ class UsagePoller(
   fun onStatusLine(body: String) {
     val u = StatusLineUsage.parse(body, now()) ?: return
     statusLine = u
-    statusLineAt = now()
     publish()
   }
 
-  /** One poll of both sources for the active accounts; a failed source becomes null (shown as an em dash). */
+  /** One look at Codex for the active account; a failure becomes null (shown as an em dash). */
   fun pollOnce() {
-    pollClaude()
-    pollCodex()
-    publish()
-  }
-
-  /**
-   * One timer tick, cheaper than [pollOnce]: nothing while no IDE window is active; Claude only when no statusLine payload
-   * came in the last two periods (a running Claude session sends its usage itself); Codex every [codexEvery] ticks, as
-   * each look starts a `codex app-server` process.
-   */
-  fun tick() {
-    if (!active()) return
-    val n = ticks++
-    if (now() - statusLineAt >= periodSeconds * 2_000) pollClaude()
-    if (n % codexEvery == 0) pollCodex()
-    publish()
-  }
-
-  private fun pollClaude() {
-    claudePoll = bestEffort { sources.claude(claudeDir()) }.onFailure { LOG.debug("claude usage failed", it) }.getOrNull()
-  }
-
-  private fun pollCodex() {
     codex = bestEffort { sources.codex(codexHome()) }.onFailure { LOG.debug("codex usage failed", it) }.getOrNull()
+    publish()
+  }
+
+  /** One timer tick: nothing while no IDE window is active, as each look starts a `codex app-server` process. */
+  fun tick() {
+    if (active()) pollOnce()
   }
 
   private fun publish() {
-    snapshot = UsageSnapshot(StatusLineUsage.merge(statusLine, claudePoll), codex)
+    snapshot = UsageSnapshot(statusLine, codex)
     listeners.forEach { l -> bestEffort { l() } }
   }
 

@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+# Reference pictures and comparisons stay out of git: only the generator scripts and their own output are committed.
+art/**/*.jpg
+art/**/*.jpeg
+art/**/*.png
+art/**/*.webp

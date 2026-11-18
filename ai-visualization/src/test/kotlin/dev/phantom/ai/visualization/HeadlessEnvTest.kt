@@ -17,7 +17,6 @@ class HeadlessEnvTest {
     assertTrue(System.getenv("HOME")!!.endsWith("build/test-home"))
     assertTrue(System.getenv("CLAUDE_CONFIG_DIR")!!.endsWith("build/test-home/.claude"))
     assertTrue(System.getenv("CODEX_HOME")!!.endsWith("build/test-home/.codex"))
-    assertEquals("false", System.getProperty("phantom.ai.keychain"))
     assertEquals("", System.getProperty("phantom.ai.tmux"))
   }
 }

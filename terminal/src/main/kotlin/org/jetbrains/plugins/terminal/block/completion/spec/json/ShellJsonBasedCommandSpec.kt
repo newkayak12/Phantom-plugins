@@ -6,9 +6,9 @@ import com.intellij.terminal.completion.spec.ShellCommandParserOptions
 import com.intellij.terminal.completion.spec.ShellCommandSpec
 import com.intellij.terminal.completion.spec.ShellOptionSpec
 import com.intellij.terminal.completion.spec.ShellRuntimeDataGenerator
+import dev.phantom.terminal.completion.spec.ShellCommand
 import org.jetbrains.plugins.terminal.block.completion.spec.ShellDataGenerators.createCacheKey
 import org.jetbrains.plugins.terminal.block.completion.spec.ShellRuntimeDataGenerator
-import org.jetbrains.terminal.completion.ShellCommand
 import javax.swing.Icon
 
 /**
@@ -36,7 +36,8 @@ internal class ShellJsonBasedCommandSpec(
 
   override val prefixReplacementIndex: Int = 0
 
-  override val isHidden: Boolean = false
+  override val isHidden: Boolean
+    get() = data.isHidden
 
   override val shouldEscape: Boolean = insertValue == null
 

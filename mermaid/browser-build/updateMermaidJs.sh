@@ -63,6 +63,9 @@ rm -rf build .gradle kotlin-js-store
 rm -rf browser/extension/build browser/mermaid-api/build
 rm -rf buildSrc/build
 
+# Phantom: the licenses of the npm packages in the new bundle, next to it as mermaid.js.LICENSE.txt
+python3 -I "$SCRIPT_DIR/updateLicenses.py"
+
 JS_SIZE=$(wc -c < "$RESOURCES_DIR/mermaid.js" | tr -d ' ')
 MAP_SIZE=$(wc -c < "$RESOURCES_DIR/mermaid.js.map" | tr -d ' ')
 

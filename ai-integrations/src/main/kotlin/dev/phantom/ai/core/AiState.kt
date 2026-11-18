@@ -51,8 +51,16 @@ class AiStateData : BaseState() {
   var sessions by list<SessionEntry>()
   var accounts by list<AccountEntry>()
   var activeAccounts by list<ActiveAccountEntry>()
-  // There is no option to skip or not skip agent permissions: the launch commands always skip them.
+  /** Whether Phantom may write its hooks into the System default ~/.claude/settings.json and ~/.codex/hooks.json. */
+  var hookConsent by enum(HookConsent.ASK)
+  /** Agents start with --dangerously-skip-permissions / --dangerously-bypass-approvals-and-sandbox; off by default. */
+  var skipPermissions by property(false)
+  /** The agents' database tools (Phantom Database Console data sources, their schemas and query results); off by default. */
+  var dbTools by property(false)
 }
+
+/** The user's answer to changing the agents' own config files: not asked yet, allowed, or refused. */
+enum class HookConsent { ASK, ALLOWED, DECLINED }
 
 /** Board placements or worktree names changed; every window's panels refresh. */
 fun interface AiStateListener {

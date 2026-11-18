@@ -5,11 +5,16 @@ import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.ui.MessageDialogBuilder
 import com.intellij.openapi.ui.Messages
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBRadioButton
 import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
 import dev.phantom.ai.core.AgentKind
+import dev.phantom.ai.core.AiState
+import dev.phantom.ai.core.HookConsent
 import dev.phantom.ai.core.PhantomAiBundle
+import dev.phantom.ai.hooks.HookInstallService
 import java.awt.FlowLayout
 import javax.swing.BoxLayout
 import javax.swing.ButtonGroup
@@ -17,10 +22,21 @@ import javax.swing.JButton
 import javax.swing.JComponent
 import javax.swing.JPanel
 
-/** Settings | Tools | Phantom AI Integration: per provider a System default row, one row per account, the active one selected. */
-class AccountsConfigurable(private val service: AccountsService = AccountsService.getInstance()) : Configurable {
+/**
+ * Settings | Tools | Phantom AI Integration: per provider a System default row, one row per account, the active one
+ * selected; below them the choices that reach outside Phantom (hooks in the agents' config files, skipped permission
+ * prompts, database tools), each with what it means.
+ */
+class AccountsConfigurable(
+  private val service: AccountsService = AccountsService.getInstance(),
+  private val hooks: HookInstallService = HookInstallService.getInstance(),
+  private val stateProvider: () -> AiState = { AiState.getInstance() },
+) : Configurable {
   private val chosen = mutableMapOf<AgentKind, String?>()
   private var root: JPanel? = null
+  private var hooksBox: JBCheckBox? = null
+  private var skipBox: JBCheckBox? = null
+  private var dbBox: JBCheckBox? = null
 
   override fun getDisplayName(): String = PhantomAiBundle.message("accounts.title")
 
@@ -29,7 +45,42 @@ class AccountsConfigurable(private val service: AccountsService = AccountsServic
     val panel = JPanel().apply { layout = BoxLayout(this, BoxLayout.Y_AXIS) }
     root = panel
     rebuild()
-    return panel
+    val files = hooks.systemFiles().joinToString(", ")
+    val h = JBCheckBox(PhantomAiBundle.message("settings.hooks", files)).apply { name = "settings.hooks" }
+    val k = JBCheckBox(PhantomAiBundle.message("settings.skip.permissions")).apply { name = "settings.skip.permissions" }
+    val d = JBCheckBox(PhantomAiBundle.message("settings.db.tools")).apply { name = "settings.db.tools" }
+    hooksBox = h; skipBox = k; dbBox = d
+    val options = JPanel().apply { layout = BoxLayout(this, BoxLayout.Y_AXIS); border = JBUI.Borders.emptyTop(12) }
+    for ((box, help) in listOf(h to "settings.hooks.help", k to "settings.skip.permissions.help", d to "settings.db.tools.help")) {
+      options.add(JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply { add(box) })
+      options.add(JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply { add(help(PhantomAiBundle.message(help)).apply { name = help }) })
+    }
+    resetOptions()
+    return JPanel().apply {
+      layout = BoxLayout(this, BoxLayout.Y_AXIS)
+      add(panel)
+      add(options)
+    }
+  }
+
+  /** A gray explanation under a check box, wrapped to the page width. */
+  private fun help(text: String) = JBLabel("<html><body style='width: 460px'>$text</body></html>").apply {
+    foreground = UIUtil.getContextHelpForeground()
+    border = JBUI.Borders.emptyLeft(20)
+  }
+
+  private fun resetOptions() {
+    val s = stateProvider().state
+    hooksBox?.isSelected = hooks.consent() == HookConsent.ALLOWED
+    skipBox?.isSelected = s.skipPermissions
+    dbBox?.isSelected = s.dbTools
+  }
+
+  private fun optionsModified(): Boolean {
+    val s = stateProvider().state
+    return hooksBox?.let { it.isSelected != (hooks.consent() == HookConsent.ALLOWED) } == true ||
+      skipBox?.let { it.isSelected != s.skipPermissions } == true ||
+      dbBox?.let { it.isSelected != s.dbTools } == true
   }
 
   private fun rebuild() {
@@ -90,18 +141,29 @@ class AccountsConfigurable(private val service: AccountsService = AccountsServic
     rebuild()
   }
 
-  override fun isModified(): Boolean = AgentKind.entries.any { chosen[it] != service.active(it)?.id }
+  override fun isModified(): Boolean = AgentKind.entries.any { chosen[it] != service.active(it)?.id } || optionsModified()
 
   override fun apply() {
     AgentKind.entries.forEach { service.setActive(it, chosen[it]) }
+    val s = stateProvider().state
+    skipBox?.let { s.skipPermissions = it.isSelected }
+    dbBox?.let { s.dbTools = it.isSelected }
+    hooksBox?.let { box ->
+      // Unticking an earlier allow takes the hooks out; an unanswered prompt stays unanswered until the box is ticked.
+      val allowed = hooks.consent() == HookConsent.ALLOWED
+      if (box.isSelected && !allowed) hooks.setConsent(HookConsent.ALLOWED)
+      if (!box.isSelected && allowed) hooks.setConsent(HookConsent.DECLINED)
+    }
   }
 
   override fun reset() {
     AgentKind.entries.forEach { chosen[it] = service.active(it)?.id }
     rebuild()
+    resetOptions()
   }
 
   override fun disposeUIResources() {
     root = null
+    hooksBox = null; skipBox = null; dbBox = null
   }
 }

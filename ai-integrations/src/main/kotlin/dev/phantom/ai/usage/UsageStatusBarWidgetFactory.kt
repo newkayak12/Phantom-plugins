@@ -19,7 +19,7 @@ object UsageText {
   fun text(s: UsageSnapshot): String {
     val c = s.claude
     val claude = if (c == null || (c.session == null && c.weekly == null)) "Claude $DASH" else
-      "Claude 5h ${pct(c.session)} · wk ${pct(c.weekly)}" + (c.fableWeekly?.let { " · Fable ${pct(it)}" } ?: "")
+      "Claude 5h ${pct(c.session)} · wk ${pct(c.weekly)}"
     val x = s.codex
     val codex = if (x == null) "Codex $DASH" else "Codex 5h ${pct(x.session)} · wk ${pct(x.weekly)}"
     return "$claude | $codex"
@@ -31,7 +31,7 @@ object UsageText {
     val c = s.claude
     val x = s.codex
     val lines = listOf(
-      "Claude: " + (if (c == null) "unavailable" else listOfNotNull(reset("5h", c.session), reset("wk", c.weekly), reset("Fable", c.fableWeekly)).joinToString("; ").ifEmpty { "no reset times" }),
+      "Claude: " + (if (c == null) "unavailable" else listOfNotNull(reset("5h", c.session), reset("wk", c.weekly)).joinToString("; ").ifEmpty { "no reset times" }),
       "Codex: " + (if (x == null) "unavailable" else listOfNotNull(reset("5h", x.session), reset("wk", x.weekly)).joinToString("; ").ifEmpty { "no reset times" }),
     )
     return lines.joinToString("<br>", "<html>", "</html>")

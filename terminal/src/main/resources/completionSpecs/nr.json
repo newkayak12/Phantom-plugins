@@ -1,0 +1,1 @@
+{"names":["nr"],"description":"Use the right package manager - run","options":[{"names":["-h","--help"],"description":"Output usage information"}],"args":[{"name":"script"}]}

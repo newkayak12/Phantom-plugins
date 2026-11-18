@@ -55,3 +55,4 @@ docs/superpowers/
 # Python caches (ai-visualization/art)
 __pycache__/
 *.pyc
+terminal/tools/fig-specs/node_modules/

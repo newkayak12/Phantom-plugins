@@ -7,3 +7,6 @@
 네이티브 라이브러리를 쓰지 않으므로 어느 OS에서나 똑같이 동작합니다. 읽기만 하며, IDE에서 WebP로 저장하지는 않습니다.
 
 네이티브 libwebp를 로드하던 번들 WebP 플러그인을 대체합니다. Phantom에 아직 번들돼 있다면 그쪽은 꺼 주세요.
+
+**0.1.2**: 플러그인 jar의 `META-INF/THIRD-PARTY-NOTICES.txt`에 포함된 TwelveMonkeys ImageIO 라이브러리(BSD 3-Clause, Harald Kuhr)
+목록이 있고, `META-INF/licenses/`에 BSD 전문이 들어 있습니다.

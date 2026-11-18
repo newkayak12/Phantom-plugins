@@ -57,6 +57,19 @@ internal object HookJson {
       hooks.add(event, groups)
     }
   }
+
+  /** Takes the plugin's own groups out of every event; an event or a hooks object left empty goes too. */
+  fun removeHooks(root: JsonObject, marker: String) {
+    val hooks = root.get("hooks")?.takeIf { it.isJsonObject }?.asJsonObject ?: return
+    for (event in hooks.keySet().toList()) {
+      val old = hooks.get(event)?.takeIf { it.isJsonArray }?.asJsonArray ?: continue
+      if (old.none { isManaged(it, marker) }) continue
+      val kept = JsonArray()
+      old.filterNot { isManaged(it, marker) }.forEach { kept.add(it) }
+      if (kept.isEmpty) hooks.remove(event) else hooks.add(event, kept)
+    }
+    if (hooks.isEmpty) root.remove("hooks")
+  }
 }
 
 /** Installs the hooks and the statusLine into <configDir>/settings.json of Claude Code. */
@@ -76,6 +89,28 @@ object ClaudeHookInstaller {
     line.addProperty("command", statusLineCommand(HookScripts.command(scripts.claudeStatusline), old?.get("command")))
     root.add("statusLine", line)
     HookJson.write(file, root)
+    return true
+  }
+
+  /**
+   * Takes out what [install] added: the plugin's hook groups, and its statusLine (the previous command, kept as the
+   * script's argument, comes back). @return false when settings.json is not valid JSON (left untouched).
+   */
+  fun uninstall(configDir: Path): Boolean {
+    val file = configDir.resolve("settings.json")
+    if (!Files.isRegularFile(file)) return true
+    val root = HookJson.read(file) ?: return false
+    val before = root.deepCopy()
+    HookJson.removeHooks(root, MARKER)
+    val line = root.get("statusLine")?.takeIf { it.isJsonObject }?.asJsonObject
+    val cmd = line?.get("command")?.takeIf { it.isJsonPrimitive }?.asString
+    if (line != null && cmd != null && cmd.contains(STATUSLINE_MARKER)) {
+      val previous = cmd.substringAfter("$STATUSLINE_MARKER'", "").trim()
+        .takeIf { it.length >= 2 && it.startsWith("'") && it.endsWith("'") }?.let { it.substring(1, it.length - 1).replace("'\\''", "'") }
+      if (previous.isNullOrEmpty()) root.remove("statusLine") else line.addProperty("command", previous)
+    }
+    // Nothing of ours in it: the file is not rewritten, so its formatting stays the user's.
+    if (root != before) HookJson.write(file, root)
     return true
   }
 
@@ -99,6 +134,17 @@ object CodexHookInstaller {
     val root = HookJson.read(file) ?: return false
     HookJson.mergeHooks(root, HookEventMapper.CODEX_EVENTS, HookScripts.command(scripts.codexHook), MARKER) { if (it == "Interrupt") 3 else 5 }
     HookJson.write(file, root)
+    return true
+  }
+
+  /** Takes the plugin's hook groups out of hooks.json again; false when it is not valid JSON (left untouched). */
+  fun uninstall(codexHome: Path): Boolean {
+    val file = codexHome.resolve("hooks.json")
+    if (!Files.isRegularFile(file)) return true
+    val root = HookJson.read(file) ?: return false
+    val before = root.deepCopy()
+    HookJson.removeHooks(root, MARKER)
+    if (root != before) HookJson.write(file, root)
     return true
   }
 }
