@@ -854,7 +854,7 @@
     {
       "id": "dev.phantom.terminal",
       "name": "Phantom Terminal",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "source": "terminal",
       "description": "The integrated terminal: Bash, Zsh, Fish, PowerShell and cmd sessions in tabs and split panes, shell integration (command blocks, prompt, working directory tracking), command completion from bundled command specs, clickable file links, and commands that open in the IDE; Shell Script and others build on it. Based on the IntelliJ Community Terminal plugin (Apache 2.0); org.jetbrains.plugins.terminal stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -864,7 +864,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "terminal-0.1.0/terminal-0.1.0.zip",
+      "download": "terminal-0.2.0/terminal-0.2.0.zip",
       "detect": []
     },
     {
@@ -875,7 +875,7 @@
       "description": "Grammar, style and spelling checks for any text in the IDE: comments, string literals, documentation, commit messages, Markdown, XML, JSON, YAML, properties and plain text, with LanguageTool running locally; English is built in, other languages download when enabled; TOML, YAML, Markdown, Kotlin and others build on it. Built only on open-source code: the IDE layer of the IntelliJ Community Natural Languages plugin (Apache 2.0) and LanguageTool (LGPL 2.1), without JetBrains' closed-source Grazie libraries. Replaces Phantom Natural Languages (dev.phantom.grazie); tanvd.grazi and dev.phantom.grazie stay as aliases, so plugins depending on them keep working. Compared with it: no Grazie rule engine checks or writing style profiles, no auto-fix, no downloaded Hunspell dictionaries for German, Russian and Ukrainian.",
       "vendor": "Phantom",
       "category": "Editor",
-      "since": "262.261119",
+      "since": "262.261118",
       "until": "262.*",
       "depends": [
         "com.intellij.modules.lang"
