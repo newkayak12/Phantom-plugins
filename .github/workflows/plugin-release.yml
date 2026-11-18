@@ -30,7 +30,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # groovy runs about 7,100 tests, a third of the time in its compiler tests (each starts a JPS build with groovyc or
+    # Greclipse); they took 40 minutes on an 8-core Mac and didn't finish in 60 on the runner
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
 
