@@ -5,6 +5,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '23 4 * * *'
 
 permissions:
   contents: read
@@ -28,10 +30,18 @@ jobs:
           java-version: '25'
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
       - name: Test Strings and measure coverage
+        id: tests
         run: >-
           xvfb-run --auto-servernum ./gradlew --no-configuration-cache
           -PplatformFromRepository=true -Porg.gradle.java.installations.paths="$JAVA_HOME"
           :strings:test :strings:jacocoTestReport :strings:buildPlugin
+      - name: Summarize Strings tests
+        if: always()
+        env:
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        run: >-
+          python3 tools/test-summary.py strings --outcome "$TEST_OUTCOME"
+          --coverage strings/build/reports/jacoco/test/jacocoTestReport.xml
       - name: Preserve Strings plugin archive
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
