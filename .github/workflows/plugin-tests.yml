@@ -103,6 +103,7 @@ jobs:
           java-version: '25'
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
       - name: Test affected plugin
+        id: tests
         env:
           PLUGIN: ${{ matrix.plugin }}
         run: |
@@ -110,6 +111,12 @@ jobs:
           xvfb-run --auto-servernum ./gradlew --no-configuration-cache \
             -PplatformFromRepository=true -Porg.gradle.java.installations.paths="$JAVA_HOME" \
             ":$PLUGIN:test"
+      - name: Summarize plugin tests
+        if: always()
+        env:
+          PLUGIN: ${{ matrix.plugin }}
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        run: python3 tools/test-summary.py "$PLUGIN" --outcome "$TEST_OUTCOME"
       - name: Build changed plugin packaging
         if: matrix.package == true
         env:
