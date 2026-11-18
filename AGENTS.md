@@ -30,6 +30,8 @@ Run affected tests after code changes and build the affected plugin zip when pac
 
 Binding rules for coding, commits, pull requests and plugin ports are in [`.ai/rules/`](.ai/rules/README.md); read them before committing.
 
+Platform how-tos (actions, registry, EEL, SSR, tests, accessibility) are skills in [`.agents/skills/`](.agents/skills/README.md), also linked as `.claude/skills`; `community/...` paths in them point into the Phantom repository.
+
 See [`.ai/workflow.md`](.ai/workflow.md) for the task and skill-routing workflow. Personal preferences belong in ignored `.ai/local.md` or `.claude/settings.local.json`; shared skills and instructions remain reviewable in git.
 
 # CLAUDE.md
