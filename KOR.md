@@ -3,6 +3,8 @@
 [Phantom](https://github.com/newkayak12/Phantom)용 플러그인 모음입니다.
 IDE에 기본으로 넣지 않고 따로 설치하게 해서, 프로젝트가 실제로 쓰는 기술만 비용을 냅니다. [English](./README.md)
 
+개인정보: Phantom과 플러그인이 네트워크로 보내는 내용은 Phantom의 [PRIVACY.md](https://github.com/newkayak12/Phantom/blob/main/PRIVACY.md)에 있습니다.
+
 ## 설치
 
 Phantom에는 이 저장소가 기본으로 등록돼 있습니다. **Settings | Plugins | Marketplace**에서 플러그인 이름으로 찾아 설치하면 됩니다.
@@ -75,6 +77,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom Images | [images](./images/KOR.md) · [English](./images/README.md) | 이미지 뷰어와 편집 도구(확대, 격자, 체스판, 배경 이미지, 과학용 보기)와 SVG 언어 (IntelliJ 플러그인 기반. Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom CPU Indicator | [cpu](./cpu/KOR.md) · [English](./cpu/README.md) | 상태바에 IDE·시스템 CPU, 호버하면 IDE가 CPU를 어디에 썼는지(인덱싱, 분석, GC, JIT) |
 | Phantom Log Console | [logs](./logs/KOR.md) · [English](./logs/README.md) | JSON 로그를 읽기 쉬운 줄과 스택트레이스로, 레벨 색, traceId를 누르면 그 요청의 줄 목록 |
+| Phantom Key-Value Console | [redis](./redis/KOR.md) · [English](./redis/README.md) | Redis 호환 서버(Redis, Valkey, KeyDB…)용 키 브라우저와 콘솔: 패턴으로 SCAN, 모든 타입의 값, redis-cli 형식 명령줄 |
 | QueryDSL Support | [querydsl](./querydsl/KOR.md) · [English](./querydsl/README.md) | Q클래스 경로에서 엔티티로 이동, 엔티티 필드 Find Usages에 QueryDSL 경로 포함, 오래된 Q클래스 경고 |
 | Testcontainers Support | [testcontainers](./testcontainers/KOR.md) · [English](./testcontainers/README.md) | 시작되지 않거나 테스트마다 시작하는 컨테이너, 버전 없는 이미지, static이어야 하는 Spring 멤버 |
 | Mermaid Support | [mermaid](./mermaid/KOR.md) · [English](./mermaid/README.md) | Mermaid 편집과 미리보기. 대신하는 JetBrains 사본보다 빠름 (IntelliJ 플러그인을 Phantom id로 빌드) |
@@ -115,4 +118,6 @@ python3 tools/release.py db --publish       # 위 작업에 더해 zip을 담은
 
 ## 라이선스
 
-Apache License 2.0.
+Apache License 2.0이고, 자체 LICENSE가 있는 플러그인 폴더는 그 라이선스를 따릅니다. 플러그인에 포함된 서드파티 코드와 그
+라이선스 위치는 [NOTICE](./NOTICE)에 있고, 각 플러그인 jar의 `META-INF/THIRD-PARTY-NOTICES.txt`에 포함된 라이브러리 목록이
+있습니다.

@@ -8,3 +8,6 @@ ImageIO WebP reader (BSD-3-Clause), with no native library, so it works the same
 not save WebP.
 
 Replaces the bundled WebP plugin, which loads the native libwebp. Turn that one off if your Phantom still bundles it.
+
+**0.1.2**: The plugin jar lists its packaged TwelveMonkeys ImageIO libraries (BSD 3-Clause, Harald Kuhr) in
+`META-INF/THIRD-PARTY-NOTICES.txt` and carries the BSD text in `META-INF/licenses/`.

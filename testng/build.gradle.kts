@@ -5,7 +5,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.0"
+version = "0.1.1"
 
 // The IntelliJ sources keep Java next to Kotlin. src/rt is testng-rt.jar (intellij.testng.rt): the starter and listeners
 // that run inside the user's test JVM, so Java 8 bytecode in a jar of its own (the run configuration puts that jar on the
@@ -19,6 +19,11 @@ sourceSets {
 // testng.jar, as in the bundled plugin: TestNG with JCommander and jQuery (its HTML reports) in one jar. "Add testng.jar
 // to classpath" and the TestNG library it adds point at this jar, so the user's module gets JCommander too
 val testngLibrary by configurations.creating { isTransitive = false }
+// Listed in THIRD-PARTY-NOTICES as the libraries testng.jar is made of
+configurations.named("packedLibraries") {
+  isTransitive = false
+  extendsFrom(testngLibrary)
+}
 
 val testngJar by tasks.registering(Jar::class) {
   archiveFileName = "testng.jar"
@@ -78,4 +83,3 @@ tasks.test {
 tasks.prepareTestSandbox {
   disabledPlugins.add("TestNG-J")
 }
-

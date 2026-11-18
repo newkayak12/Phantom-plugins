@@ -3,6 +3,8 @@
 Plugins for [Phantom](https://github.com/newkayak12/Phantom), kept out of the IDE so that a project only
 pays for the technology it uses. [한국어](./KOR.md)
 
+Privacy: what Phantom and its plugins send over the network is described in Phantom's [PRIVACY.md](https://github.com/newkayak12/Phantom/blob/main/PRIVACY.md).
+
 ## Install
 
 Phantom lists this repository by default. Open **Settings | Plugins | Marketplace** and search for the plugin by name.
@@ -75,6 +77,7 @@ Public repositories need no token.
 | Phantom Images | [images](./images/README.md) · [한국어](./images/KOR.md) | Image viewer and editor (zoom, grid, chessboard, background image, scientific view) and the SVG language (based on the IntelliJ plugin; bundled with Phantom, with updates from the marketplace) |
 | Phantom CPU Indicator | [cpu](./cpu/README.md) · [한국어](./cpu/KOR.md) | IDE and system CPU in the status bar; hover shows what the IDE spent it on (indexing, analysis, GC, JIT) |
 | Phantom Log Console | [logs](./logs/README.md) · [한국어](./logs/KOR.md) | JSON logs as readable lines with stack traces, level colors, trace ids that list a request's lines |
+| Phantom Key-Value Console | [redis](./redis/README.md) · [한국어](./redis/KOR.md) | Key browser and console for Redis-compatible servers (Redis, Valkey, KeyDB…): SCAN with a pattern, values of every type, a redis-cli style command line |
 | QueryDSL Support | [querydsl](./querydsl/README.md) · [한국어](./querydsl/KOR.md) | Q class paths go to the entity, Find Usages of entity fields finds QueryDSL paths, out-of-date Q classes |
 | Testcontainers Support | [testcontainers](./testcontainers/README.md) · [한국어](./testcontainers/KOR.md) | Containers that never start or start per test, images without a version, Spring members that must be static |
 | Mermaid Support | [mermaid](./mermaid/README.md) · [한국어](./mermaid/KOR.md) | Mermaid editing and preview, faster than the JetBrains copy it replaces (the IntelliJ plugin under a Phantom id) |
@@ -142,4 +145,6 @@ changes only through pull requests (CLAUDE.md → Git).
 
 ## License
 
-Apache License 2.0.
+Apache License 2.0, except where a plugin folder has its own LICENSE. [NOTICE](./NOTICE) lists the third-party code
+the plugins include and where its licenses are; each plugin jar lists its packaged libraries in
+`META-INF/THIRD-PARTY-NOTICES.txt`.

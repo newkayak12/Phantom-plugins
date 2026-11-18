@@ -9,3 +9,7 @@ IntelliJ Community의 Code Coverage for Java 플러그인(`plugins/coverage`, Ap
 IntelliJ 플러그인 대신 이 빌드를 번들합니다.
 
 테스트 JVM 안에서 도는 JUnit과 TestNG 리스너는 `java-coverage-rt.jar`라는 별도 jar(Java 8 바이트코드)입니다. JaCoCo와 IntelliJ 커버리지 리포트 라이브러리는 Maven에서 받습니다.
+
+**0.1.2**: 플러그인 jar의 `META-INF/THIRD-PARTY-NOTICES.txt`에 포함된 라이브러리(JaCoCo, EPL 2.0; ASM, BSD 3-Clause;
+FreeMarker와 coverage-report, Apache 2.0) 목록이 있고, `META-INF/licenses/`에 EPL 2.0과 BSD 전문이 들어 있습니다. JaCoCo 소스를
+받는 곳은 NOTICE에 있습니다.

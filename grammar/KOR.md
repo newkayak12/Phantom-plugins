@@ -4,7 +4,8 @@
 
 IDE 안의 모든 텍스트에 대한 문법, 문체, 맞춤법 검사: 주석, 문자열 리터럴, 문서, 커밋 메시지, Markdown, XML, JSON, YAML,
 properties, 일반 텍스트. 문법과 문체는 [LanguageTool](https://languagetool.org/)(LGPL 2.1)이 IDE 안에서 검사합니다. 영어는
-기본으로 들어 있고, 다른 언어는 켤 때 내려받습니다(LanguageTool 번들은 resources.jetbrains.com에서). 맞춤법은 LanguageTool의
+기본으로 들어 있고, 다른 언어는 켤 때 내려받습니다(LanguageTool 번들은 이 저장소의 GitHub 릴리스
+`languagetool-6.8.27`에서). 맞춤법은 LanguageTool의
 영어 사전, IDE의 사전, 켜 둔 다른 언어의 LanguageTool 맞춤법 검사기, 직접 추가한 Hunspell 사전으로 검사합니다. 텍스트가 IDE
 밖으로 나가지 않습니다.
 
@@ -17,3 +18,8 @@ Grazie 라이브러리(`ai.grazie.*`)는 쓰지 않습니다. IDE 부분이 거�
 
 `tanvd.grazi`와 `dev.phantom.grazie`는 별칭으로 남겨 두고 콘텐츠 모듈 이름도 IntelliJ 것을 그대로 써서, 이것에 의존하는
 플러그인과 번들 모듈(Kotlin, Python, TOML, Maven, YAML, Markdown 등)이 그대로 동작합니다.
+
+**0.2.1**: 다른 언어의 LanguageTool 번들을 resources.jetbrains.com 대신 이 저장소의 GitHub 릴리스 `languagetool-6.8.27`에서
+내려받습니다. 파일과 체크섬은 같습니다. 플러그인 jar의 `META-INF/THIRD-PARTY-NOTICES.txt`에 라이브러리와 라이선스 목록이
+있고, `META-INF/licenses/`에 LGPL, GPL 3.0(LGPL 3.0의 바탕), MIT, BSD 전문이 들어 있습니다. LGPL 소스를 받는 곳은 NOTICE에
+있습니다.

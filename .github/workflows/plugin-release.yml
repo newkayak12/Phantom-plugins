@@ -7,7 +7,9 @@ name: Plugin release
 
 on:
   push:
-    tags: ['*-[0-9]*', '!kotlin-*', '!maven-*']   # kotlin- and maven-262.<YYMMDD>: released by Phantom's phantom-release.sh, not built here
+    # kotlin- and maven-262.<YYMMDD>: released by Phantom's phantom-release.sh, not built here; languagetool-<version>: the
+    # LanguageTool language bundles Phantom Grammar downloads, published by tools/languagetool-release.sh
+    tags: ['*-[0-9]*', '!kotlin-*', '!maven-*', '!languagetool-*']
   workflow_dispatch:
     inputs:
       plugin:

@@ -10,7 +10,7 @@
   <category>Languages</category>
 
   <description><![CDATA[
-    Provides the Groovy JSR223 scripting engine for the IDE Scripting Console, and the Groovy library other plugins
+    Provides the Apache Groovy JSR223 scripting engine for the IDE Scripting Console, and the Groovy library other plugins
     build on.
     <br/>
     Based on the IntelliJ Community Groovy Scripting plugin (Apache 2.0).

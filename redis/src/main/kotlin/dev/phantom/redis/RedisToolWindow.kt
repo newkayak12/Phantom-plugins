@@ -45,7 +45,7 @@ class RedisToolWindowFactory : ToolWindowFactory, DumbAware {
  * connection, opened on first use on a single background thread and closed when the window is hidden.
  */
 class RedisPanel(private val project: Project, parent: Disposable) : JPanel(BorderLayout()), Disposable {
-  private val executor = AppExecutorUtil.createBoundedApplicationPoolExecutor("Redis Support", 1)
+  private val executor = AppExecutorUtil.createBoundedApplicationPoolExecutor("Phantom Key-Value Console", 1)
   private val servers = ComboBox<RedisServer>()
   private val pattern = SearchTextField(false).apply { text = "*" }
   private val keysModel = DefaultListModel<RedisKey>()

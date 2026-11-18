@@ -33,8 +33,15 @@ plugin (`browser-build/browser/extension`, Kotlin/JS). To rebuild it after chang
 cd browser-build && ./updateMermaidJs.sh
 ```
 
+It also writes `mermaid.js.LICENSE.txt` next to `mermaid.js` (`browser-build/updateLicenses.py`, needs npm): the npm
+packages in the bundle (mermaid, d3, cytoscape, dagre-d3-es, DOMPurify, KaTeX, lodash-es, marked, roughjs, uuid, Font
+Awesome Free and others) with their licenses.
+
 ## Tests
 
 The upstream tests (421, minus `OfficialExamplesParsingTest`, which needs the extracted documentation examples) and
 `PreviewRenderingTest`, which counts the diagrams the two previews draw. The preview tests use JCEF and are skipped
 where `CI` is set.
+
+**0.1.3**: the plugin carries `mermaid.js.LICENSE.txt`, the licenses of the npm packages bundled in mermaid.js, which
+the bundle's first line points to.

@@ -87,5 +87,5 @@ enum class LanguageToolDescriptor(
 
   override val storageName: String by lazy { "$iso-${GraziePlugin.LanguageTool.version}.jar" }
   override val file: Path by lazy { Path(storageName) }
-  override val url: String by lazy { "${GraziePlugin.LanguageTool.url}/${GraziePlugin.LanguageTool.version}/$storageName" }
+  override val url: String by lazy { "${GraziePlugin.LanguageTool.url}/$storageName" } // phantom: the release tag holds the version
 }
