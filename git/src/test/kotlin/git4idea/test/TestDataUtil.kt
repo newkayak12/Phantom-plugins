@@ -1,7 +1,6 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package git4idea.test
 
-import com.intellij.openapi.application.PluginPathManager
 import com.intellij.testFramework.TestDataPath
 import java.nio.file.Path
 
@@ -9,7 +8,7 @@ import java.nio.file.Path
 object TestDataUtil {
   @JvmStatic
   val basePath: Path by lazy {
-    val pluginRoot = Path.of(PluginPathManager.getPluginHomePath("git4idea"))
-    pluginRoot.resolve("testData")
+    // Phantom-plugins: the tests run in the plugin's folder (testData/ there), not in the IntelliJ monorepo
+    Path.of("").toAbsolutePath().resolve("testData")
   }
 }
