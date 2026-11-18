@@ -1,0 +1,1 @@
+{"names":["noglob"],"description":"ZSH pre-command modifier that disables glob expansion","isHidden":true,"args":[{"isCommand":true}]}

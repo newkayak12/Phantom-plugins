@@ -6,7 +6,7 @@ plugins {
   id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-version = "0.1.0"
+version = "0.2.0"
 
 // The IntelliJ sources keep Java next to Kotlin
 sourceSets {
@@ -51,11 +51,6 @@ dependencies {
     bundledModule("intellij.sh.core")
     testFramework(TestFrameworkType.JUnit5, providers.gradleProperty("platformTestBuild"))
   }
-  // The libraries the bundled plugin packs into its lib folder: the command specs and the completion ranking model.
-  // Not transitive: the Kotlin stdlib and kotlinx.serialization they ask for come with the platform.
-  implementation("org.jetbrains.terminal:completion-spec:0.7.0") { isTransitive = false }
-  implementation("org.jetbrains.terminal:completion-db-with-extensions:0.7.0") { isTransitive = false }
-  implementation("org.jetbrains.intellij.deps.completion:completion-ranking-sh:0.0.2") { isTransitive = false }
   // Some tests are JUnit Jupiter; the rest are JUnit 4, run by the vintage engine
   testImplementation(platform("org.junit:junit-bom:6.0.3"))
   testImplementation("org.junit.jupiter:junit-jupiter")

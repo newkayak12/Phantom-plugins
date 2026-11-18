@@ -7,6 +7,9 @@ Several plugins are modified versions of plugins from IntelliJ IDEA Community Ed
 (https://github.com/JetBrains/intellij-community), Copyright (C) JetBrains s.r.o. and contributors,
 licensed under the Apache License, Version 2.0; each such plugin's README names the plugin it is based on.
 The TOML plugin (toml/) includes code from the intellij-rust project under the MIT License (toml/LICENSE).
+The Terminal plugin (terminal/) includes command specs generated from the Fig autocomplete specs
+(https://github.com/withfig/autocomplete), Copyright (c) 2021 Hercules Labs Inc. (Fig), under the MIT License
+(terminal/LICENSE).
 
 Third-party libraries packaged in a plugin keep their own licenses, found in their jars or at the project page of
 each library (its Maven coordinates are in the plugin's build.gradle.kts).

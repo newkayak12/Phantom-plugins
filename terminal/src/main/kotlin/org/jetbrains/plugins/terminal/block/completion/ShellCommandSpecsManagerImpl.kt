@@ -15,6 +15,7 @@ import com.intellij.platform.diagnostic.telemetry.helpers.use
 import com.intellij.terminal.completion.ShellCommandSpecsManager
 import com.intellij.terminal.completion.spec.ShellCommandSpec
 import com.intellij.util.containers.MultiMap
+import dev.phantom.terminal.completion.spec.ShellCommand
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -25,7 +26,6 @@ import org.jetbrains.plugins.terminal.block.completion.spec.impl.ShellMergedComm
 import org.jetbrains.plugins.terminal.block.completion.spec.json.ShellJsonBasedCommandSpec
 import org.jetbrains.plugins.terminal.block.completion.spec.json.ShellJsonCommandSpecsProvider
 import org.jetbrains.plugins.terminal.block.completion.spec.json.ShellJsonCommandSpecsUtil.loadAndParseJson
-import org.jetbrains.terminal.completion.ShellCommand
 import java.time.Duration
 import java.util.Locale
 
