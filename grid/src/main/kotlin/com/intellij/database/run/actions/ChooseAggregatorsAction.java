@@ -308,4 +308,3 @@ public final class ChooseAggregatorsAction {
     }
   }
 }
-

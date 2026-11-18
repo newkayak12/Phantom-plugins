@@ -85,9 +85,9 @@ public abstract class PageAction extends DumbAwareAction implements GridAction {
       loader.reloadCurrentPage(source);
     }
   }
-  
+
   public static abstract class NavigationAction extends PageAction implements Frontend {
-    
+
     @Override
     public void update(@NotNull AnActionEvent e) {
       super.update(e);
