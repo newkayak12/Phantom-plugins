@@ -1,9 +1,9 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 package com.intellij.vcs.git.rpc
 
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.platform.project.ProjectId
-import com.intellij.platform.rpc.RemoteApiProviderService
 import com.intellij.platform.vcs.impl.shared.RepositoryId
 import com.intellij.platform.vcs.impl.shared.rpc.FilePathDto
 import com.intellij.vcs.git.ref.GitCurrentRef
@@ -11,9 +11,6 @@ import com.intellij.vcs.git.ref.GitFavoriteRefs
 import com.intellij.vcs.git.ref.GitReferenceName
 import com.intellij.vcs.git.repo.GitHash
 import com.intellij.vcs.git.repo.GitOperationState
-import fleet.rpc.RemoteApi
-import fleet.rpc.Rpc
-import fleet.rpc.remoteApiDescriptor
 import git4idea.GitDisposable
 import git4idea.GitStandardLocalBranch
 import git4idea.GitStandardRemoteBranch
@@ -24,9 +21,9 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import org.jetbrains.annotations.ApiStatus
 
-@Rpc
+// An application service of intellij.vcs.git.backend: Phantom runs frontend and backend in one process, without RPC
 @ApiStatus.Internal
-interface GitRepositoryApi : RemoteApi<Unit> {
+interface GitRepositoryApi {
   /**
    * Subscription to repositories' updates in the given project.
    * [GitRepositoryEvent] is sent produced on corresponding updates.
@@ -43,7 +40,7 @@ interface GitRepositoryApi : RemoteApi<Unit> {
   suspend fun toggleFavorite(projectId: ProjectId, repositories: List<RepositoryId>, reference: GitReferenceName, favorite: Boolean)
 
   companion object {
-    suspend fun getInstance(): GitRepositoryApi = RemoteApiProviderService.resolve(remoteApiDescriptor<GitRepositoryApi>())
+    suspend fun getInstance(): GitRepositoryApi = service<GitRepositoryApi>()
 
     fun launchRequest(project: Project, request: suspend GitRepositoryApi.() -> Unit) {
       GitDisposable.getInstance(project).coroutineScope.launch {

@@ -2,20 +2,17 @@
 package com.intellij.vcs.git.rpc
 
 import com.intellij.ide.vfs.VirtualFileId
+import com.intellij.openapi.components.service
 import com.intellij.platform.project.ProjectId
-import com.intellij.platform.rpc.RemoteApiProviderService
-import fleet.rpc.RemoteApi
-import fleet.rpc.Rpc
-import fleet.rpc.remoteApiDescriptor
 import kotlinx.coroutines.flow.Flow
 import org.jetbrains.annotations.ApiStatus
 
-@Rpc
+// An application service of intellij.vcs.git.backend: Phantom runs frontend and backend in one process, without RPC
 @ApiStatus.Internal
-interface GitWidgetApi : RemoteApi<Unit> {
+interface GitWidgetApi {
   suspend fun getWidgetState(projectId: ProjectId, selectedFile: VirtualFileId?): Flow<GitWidgetState>
 
   companion object {
-    suspend fun getInstance(): GitWidgetApi = RemoteApiProviderService.resolve(remoteApiDescriptor<GitWidgetApi>())
+    suspend fun getInstance(): GitWidgetApi = service<GitWidgetApi>()
   }
 }
