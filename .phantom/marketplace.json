@@ -228,7 +228,7 @@
     {
       "id": "dev.phantom.redis",
       "name": "Phantom Key-Value Console",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "source": "redis",
       "description": "A key browser and console for Redis-compatible servers (Redis, Valkey, KeyDB…): keys by SCAN pattern, values of every type with JSON indented, delete, and a redis-cli style command line with history. Password, ACL user, database and TLS. Connects only while the Redis tool window is shown.",
       "vendor": "Phantom",
@@ -238,7 +238,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "redis-0.1.1/redis-0.1.1.zip",
+      "download": "redis-0.1.2/redis-0.1.2.zip",
       "detect": [
         "org.springframework.data:spring-data-redis",
         "io.lettuce:lettuce-core",
@@ -249,7 +249,7 @@
     {
       "id": "dev.phantom.kafka",
       "name": "Kafka Support",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "source": "kafka",
       "description": "An Apache Kafka browser: topics with partitions and offsets, latest/earliest/since-time messages read without joining a group, sending with key, headers and partition, consumer group lag, create and delete topics. SASL/SSL via client properties in the password safe.",
       "vendor": "Phantom",
@@ -259,7 +259,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "kafka-0.1.2/kafka-0.1.2.zip",
+      "download": "kafka-0.1.3/kafka-0.1.3.zip",
       "detect": [
         "org.apache.kafka:kafka-clients",
         "org.springframework.kafka:spring-kafka",
@@ -371,7 +371,7 @@
     {
       "id": "dev.phantom.ai",
       "name": "Phantom AI Integration",
-      "version": "0.3.25",
+      "version": "0.4.0",
       "source": "ai-integrations",
       "description": "Claude Code and Codex next to your projects (0.3.16): a tree of the current project's worktrees and agent sessions beside the agent terminals in one tool window, a board editor tab, an agent dashboard, usage in the status bar and opt-in remote control from another device's browser. Select code in the editor and type an AI command to leave an AI memo (kept in memory only, following its code as lines move), then send the checked memos to a session as one prompt, queued while that session is busy. Agents open files at a line in the editor and read what you are looking at through Phantom's own MCP server, with no setup. A small public API, dev.phantom.ai.api, lets other plugins read sessions (with the subagents each started, since 0.3.1, and what each is doing right now, since 0.3.8) and worktrees and focus or start a session. Agents keep running in tmux when their project window closes and reattach when it reopens. Needs Phantom Workspaces. 0.3.22: agents read one declaration (read_symbol), replace one or insert next to it (replace_symbol, insert_code) as undoable IDE edits, and read the end of a Run console filtered by a pattern (get_run_output). 0.3.23: with Phantom Database Console, agents list its data sources, tables and columns and run read-only queries (list_databases, list_tables, describe_table, query_database); passwords stay in Phantom. 0.3.24: agent teams, detached-session reattach, the hook server and Remote Control wait until they are needed. 0.3.25: agents draft changes with draft_sql, which writes the SQL into the data source's console in the editor and never runs it; reads stay read-only and rolled back.",
       "vendor": "Phantom",
@@ -385,13 +385,13 @@
         "Git4Idea",
         "org.jetbrains.plugins.github"
       ],
-      "download": "ai-integrations-0.3.25/ai-integrations-0.3.25.zip",
+      "download": "ai-integrations-0.4.0/ai-integrations-0.4.0.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.ai.visualization",
       "name": "Phantom AI Visualization",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "source": "ai-visualization",
       "description": "The agent sessions of Phantom AI Integration as an isometric pixel-art place (0.6.2): each worktree is a floor and an office: the first session opened in it is the CEO in an office of its own, a session leading subagents gets a team area with its subordinates seated by role, the rest share the open desks, and a session waiting for an answer lines up before the CEO for sign-off (결재); each live session is a cute big-eyed person drawn at twice the scene's pixel density: typing, waiting with a raised hand, holding a coffee or asleep. A label over every head says what the agent is doing right now (Edit Foo.kt, Bash: ./gradlew test, 권한 요청) and running subagents sit beside their lead as full-size subordinates, each with its own label. Click a person to focus its terminal, an empty desk to start Claude or Codex. Opens from its AI Visualization tool window icon or Tools | Open AI Visualization; six themes in Settings | Tools | Phantom AI Visualization: Warm Wood (A), Modern Bright (B), Night Shift (C), Restroom Cleaning (D, with a cat and a corgi), Kitchen (E) and Construction Site (F). Needs Phantom AI Integration 0.3.8.",
       "vendor": "Phantom",
@@ -402,7 +402,7 @@
         "com.intellij.modules.platform",
         "dev.phantom.ai"
       ],
-      "download": "ai-visualization-0.6.2/ai-visualization-0.6.2.zip",
+      "download": "ai-visualization-0.6.3/ai-visualization-0.6.3.zip",
       "detect": []
     },
     {
@@ -505,7 +505,7 @@
     {
       "id": "dev.phantom.webp",
       "name": "WebP Support",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "source": "webp",
       "description": "WebP images (lossy, lossless, alpha) open in the image editor and as thumbnails, decoded in Java by the TwelveMonkeys ImageIO reader (BSD) with no native library. Reading only. Replaces the bundled WebP plugin; turn that one off if your Phantom still bundles it. 0.1.1: the WebP decoder loads when a WebP image is first opened, not at startup.",
       "vendor": "Phantom",
@@ -515,7 +515,7 @@
       "depends": [
         "com.intellij.platform.images"
       ],
-      "download": "webp-0.1.1/webp-0.1.1.zip",
+      "download": "webp-0.1.2/webp-0.1.2.zip",
       "detect": []
     },
     {
@@ -612,7 +612,7 @@
     {
       "id": "com.phantom.mermaid",
       "name": "Mermaid Support",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "source": "mermaid",
       "description": "Editing support and diagram preview for Mermaid in .mmd and .mermaid files and in Markdown code fences: highlighting, completion, formatting, folding, rename and Find Usages of node ids, inspections, and a preview next to the editor. The IntelliJ Community Mermaid plugin (Apache 2.0) under its own id, so Phantom can stop bundling the JetBrains copy (com.intellij.mermaid), which has to be disabled for this one to load. Faster: the preview draws only the latest text after typing pauses and skips text that did not change, Markdown diagrams that did not change are not drawn again (and replaced blocks no longer stay in memory), and mermaid.js is read once and no longer kept stale in the browser after an update.",
       "vendor": "Phantom",
@@ -622,7 +622,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "mermaid-0.1.2/mermaid-0.1.2.zip",
+      "download": "mermaid-0.1.3/mermaid-0.1.3.zip",
       "detect": []
     },
     {
@@ -692,7 +692,7 @@
     {
       "id": "dev.phantom.decompiler",
       "name": "Phantom Bytecode Decompiler for Java",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "decompiler",
       "description": "Opening a .class file without sources shows Java source decompiled by Fernflower instead of a stub, with the debugger mapping its lines back; Kotlin's bytecode decompiler builds on it. Based on the IntelliJ Community Java Bytecode Decompiler plugin (Apache 2.0); org.jetbrains.java.decompiler stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -702,13 +702,13 @@
       "depends": [
         "com.intellij.java"
       ],
-      "download": "decompiler-0.1.0/decompiler-0.1.0.zip",
+      "download": "decompiler-0.1.1/decompiler-0.1.1.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.coverage",
       "name": "Phantom Code Coverage for Java",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "source": "coverage",
       "description": "Run with Coverage for Java run configurations, with the IntelliJ or the JaCoCo runner: the Coverage tool window, line and branch marks in the editor and the Project view, HTML reports and imported reports. Based on the IntelliJ Community Code Coverage for Java plugin (Apache 2.0); Coverage stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -718,13 +718,13 @@
       "depends": [
         "com.intellij.java"
       ],
-      "download": "coverage-0.1.1/coverage-0.1.1.zip",
+      "download": "coverage-0.1.2/coverage-0.1.2.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.textmate",
       "name": "TextMate Bundles Support",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "textmate",
       "description": "Highlighting, brace matching, commenting and snippets from TextMate and VS Code grammars for file types no other plugin covers: 64 bundled grammars and any you add. Based on the IntelliJ Community TextMate Bundles plugin (Apache 2.0); org.jetbrains.plugins.textmate stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -734,7 +734,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "textmate-0.1.0/textmate-0.1.0.zip",
+      "download": "textmate-0.1.1/textmate-0.1.1.zip",
       "detect": []
     },
     {
@@ -756,7 +756,7 @@
     {
       "id": "dev.phantom.github",
       "name": "GitHub Support",
-      "version": "0.1.0",
+      "version": "0.1.3",
       "source": "github",
       "description": "GitHub in the IDE: GitHub and GitHub Enterprise accounts (OAuth or token), cloning, Share Project on GitHub, pull requests (list, review with comments in the diff and editor, create, merge), gists, Open on GitHub, and GitHub Actions workflow schemas. Based on the IntelliJ Community GitHub plugin (Apache 2.0); org.jetbrains.plugins.github stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -766,13 +766,13 @@
       "depends": [
         "Git4Idea"
       ],
-      "download": "github-0.1.0/github-0.1.0.zip",
+      "download": "github-0.1.3/github-0.1.3.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.editorconfig",
       "name": "EditorConfig Support",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "editorconfig",
       "description": "EditorConfig files: properties from .editorconfig applied to the code style, indentation, encoding and trailing spaces of every supported language, plus editing support for the files themselves (highlighting, completion, inspections and quick fixes, navigation, rename, a preview of affected files, and code style scheme export). Based on the IntelliJ Community EditorConfig plugin (Apache 2.0); org.editorconfig.editorconfigjetbrains stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -782,7 +782,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "editorconfig-0.1.0/editorconfig-0.1.0.zip",
+      "download": "editorconfig-0.1.1/editorconfig-0.1.1.zip",
       "detect": []
     },
     {
@@ -821,7 +821,7 @@
     {
       "id": "dev.phantom.testng",
       "name": "TestNG Support",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "testng",
       "description": "TestNG for Java: run configurations for classes, methods, packages, groups, patterns and suite files with the test tree, forked runs and debugging; test generation; references from dataProvider, dependsOnMethods, groups and testng.xml; inspections and quick fixes such as converting JUnit tests to TestNG. Based on the IntelliJ Community TestNG plugin (Apache 2.0); TestNG-J stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -831,7 +831,7 @@
       "depends": [
         "com.intellij.java"
       ],
-      "download": "testng-0.1.0/testng-0.1.0.zip",
+      "download": "testng-0.1.1/testng-0.1.1.zip",
       "detect": []
     },
     {
@@ -870,7 +870,7 @@
     {
       "id": "dev.phantom.grammar",
       "name": "Phantom Grammar",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "source": "grammar",
       "description": "Grammar, style and spelling checks for any text in the IDE: comments, string literals, documentation, commit messages, Markdown, XML, JSON, YAML, properties and plain text, with LanguageTool running locally; English is built in, other languages download when enabled; TOML, YAML, Markdown, Kotlin and others build on it. Built only on open-source code: the IDE layer of the IntelliJ Community Natural Languages plugin (Apache 2.0) and LanguageTool (LGPL 2.1), without JetBrains' closed-source Grazie libraries. Replaces Phantom Natural Languages (dev.phantom.grazie); tanvd.grazi and dev.phantom.grazie stay as aliases, so plugins depending on them keep working. Compared with it: no Grazie rule engine checks or writing style profiles, no auto-fix, no downloaded Hunspell dictionaries for German, Russian and Ukrainian.",
       "vendor": "Phantom",
@@ -880,7 +880,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "grammar-0.2.0/grammar-0.2.0.zip",
+      "download": "grammar-0.2.1/grammar-0.2.1.zip",
       "detect": []
     },
     {
@@ -918,7 +918,7 @@
     {
       "id": "dev.phantom.repository-search",
       "name": "Phantom Repository Search",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "repository-search",
       "description": "Dependency completion for Apache Maven pom.xml and Gradle build scripts (group, artifact and version suggestions from the local Maven index, Gradle caches and project modules) and the repository search API Maven and Gradle build on; JetBrains' Package Search service is never called and no usage statistics are collected. Based on the IntelliJ Community Repository Search plugin (Apache 2.0); org.jetbrains.idea.reposearch stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -928,13 +928,13 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "repository-search-0.1.0/repository-search-0.1.0.zip",
+      "download": "repository-search-0.1.1/repository-search-0.1.1.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.json",
       "name": "Phantom JSON",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "json",
       "description": "JSON, JSON5 and JSON Lines files: highlighting, formatting, folding, structure view, Copy JSON Pointer, and JSON Schema mappings, the schemastore.org catalog, completion, validation, documentation and quick fixes; YAML, TOML, OpenAPI and others build on it. Based on the IntelliJ Community JSON plugin (Apache 2.0); com.intellij.modules.json stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -944,7 +944,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "json-0.1.0/json-0.1.0.zip",
+      "download": "json-0.1.1/json-0.1.1.zip",
       "detect": []
     },
     {
@@ -967,7 +967,7 @@
     {
       "id": "dev.phantom.groovy-scripting",
       "name": "Groovy Scripting Support",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "groovy-scripting",
       "description": "The Apache Groovy JSR223 engine for the IDE Scripting Console, and the Groovy 3 library (with Ivy for Grape) that Groovy, Groovy Live Templates and others load through intellij.libraries.groovy. Based on the IntelliJ Community Groovy Scripting plugin (Apache 2.0); com.intellij.groovy.scripting stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -977,7 +977,7 @@
       "depends": [
         "com.intellij.modules.platform"
       ],
-      "download": "groovy-scripting-0.1.0/groovy-scripting-0.1.0.zip",
+      "download": "groovy-scripting-0.1.1/groovy-scripting-0.1.1.zip",
       "detect": []
     },
     {
