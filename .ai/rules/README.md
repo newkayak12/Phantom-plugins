@@ -1,0 +1,13 @@
+# Rules for coding agents
+
+Short, binding rules for agents (Claude Code, Codex) working in this repository. `AGENTS.md` and `CLAUDE.md` load
+them; `.ai/workflow.md` describes how a task runs. A rule here wins over a habit; the user's instruction wins over a
+rule here.
+
+| File | Covers |
+|------|--------|
+| [commits.md](commits.md) | Size and content of one commit |
+| [pull-requests.md](pull-requests.md) | What a PR holds and how it is merged |
+| [porting.md](porting.md) | Moving an IntelliJ plugin into this repository |
+
+Add a rule when a reviewer had to ask for the same thing twice. One topic per file, each rule one line with its reason.
