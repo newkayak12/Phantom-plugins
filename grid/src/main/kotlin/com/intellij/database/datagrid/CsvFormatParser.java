@@ -329,4 +329,3 @@ private static class ImproperQuotedValueRange extends QuotedValueRange {
     }
   }
 }
-
