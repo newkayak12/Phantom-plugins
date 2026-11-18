@@ -5,7 +5,6 @@ import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vcs.VcsException;
 import com.intellij.openapi.vfs.VirtualFile;
-import git4idea.GitOperationsCollector;
 import git4idea.GitRemoteBranch;
 import git4idea.GitUtil;
 import git4idea.branch.GitBranchPair;
@@ -47,11 +46,6 @@ final class GitPull extends GitMergeAction<GitPullOption> {
     final GitPullDialog dialog = new GitPullDialog(project, gitRoots, defaultRoot);
     if (!dialog.showAndGet()) {
       return null;
-    }
-
-    GitRepository repository = dialog.getSelectedRepository();
-    if (repository != null) {
-      GitOperationsCollector.logPullFromDialog(project, repository, dialog.getSelectedBranch(), dialog.getSelectedOptions());
     }
 
     return new DialogState<>(dialog.gitRoot(),

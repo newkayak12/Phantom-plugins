@@ -33,7 +33,6 @@ import com.intellij.vcs.git.branch.GitInOutProjectState;
 import com.intellij.vcs.log.Hash;
 import com.intellij.vcsUtil.VcsFileUtil;
 import git4idea.GitLocalBranch;
-import git4idea.GitOperationsCollector;
 import git4idea.GitRemoteBranch;
 import git4idea.commands.Git;
 import git4idea.commands.GitAuthenticationListener;
@@ -309,26 +308,21 @@ public final class GitBranchIncomingOutgoingManager implements GitRepositoryChan
     }
 
     AtomicBoolean success = new AtomicBoolean(false);
-    try {
-      switch (remoteCheckStrategy) {
-        case FETCH -> {
-          LOG.info("Fetching %d repositories".formatted(repositories.size()));
-          List<GitFetchSpec> remotesToFetch = new ArrayList<>();
-          for (GitRepository repository : repositories) {
-            for (GitRemote remote : repository.getRemotes()) {
-              remotesToFetch.add(new GitFetchSpec(repository, remote, getAuthenticationMode(repository, remote)));
-            }
+    switch (remoteCheckStrategy) {
+      case FETCH -> {
+        LOG.info("Fetching %d repositories".formatted(repositories.size()));
+        List<GitFetchSpec> remotesToFetch = new ArrayList<>();
+        for (GitRepository repository : repositories) {
+          for (GitRemote remote : repository.getRemotes()) {
+            remotesToFetch.add(new GitFetchSpec(repository, remote, getAuthenticationMode(repository, remote)));
           }
-          success.set(GitFetchSupport.fetchSupport(myProject).fetch(remotesToFetch).isSuccessful());
         }
-        case LS_REMOTE -> {
-          LOG.info("Listing remote info for %d repositories".formatted(repositories.size()));
-          repositories.forEach(r -> myLocalBranchesToFetch.put(r, calculateBranchesToFetch(r, () -> success.set(false))));
-        }
+        success.set(GitFetchSupport.fetchSupport(myProject).fetch(remotesToFetch).isSuccessful());
       }
-    }
-    finally {
-      GitOperationsCollector.logRemoteInfoRequest(myProject, remoteCheckStrategy, success.get());
+      case LS_REMOTE -> {
+        LOG.info("Listing remote info for %d repositories".formatted(repositories.size()));
+        repositories.forEach(r -> myLocalBranchesToFetch.put(r, calculateBranchesToFetch(r, () -> success.set(false))));
+      }
     }
   }
 

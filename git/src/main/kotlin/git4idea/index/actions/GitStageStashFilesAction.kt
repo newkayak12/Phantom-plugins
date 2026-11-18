@@ -13,7 +13,6 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.containers.MultiMap
 import git4idea.GitActivity
 import git4idea.GitNotificationIdsHolder
-import git4idea.GitStashUsageCollector
 import git4idea.commands.Git
 import git4idea.config.GitExecutableManager
 import git4idea.config.GitVersionSpecialty
@@ -39,14 +38,8 @@ object GitStashOperation : StagingAreaOperation {
 
   override fun processPaths(project: Project, root: VirtualFile, nodes: List<GitFileStatusNode>) {
     DvcsUtil.workingTreeChangeStarted(project, GitBundle.message("activity.name.stash"), GitActivity.Stash).use {
-      val activity = GitStashUsageCollector.logStashPush(project)
-      try {
-        val handler = createStashHandler(project, root, nodes.map { it.filePath }, "-u")
-        Git.getInstance().runCommand(handler).throwOnError()
-      }
-      finally {
-        activity.finished()
-      }
+      val handler = createStashHandler(project, root, nodes.map { it.filePath }, "-u")
+      Git.getInstance().runCommand(handler).throwOnError()
 
       StagingAreaOperation.refreshVirtualFiles(nodes, true)
       refreshStash(project, root)

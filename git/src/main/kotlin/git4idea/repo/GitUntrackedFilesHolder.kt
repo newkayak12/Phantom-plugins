@@ -23,7 +23,6 @@ import com.intellij.platform.util.coroutines.childScope
 import com.intellij.platform.vcs.impl.shared.SingleTaskRunner
 import com.intellij.vcsUtil.VcsUtil
 import git4idea.GitContentRevision
-import git4idea.GitRefreshUsageCollector.logUntrackedRefresh
 import git4idea.commands.GitCommand
 import git4idea.ignore.GitRepositoryIgnoredFilesHolder
 import git4idea.index.LightFileStatus.StatusRecord
@@ -210,9 +209,7 @@ class GitUntrackedFilesHolder internal constructor(
 
     BackgroundTaskUtil.syncPublisher(project, GitRefreshListener.TOPIC).progressStarted()
     try {
-      val activity = logUntrackedRefresh(project, dirtyScope == DirtyScope.Everything)
       val (untracked, ignored) = refreshFiles(dirtyScope)
-      activity.finished()
 
       val filteredUntracked = removePathsUnderOtherRoots(untracked, "unversioned")
       val filteredIgnored = removePathsUnderOtherRoots(ignored, "ignored")
@@ -328,7 +325,6 @@ class GitUntrackedFilesHolder internal constructor(
     }
     return filtered
   }
-
 
   private suspend fun refreshFiles(dirtyScope: DirtyScope): RefreshResult {
     try {

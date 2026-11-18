@@ -7,14 +7,12 @@ import com.intellij.openapi.actionSystem.Presentation;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import git4idea.GitBranch;
-import git4idea.GitOperationsCollector;
 import git4idea.GitUtil;
 import git4idea.commands.GitCommand;
 import git4idea.commands.GitLineHandler;
 import git4idea.i18n.GitBundle;
 import git4idea.merge.GitMergeDialog;
 import git4idea.merge.GitMergeOption;
-import git4idea.repo.GitRepository;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,9 +34,6 @@ final class GitMerge extends GitMergeAction<GitMergeOption> {
     if (!dialog.showAndGet()) {
       return null;
     }
-    
-    GitRepository repository = dialog.getSelectedRepository();
-    GitOperationsCollector.logMergeFromDialog(project, repository, dialog.getSelectedBranch(), dialog.getSelectedOptions());
     
     return new DialogState<>(dialog.getSelectedRoot(),
                              GitBundle.message("merging.title", dialog.getSelectedRoot().getPath()),

@@ -11,7 +11,6 @@ import com.intellij.vcs.log.VcsShortCommitDetails
 import com.intellij.vcs.log.data.VcsLogData
 import com.intellij.vcs.log.impl.VcsProjectLog
 import com.intellij.vcs.log.util.VcsLogUtil
-import git4idea.GitOperationsCollector.logCantRebaseUsingLog
 import git4idea.config.GitConfigUtil.isRebaseUpdateRefsEnabledCached
 import git4idea.history.GitHistoryTraverser
 import git4idea.history.GitHistoryTraverserImpl
@@ -64,7 +63,6 @@ internal class GitInteractiveRebaseEntriesProvider {
       when (val result = entriesProvider(actualLogData)) {
         is GetEntriesUsingLogResult.Success -> result.entries
         is GetEntriesUsingLogResult.Failure -> {
-          logCantRebaseUsingLog(repository.project, result.reason)
           LOG.warn("Couldn't use log for rebasing: ${result.reason}")
           null
         }

@@ -22,7 +22,6 @@ import com.intellij.ui.ExperimentalUI
 import com.intellij.util.messages.MessageBusConnection
 import com.intellij.vcs.git.GitDisplayName
 import com.intellij.vcs.git.branch.calcTooltip
-import git4idea.GitBranchesUsageCollector.branchWidgetClicked
 import git4idea.GitUtil
 import git4idea.branch.GitBranchIncomingOutgoingManager
 import git4idea.branch.GitBranchIncomingOutgoingManager.GitIncomingOutgoingListener
@@ -66,7 +65,6 @@ open class GitBranchWidget(project: Project) : DvcsStatusWidget<GitRepository>(p
   override fun isMultiRoot(project: Project): Boolean = !GitUtil.justOneGitRepository(project)
 
   override fun getWidgetPopup(project: Project, repository: GitRepository): JBPopup {
-    branchWidgetClicked()
     return GitBranchesTreePopupOnBackend.create(project, repository)
   }
 

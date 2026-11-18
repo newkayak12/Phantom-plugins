@@ -12,8 +12,6 @@ import com.intellij.vcs.log.VcsCommitMetadata
 import com.intellij.vcs.log.VcsShortCommitDetails
 import com.intellij.vcs.log.data.VcsLogData
 import git4idea.DialogManager
-import git4idea.GitOperationsCollector
-import git4idea.GitOperationsCollector.logRebaseStartUsingLog
 import git4idea.branch.GitRebaseParams
 import git4idea.i18n.GitBundle
 import git4idea.inMemory.GitObjectRepository
@@ -68,7 +66,6 @@ internal suspend fun interactivelyRebaseUsingLog(repository: GitRepository, comm
     val hasEditActions = model.elements.any { entry ->
       entry.type.command == GitRebaseEntry.Action.EDIT
     }
-    logRebaseStartUsingLog(repository.project, model.elements.map { it.type.command })
     val shouldTryInMemory = Registry.`is`("git.in.memory.commit.editing.operations.enabled")
 
     withBackgroundProgress(repository.project, GitBundle.message("rebase.progress.indicator.title")) {
@@ -105,15 +102,7 @@ private suspend fun performInteractiveRebase(
     val base = getRebaseUpstreamFor(commit)
     val params = GitRebaseParams.editCommits(repository.vcs.version, base, editorHandler, false)
 
-    val rebaseActivity = GitOperationsCollector.startInteractiveRebase(repository.project)
-    try {
-      val wasSuccessful = GitRebaseUtils.rebaseWithResult(repository.project, listOf(repository), params, indicator)
-      GitOperationsCollector.endInteractiveRebase(rebaseActivity, wasSuccessful)
-    }
-    catch (e: Exception) {
-      GitOperationsCollector.endInteractiveRebase(rebaseActivity, false)
-      throw e
-    }
+    GitRebaseUtils.rebaseWithResult(repository.project, listOf(repository), params, indicator)
   }
 }
 
@@ -154,9 +143,6 @@ private class GitInteractiveRebaseUsingLogEditorHandler(
     else {
       myRebaseEditorShown = false
       rebaseFailed = true
-      GitOperationsCollector.rebaseViaLogInvalidEntries(repository.project,
-                                                        expectedCommitsNumber = entries.size,
-                                                        actualCommitsNumber = entriesGeneratedUsingLog.size)
       LOG.warn("Incorrect git-rebase-todo file was generated.\n" +
                "Actual - ${entriesGeneratedUsingLog.toLog()}\n" +
                "Expected - ${entries.toLog()}")

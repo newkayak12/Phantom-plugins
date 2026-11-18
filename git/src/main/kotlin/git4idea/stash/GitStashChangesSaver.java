@@ -3,7 +3,6 @@ package git4idea.stash;
 
 import com.intellij.dvcs.DvcsUtil;
 import com.intellij.history.ActivityId;
-import com.intellij.internal.statistic.StructuredIdeActivity;
 import com.intellij.notification.NotificationAction;
 import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.AccessToken;
@@ -20,7 +19,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.vcs.log.Hash;
 import git4idea.GitActivity;
-import git4idea.GitStashUsageCollector;
 import git4idea.GitUtil;
 import git4idea.commands.Git;
 import git4idea.commands.GitCommand;
@@ -79,9 +77,7 @@ public class GitStashChangesSaver extends GitChangesSaver {
           LOG.error("Repository is null for root " + root);
         }
         else {
-          StructuredIdeActivity activity = GitStashUsageCollector.logStashPush(myProject);
           GitCommandResult result = myGit.stashSave(repository, myStashMessage);
-          activity.finished();
 
           if (result.success() && somethingWasStashed(result)) {
             myStashedRoots.put(root, myGit.resolveReference(repository, "stash@{0}"));

@@ -740,11 +740,6 @@
     <pushSupport implementation="git4idea.push.GitPushSupport"/>
     <cherryPicker implementation="git4idea.cherrypick.GitCherryPicker"/>
     <vcsAnnotationGutterActionProvider implementation="git4idea.actions.GitToggleAnnotationOptionsActionProvider"/>
-    <statistics.projectUsagesCollector implementation="git4idea.GitStatisticsCollector"/>
-    <statistics.counterUsagesCollector implementationClass="git4idea.GitBranchesUsageCollector"/>
-    <statistics.counterUsagesCollector implementationClass="git4idea.GitStashUsageCollector"/>
-    <statistics.counterUsagesCollector implementationClass="git4idea.GitRefreshUsageCollector"/>
-    <statistics.counterUsagesCollector implementationClass="git4idea.GitOperationsCollector"/>
     <statistics.notificationIdsHolder implementation="git4idea.GitNotificationIdsHolder"/>
     <statistics.actionIdsHolder implementation="git4idea.GitActionIdsHolder"/>
     <vcsRepositoryInitializer implementation="git4idea.repo.GitRepositoryInitializer"/>
