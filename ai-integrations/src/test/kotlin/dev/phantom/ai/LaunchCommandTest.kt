@@ -1,44 +1,53 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.ai
 
-import dev.phantom.ai.accounts.AccountsService
 import dev.phantom.ai.accounts.AgentAccount
 import dev.phantom.ai.core.AgentKind
-import dev.phantom.ai.core.AiState
 import dev.phantom.ai.core.AiStateData
 import dev.phantom.ai.launch.LaunchCommand
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.lang.reflect.Modifier
 
 class LaunchCommandTest {
-  @Test fun claudeLaunch() = assertEquals("claude '--dangerously-skip-permissions'", LaunchCommand.launch(AgentKind.CLAUDE))
+  @Test fun claudeLaunch() = assertEquals("claude", LaunchCommand.launch(AgentKind.CLAUDE))
 
-  @Test fun claudeResume() =
-    assertEquals("claude '--dangerously-skip-permissions' '--resume' 'abc-1'", LaunchCommand.resume(AgentKind.CLAUDE, "abc-1"))
+  @Test fun claudeResume() = assertEquals("claude '--resume' 'abc-1'", LaunchCommand.resume(AgentKind.CLAUDE, "abc-1"))
 
-  @Test fun codexLaunch() =
-    assertEquals("codex '--dangerously-bypass-approvals-and-sandbox'", LaunchCommand.launch(AgentKind.CODEX))
+  @Test fun codexLaunch() = assertEquals("codex", LaunchCommand.launch(AgentKind.CODEX))
 
-  @Test fun codexResume() =
-    assertEquals("codex resume '--dangerously-bypass-approvals-and-sandbox' 'abc-1'", LaunchCommand.resume(AgentKind.CODEX, "abc-1"))
+  @Test fun codexResume() = assertEquals("codex resume 'abc-1'", LaunchCommand.resume(AgentKind.CODEX, "abc-1"))
+
+  @Test fun skippingPermissionsOnlyWhenAsked() {
+    assertEquals("claude '--dangerously-skip-permissions'", LaunchCommand.launch(AgentKind.CLAUDE, skipPermissions = true))
+    assertEquals(
+      "claude '--dangerously-skip-permissions' '--resume' 'abc-1'",
+      LaunchCommand.resume(AgentKind.CLAUDE, "abc-1", skipPermissions = true),
+    )
+    assertEquals("codex '--dangerously-bypass-approvals-and-sandbox'", LaunchCommand.launch(AgentKind.CODEX, skipPermissions = true))
+    assertEquals(
+      "codex resume '--dangerously-bypass-approvals-and-sandbox' 'abc-1'",
+      LaunchCommand.resume(AgentKind.CODEX, "abc-1", skipPermissions = true),
+    )
+  }
+
+  // The setting is off until the user turns it on: new agents ask before running commands and editing files.
+  @Test fun skippingPermissionsIsOffByDefault() = assertFalse(AiStateData().skipPermissions)
 
   @Test fun claudeGetsPhantomMcpFromItsConfigFile() {
     val link = dev.phantom.ai.launch.McpLink("http://127.0.0.1:9/mcp?tabId=t", "PHANTOM_AGENT_HOOK_TOKEN", "/tmp/a b/t.json")
-    assertEquals("claude '--dangerously-skip-permissions' '--mcp-config' '/tmp/a b/t.json'", LaunchCommand.launch(AgentKind.CLAUDE, link))
+    assertEquals("claude '--mcp-config' '/tmp/a b/t.json'", LaunchCommand.launch(AgentKind.CLAUDE, link))
     assertEquals(
       "claude '--dangerously-skip-permissions' '--mcp-config' '/tmp/a b/t.json' '--resume' 'abc-1'",
-      LaunchCommand.resume(AgentKind.CLAUDE, "abc-1", link),
+      LaunchCommand.resume(AgentKind.CLAUDE, "abc-1", link, skipPermissions = true),
     )
   }
 
   @Test fun codexGetsPhantomMcpAsConfigOverridesBeforeItsSubcommand() {
     val link = dev.phantom.ai.launch.McpLink("http://127.0.0.1:9/mcp?tabId=t", "PHANTOM_AGENT_HOOK_TOKEN", "/tmp/t.json")
     val mcp = "'-c' 'mcp_servers.phantom.url=\"http://127.0.0.1:9/mcp?tabId=t\"' '-c' 'mcp_servers.phantom.bearer_token_env_var=\"PHANTOM_AGENT_HOOK_TOKEN\"'"
-    assertEquals("codex $mcp '--dangerously-bypass-approvals-and-sandbox'", LaunchCommand.launch(AgentKind.CODEX, link))
-    assertEquals("codex $mcp resume '--dangerously-bypass-approvals-and-sandbox' 'abc-1'", LaunchCommand.resume(AgentKind.CODEX, "abc-1", link))
+    assertEquals("codex $mcp '--dangerously-bypass-approvals-and-sandbox'", LaunchCommand.launch(AgentKind.CODEX, link, skipPermissions = true))
+    assertEquals("codex $mcp resume 'abc-1'", LaunchCommand.resume(AgentKind.CODEX, "abc-1", link))
   }
 
   @Test fun aPromptStartsTheAgentOnIt() {
@@ -46,14 +55,14 @@ class LaunchCommandTest {
     // before Claude's options: --mcp-config would take it as another config file
     assertEquals(
       "claude 'fix it'\\''s tests' '--dangerously-skip-permissions' '--mcp-config' '/tmp/t.json'",
-      LaunchCommand.launch(AgentKind.CLAUDE, link, "fix it's tests"),
+      LaunchCommand.launch(AgentKind.CLAUDE, link, "fix it's tests", skipPermissions = true),
     )
-    assertEquals("codex '--dangerously-bypass-approvals-and-sandbox' 'a\nb'", LaunchCommand.launch(AgentKind.CODEX, prompt = "a\nb"))
+    assertEquals("codex 'a\nb'", LaunchCommand.launch(AgentKind.CODEX, prompt = "a\nb"))
   }
 
   @Test fun idIsSingleQuoteEscaped() {
     assertEquals("'a'\\''b'", LaunchCommand.quote("a'b"))
-    assertEquals("claude '--dangerously-skip-permissions' '--resume' ''\\''; rm -rf ~'\\'''", LaunchCommand.resume(AgentKind.CLAUDE, "'; rm -rf ~'"))
+    assertEquals("claude '--resume' ''\\''; rm -rf ~'\\'''", LaunchCommand.resume(AgentKind.CLAUDE, "'; rm -rf ~'"))
   }
 
   @Test fun addedAccountSetsItsVariableOnly() {
@@ -90,35 +99,16 @@ class LaunchCommandTest {
     assertEquals("codex 'login'", LaunchCommand.login(AgentKind.CODEX))
   }
 
-  @Test fun noOffSwitch() {
-    val bad = Regex("skip|bypass|permission|yolo|safe|confirm|ask|approv|sandbox", RegexOption.IGNORE_CASE)
-    // no Boolean parameter on any public function of LaunchCommand or AccountsService
-    for (c in listOf(LaunchCommand::class.java, AccountsService::class.java)) {
-      for (m in c.declaredMethods.filter { Modifier.isPublic(it.modifiers) }) {
-        assertFalse("${c.simpleName}.${m.name} takes a Boolean", m.parameterTypes.any { it == Boolean::class.javaPrimitiveType || it == Boolean::class.javaObjectType })
-      }
-    }
-    // no property of AiState, its state classes and the account classes is named like an off-switch
-    val classes = listOf(AiState::class.java, AiStateData::class.java, AgentAccount::class.java) +
-      listOf("AccountEntry", "ActiveAccountEntry", "SessionEntry", "WorktreeEntry").map { Class.forName("dev.phantom.ai.core.$it") }
-    for (c in classes) {
-      for (f in c.declaredFields) assertFalse("${c.simpleName}.${f.name}", bad.containsMatchIn(f.name))
-      for (m in c.declaredMethods.filter { Modifier.isPublic(it.modifiers) && (it.name.startsWith("get") || it.name.startsWith("is")) })
-        assertFalse("${c.simpleName}.${m.name}", bad.containsMatchIn(m.name))
-    }
-    assertTrue(true)
-  }
-
   @Test fun agentBinDirPrefixesEveryCommand() {
     System.setProperty("phantom.ai.agentBinDir", "/sb/bin")
     try {
-      assertEquals("'/sb/bin/claude' '--dangerously-skip-permissions'", LaunchCommand.launch(AgentKind.CLAUDE))
-      assertEquals("'/sb/bin/claude' '--dangerously-skip-permissions' '--resume' 'a'", LaunchCommand.resume(AgentKind.CLAUDE, "a"))
-      assertEquals("'/sb/bin/codex' '--dangerously-bypass-approvals-and-sandbox'", LaunchCommand.launch(AgentKind.CODEX))
-      assertEquals("'/sb/bin/codex' resume '--dangerously-bypass-approvals-and-sandbox' 'a'", LaunchCommand.resume(AgentKind.CODEX, "a"))
+      assertEquals("'/sb/bin/claude'", LaunchCommand.launch(AgentKind.CLAUDE))
+      assertEquals("'/sb/bin/claude' '--resume' 'a'", LaunchCommand.resume(AgentKind.CLAUDE, "a"))
+      assertEquals("'/sb/bin/codex'", LaunchCommand.launch(AgentKind.CODEX))
+      assertEquals("'/sb/bin/codex' resume 'a'", LaunchCommand.resume(AgentKind.CODEX, "a"))
       assertEquals("'/sb/bin/claude' 'auth' 'login' '--claudeai'", LaunchCommand.login(AgentKind.CLAUDE))
       assertEquals("'/sb/bin/codex' 'login'", LaunchCommand.login(AgentKind.CODEX))
     } finally { System.clearProperty("phantom.ai.agentBinDir") }
-    assertEquals("claude '--dangerously-skip-permissions'", LaunchCommand.launch(AgentKind.CLAUDE))
+    assertEquals("claude", LaunchCommand.launch(AgentKind.CLAUDE))
   }
 }

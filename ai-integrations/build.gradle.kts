@@ -4,7 +4,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.3.25"
+version = "0.4.0"
 
 dependencies {
   implementation("io.nayuki:qrcodegen:1.8.0")
@@ -128,7 +128,6 @@ if (providers.gradleProperty("realIde").isPresent) {
           "-Dphantom.ai.claudeDir=${agentHomes.get().asFile.resolve("claude").absolutePath}",
           "-Dphantom.ai.codexDir=${agentHomes.get().asFile.resolve("codex").absolutePath}",
           "-Dphantom.ai.agentBinDir=${agentHomes.get().asFile.resolve("bin").absolutePath}",
-          "-Dphantom.ai.keychain=false",
           "-Dphantom.ai.tmux=", // empty: never the real tmux server
           "-Dphantom.probe.remote.port=${remotePort.get()}",
           "-Dphantom.probe.remote.token=$probeToken",

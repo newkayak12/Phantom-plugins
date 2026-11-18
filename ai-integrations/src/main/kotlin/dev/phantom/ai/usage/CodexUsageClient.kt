@@ -92,24 +92,15 @@ class ProcessCodexLauncher(private val cwdProvider: () -> File = ::hiddenProbeCw
   }
 }
 
-/** Codex usage: `codex app-server` account/rateLimits/read, else GET chatgpt.com wham/usage with the token of <CODEX_HOME>/auth.json. Null on any failure. */
+/** Codex usage from `codex app-server` account/rateLimits/read, the channel Codex offers its own clients. Null on any failure. */
 class CodexUsageClient(
   private val launcher: CodexLauncher = ProcessCodexLauncher(),
-  private val http: UsageHttp = JdkUsageHttp,
   private val now: () -> Long = System::currentTimeMillis,
   private val defaultHome: () -> String = { SystemDirs.dir(AgentKind.CODEX).toString() },
   private val timeoutMs: Long = 10_000,
 ) {
   /** [codexHome] null = System default. */
-  fun fetch(codexHome: String?): CodexUsage? {
-    val home = codexHome ?: defaultHome()
-    val rpc = viaRpc(home)
-    if (rpc?.session != null && rpc.weekly != null) return rpc
-    val backend = viaBackend(home)
-    if (rpc == null) return backend
-    // Like Orca: a missing session window is supplemented from the backend.
-    return if (backend?.session != null) rpc.copy(session = backend.session, weekly = backend.weekly ?: rpc.weekly, updatedAtMs = backend.updatedAtMs) else rpc
-  }
+  fun fetch(codexHome: String?): CodexUsage? = viaRpc(codexHome ?: defaultHome())
 
   private fun viaRpc(home: String): CodexUsage? {
     val channel = try { launcher.launch(home) } catch (e: IOException) { return null } catch (e: RuntimeException) { rethrowIfCancellation(e); return null }
@@ -140,26 +131,7 @@ class CodexUsageClient(
     }
   }
 
-  private fun viaBackend(home: String): CodexUsage? {
-    val auth = bestEffort { JsonParser.parseString(File(home, "auth.json").readText()) }.getOrNull()?.takeIf { it.isJsonObject }?.asJsonObject ?: return null
-    val tokens = auth.get("tokens")?.takeIf { it.isJsonObject }?.asJsonObject ?: return null
-    val token = tokens.get("access_token")?.takeIf { it.isJsonPrimitive }?.asString?.takeIf { it.isNotBlank() } ?: return null
-    val headers = linkedMapOf("Authorization" to "Bearer $token", "User-Agent" to "codex-cli", "OpenAI-Beta" to "codex-1", "originator" to "Codex Desktop")
-    tokens.get("account_id")?.takeIf { it.isJsonPrimitive }?.asString?.takeIf { it.isNotBlank() }?.let { headers["ChatGPT-Account-Id"] = it }
-    val reply = try {
-      http.get(BACKEND_URL, headers)
-    } catch (e: IOException) {
-      return null
-    } catch (e: InterruptedException) {
-      Thread.currentThread().interrupt()
-      return null
-    }
-    if (reply.status !in 200..299) return null
-    return parseBackend(reply.body, now())
-  }
-
   companion object {
-    const val BACKEND_URL = "https://chatgpt.com/backend-api/wham/usage"
     private const val DRIFT_MINUTES = 1
 
     private fun message(id: Int, method: String, params: JsonObject) =
@@ -172,19 +144,6 @@ class CodexUsageClient(
     }
 
     fun parseRpc(json: String, nowMs: Long): CodexUsage? = parseRpc(bestEffort { JsonParser.parseString(json) }.getOrNull(), nowMs)
-
-    /** wham/usage body; needs a string plan_type like Orca. */
-    fun parseBackend(json: String, nowMs: Long): CodexUsage? {
-      val o = bestEffort { JsonParser.parseString(json) }.getOrNull()?.takeIf { it.isJsonObject }?.asJsonObject ?: return null
-      if (o.get("plan_type")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString } == null) return null
-      val rl = o.get("rate_limit")?.takeIf { it.isJsonObject }?.asJsonObject ?: return null
-      fun win(e: com.google.gson.JsonElement?): Raw? {
-        val r = raw(e, "used_percent", null, "reset_at") ?: return null
-        val secs = (e as JsonObject).let { number(it, "limit_window_seconds") }?.takeIf { it > 0 }
-        return r.copy(minutes = secs?.let { Math.ceil(it / 60).toInt() })
-      }
-      return classify(win(rl.get("primary_window")), win(rl.get("secondary_window")), nowMs, keepMinutes = true)
-    }
 
     private data class Raw(val pct: Double, val minutes: Int?, val resetsAtMs: Long?)
 
@@ -203,7 +162,7 @@ class CodexUsageClient(
     }
 
     /** Orca's classification: by duration, else primary = session and secondary = weekly. */
-    private fun classify(primary: Raw?, secondary: Raw?, nowMs: Long, keepMinutes: Boolean = false): CodexUsage? {
+    private fun classify(primary: Raw?, secondary: Raw?, nowMs: Long): CodexUsage? {
       var session: Raw? = null
       var weekly: Raw? = null
       for (w in listOf(primary, secondary)) {
@@ -215,7 +174,7 @@ class CodexUsageClient(
       }
       if (session == null && primary != null && kind(primary) == null) session = primary
       if (weekly == null && secondary != null && kind(secondary) == null) weekly = secondary
-      fun map(r: Raw?, expected: Int) = r?.let { UsageWindow(it.pct.coerceIn(0.0, 100.0), if (keepMinutes) it.minutes ?: expected else expected, it.resetsAtMs) }
+      fun map(r: Raw?, expected: Int) = r?.let { UsageWindow(it.pct.coerceIn(0.0, 100.0), expected, it.resetsAtMs) }
       val s = map(session, SESSION_MINUTES)
       val w = map(weekly, WEEK_MINUTES)
       return if (s == null && w == null) null else CodexUsage(s, w, nowMs)

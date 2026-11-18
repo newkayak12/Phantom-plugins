@@ -8,6 +8,8 @@
   area with a rug and a name plate, each agent session a person at a desk (typing, waiting with a raised hand, holding a coffee,
   or asleep). Opens in the "AI Visualization" tool window (its stripe icon), or as the "AI Visualization" editor tab from Tools | Open AI Visualization. Uses only the public API dev.phantom.ai.api of
   Phantom AI Integration.
+  <p>Claude is a trademark of Anthropic and Codex a trademark of OpenAI; the names only label the sessions. This plugin
+  is not affiliated with, sponsored or endorsed by Anthropic or OpenAI.</p>
   ]]></description>
 
   <depends>com.intellij.modules.platform</depends>

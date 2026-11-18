@@ -2,7 +2,7 @@
 
 Drawn at the frame's own resolution (people_hd.DETAIL = 2 x the scene's density), every shape supersampled then thresholded so
 edges stay clean single pixels, each part shaded from the upper left, a darker line where parts overlap and a dark outline tinted
-by the color it borders. Proportions after the reference (cosy chibi: the head about 2/5 of the height, big dark eyes with a white
+by the color it borders. Proportions (cosy chibi: the head about 2/5 of the height, big dark eyes with a white
 glint, rosy cheeks, full hair with strands and a shine, a knit top, jeans, sneakers).
 
 Frame names and anchors as people_hd.py: person<v>_working_<0..3>[_lw], person<v>_idle[_lw], person<v>_waiting_<0|1>,
