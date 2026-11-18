@@ -45,7 +45,6 @@
   </extensionPoints>
 
   <extensions defaultExtensionNs="com.intellij">
-    <statistics.counterUsagesCollector implementationClass="com.intellij.database.csv.CsvFileUsageCollector"/>
     <fileEditorProvider id="csv-data-editor" implementation="com.intellij.database.editor.CsvTableFileEditorProvider" isDocumentRequired="true"/>
     <editorActionHandler action="EditorEscape" implementationClass="com.intellij.database.actions.EscapeEditMaximizedHandler"/>
     <statusBarWidgetFactory id="GridAggregator" implementation="com.intellij.database.datagrid.AggregatorWidget$Factory" order="before Position"/>
@@ -88,11 +87,6 @@
     <search.optionContributor implementation="com.intellij.database.settings.DataGridAppearanceOptionContributor"/>
     <customizableActionGroupProvider implementation="com.intellij.database.run.ui.table.TableFloatingToolbar$CustomizableGroupProvider"/>
   </extensions>
-
-  <applicationListeners>
-    <listener class="com.intellij.database.csv.CsvFileOpenedListener"
-              topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
-  </applicationListeners>
 
   <actions resource-bundle="messages.DataGridBundle">
     <action id="DecreaseColumnWidth" class="com.intellij.database.actions.ColumnsWidthAction$DecreaseColumnsWidthAction"

@@ -20,13 +20,13 @@
   </dependencies>
 
   <!-- One jar: a module with its own class loader in a non-bundled plugin needs a package of its own, and the grid modules
-       share com.intellij.database.*, so all of them load embedded. -->
+       share com.intellij.database.*, so all of them load embedded. No intellij.grid.impl.ide: it held only a usage
+       statistics listener. -->
   <content namespace="jetbrains">
     <module name="intellij.grid" loading="embedded"/>
     <module name="intellij.grid.types" loading="embedded"/>
     <module name="intellij.grid.csv.core.impl" loading="embedded"/>
     <module name="intellij.grid.core.impl" loading="embedded"/>
     <module name="intellij.grid.impl" loading="embedded"/>
-    <module name="intellij.grid.impl.ide" loading="embedded"/>
   </content>
 </idea-plugin>
