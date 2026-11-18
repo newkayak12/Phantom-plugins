@@ -225,7 +225,7 @@ internal object BranchesDashboardActions {
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
 
     override fun update(e: AnActionEvent, project: Project, refs: Collection<RefInfo>, selection: BranchesTreeSelection) {
-      val allRefsAreBranches = refs.all { it is BranchInfo}
+      val allRefsAreBranches = refs.all { it is BranchInfo }
 
       e.presentation.text =
         if (allRefsAreBranches) message("action.Git.Delete.Branch.title", refs.size)

@@ -212,7 +212,6 @@ class GitDirtyScopeTest : GitSingleRepoTest() {
     assertFalse(isDirtyPath(file))
   }
 
-
   private fun editDocument(file: VirtualFile, newContent: String) {
     runInEdtAndWait {
       WriteCommandAction.runWriteCommandAction(project) {

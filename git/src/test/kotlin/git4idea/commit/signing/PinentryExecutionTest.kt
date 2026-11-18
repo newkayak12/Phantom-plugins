@@ -47,7 +47,7 @@ class PinentryExecutionTest : GitSingleRepoTest() {
     git("config user.signingkey 0A46826A!")
     GitProjectConfigurationCache.getInstance(project).clearCache()
     val enabled = GpgAgentConfigurator.isEnabled(project, GitExecutableManager.getInstance().getExecutable(project))
-    assumeTrue("GpgAgentConfigurator should be enabled", enabled);
+    assumeTrue("GpgAgentConfigurator should be enabled", enabled)
   }
 
   fun `test pinentry communication without gpg agent configuration`() {
@@ -229,10 +229,10 @@ class PinentryExecutionTest : GitSingleRepoTest() {
     }
     return output
   }
-  
+
   private fun createPathLocator() =
     application.service<GpgAgentPathsLocatorFactory>().createPathLocator(project, GitExecutableManager.getInstance().getExecutable(project))
-  
+
   companion object {
     private val LOG = logger<PinentryExecutionTest>()
   }

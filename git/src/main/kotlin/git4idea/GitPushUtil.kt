@@ -109,4 +109,3 @@ object GitPushUtil {
              ?.let { GitPushTarget(it.remoteBranch, false, GitPushTargetType.TRACKING_BRANCH) }
   }
 }
-

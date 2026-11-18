@@ -108,4 +108,3 @@ fun GitInOutCountersInProject.calcTooltip(lastFetchTime: Instant?): @NlsContexts
 
   return html.toString().ifEmpty { null }
 }
-

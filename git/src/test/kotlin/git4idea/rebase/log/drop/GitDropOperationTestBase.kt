@@ -97,4 +97,3 @@ internal abstract class GitDropOperationTestBase : GitSingleRepoTest() {
     }
   }
 }
-

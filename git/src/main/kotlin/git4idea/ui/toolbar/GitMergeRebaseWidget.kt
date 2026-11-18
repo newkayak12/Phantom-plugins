@@ -116,4 +116,3 @@ private val AnAction.id: String?
 private const val GIT_MERGE_REBASE_WIDGET_GROUP = "GitMergeRebaseWidgetGroup"
 
 const val GIT_MERGE_REBASE_WIDGET_PLACE = "GitMergeRebaseWidgetPlace"
-

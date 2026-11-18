@@ -89,7 +89,6 @@ class GitChangeProviderNestedRepositoriesTest : GitPlatformTest() {
     assertFileStatus("a.txt", FileStatus.DELETED)
     assertFileStatus("b.txt", FileStatus.UNKNOWN)
 
-
     git("add b.txt")
 
     dirtyScopeManager.fileDirty(getFilePath("b.txt"))
@@ -98,7 +97,6 @@ class GitChangeProviderNestedRepositoriesTest : GitPlatformTest() {
     assertEquals(2, changeListManager.allChanges.size)
     assertFileStatus("a.txt", FileStatus.DELETED)
     assertFileStatus("b.txt", FileStatus.ADDED)
-
 
     git("add a.txt")
 

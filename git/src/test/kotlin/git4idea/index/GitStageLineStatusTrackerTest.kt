@@ -187,7 +187,6 @@ class GitStageLineStatusTrackerTest : LightPlatformTestCase() {
     }
   }
 
-
   private fun test(text: String, task: StagedTest.() -> Unit) {
     val file = LightVirtualFile("LSTTestFile", PlainTextFileType.INSTANCE, parseInput(text))
     val document = FileDocumentManager.getInstance().getDocument(file)!!
@@ -223,7 +222,6 @@ class GitStageLineStatusTrackerTest : LightPlatformTestCase() {
       stageTracker.unstageChanges(this)
       verify()
     }
-
 
     fun assertInvalid() {
       TestCase.assertEquals(false, tracker.isValid())
@@ -261,7 +259,6 @@ class GitStageLineStatusTrackerTest : LightPlatformTestCase() {
       TestCase.assertEquals(if (staged != null) parseInput(staged) else null, stagedContent?.toString())
       TestCase.assertEquals(if (local != null) parseInput(local) else null, localContent?.toString())
     }
-
 
     override fun verify() {
       if (tracker.isValid()) {

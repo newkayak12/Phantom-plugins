@@ -6,7 +6,6 @@ import git4idea.GitWorkingTree
 import git4idea.repo.GitRepository
 import org.jetbrains.annotations.ApiStatus
 
-
 @ApiStatus.Internal
 object GitWorkingTreeTabActionsDataKeys {
   @JvmField

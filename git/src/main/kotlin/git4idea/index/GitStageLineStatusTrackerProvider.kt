@@ -53,7 +53,6 @@ class GitStageLineStatusTrackerProvider : LineStatusTrackerContentLoader {
     return GitStageLineStatusTracker(project, file, document)
   }
 
-
   override fun getContentInfo(project: Project, file: VirtualFile): ContentInfo? {
     val repository = GitRepositoryManager.getInstance(project).getRepositoryForFile(file) ?: return null
     val status = GitStageTracker.getInstance(project).status(file) ?: return null

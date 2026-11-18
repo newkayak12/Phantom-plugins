@@ -10,7 +10,7 @@ interface GitProtectedBranchProvider {
     val EP_NAME: ExtensionPointName<GitProtectedBranchProvider> = ExtensionPointName.create("Git4Idea.gitProtectedBranchProvider")
     @JvmStatic
     fun getProtectedBranchPatterns(project: Project): List<String> {
-      return EP_NAME.extensionList.flatMap { provider -> provider.doGetProtectedBranchPatterns(project)}
+      return EP_NAME.extensionList.flatMap { provider -> provider.doGetProtectedBranchPatterns(project) }
     }
   }
 

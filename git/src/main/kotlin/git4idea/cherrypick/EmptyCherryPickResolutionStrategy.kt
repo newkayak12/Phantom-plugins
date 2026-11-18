@@ -82,4 +82,3 @@ private fun GitRepository.createEmptyCommit(@Nls fallbackMessage: String = messa
 
   return Git.getInstance().runCommand(handler)
 }
-

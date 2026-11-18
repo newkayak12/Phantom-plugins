@@ -56,7 +56,7 @@ class RepositoryAndAccountSelectorComponentFactory<M : HostedGitRepositoryMappin
     submitActionText: @Nls String,
     loginButtons: List<JButton>,
     errorPresenter: ErrorStatusPresenter<RepositoryAndAccountSelectorViewModel.Error>
-  ): JComponent = create(scope,null, repoNamer, detailsProvider,accountsPopupActionsSupplier,submitActionText,loginButtons,errorPresenter)
+  ): JComponent = create(scope, null, repoNamer, detailsProvider, accountsPopupActionsSupplier, submitActionText, loginButtons, errorPresenter)
 
   fun create(
     scope: CoroutineScope,
@@ -150,7 +150,6 @@ class RepositoryAndAccountSelectorComponentFactory<M : HostedGitRepositoryMappin
       bindVisibilityIn(scope, vm.busyState)
     }
 
-
     val actionsPanel = panel {
       row {
         cell(JPanel(HorizontalLayout(UI.scale(16))).apply {
@@ -189,4 +188,3 @@ class RepositoryAndAccountSelectorComponentFactory<M : HostedGitRepositoryMappin
     }
   }
 }
-

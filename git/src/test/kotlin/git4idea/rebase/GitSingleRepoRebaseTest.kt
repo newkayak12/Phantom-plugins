@@ -306,7 +306,6 @@ class GitSingleRepoRebaseTest : GitRebaseBaseTest() {
 
     repo.`prepare simple conflict`()
 
-
     val testChangelist1 = changeListManager.addChangeList("TEST_1", null)
     val testChangelist2 = changeListManager.addChangeList("TEST_2", null)
 

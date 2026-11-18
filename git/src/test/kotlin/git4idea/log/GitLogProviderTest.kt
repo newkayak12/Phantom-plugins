@@ -122,7 +122,7 @@ class GitLogProviderTest : GitLogProviderTestBase() {
 
   /*
  3 cases: no regexp + match case, regex + match case, regex + no matching case
-  */
+   */
   fun test_filter_by_text() {
     val initial = repo.last()
 
@@ -202,7 +202,6 @@ class GitLogProviderTest : GitLogProviderTestBase() {
     myLogProvider.readAllHashes(
       projectRoot,
       Consumer { timedVcsCommit: TimedVcsCommit? -> hashes.add(timedVcsCommit!!.getId().asString()) })
-
 
     val collectConsumer = CollectConsumer<VcsShortCommitDetails?>()
     myLogProvider.readMetadata(projectRoot, hashes, collectConsumer)
@@ -369,7 +368,6 @@ abstract class GitReadRecentCommitsTestBase(val collectRefsFromLog: Boolean) : G
     }
   }
 }
-
 
 abstract class GitLogProviderTestBase : GitSingleRepoTest() {
   protected lateinit var myLogProvider: GitLogProvider

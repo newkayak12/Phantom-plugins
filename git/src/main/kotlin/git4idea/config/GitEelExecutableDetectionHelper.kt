@@ -35,7 +35,7 @@ internal class GitEelExecutableDetectionHelper private constructor(private val s
 
   fun getExecutablePathBlocking(eelDescriptor: EelDescriptor, rootDir: String): String? {
     return runBlockingMaybeCancellable {
-      getExecutablePathPromise(eelDescriptor, rootDir).await();
+      getExecutablePathPromise(eelDescriptor, rootDir).await()
     }
   }
 

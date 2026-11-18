@@ -347,11 +347,11 @@ class GitConfigTest : GitPlatformTest() {
     expectedUrls: List<String>,
     expectedPushUrls: List<String>,
   ) {
-    val h = GitLineHandler(project, projectRoot, GitCommand.REMOTE);
-    h.isEnableInteractiveCallbacks = false;
-    h.setSilent(true);
-    h.addParameters("-v");
-    val output = Git.getInstance().runCommand(h).getOutputOrThrow();
+    val h = GitLineHandler(project, projectRoot, GitCommand.REMOTE)
+    h.isEnableInteractiveCallbacks = false
+    h.setSilent(true)
+    h.addParameters("-v")
+    val output = Git.getInstance().runCommand(h).getOutputOrThrow()
     assertContains(output, ("${expectedUrls.first()} (fetch)"))
     expectedPushUrls.forEach { pushUrl -> assertContains(output, ("${pushUrl} (push)")) }
 

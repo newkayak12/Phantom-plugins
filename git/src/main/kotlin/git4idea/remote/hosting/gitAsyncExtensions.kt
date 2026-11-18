@@ -195,4 +195,3 @@ fun GitRepository.isInCurrentHistory(rev: Flow<String>, ifEqualReturn: Boolean? 
     }
   }
 }
-

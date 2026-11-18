@@ -76,4 +76,3 @@ class GitLogCommandUi(id: String, logData: VcsLogData, colorManager: VcsLogColor
     return GitLogCommandFilterUi(filters) { filterConsumer.accept(it) }
   }
 }
-

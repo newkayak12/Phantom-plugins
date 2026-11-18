@@ -32,7 +32,7 @@ class GitShowStashTabAction : DumbAwareAction() {
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
 
   override fun actionPerformed(e: AnActionEvent) {
-    val project = e.project?: return
+    val project = e.project ?: return
     project.service<GitStashUIHandler>().showStashes()
   }
 }

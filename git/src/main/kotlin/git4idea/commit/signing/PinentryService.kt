@@ -176,7 +176,6 @@ internal class PinentryService(private val cs: CoroutineScope) {
     }
   }
 
-
   data class Address(val host: String, val port: Int) {
     override fun toString(): String = "$host:$port"
   }

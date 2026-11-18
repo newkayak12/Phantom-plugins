@@ -112,7 +112,6 @@ private fun GitRepository.calcTooltip(): @NlsContexts.Tooltip String? {
           .append(DvcsBundle.message("tooltip.branch.widget.root.name.text", root.name))
       }
 
-
       val incomingOutgoingManager = GitBranchIncomingOutgoingManager.getInstance(project)
       val incomingOutgoingState = incomingOutgoingManager.getIncomingOutgoingState(this, repoInfo.currentBranch)
       val incomingOutgoingTooltip = incomingOutgoingState.calcTooltip()

@@ -106,7 +106,6 @@ internal object BranchesDashboardUtil {
     return myBranches
   }
 
-
   private fun findMyCommits(logData: VcsLogData): Set<Int> {
     val filterByMe = VcsLogFilterObject.fromUserNames(listOf(VcsLogFilterObject.ME), logData)
     return logData.index.dataGetter!!.filter(listOf(filterByMe))

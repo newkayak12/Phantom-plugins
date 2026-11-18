@@ -301,7 +301,6 @@ class GitBranchWorkerTest : GitPlatformTest() {
   private fun `check checkout with untracked files overwritten by in second repo`(operation: String) {
     branchWithCommit(myRepositories, "feature")
 
-
     val untracked = listOf("untracked.txt")
     untrackedFileOverwrittenBy(second, "feature", untracked)
 
@@ -978,7 +977,6 @@ class GitBranchWorkerTest : GitPlatformTest() {
         return DeleteRemoteBranchDecision.DELETE
       }
     }).deleteRemoteBranch("origin/feature", myRepositories)
-
 
     assertSuccessfulNotification("Deleted remote branch origin/feature")
     myRepositories.forEach { `assert remote branch deleted`(it, "origin/feature") }

@@ -188,7 +188,6 @@ class GitRewordTest : GitSingleRepoTest() {
                StringUtil.equalsIgnoreWhitespaces(newMessage, actualMessage))
   }
 
-
   // IDEA-254399
   fun `test reword via rebase with spaces at the beginning`() {
     val commit = file("a").create("initial").addCommit("  \t    Wrong message").details()

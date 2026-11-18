@@ -96,7 +96,7 @@ class GitMultiRepoUpdateTest : GitMultiRepoUpdateBaseTest() {
     tac("com.txt")
     git("push")
 
-    repositories().forEach { it.checkout("HEAD^0")}
+    repositories().forEach { it.checkout("HEAD^0") }
 
     val updateProcess = GitUpdateProcess(project, EmptyProgressIndicator(), repositories(), UpdatedFiles.create(), null, false, true)
     val result = updateProcess.update(UpdateMethod.MERGE)

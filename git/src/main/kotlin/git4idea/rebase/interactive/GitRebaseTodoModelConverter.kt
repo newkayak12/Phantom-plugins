@@ -89,7 +89,6 @@ private fun <T : GitRebaseEntry> amendCommitMessage(root: GitRebaseTodoModel.Ele
   return newMessage
 }
 
-
 internal fun <T : GitRebaseEntry> GitRebaseTodoModel<out T>.convertToEntries(): List<GitRebaseEntry> = elements.map { element ->
   val entry = element.entry
   GitRebaseEntry(element.type.command, entry.commit, entry.subject)

@@ -181,7 +181,6 @@ internal class GitBranchCheckoutOperation(private val project: Project, private 
       }
     }
 
-
     private enum class CheckoutConflictResolution {
       // just use local
       USE_LOCAL,

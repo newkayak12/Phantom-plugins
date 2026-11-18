@@ -20,5 +20,5 @@ class ResolveConflictsLocallyCoordinates(
 @ApiStatus.Experimental
 enum class BaseOrHead(val text: @Nls String) {
   Base(CollaborationToolsBundle.message("review.details.resolve-conflicts.base")),
-  Head(CollaborationToolsBundle.message("review.details.resolve-conflicts.head"));
+  Head(CollaborationToolsBundle.message("review.details.resolve-conflicts.head"))
 }

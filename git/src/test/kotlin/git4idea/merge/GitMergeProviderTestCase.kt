@@ -146,7 +146,6 @@ abstract class GitMergeProviderTestCase : GitPlatformTest() {
     git("checkout master")
   }
 
-
   protected fun `assert merge conflict`() {
     val files = git("ls-files --unmerged -z")
     assertTrue(files.isNotEmpty())
@@ -235,6 +234,6 @@ abstract class GitMergeProviderTestCase : GitPlatformTest() {
   }
 
   protected enum class Side {
-    ORIGINAL, LAST, CURRENT;
+    ORIGINAL, LAST, CURRENT
   }
 }

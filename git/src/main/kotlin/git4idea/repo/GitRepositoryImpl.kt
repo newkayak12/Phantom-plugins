@@ -182,7 +182,6 @@ class GitRepositoryImpl private constructor(
     return repoInfo.isOnBranch
   }
 
-
   override fun update() {
     ApplicationManager.getApplication().assertIsNonDispatchThread()
     val previousInfo = repoInfo
@@ -235,8 +234,6 @@ class GitRepositoryImpl private constructor(
   override fun toLogString(): String {
     return "GitRepository $root : $repoInfo"
   }
-
-
 
   companion object {
     private val LOG = Logger.getInstance(GitRepositoryImpl::class.java)

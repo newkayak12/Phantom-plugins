@@ -157,7 +157,6 @@ internal object GitCherryPickContinueProcess {
                                      .findLogProviders(listOf(rootObject), project)[root]
                                    ?: return emptyList()
 
-
     val range: VcsLogRangeFilter = VcsLogFilterObject.fromRange(fromExclusiveHash.asString(), toInclusiveHash.asString())
 
     val commitsInRange = provider.getCommitsMatchingFilter(

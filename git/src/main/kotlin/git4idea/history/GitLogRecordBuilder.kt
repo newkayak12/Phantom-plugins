@@ -51,4 +51,3 @@ internal class InternedGitLogRecordBuilder : DefaultGitLogFullRecordBuilder() {
     statuses.add(info)
   }
 }
-

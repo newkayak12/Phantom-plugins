@@ -158,7 +158,6 @@ internal class GitConflictsPanel(
 
   private fun getConflictOperationLock(conflict: GitConflict) = getConflictOperationLock(project, conflict)
 
-
   private inner class MainPanel : JPanel(BorderLayout()), UiDataProvider {
     override fun uiDataSnapshot(sink: DataSink) {
       sink[CommonDataKeys.NAVIGATABLE_ARRAY] = ChangesUtil.getNavigatableArray(

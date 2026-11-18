@@ -20,4 +20,3 @@ fun getGitCommandInstance(commandName: String): GitCommand {
     constructor.newInstance(commandName, GitCommand.LockingPolicy.WRITE) as GitCommand
   }
 }
-

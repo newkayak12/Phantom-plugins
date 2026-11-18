@@ -35,7 +35,7 @@ internal class CopyOnWriteFilePathSet(private val caseSensitive: Boolean) {
     val newFiles = RecursiveFilePathSet(caseSensitive)
     filesSet.filePaths().forEach { file ->
       if (!pathsToExclude.contains(file)) {
-        newFiles.add(file);
+        newFiles.add(file)
       }
     }
     filesSet = newFiles

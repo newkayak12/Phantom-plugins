@@ -324,7 +324,6 @@ class GitCheckinEnvironment(private val myProject: Project) : CheckinEnvironment
     @JvmField
     val COMMIT_DATE_FORMAT: SimpleDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
 
-
     private fun commitRepository(
       repository: GitRepository,
       changes: Collection<CommitChange>,
@@ -465,7 +464,6 @@ class GitCheckinEnvironment(private val myProject: Project) : CheckinEnvironment
         Pair(helpers, partialChanges)
       } ?: throw VcsException(GitBundle.message("error.commit.cant.collect.partial.changes"))
 
-
       val pathsToDelete = mutableListOf<FilePath>()
       for (change in partialChanges) {
         if (change.isMove) {
@@ -474,7 +472,6 @@ class GitCheckinEnvironment(private val myProject: Project) : CheckinEnvironment
       }
       LOG.debug(String.format("Updating index for partial changes: removing: %s", pathsToDelete))
       GitFileUtils.deletePaths(project, repository.root, pathsToDelete, "--ignore-unmatch")
-
 
       LOG.debug(String.format("Updating index for partial changes: changes: %s", partialChanges))
       for (i in partialChanges.indices) {
@@ -578,7 +575,6 @@ class GitCheckinEnvironment(private val myProject: Project) : CheckinEnvironment
         return null
       }
     }
-
 
     private fun addCaseOnlyRenamesToIndex(
       repository: GitRepository,
@@ -693,7 +689,6 @@ class GitCheckinEnvironment(private val myProject: Project) : CheckinEnvironment
         movesMap[move.after] = move
       }
 
-
       val nextCommitChanges = mutableListOf<CommitChange>()
       val movedChanges = mutableListOf<CommitChange>()
 
@@ -710,11 +705,9 @@ class GitCheckinEnvironment(private val myProject: Project) : CheckinEnvironment
         }
       }
 
-
       val pathsToDelete = explicitMoves.map { move -> move.before }
       LOG.debug(String.format("Updating index for explicit movements: removing: %s", pathsToDelete))
       GitFileUtils.deletePaths(repository.project, repository.root, pathsToDelete, "--ignore-unmatch")
-
 
       for (move in explicitMoves) {
         val beforeFilePath = move.before

@@ -134,7 +134,6 @@ class GitStageLineStatusTracker(
     unstagedTracker.addHandler(MyDocumentTrackerHandler(true))
   }
 
-
   @RequiresEdt
   fun setBaseRevision(vcsContent: CharSequence, newStagedDocument: Document) {
     ThreadingAssertions.assertEventDispatchThread()
@@ -190,7 +189,6 @@ class GitStageLineStatusTracker(
     val affectedDocument = side.selectNotNull(vcsDocument, stagedDocument, document)
     return LineStatusTrackerBase.updateDocument(project, affectedDocument, commandName, task)
   }
-
 
   private var cachedBlocks: List<StagedRange>? = null
   private val blocks: List<StagedRange>
@@ -264,7 +262,6 @@ class GitStageLineStatusTracker(
     stagedTracker.unfreeze(Side.LEFT)
     stagedTracker.unfreeze(Side.RIGHT)
   }
-
 
   override fun rollbackChanges(range: Range) {
     val newRange = blockOperations.findBlock(range) ?: return
@@ -581,7 +578,7 @@ class GitStageLineStatusTracker(
         return
       }
 
-      LineStatusMarkerPopupService.instance.buildAndShowPopup(tracker.disposable, editor, mousePosition) { popupDisposable->
+      LineStatusMarkerPopupService.instance.buildAndShowPopup(tracker.disposable, editor, mousePosition) { popupDisposable ->
         val stagedTextField = createTextField(editor, tracker.stagedDocument, range.stagedLine1, range.stagedLine2)
         val vcsTextField = createTextField(editor, tracker.vcsDocument, range.vcsLine1, range.vcsLine2)
         installWordDiff(editor, stagedTextField, vcsTextField, range, popupDisposable)

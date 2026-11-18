@@ -22,7 +22,6 @@ import git4idea.repo.GitRepositoryManager
 import git4idea.util.GitFileUtils.addTextConvParameters
 import java.nio.charset.StandardCharsets
 
-
 private val LOG = logger<GitRevisionContentPreLoader>()
 
 class GitRevisionContentPreLoader(val project: Project) {

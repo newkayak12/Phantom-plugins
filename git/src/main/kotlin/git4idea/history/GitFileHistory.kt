@@ -66,7 +66,6 @@ class GitFileHistory internal constructor(private val project: Project,
   @Throws(VcsException::class)
   internal fun load(consumer: (GitFileRevision) -> Unit, vararg parameters: String) = load(consumer, {}, *parameters)
 
-
   @Throws(VcsException::class)
   internal fun load(consumer: (GitFileRevision) -> Unit, renameConsumer: (FileRename) -> Unit, vararg parameters: String) {
     val logParser = createLogParser(project)

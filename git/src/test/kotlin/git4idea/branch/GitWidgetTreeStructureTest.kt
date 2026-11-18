@@ -126,7 +126,6 @@ class GitWidgetTreeStructureTest : GitPlatformTest() {
     compareWithSnapshot(buildTestTree())
   }
 
-
   fun testMultiRepoWithFavoriteRefs() {
     val broRepo = registerBroRepo()
 
@@ -169,7 +168,6 @@ class GitWidgetTreeStructureTest : GitPlatformTest() {
 
     compareWithSnapshot(buildTestTree("group"))
   }
-
 
   fun testMultiRepoWithFilterMatchingRepo() {
     registerBroRepo()

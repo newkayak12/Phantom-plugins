@@ -75,4 +75,3 @@ class GitSha1Test : GitSingleRepoTest() {
     assertEquals(expectedAfter, beforeAfterSha1.second)
   }
 }
-

@@ -57,7 +57,6 @@ class GitHistoryUtilsTest : GitSingleRepoTest() {
     hash = repo.commit("moved a.txt to dir/b.txt")
     revisions.add(GitTestRevision(hash, timeStampToDate(repo.lastAuthorTime())))
 
-
     val messages = listOf("simple commit after rename",
                           "commit with {%n} some [%ct] special <format:%H%at> characters including " +
                           "--pretty=tformat:%x00%x01%x00%H%x00%ct%x00%an%x20%x3C%ae%x3E%x00%cn%x20%x3C%ce%x3E%x00%x02%x00%s%x00%b%x00%x02%x01",

@@ -86,13 +86,7 @@ class GitConfigureRemotesDialog(val project: Project, val repositories: Collecti
       }
     }.installOn(table)
 
-    return ToolbarDecorator.createDecorator(table).
-        setAddAction { addRemote() }.
-        setRemoveAction { removeRemote() }.
-        setEditAction { editRemote() }.
-        setEditActionUpdater { isRemoteSelected() }.
-        setRemoveActionUpdater { isRemoteSelected() }.
-        disableUpDownActions().createPanel()
+    return ToolbarDecorator.createDecorator(table).setAddAction { addRemote() }.setRemoveAction { removeRemote() }.setEditAction { editRemote() }.setEditActionUpdater { isRemoteSelected() }.setRemoveActionUpdater { isRemoteSelected() }.disableUpDownActions().createPanel()
   }
 
   private fun addRemote() {
@@ -295,7 +289,7 @@ private fun doFetch(repository: GitRepository, remoteName: String, remoteUrl: St
 private val GitRemote.url: String get() = urls.firstOrNull() ?: ""
 
 private fun Set<GitRemote>.toStringRepresentation() =
-  if (size == 1) with(first()){"$name '$url'"} else "\n${joinToString(separator = "\n") {"${it.name} '${it.url}'" }}"
+  if (size == 1) with(first()) { "$name '$url'" } else "\n${joinToString(separator = "\n") {"${it.name} '${it.url}'" }}"
 
 private fun changeRemote(git: Git, repo: GitRepository, oldName: String, oldUrl: String, newName: String, newUrl: String): GitCommandResult {
   var result : GitCommandResult? = null

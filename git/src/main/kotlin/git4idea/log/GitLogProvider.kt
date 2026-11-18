@@ -287,7 +287,7 @@ class GitLogProvider(private val project: Project) : VcsLogProvider, VcsIndexabl
       We expect a "branch + range" combined filter to display the union of commits reachable from the branch,
       and commits belonging to the range. But Git intersects results for such parameters.
       => to solve this, we make a query for branch filters, and then separate queries for each of the ranges.
-    */
+     */
     val commits = LinkedHashSet<TimedVcsCommit>()
     var modifiedFilterCollection = filterCollection
     if (filterCollection.get(BRANCH_FILTER) != null || filterCollection.get(REVISION_FILTER) != null) {

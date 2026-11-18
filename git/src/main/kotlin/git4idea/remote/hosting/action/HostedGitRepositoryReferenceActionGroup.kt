@@ -27,7 +27,7 @@ abstract class HostedGitRepositoryReferenceActionGroup : ActionGroup, DumbAware 
     val references = findReferences(e.dataContext).distinct()
     e.presentation.isEnabledAndVisible = references.isNotEmpty()
     e.presentation.isPerformGroup = references.size == 1
-    e.presentation.putClientProperty(ActionUtil.HIDE_DROPDOWN_ICON, e.presentation.isPerformGroup);
+    e.presentation.putClientProperty(ActionUtil.HIDE_DROPDOWN_ICON, e.presentation.isPerformGroup)
     e.presentation.isPopupGroup = true
     e.presentation.isDisableGroupIfEmpty = false
   }

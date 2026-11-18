@@ -190,4 +190,3 @@ internal fun Panel.commitMessageWithLabelAndToolbar(commitMessage: CommitMessage
 
 private val GitCommitEditingActionBase.MultipleCommitEditingData.selectedChanges: List<Change>?
   get() = asSafely<GitSingleCommitEditingAction.SingleCommitEditingData>()?.selectedChanges?.takeIf { it.isNotEmpty() }
-

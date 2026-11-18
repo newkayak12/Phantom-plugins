@@ -139,4 +139,3 @@ internal class GitBranchesTreeTestContext(private val groupByDirectories: Boolea
       TagInfo(tag, isCurrent, isFavorite, repositories)
   }
 }
-

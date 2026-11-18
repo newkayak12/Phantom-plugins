@@ -34,7 +34,6 @@ internal abstract class GitWorkingTreeTest : GitWorkingTreeTestBase() {
     }
   }
 
-
   class GitWorkingTreeOnLinkedWorkingTreeTest : GitWorkingTreeTest() {
     val branchName = "feature"
     val mainRepoRelativePath = "mainRepo"

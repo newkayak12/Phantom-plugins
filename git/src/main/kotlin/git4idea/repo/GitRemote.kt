@@ -65,7 +65,6 @@ class GitRemote(
     return "GitRemote(name='$name', urls=$urls, pushUrls=$pushUrls, fetchRefSpecs=$fetchRefSpecs, pushRefSpecs=$pushRefSpecs)"
   }
 
-
   override fun compareTo(o: GitRemote): Int {
     return name.compareTo(o.name)
   }

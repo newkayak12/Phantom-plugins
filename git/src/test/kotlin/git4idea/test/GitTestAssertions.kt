@@ -44,11 +44,11 @@ fun GitRepository.assertStatus(file: File, status: Char) {
  * Checks the latest part of git history by commit messages.
  */
 fun GitRepository.assertLatestHistory(vararg expectedMessages: String) {
-  assertLatestHistory( { it.fullMessage }, *expectedMessages)
+  assertLatestHistory({ it.fullMessage }, *expectedMessages)
 }
 
 fun GitRepository.assertLatestSubjects(vararg expectedMessages: String) {
-  assertLatestHistory( { it.subject }, *expectedMessages)
+  assertLatestHistory({ it.subject }, *expectedMessages)
 }
 
 private fun GitRepository.assertLatestHistory(mapping: (VcsCommitMetadata) -> String, vararg expectedMessages: String) {
@@ -158,7 +158,6 @@ fun ChangeListManager.assertChanges(changes: ChangesBuilder.() -> Unit): List<Ch
 }
 
 class ChangesBuilder {
-
 
   data class AChange(val type: FileStatus,
                      val nameBefore: String?,

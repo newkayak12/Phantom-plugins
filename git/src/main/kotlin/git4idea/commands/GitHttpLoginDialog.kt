@@ -32,7 +32,6 @@ import java.awt.event.ActionEvent
 import javax.swing.AbstractAction
 import javax.swing.JComponent
 
-
 class GitHttpLoginDialog @JvmOverloads constructor(project: Project,
                                                    url: @NlsSafe String,
                                                    rememberPassword: Boolean = true,
