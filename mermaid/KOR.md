@@ -33,7 +33,14 @@ IntelliJ Community의 Mermaid 플러그인(`plugins/mermaid`, Apache 2.0)을 자
 cd browser-build && ./updateMermaidJs.sh
 ```
 
+이 스크립트는 `mermaid.js` 옆에 `mermaid.js.LICENSE.txt`도 씁니다(`browser-build/updateLicenses.py`, npm 필요). 번들에 든 npm
+패키지(mermaid, d3, cytoscape, dagre-d3-es, DOMPurify, KaTeX, lodash-es, marked, roughjs, uuid, Font Awesome Free 등)와 그
+라이선스 목록입니다.
+
 ## 테스트
 
 업스트림 테스트(421개, 문서 예제를 추출해야 하는 `OfficialExamplesParsingTest` 제외)와, 두 미리보기가 다이어그램을
 몇 번 그리는지 세는 `PreviewRenderingTest`입니다. 미리보기 테스트는 JCEF를 쓰며 `CI`가 설정된 곳에서는 건너뜁니다.
+
+**0.1.3**: mermaid.js 첫 줄이 가리키는 `mermaid.js.LICENSE.txt`(mermaid.js에 번들된 npm 패키지의 라이선스)가 플러그인에 들어
+있습니다.

@@ -2,7 +2,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.2"
+version = "0.1.3"
 
 dependencies {
   // the platform has its own slf4j; two copies in one class loader chain break logging
@@ -33,4 +33,5 @@ for (coordinates in listOf("com.github.luben:zstd-jni:1.5.6-4", "org.xerial.snap
     }
   }
   dependencies.add("implementation", files(stripped))
+  dependencies.add("packedLibraries", coordinates) { isTransitive = false }
 }

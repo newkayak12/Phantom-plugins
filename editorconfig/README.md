@@ -7,3 +7,5 @@
 Based on the IntelliJ Community EditorConfig plugin (`plugins/editorconfig`, Apache 2.0), under Phantom's own id.
 `org.editorconfig.editorconfigjetbrains` stays as an alias and the content module names stay the IntelliJ ones, so
 plugins and bundled modules that depend on them keep working. Phantom bundles this build instead of the IntelliJ plugin.
+
+**0.1.1**: The plugin jar lists its packaged library (ec4j, Apache 2.0) in `META-INF/THIRD-PARTY-NOTICES.txt`.

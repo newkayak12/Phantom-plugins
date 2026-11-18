@@ -11,3 +11,6 @@ offer token login only.
 Based on the IntelliJ Community GitHub plugin (`plugins/github`, Apache 2.0), under Phantom's own id. `org.jetbrains.plugins.github`
 stays as an alias and the content module names stay the IntelliJ ones, so plugins and bundled modules that depend on them
 keep working. Phantom bundles this build instead of the IntelliJ plugin.
+
+**0.1.3**: when an organization's OAuth App access restrictions hide a repository, the error links to GitHub's article
+on those restrictions instead of a JetBrains support article.

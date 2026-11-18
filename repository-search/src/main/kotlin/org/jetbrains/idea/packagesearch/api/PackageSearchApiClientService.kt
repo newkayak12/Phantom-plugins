@@ -6,7 +6,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ApplicationNamesInfo
 import com.intellij.openapi.application.PathManager.getSystemDir
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.util.registry.Registry
 import com.intellij.util.io.createParentDirectories
 import io.ktor.client.engine.java.Java
 import io.ktor.client.plugins.DefaultRequest
@@ -33,7 +32,6 @@ import org.jetbrains.packagesearch.api.PackageSearchApiClientObject
 import org.jetbrains.packagesearch.api.v3.ApiMavenPackage
 import org.jetbrains.packagesearch.api.v3.http.PackageSearchApiClient
 import org.jetbrains.packagesearch.api.v3.http.PackageSearchApiClient.Companion.defaultHttpClient
-import org.jetbrains.packagesearch.api.v3.http.PackageSearchDefaultEndpoints
 import org.jetbrains.packagesearch.api.v3.http.PackageSearchEndpoints
 import org.jetbrains.packagesearch.api.v3.http.searchPackages
 import org.jetbrains.packagesearch.api.v3.search.jvmMavenPackages
@@ -96,20 +94,14 @@ class PackageSearchApiClientService(val coroutineScope: CoroutineScope) : Dispos
   private val cacheFilePath
     get() = getSystemDir() / "caches" / "packagesearch" / "${PackageSearchApiClientObject.version}.db"
 
-
   private val mvDataStore = MVDataStore.open(
     getCacheFile(),
     DataStore.CommitStrategy.Periodic(5.seconds))
 
-  private val overrideEndpoint = Registry.`is`("packagesearch.config.url.override")
-  private val endpoint = if(overrideEndpoint) {
-    PackageSearchDefaultEndpoints(
-      host = "maven-deps-search.labs.jb.gg",
-    )
-  }  else PackageSearchEndpoints.PROD
+  // phantom: no registry switch to JetBrains' maven-deps-search.labs.jb.gg; requests fail before leaving anyway (see init)
   val client = PackageSearchApiClient(
     dataStore = mvDataStore,
-    endpoints = endpoint,
+    endpoints = PackageSearchEndpoints.PROD,
     httpClient = httpClient
   )
 
@@ -140,7 +132,6 @@ class PackageSearchApiClientService(val coroutineScope: CoroutineScope) : Dispos
       }.filterIsInstance<ApiMavenPackage>()
     }
 
-
   @Deprecated("Use directly the client instead (PackageSearcgApiClientService)")
   @ScheduledForRemoval
   suspend fun fulltextSearch(searchString: String): List<MavenRepoArtifactInfo> =
@@ -157,7 +148,6 @@ class PackageSearchApiClientService(val coroutineScope: CoroutineScope) : Dispos
         .filterIsInstance<ApiMavenPackage>()
         .map { it.repositoryArtifactData() }
     }
-
 
   @Deprecated("Use directly the client instead")
   @ScheduledForRemoval
@@ -197,4 +187,3 @@ private fun UserAgentConfig.intelliJ(): String {
     return "IntelliJ"
   }
 }
-

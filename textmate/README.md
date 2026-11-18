@@ -9,3 +9,7 @@ as an alias and the content module names stay the IntelliJ ones, so plugins and 
 keep working. Phantom bundles this build instead of the IntelliJ plugin.
 
 The grammars are read from this plugin's own folder wherever it is installed, not only from the IDE's `plugins/textmate-plugin`.
+
+**0.1.1**: the plugin jar carries the licenses of the bundled grammars (`META-INF/LICENSE-textmate`: VS Code's MIT
+license, and which bundles keep their own, MPL 2.0 for HashiCorp's HCL and Terraform) and lists the packaged libraries
+(Joni and JCodings, MIT) in `META-INF/THIRD-PARTY-NOTICES.txt`.
