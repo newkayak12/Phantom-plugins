@@ -5,7 +5,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.0"
+version = "0.1.1"
 
 // The IntelliJ sources keep Java next to Kotlin. src/rt, src/rt5 and src/rt6 are junit-rt.jar (intellij.junit.rt),
 // junit5-rt.jar (intellij.junit.v5.rt) and junit6-rt.jar (intellij.junit.v6.rt): the starter, runners and listeners that

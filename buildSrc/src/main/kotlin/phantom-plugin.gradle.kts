@@ -62,12 +62,17 @@ fun resolveBundledPhantomPluginsByAlias() {
   }
 }
 
-// Every plugin zip carries the licenses with it: the repository's LICENSE and NOTICE, and a plugin folder's own LICENSE
-// (TOML's MIT license, for one) as META-INF/LICENSE-<plugin>
+// Every plugin zip carries the licenses with it: the repository's LICENSE and NOTICE, and a plugin folder's own license
+// files. The folder's LICENSE (TOML's MIT license, for one) becomes META-INF/LICENSE-<plugin> and its NOTICE or
+// NOTICE.txt META-INF/NOTICE-<plugin>, so they don't replace the repository's; LICENSE-* files (the LGPL texts of the
+// libraries Grammar packages) keep their names.
 tasks.named<Jar>("jar") {
   metaInf {
     from(rootDir.resolve("LICENSE"), rootDir.resolve("NOTICE"))
-    from(projectDir.resolve("LICENSE").takeIf { it.isFile } ?: files()) { rename { "LICENSE-${project.name}" } }
+    from(projectDir.listFiles { file -> file.isFile && file.name.matches(Regex("LICENSE(-.+)?|NOTICE(\\.txt)?")) }.orEmpty()) {
+      rename("^LICENSE$", "LICENSE-${project.name}")
+      rename("^NOTICE(\\.txt)?$", "NOTICE-${project.name}")
+    }
   }
 }
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-# Updates the bundled mermaid.js, mermaid.js.map, and mermaid.css files.
+# Updates the bundled mermaid.js, mermaid.js.map, mermaid.js.LICENSE.txt, and mermaid.css files.
 #
 # Prerequisites:
 #   - JDK 17+ available (set JAVA_HOME or have it on PATH)
@@ -55,6 +55,10 @@ echo "Copying bundle to resources..."
 mkdir -p "$RESOURCES_DIR"
 cp "$DIST_DIR/mermaid.js" "$RESOURCES_DIR/mermaid.js"
 cp "$DIST_DIR/mermaid.js.map" "$RESOURCES_DIR/mermaid.js.map"
+# Phantom: Terser moves the license comments of the bundled packages here; mermaid.js points to it
+cp "$DIST_DIR/mermaid.js.LICENSE.txt" "$RESOURCES_DIR/mermaid.js.LICENSE.txt"
+python3 "$SCRIPT_DIR/appendBundledLicenses.py" "$DIST_DIR/mermaid.js.map" "$SCRIPT_DIR/build/js/node_modules" \
+  "$RESOURCES_DIR/mermaid.js.LICENSE.txt"
 cp "$SCRIPT_DIR/browser/extension/src/main/resources/mermaid.css" "$RESOURCES_DIR/mermaid.css"
 
 # Clean Gradle build outputs (they conflict with Bazel on case-insensitive filesystems)

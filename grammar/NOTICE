@@ -1,0 +1,29 @@
+Phantom Grammar
+Copyright 2026 Phantom contributors
+
+The plugin's own code is licensed under the Apache License, Version 2.0 (LICENSE). It packages the following libraries
+unmodified, as separate jars in its lib folder, under the GNU Lesser General Public License. You may replace these jars
+with your own builds of the same libraries.
+
+LanguageTool core and English (lib/languagetool-core-6.8.27.jar, lib/language-en-6.8.27.jar)
+  Maven: org.jetbrains.intellij.deps.languagetool:languagetool-core:6.8.27, :language-en:6.8.27
+  JetBrains' build of LanguageTool, https://github.com/JetBrains/languagetool, from the upstream LanguageTool project,
+  https://github.com/languagetool-org/languagetool (https://languagetool.org)
+  Copyright (C) Daniel Naber and the LanguageTool contributors
+  License: GNU Lesser General Public License, version 2.1 or later (LICENSE-LGPL-2.1)
+
+English POS dictionary (lib/english-pos-dict-0.6.jar)
+  Maven: org.languagetool:english-pos-dict:0.6
+  Source: https://github.com/languagetool-org/english-pos-dict
+  License: GNU Lesser General Public License, version 2.1 (LICENSE-LGPL-2.1)
+
+OpenRegex (lib/openregex-1.1.1.jar)
+  Maven: edu.washington.cs.knowitall:openregex:1.1.1
+  Source: https://github.com/knowitall/openregex
+  Written by Michael Schmitz at the Turing Center, University of Washington
+  License: GNU Lesser General Public License, version 3 (LICENSE-LGPL-3.0), which builds on the GNU General Public
+  License, version 3 (LICENSE-GPL-3.0)
+
+The source code is available from the repositories above. The LanguageTool jars also have source jars in JetBrains'
+intellij-dependencies repository (https://packages.jetbrains.team/maven/p/ij/intellij-dependencies), OpenRegex in
+Maven Central (https://repo1.maven.org/maven2).

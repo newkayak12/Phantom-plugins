@@ -5,7 +5,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.1"
+version = "0.1.2"
 
 // The IntelliJ sources keep Java next to Kotlin. src/rt is java-coverage-rt.jar: the JUnit and TestNG listeners that
 // run inside the user's test JVM, so Java 8 bytecode in a jar of its own (the IDE's run configurations add that jar)
