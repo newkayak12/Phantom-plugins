@@ -66,7 +66,7 @@ object GrazieDynamic : DynamicPluginListener {
 
   private fun extractLang(path: Path): Lang? {
     val iso = extractIso(path, langToolPattern) ?: return null
-    return Lang.entries.find { it.iso.toString() == iso }
+    return Lang.entries.find { it.iso.name.lowercase() == iso } // phantom: storage names are lower case, LanguageISO names upper
   }
 
   private fun extractIso(path: Path, pattern: Pattern): String? {

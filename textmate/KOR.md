@@ -9,3 +9,7 @@ IntelliJ Community의 TextMate Bundles 플러그인(`plugins/textmate`, Apache 2
 IntelliJ 플러그인 대신 이 빌드를 번들합니다.
 
 문법은 IDE의 `plugins/textmate-plugin`만이 아니라, 이 플러그인이 설치된 폴더에서 읽습니다.
+
+**0.1.1**: 플러그인 jar에 번들 문법의 라이선스(`META-INF/LICENSE-textmate`: VS Code의 MIT 라이선스와, 자기 라이선스를 따르는
+번들 목록, HashiCorp의 HCL과 Terraform은 MPL 2.0)가 들어 있고, 포함된 라이브러리(Joni, JCodings, MIT)가
+`META-INF/THIRD-PARTY-NOTICES.txt`에 나옵니다.

@@ -62,12 +62,30 @@ fun resolveBundledPhantomPluginsByAlias() {
   }
 }
 
-// Every plugin zip carries the licenses with it: the repository's LICENSE and NOTICE, and a plugin folder's own LICENSE
-// (TOML's MIT license, for one) as META-INF/LICENSE-<plugin>
+// Libraries from Maven that a plugin packs into lib/ by other means than runtimeClasspath (repackaged into a jar of its
+// own, as kafka's stripped codecs and testng's merged testng.jar), so that THIRD-PARTY-NOTICES lists them too
+val packedLibraries = configurations.create("packedLibraries") {
+  isCanBeConsumed = false
+}
+
+// META-INF/THIRD-PARTY-NOTICES.txt and META-INF/licenses/: every library packed into the plugin's lib/, with its license
+// and the license texts. Computed from the resolved POMs when the task's input is read.
+val thirdPartyNotices = tasks.register<ThirdPartyNoticesTask>("thirdPartyNotices") {
+  val built by lazy {
+    ThirdPartyNotices(project, listOf(configurations["runtimeClasspath"], packedLibraries), rootDir.resolve("licenses")).build()
+  }
+  notices = providers.provider { built.first }
+  licenseTexts = providers.provider { built.second }
+  outputDirectory = layout.buildDirectory.dir("thirdPartyNotices")
+}
+
+// Every plugin zip carries the licenses with it: the repository's LICENSE and NOTICE, a plugin folder's own LICENSE
+// (TOML's MIT license, for one) as META-INF/LICENSE-<plugin>, and the notices of its third-party libraries
 tasks.named<Jar>("jar") {
   metaInf {
     from(rootDir.resolve("LICENSE"), rootDir.resolve("NOTICE"))
     from(projectDir.resolve("LICENSE").takeIf { it.isFile } ?: files()) { rename { "LICENSE-${project.name}" } }
+    from(thirdPartyNotices)
   }
 }
 

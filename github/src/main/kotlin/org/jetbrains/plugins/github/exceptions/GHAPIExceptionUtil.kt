@@ -10,7 +10,9 @@ import org.jetbrains.plugins.github.i18n.GithubBundle
 import java.net.UnknownHostException
 
 object GHAPIExceptionUtil {
-  private const val OAUTH_ERROR_SUPPORT_LINK = "https://youtrack.jetbrains.com/articles/SUPPORT-A-2404"
+  // phantom: GitHub's own article on OAuth App access restrictions instead of JetBrains' support article about them
+  private const val OAUTH_ERROR_SUPPORT_LINK =
+    "https://docs.github.com/en/organizations/managing-oauth-access-to-your-organizations-data/about-oauth-app-access-restrictions"
   private const val OAUTH_ERROR_MESSAGE_PREFIX = "Could not resolve to a Repository"
 
   /**

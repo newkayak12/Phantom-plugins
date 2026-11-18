@@ -575,6 +575,7 @@
     <ID>CyclomaticComplexMethod:TextMateSelectorLexer.kt:TextMateSelectorLexer$fun tokenize: List&lt;TextMateSelectorToken></ID>
     <ID>CyclomaticComplexMethod:TextMateSelectorParser.kt:TextMateSelectorParser.ScopeSelector$override fun weigh: TextMateWeigh</ID>
     <ID>CyclomaticComplexMethod:TextWithReplacement.kt:internal fun parseTextWithReplacement: TextWithReplacement</ID>
+    <ID>CyclomaticComplexMethod:ThirdPartyNotices.kt:ThirdPartyNotices.Companion$fun spdxId: String?</ID>
     <ID>CyclomaticComplexMethod:TomlDslWriter.kt:TomlDslWriter$override fun createDslElement: PsiElement?</ID>
     <ID>CyclomaticComplexMethod:TomlJsonPsiWalker.kt:TomlJsonPsiWalker$override fun findPosition: JsonPointerPosition</ID>
     <ID>CyclomaticComplexMethod:Validation.kt:Constraints$fun accepts: Boolean</ID>

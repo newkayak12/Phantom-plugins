@@ -9,3 +9,7 @@ IntelliJ Community의 Java Bytecode Decompiler 플러그인(`plugins/java-decomp
 IntelliJ 플러그인 대신 이 빌드를 번들합니다.
 
 엔진 테스트는 javac가 없는 IDE 런타임에서 돌아서, 왕복 테스트는 ECJ로만 컴파일합니다.
+
+**0.1.1**: 처음 클래스 파일을 디컴파일하기 전에 나오는 안내가 "Fernflower decompiler"라는 제목의 단순한 경고가 됐습니다.
+디컴파일한 코드도 보호받을 수 있으니 디컴파일하는 대상의 라이선스를 확인하라는 내용입니다. IntelliJ에서 넘어온 "JetBrains
+Decompiler" 최종 사용자 라이선스 계약 문구를 대신합니다. 이 플러그인에는 Apache 2.0 외의 라이선스 계약이 없습니다.
