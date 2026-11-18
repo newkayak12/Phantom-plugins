@@ -109,7 +109,8 @@ python3 tools/release.py db                 # 빌드, 테스트, marketplace.jso
 python3 tools/release.py db --publish       # 위 작업에 더해 zip을 담은 GitHub 릴리스 생성
 ```
 
-릴리스한 뒤에는 `.phantom/marketplace.json`을 커밋하고 push합니다.
+릴리스한 뒤에는 `.phantom/marketplace.json`을 브랜치에 커밋하고 pull request로 merge합니다. `main`은 pull request로만
+바뀝니다(CLAUDE.md → Git).
 
 ## 자동화와 AI 작업 안내
 

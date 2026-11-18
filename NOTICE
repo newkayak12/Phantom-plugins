@@ -8,7 +8,8 @@ Several plugins are modified versions of plugins from IntelliJ IDEA Community Ed
 licensed under the Apache License, Version 2.0; each such plugin's README names the plugin it is based on.
 The TOML plugin (toml/) includes code from the intellij-rust project under the MIT License (toml/LICENSE).
 
-Third-party libraries packaged in a plugin keep their own licenses, found in their jars.
+Third-party libraries packaged in a plugin keep their own licenses, found in their jars or at the project page of
+each library (its Maven coordinates are in the plugin's build.gradle.kts).
 
 These plugins are not affiliated with, sponsored or endorsed by JetBrains s.r.o. or by the owners of the
 technologies they support. JetBrains, IntelliJ and IntelliJ IDEA are trademarks of JetBrains s.r.o.; Spring and

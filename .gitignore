@@ -1,11 +1,25 @@
+# Gradle and Kotlin build output
 .gradle/
 build/
 .intellijPlatform/
 .kotlin/
-.idea/
-*.iml
 mermaid/browser-build/kotlin-js-store/
-# local files of the OS and of coding agents
+
+# IDE files (the test projects under */testData keep theirs on purpose)
+.idea/
+!*/testData/**/.idea/
+*.iml
+!*/testData/**/*.iml
+out/
+!*/testData/**/out/
+
+# logs and crash files
+*.log
+!*/testData/**/*.log
+hs_err_pid*.log
+replay_pid*.log
+
+# OS files
 .DS_Store
 .claude/settings.local.json
 .claude/worktrees/
@@ -34,3 +48,10 @@ mermaid/browser-build/kotlin-js-store/
 /.claude/.feedback/
 /.claude/.harness-markers/
 /.worktrees/
+Thumbs.db
+.orca/
+docs/superpowers/
+
+# Python caches (ai-visualization/art)
+__pycache__/
+*.pyc
