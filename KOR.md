@@ -5,7 +5,7 @@
 [![Strings 품질 게이트](https://sonarcloud.io/api/project_badges/measure?project=newkayak12_Phantom-plugins&metric=alert_status&token=8d7c753364a763477e920082bd02b5dafde3994a)](https://sonarcloud.io/summary/new_code?id=newkayak12_Phantom-plugins)
 
 [Phantom](https://github.com/newkayak12/Phantom)용 플러그인 모음입니다.
-IDE에 기본으로 넣지 않고 따로 설치하게 해서, 프로젝트가 실제로 쓰는 기술만 비용을 냅니다. [English](./README.md)
+백엔드 기능은 필요할 때 설치하고, 일부 언어·도구 플러그인은 IDE 빌드에 기본 포함됩니다. [English](./README.md)
 
 ## 설치
 
@@ -98,6 +98,8 @@ Phantom은 저장소의 기본 브랜치(`@` 뒤에 적으면 그 브랜치)에�
 
 ## 빌드와 배포
 
+로컬 설정과 소스 소유권은 [AGENTS.md](AGENTS.md)를 읽습니다. Phantom이 설치되어 있지 않으면 Gradle 명령에 `-PplatformFromRepository=true`를 더해 설정된 업스트림 플랫폼을 사용합니다. Phantom 전용 런타임 동작은 Phantom에서 따로 검증해야 합니다. 현재 적용 범위와 남은 검증은 [기반 구성 현황](.github/BASELINE.md)에 있습니다.
+
 플러그인은 설치된 Phantom에 대고 컴파일합니다. 그 위치가 `gradle.properties`의 `phantomIde`입니다.
 JDK 25가 필요하고, Phantom에 들어 있는 것을 씁니다.
 
@@ -108,6 +110,19 @@ python3 tools/release.py db --publish       # 위 작업에 더해 zip을 담은
 ```
 
 릴리스한 뒤에는 `.phantom/marketplace.json`을 커밋하고 push합니다.
+
+## 자동화와 AI 작업 안내
+
+[저장소 자동화](.github/README.md)는 변경 파일 품질 검사, 영향받는 플러그인 테스트, PR 검토자·라벨·이슈 처리를 설명합니다. Claude와 Codex는 [AGENTS.md](AGENTS.md)와 [AI 작업 흐름](.ai/workflow.md)을 공유하며, Claude 진입점은 [CLAUDE.md](CLAUDE.md)입니다.
+
+분석 CI는 JDK 25에서 `strings` 플러그인의 단위·IDE 테스트를 실행하고 JaCoCo XML·HTML 보고서를 저장합니다. Codecov의 `strings` 플래그와 SonarQube 품질 게이트는 이 범위만 나타내며 다른 플러그인 전체의 커버리지가 아닙니다.
+
+```sh
+./gradlew --no-configuration-cache -PplatformFromRepository=true \
+  -Porg.gradle.java.installations.paths="$JAVA_HOME" :strings:test :strings:jacocoTestReport
+```
+
+JDK 25를 사용하고 headless Linux에서는 `xvfb-run --auto-servernum`으로 감쌉니다. XML 보고서는 `strings/build/reports/jacoco/test/jacocoTestReport.xml`입니다. 외부 업로드에는 `CODECOV_TOKEN`, `SONAR_TOKEN` 시크릿과 `SONAR_HOST_URL`, `SONAR_PROJECT_KEY`, `SONAR_ORGANIZATION` 변수가 필요합니다. SonarQube Cloud 자동 분석은 끕니다. 신뢰된 실행은 설정·업로드 실패 시 실패하며, fork PR은 보고서를 저장하고 외부 업로드를 건너뜁니다.
 
 ## 플러그인 추가
 

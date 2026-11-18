@@ -4,8 +4,8 @@
 [![Strings coverage](https://codecov.io/gh/newkayak12/Phantom-plugins/branch/main/graph/badge.svg?flag=strings)](https://codecov.io/gh/newkayak12/Phantom-plugins)
 [![Strings quality gate](https://sonarcloud.io/api/project_badges/measure?project=newkayak12_Phantom-plugins&metric=alert_status&token=8d7c753364a763477e920082bd02b5dafde3994a)](https://sonarcloud.io/summary/new_code?id=newkayak12_Phantom-plugins)
 
-Plugins for [Phantom](https://github.com/newkayak12/Phantom), kept out of the IDE so that a project only
-pays for the technology it uses. [한국어](./KOR.md)
+Plugins for [Phantom](https://github.com/newkayak12/Phantom): backend features install on demand, while
+selected language and tool plugins are bundled by the IDE build. [한국어](./KOR.md)
 
 ## Install
 
@@ -124,6 +124,8 @@ Phantom reads one file, `.phantom/marketplace.json`, from the repository's defau
 Each plugin folder holds its sources, a `build.gradle.kts`, a `README.md` and a `KOR.md`.
 
 ## Build and release
+
+For local setup and source ownership, read [AGENTS.md](AGENTS.md). Without an installed Phantom, add `-PplatformFromRepository=true` to use the configured upstream platform; Phantom-specific runtime behavior still needs validation in Phantom. See [foundation status](.github/BASELINE.md) for the current scope and remaining checks.
 
 The plugins compile against an installed Phantom (`phantomIde` in `gradle.properties`) and need JDK 25, which
 Phantom bundles.

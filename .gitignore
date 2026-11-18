@@ -20,3 +20,17 @@ mermaid/browser-build/kotlin-js-store/
 .teams_output/
 .harness-run/
 .scannerwork/
+/.sonar/
+/.env
+/.env.*
+!/.env.example
+!/.env.*.example
+/.envrc
+/.codex/auth.json
+/.codex/config.toml
+/.codex/log/
+/.claude/local.md
+/.claude/CLAUDE.md
+/.claude/.feedback/
+/.claude/.harness-markers/
+/.worktrees/

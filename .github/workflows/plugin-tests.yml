@@ -49,6 +49,7 @@ jobs:
               changed = git('diff', '--name-only', '--no-renames', '-z', ancestor, 'HEAD', '--')
           paths = changed.decode('utf-8', errors='surrogateescape').split('\0')
           modules = set()
+          packaging = set()
           shared = False
           for path in paths:
               if path in {'settings.gradle.kts', 'build.gradle.kts', 'gradle.properties', 'gradlew', 'gradlew.bat'} or path.startswith(('buildSrc/', 'gradle/')):
@@ -64,14 +65,17 @@ jobs:
               folder = Path(module)
               if not folder.is_symlink() and (folder / 'build.gradle.kts').is_file() and (folder / 'src').is_dir():
                   modules.add(module)
+                  if relative == 'build.gradle.kts' or relative.startswith('src/main/resources/META-INF/'):
+                      packaging.add(module)
           plugins = sorted(modules)
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
-              output.write('matrix=' + json.dumps({'plugin': plugins}) + '\n')
+              output.write('matrix=' + json.dumps({'include': [{'plugin': module, 'package': module in packaging} for module in plugins]}) + '\n')
               output.write('has_plugins=' + str(bool(plugins)).lower() + '\n')
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
               summary.write('## Affected plugin tests\n')
               summary.write('Selected modules: ' + (', '.join(plugins) or 'none') + '.\n')
               summary.write('Strings tests run separately in Plugin analysis. Documentation-only changes do not select modules.\n')
+              summary.write('Plugin archives are also built when module build scripts or META-INF descriptors change.\n')
               if shared:
                   summary.write('Shared build configuration changed: Strings analysis provides a configuration smoke check. This workflow does not run every plugin or test downstream dependencies.\n')
           PY
@@ -103,6 +107,20 @@ jobs:
           xvfb-run --auto-servernum ./gradlew --no-configuration-cache \
             -PplatformFromRepository=true -Porg.gradle.java.installations.paths="$JAVA_HOME" \
             ":$PLUGIN:test"
+      - name: Build changed plugin packaging
+        if: matrix.package == true
+        env:
+          PLUGIN: ${{ matrix.plugin }}
+        run: >-
+          ./gradlew --no-configuration-cache -PplatformFromRepository=true
+          -Porg.gradle.java.installations.paths="$JAVA_HOME" ":$PLUGIN:buildPlugin"
+      - name: Preserve plugin archive
+        if: matrix.package == true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: plugin-archive-${{ matrix.plugin }}
+          path: ${{ matrix.plugin }}/build/distributions/*.zip
+          if-no-files-found: error
       - name: Preserve available test reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

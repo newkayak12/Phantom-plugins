@@ -31,7 +31,13 @@ jobs:
         run: >-
           xvfb-run --auto-servernum ./gradlew --no-configuration-cache
           -PplatformFromRepository=true -Porg.gradle.java.installations.paths="$JAVA_HOME"
-          :strings:test :strings:jacocoTestReport
+          :strings:test :strings:jacocoTestReport :strings:buildPlugin
+      - name: Preserve Strings plugin archive
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: strings-plugin
+          path: strings/build/distributions/*.zip
+          if-no-files-found: error
       - name: Preserve test and coverage reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
