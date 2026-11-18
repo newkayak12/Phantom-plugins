@@ -40,7 +40,7 @@ jobs:
           if grep -qE '^(buildSrc/|settings\.gradle\.kts$|gradle\.properties$|gradle/)' <<< "$files"; then
             dirs=$(for d in */build.gradle.kts; do dirname "$d"; done | grep -v '^buildSrc$')
           else
-            dirs=$(cut -d/ -f1 <<< "$files" | sort -u | while read -r d; do [[ -f "$d/build.gradle.kts" && "$d" != buildSrc ]] && echo "$d"; done)
+            dirs=$(cut -d/ -f1 <<< "$files" | sort -u | while read -r d; do if [[ -f "$d/build.gradle.kts" && "$d" != buildSrc ]]; then echo "$d"; fi; done)
           fi
           tasks=$(for d in $dirs; do printf ':%s:test :%s:buildPlugin ' "$d" "$d"; done)
           echo "dirs=$(echo $dirs)" >> "$GITHUB_OUTPUT"
