@@ -11,6 +11,10 @@ A reviewer reads one commit at a time. Each commit has to be readable on its own
   a diff.
 - Moves and renames get their own commit without content changes, so git keeps the history (`git log --follow`).
 - Every commit compiles (`./gradlew :<folder>:compileKotlin`); the last one of a PR also passes the tests.
-- Subject and body follow `CLAUDE.md` → Git. The body says why, not what the diff already shows.
+- Subject: one line of plain English saying what changes for the user, as in Phantom (`docs/phantom/DEVELOPMENT.md`
+  4). Prefix `<folder> <version>:` for a plugin release, `<folder>:` for a change to one plugin, nothing for
+  repository-wide changes. No YouTrack tickets, JetBrains prefixes or SafePush.
+- Body: why, the mechanism (what was blocked or changed where), the flag that restores old behavior if any, and
+  measured numbers if any. Not what the diff already shows.
 - Before pushing, check: `git log --stat origin/main..HEAD`. A commit over the limit that is not copied or generated
   content is split with `git reset` / `git add -p` before the push, not after review.
