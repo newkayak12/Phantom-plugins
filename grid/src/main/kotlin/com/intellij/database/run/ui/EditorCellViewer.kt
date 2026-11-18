@@ -332,7 +332,6 @@ object ReadonlyEditorCellViewerFactory : CellViewerFactory {
   }
 }
 
-
 class ValueParserCache() {
   var row: ModelIndex<GridRow>? = null
   var column: ModelIndex<GridColumn>? = null

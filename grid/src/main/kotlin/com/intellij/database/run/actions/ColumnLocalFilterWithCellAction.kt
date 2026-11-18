@@ -23,7 +23,6 @@ class ColumnLocalFilterWithCellAction : ColumnHeaderActionBase(true) {
       !GridHelper.get(grid).isColumnContainNestedTables(gridModel, columns[0])
   }
 
-
   override fun actionPerformed(e: AnActionEvent?, grid: DataGrid, columnIdxs: ModelIndexSet<GridColumn>) {
     if (columnIdxs.size() != 1)
       return

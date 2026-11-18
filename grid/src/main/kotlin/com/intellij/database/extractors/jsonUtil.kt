@@ -10,7 +10,6 @@ import java.sql.Time
 import java.sql.Timestamp
 import java.sql.Types
 
-
 fun toJson(value: Any?, formatter: ObjectFormatter, mode: ObjectFormatterMode, newLines: Boolean = false, doubleQuotes: Boolean = true, treatListAsTuple: Boolean = false): String {
   val sb = StringBuilder()
   toJson(value, sb, formatter, mode, newLines, doubleQuotes, treatListAsTuple, 0)

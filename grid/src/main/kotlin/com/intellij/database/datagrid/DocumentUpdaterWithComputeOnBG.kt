@@ -14,7 +14,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-
 class DocumentUpdaterWithComputeOnBG {
 
   fun <T> run(
@@ -95,4 +94,3 @@ interface UpdateActionWithComputeOnBG<T> {
   @Throws(java.lang.Exception::class)
   fun performUpdate(session: UpdateSession, data: T): Boolean
 }
-

@@ -20,7 +20,7 @@ class MultipleGradient(private val fractions: FloatArray, colors: Array<Color>) 
     fractions[index + 1] - fractions[index]
   }
 
-  private var gradients = Array(normalizedIntervals.size){ index ->
+  private var gradients = Array(normalizedIntervals.size) { index ->
     interpolate(colors[index].rgb, colors[index + 1].rgb)
   }
 

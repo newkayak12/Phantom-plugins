@@ -45,4 +45,3 @@ class ExtractionConfigBuilder {
 fun builder(): ExtractionConfigBuilder = ExtractionConfigBuilder()
 
 @JvmField val DEFAULT_CONFIG: ExtractionConfig = builder().build()
-

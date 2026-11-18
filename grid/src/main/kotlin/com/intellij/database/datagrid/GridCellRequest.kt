@@ -19,7 +19,6 @@ interface GridCellRequest<Row, Column> {
   fun isRowIdxValid(): Boolean =
     rowIdx.isValid(grid)
 
-
   companion object {
     fun <Row, Column> request(grid: CoreGrid<Row, Column>, rowIdx: ModelIndex<Row>, columnIdx: ModelIndex<Column>): ActualGridCellRequest<Row, Column> =
       Impl(grid, rowIdx, columnIdx)

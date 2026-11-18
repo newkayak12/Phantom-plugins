@@ -8,7 +8,6 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.Disposer
 
-
 class EditorValueEditorTab : ValueEditorTab {
   override val priority: Int = 20
   override fun createTabInfoProvider(grid: DataGrid, openValueEditorTab: () -> Unit) = ValueTabInfoProvider(grid)

@@ -126,7 +126,7 @@ class RecordView(
       val maxDesiredNameSize = uiElements.maxOfOrNull { (_, label) ->
         label.getTextWidth(label.text) + (label.icon?.iconWidth ?: 0) + label.iconTextGap
       } ?: 0
-      val nameSize = maxDesiredNameSize.coerceIn(JBUI.scale(40) .. JBUI.scale(250))
+      val nameSize = maxDesiredNameSize.coerceIn(JBUI.scale(40)..JBUI.scale(250))
 
       uiElements.forEach { (field, label) ->
         val hGroupRow = layout.createSequentialGroup()

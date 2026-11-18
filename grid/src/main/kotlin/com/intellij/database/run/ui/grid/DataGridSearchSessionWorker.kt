@@ -51,7 +51,6 @@ internal class DataGridSearchSessionWorker(
   private val onUpdated: MutableSharedFlow<Boolean> =
     MutableSharedFlow(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
 
-
   init {
     cs.launch {
       requests
@@ -84,7 +83,7 @@ internal class DataGridSearchSessionWorker(
     val model = grid.getDataModel(DataAccessType.DATA_WITH_MUTATIONS)
     val rowIdxs = model.rowIndices.asList().sortedBy { it.asInteger() }
     val columnIdxs = model.columnIndices.asList().sortedBy { it.asInteger() }
-    val configs = columnIdxs.map { grid.getFormatterConfig(it) ?: DatabaseDisplayObjectFormatterConfig()}.toList()
+    val configs = columnIdxs.map { grid.getFormatterConfig(it) ?: DatabaseDisplayObjectFormatterConfig() }.toList()
     val result = ArrayList<TreeSet<Int>?>()
     result.addAll((0 until rowIdxs.size).map { null })
 

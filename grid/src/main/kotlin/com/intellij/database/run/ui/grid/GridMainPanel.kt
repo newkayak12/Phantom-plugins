@@ -106,9 +106,9 @@ class GridMainPanel(val grid: DataGrid,
   override fun getBackground(): Color {
     @Suppress("SENSELESS_COMPARISON")
     if (grid == null) { // for calls in super before grid initialization
-      return UIUtil.getTableBackground();
+      return UIUtil.getTableBackground()
     }
-    return grid.colorsScheme.defaultBackground;
+    return grid.colorsScheme.defaultBackground
   }
 
   override fun getTopComponent(): Component? {
@@ -179,7 +179,7 @@ class GridMainPanel(val grid: DataGrid,
 
   override fun removeSideView(view: RemovableView) {
     sideView.locate(view)?.let { location ->
-      sideView[location]?.onRemoved();
+      sideView[location]?.onRemoved()
       sideView[location] = null
     }
   }

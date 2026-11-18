@@ -101,7 +101,6 @@ abstract class StatisticsTableHeader(statisticsPanelMode: StatisticsPanelMode = 
           }
         } ?: return
 
-
         resetPanel(newPanel)
       }
 

@@ -143,7 +143,7 @@ class FloatingPagingManager {
         g.color = toolbarPanelColor()
         val config = GraphicsUtil.setupAAPainting(g)
         val cornerRadius = JBUI.scale(16)
-        g.fillRoundRect(0, 0, width - 1, height - 1 , cornerRadius, cornerRadius)
+        g.fillRoundRect(0, 0, width - 1, height - 1, cornerRadius, cornerRadius)
         g.color = JBColor(Gray._235, Gray._64)
         g.drawRoundRect(0, 0, width - 1, height - 1, cornerRadius, cornerRadius)
         config.restore()
