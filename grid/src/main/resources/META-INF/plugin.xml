@@ -1,0 +1,32 @@
+<idea-plugin>
+  <!-- Phantom's own id; intellij.grid.core.plugin stays as an alias, so plugins depending on the IntelliJ id (Phantom's
+       ai-integrations and mybatis) resolve to this one. The content module names stay the IntelliJ ones, as those plugins
+       depend on them by name. The bundled IntelliJ Grid Core plugin has to be gone, or both claim the same id and modules. -->
+  <id>dev.phantom.grid</id>
+  <name>Phantom Grid</name>
+  <module value="intellij.grid.core.plugin"/>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Database</category>
+  <description><![CDATA[
+    The data grid other plugins show tables in: sorting, filtering, paging, cell editing, value editors, record and
+    transposed views, column statistics, and copy or export through extractors (CSV, TSV, HTML, XLSX and scripts).
+    CSV and TSV files open as a table next to the text editor.
+    <br/>
+    Based on the IntelliJ Community Grid Core plugin (Apache 2.0).
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+  </dependencies>
+
+  <!-- One jar: a module with its own class loader in a non-bundled plugin needs a package of its own, and the grid modules
+       share com.intellij.database.*, so all of them load embedded. No intellij.grid.impl.ide: it held only a usage
+       statistics listener. -->
+  <content namespace="jetbrains">
+    <module name="intellij.grid" loading="embedded"/>
+    <module name="intellij.grid.types" loading="embedded"/>
+    <module name="intellij.grid.csv.core.impl" loading="embedded"/>
+    <module name="intellij.grid.core.impl" loading="embedded"/>
+    <module name="intellij.grid.impl" loading="embedded"/>
+  </content>
+</idea-plugin>
