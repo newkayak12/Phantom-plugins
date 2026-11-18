@@ -10,5 +10,6 @@ rule here.
 | [commits.md](commits.md) | Size and content of one commit |
 | [pull-requests.md](pull-requests.md) | What a PR holds and how it is merged |
 | [porting.md](porting.md) | Moving an IntelliJ plugin into this repository |
+| [changelog.md](changelog.md) | A `CHANGELOG.md` line per user-visible plugin change |
 
 Add a rule when a reviewer had to ask for the same thing twice. One topic per file, each rule one line with its reason.
