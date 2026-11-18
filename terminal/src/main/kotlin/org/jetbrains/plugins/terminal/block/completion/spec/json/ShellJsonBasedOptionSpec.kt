@@ -3,7 +3,7 @@ package org.jetbrains.plugins.terminal.block.completion.spec.json
 
 import com.intellij.terminal.completion.spec.ShellArgumentSpec
 import com.intellij.terminal.completion.spec.ShellOptionSpec
-import org.jetbrains.terminal.completion.ShellOption
+import dev.phantom.terminal.completion.spec.ShellOption
 import javax.swing.Icon
 
 /**
@@ -31,7 +31,8 @@ internal class ShellJsonBasedOptionSpec(
 
   override val prefixReplacementIndex: Int = 0
 
-  override val isHidden: Boolean = false
+  override val isHidden: Boolean
+    get() = data.isHidden
 
   override val shouldEscape: Boolean = insertValue == null
 

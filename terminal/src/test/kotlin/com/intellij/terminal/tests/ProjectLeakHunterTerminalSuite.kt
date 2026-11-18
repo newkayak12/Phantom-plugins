@@ -14,7 +14,6 @@ import com.intellij.terminal.tests.block.completion.ShellCdCommandTest
 import com.intellij.terminal.tests.block.completion.ShellCommandSpecSuggestionsTest
 import com.intellij.terminal.tests.block.completion.ShellCommandTreeBuilderTest
 import com.intellij.terminal.tests.block.completion.ShellMakefileCompletionTest
-import com.intellij.terminal.tests.block.completion.ml.ShMLModelMetadataTest
 import com.intellij.terminal.tests.classic.ClassicTerminalBasicTest
 import org.junit.runners.Suite
 
@@ -36,7 +35,6 @@ import org.junit.runners.Suite
   TerminalShellCommandTest::class,
   ShellCommandSpecSuggestionsTest::class,
   ShellMakefileCompletionTest::class,
-  ShMLModelMetadataTest::class,
   RightPromptAndCommandLayoutTest::class,
   ShellCommandSpecManagerTest::class,
   BlockTerminalCommandExecutionTest::class,

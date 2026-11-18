@@ -5,12 +5,12 @@ import com.intellij.terminal.completion.spec.ShellArgumentSpec
 import com.intellij.terminal.completion.spec.ShellCompletionSuggestion
 import com.intellij.terminal.completion.spec.ShellRuntimeDataGenerator
 import com.intellij.terminal.completion.spec.ShellSuggestionType
+import dev.phantom.terminal.completion.spec.ShellArgument
 import org.jetbrains.plugins.terminal.block.completion.spec.ShellCompletionSuggestion
 import org.jetbrains.plugins.terminal.block.completion.spec.ShellDataGenerators.availableCommandsGenerator
 import org.jetbrains.plugins.terminal.block.completion.spec.ShellDataGenerators.createCacheKey
 import org.jetbrains.plugins.terminal.block.completion.spec.ShellDataGenerators.fileSuggestionsGenerator
 import org.jetbrains.plugins.terminal.block.completion.spec.ShellRuntimeDataGenerator
-import org.jetbrains.terminal.completion.ShellArgument
 
 /**
  * @param [parentCommandNames] used to build cache key/debug name of the generators
