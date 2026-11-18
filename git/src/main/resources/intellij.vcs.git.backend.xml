@@ -968,7 +968,18 @@
 
     <troubleInfoCollector implementation="git4idea.troubleshooting.GitTroubleInfoCollector"/>
 
-    <platform.rpc.backend.remoteApiProvider implementation="git4idea.remoteApi.GitApiProvider"/>
+    <!-- Phantom: the remote APIs as application services, not a fleet RPC remoteApiProvider (Phantom runs frontend and
+         backend in one process, and the RPC compiler plugin that generates their descriptors is not in this build) -->
+    <applicationService serviceInterface="com.intellij.vcs.git.rpc.GitWidgetApi"
+                        serviceImplementation="git4idea.remoteApi.GitWidgetApiImpl"/>
+    <applicationService serviceInterface="com.intellij.vcs.git.rpc.GitRepositoryApi"
+                        serviceImplementation="git4idea.remoteApi.GitRepositoryApiImpl"/>
+    <applicationService serviceInterface="com.intellij.vcs.git.rpc.GitIncomingOutgoingStateApi"
+                        serviceImplementation="git4idea.remoteApi.GitIncomingOutgoingStateApiImpl"/>
+    <applicationService serviceInterface="com.intellij.vcs.git.rpc.GitUiSettingsApi"
+                        serviceImplementation="git4idea.remoteApi.GitUiSettingsApiImpl"/>
+    <applicationService serviceInterface="com.intellij.vcs.git.rpc.GitOperationsApi"
+                        serviceImplementation="git4idea.remoteApi.GitOperationsApiImpl"/>
 
     <uiDataRule implementation="git4idea.actions.branch.GitBackendBranchesWidgetUiDataRule"/>
 

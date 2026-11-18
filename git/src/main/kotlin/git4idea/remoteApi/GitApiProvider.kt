@@ -2,34 +2,11 @@
 package git4idea.remoteApi
 
 import com.intellij.openapi.client.currentSession
-import com.intellij.platform.rpc.backend.RemoteApiProvider
 import com.intellij.util.application
-import com.intellij.vcs.git.rpc.GitIncomingOutgoingStateApi
-import com.intellij.vcs.git.rpc.GitOperationsApi
-import com.intellij.vcs.git.rpc.GitRepositoryApi
-import com.intellij.vcs.git.rpc.GitUiSettingsApi
-import com.intellij.vcs.git.rpc.GitWidgetApi
-import fleet.rpc.remoteApiDescriptor
 
-internal class GitApiProvider : RemoteApiProvider {
-  override fun RemoteApiProvider.Sink.remoteApis() {
-    remoteApi(remoteApiDescriptor<GitWidgetApi>()) {
-      GitWidgetApiImpl()
-    }
-    remoteApi(remoteApiDescriptor<GitRepositoryApi>()) {
-      GitRepositoryApiImpl()
-    }
-    remoteApi(remoteApiDescriptor<GitIncomingOutgoingStateApi>()) {
-      GitIncomingOutgoingStateApiImpl()
-    }
-    remoteApi(remoteApiDescriptor<GitUiSettingsApi>()) {
-      GitUiSettingsApiImpl()
-    }
-    remoteApi(remoteApiDescriptor<GitOperationsApi>()) {
-      GitOperationsApiImpl()
-    }
-  }
-}
+// Phantom: no GitApiProvider. The remote APIs are application services (intellij.vcs.git.backend.xml), not a fleet RPC
+// remoteApiProvider: Phantom runs frontend and backend in one process, and the RPC compiler plugin that generates their
+// descriptors is not in this build
 
 internal fun requireOwner() {
   check(application.currentSession.isOwner) { "Git API is available only for owner session" }
