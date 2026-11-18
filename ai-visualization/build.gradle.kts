@@ -2,7 +2,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.6.2"
+version = "0.6.3"
 
 dependencies {
   intellijPlatform {
@@ -16,7 +16,7 @@ dependencies {
   }
 }
 
-// Tests run against a throwaway home: never the developer's real ~/.claude, ~/.codex or keychain
+// Tests run against a throwaway home: never the developer's real ~/.claude or ~/.codex
 tasks.test {
   val testHome = layout.buildDirectory.dir("test-home").map { it.asFile.absolutePath }
   doFirst {
@@ -24,7 +24,6 @@ tasks.test {
     File(testHome.get(), ".codex").mkdirs()
   }
   systemProperty("user.home", testHome.get())
-  systemProperty("phantom.ai.keychain", "false")
   systemProperty("phantom.ai.tmux", "") // empty: never the real tmux server
   environment("HOME", testHome.get())
   environment("CLAUDE_CONFIG_DIR", testHome.get() + "/.claude")
@@ -105,7 +104,6 @@ if (providers.gradleProperty("realIde").isPresent) {
           "-Dphantom.ai.claudeDir=${agentHomes.get().asFile.resolve("claude").absolutePath}",
           "-Dphantom.ai.codexDir=${agentHomes.get().asFile.resolve("codex").absolutePath}",
           "-Dphantom.ai.agentBinDir=${agentHomes.get().asFile.resolve("bin").absolutePath}",
-          "-Dphantom.ai.keychain=false",
           "-Dphantom.ai.tmux=", // empty: never the real tmux server
           "-Dphantom.probe.scenario=${scenario.get()}",
           "-Dphantom.probe.out=${probeOut.get()}",

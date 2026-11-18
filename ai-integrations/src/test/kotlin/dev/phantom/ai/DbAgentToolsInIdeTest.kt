@@ -4,6 +4,8 @@ package dev.phantom.ai
 import com.google.gson.JsonObject
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import dev.phantom.ai.core.AiState
+import dev.phantom.ai.core.AiStateData
 import dev.phantom.ai.mcp.AgentTools
 import dev.phantom.ai.mcp.McpToolError
 import dev.phantom.db.core.DbDataSource
@@ -20,6 +22,7 @@ class DbAgentToolsInIdeTest : BasePlatformTestCase() {
 
   override fun setUp() {
     super.setUp()
+    AiState.getInstance().state.dbTools = true
     ds = DbDataSource().apply {
       name = "shop"
       dbms = Dbms.H2
@@ -39,6 +42,7 @@ class DbAgentToolsInIdeTest : BasePlatformTestCase() {
     try {
       DbConnectionService.getInstance(project).disconnect(ds.id)
       DbDataSourceService.getInstance(project).remove(ds.id)
+      AiState.getInstance().state.dbTools = false
     }
     finally {
       super.tearDown()
@@ -59,6 +63,14 @@ class DbAgentToolsInIdeTest : BasePlatformTestCase() {
     val names = AgentTools.all().map { it.name }
     assertEquals(listOf("list_databases", "list_tables", "describe_table", "query_database", "draft_sql"), names)
     assertEquals(listOf("draft_sql"), AgentTools.all().filterNot { it.readOnly }.map { it.name })
+  }
+
+  // Off by default: until the user turns the database tools on, the agents see none of them and can call none.
+  fun testNoToolsUntilTurnedOn() {
+    AiState.getInstance().state.dbTools = false
+    assertFalse(AiStateData().dbTools)
+    assertTrue(AgentTools.all().none { it.name == "list_databases" })
+    assertTrue(dev.phantom.ai.db.DbAgentTools { false }.tools().isEmpty())
   }
 
   fun testListsTablesAndColumns() {

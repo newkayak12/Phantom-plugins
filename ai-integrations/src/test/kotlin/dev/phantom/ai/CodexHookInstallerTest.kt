@@ -66,4 +66,13 @@ class CodexHookInstallerTest : TestCase() {
       System.clearProperty(HookInstallService.CODEX_DIR_PROP); System.clearProperty(HookInstallService.CLAUDE_DIR_PROP)
     }
   }
+
+  fun testUninstallKeepsOnlyTheUserHooks() {
+    Files.createDirectories(home)
+    val before = """{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"mine.sh"}]}]}}"""
+    Files.writeString(home.resolve("hooks.json"), before)
+    CodexHookInstaller.install(home, scripts)
+    assertTrue(CodexHookInstaller.uninstall(home))
+    assertEquals(JsonParser.parseString(before), JsonParser.parseString(Files.readString(home.resolve("hooks.json"))))
+  }
 }

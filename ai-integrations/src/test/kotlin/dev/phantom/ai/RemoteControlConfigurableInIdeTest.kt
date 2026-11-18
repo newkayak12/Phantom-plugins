@@ -110,8 +110,17 @@ class RemoteControlConfigurableInIdeTest : BasePlatformTestCase() {
     val ui = c.createComponent()
     val combo = find<JComboBox<*>>(ui, "remote.address")
     val warn = find<JBLabel>(ui, "remote.warning")
-    assertEquals("Plain HTTP: anyone on this network who sees the link can control your agents. Prefer Tailscale or this computer.", warn.text)
+    assertEquals(
+      "Unencrypted on this network: anyone on it can read the pairing token and the terminal traffic, and the token lets them control your agents. Prefer Tailscale or this computer.",
+      warn.text,
+    )
     assertFalse(warn.isVisible)
+    val notice = find<JBLabel>(ui, "remote.notice")
+    assertTrue(notice.isVisible)
+    assertTrue(notice.text, notice.text.contains("no TLS") && notice.text.contains("its token"))
+    // off and on this computer only until the user picks another address
+    assertFalse(dev.phantom.ai.remote.RemoteControlState().enabled)
+    assertEquals("127.0.0.1", dev.phantom.ai.remote.RemoteControlState().address)
     for ((addr, expected) in listOf("192.168.1.5" to true, "100.100.1.2" to false)) {
       combo.selectedIndex = (0 until combo.itemCount).first { combo.getItemAt(it).toString().endsWith(addr) }
       assertEquals(addr, expected, warn.isVisible)

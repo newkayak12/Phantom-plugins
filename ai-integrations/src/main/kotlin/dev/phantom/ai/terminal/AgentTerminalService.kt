@@ -53,7 +53,7 @@ class AgentTerminalService(private val project: Project) {
    */
   @RequiresEdt
   fun launch(worktreePath: String, kind: AgentKind, label: String? = null, prompt: String? = null): String? =
-    open(worktreePath, kind, { LaunchCommand.launch(kind, it, prompt) }, sessionId = null, account = AccountsService.getInstance().active(kind), label = label)
+    open(worktreePath, kind, { LaunchCommand.launch(kind, it, prompt, AiState.getInstance().state.skipPermissions) }, sessionId = null, account = AccountsService.getInstance().active(kind), label = label)
 
   /**
    * Starts the agent resuming [session] (hook session_id, else Claude's earliest-created .jsonl no other session owns); null and nothing run when
@@ -68,7 +68,7 @@ class AgentTerminalService(private val project: Project) {
     val account = accountOf(session)
     val id = fallbackTarget(session, account)?.id ?: return null
     bind(session, id)
-    return open(session.worktree, session.kind, { LaunchCommand.resume(session.kind, id, it) }, sessionId = id, account = account)
+    return open(session.worktree, session.kind, { LaunchCommand.resume(session.kind, id, it, AiState.getInstance().state.skipPermissions) }, sessionId = id, account = account)
   }
 
   /** Whether Resume can do anything for [session]; the UI disables the action otherwise. */
