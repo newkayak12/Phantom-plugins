@@ -1,38 +1,44 @@
 <idea-plugin allow-bundled-update="true">
-  <name>Git</name>
-  <id>Git4Idea</id>
+  <!-- Phantom's own id; Git4Idea stays as an alias, so plugins depending on the IntelliJ id resolve to this one. The content
+       module names stay the IntelliJ ones, as other plugins and bundled modules depend on them by name. The bundled IntelliJ
+       Git plugin has to be gone, or both claim the same id and modules. -->
+  <id>dev.phantom.git</id>
+  <name>Git Support</name>
+  <module value="Git4Idea"/>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Version Controls</category>
-  <vendor>JetBrains</vendor>
 
   <description><![CDATA[
     Provides integration with <a href="https://git-scm.com/">Git</a>.
     <ul>
       <li>Check out your source code from a Git repository</li>
-      <li>Browse, commit, push, pull, merge, view log, review pull requests, and much more</li>
+      <li>Browse, commit, push, pull, merge, view log, and much more</li>
       <li>Dedicated item in the VCS menu and in the context menu</li>
     </ul>
     <p>To configure, open <b>Settings / Preferences</b> and go to <b>Version Control | Git</b>.</p>
+    <p>Based on the IntelliJ Community Git plugin (Apache 2.0).</p>
   ]]></description>
 
+  <!-- One jar. The shared and backend modules load embedded: they share the git4idea packages, so neither can have a class
+       loader filtered to a package of its own, and Phantom always runs both (frontend and backend in one process).
+       localHistory has no classes, only actions, so it has no package either and loads embedded too. The
+       frontend, terminal and coverage modules keep their own class loader on a package of their own, so each switches off
+       with what it depends on. The Git helper apps (askpass, rebase editor, pinentry) are in the same jar: the scripts Git
+       runs put the jar of the app class on the class path. No performanceTesting module (Phantom ships no Performance
+       Testing plugin), and no frontend.split, backend.split and model.generated (their sources are not in IntelliJ
+       Community). -->
   <content namespace="jetbrains">
-    <module name="intellij.vcs.git.backend" required-if-available="intellij.platform.backend"/>
+    <module name="intellij.vcs.git.shared" loading="embedded"/>
+    <module name="intellij.vcs.git.backend" loading="embedded"/>
 
-    <module name="intellij.vcs.git.localHistory"/>
+    <module name="intellij.vcs.git.localHistory" loading="embedded"/>
     <module name="intellij.vcs.git.terminal"/>
     <module name="intellij.vcs.git.coverage"/>
 
-    <module name="intellij.vcs.git.shared"/>
     <module name="intellij.vcs.git.frontend"/>
-
-    <module name="intellij.vcs.git.frontend.split"/>
-    <module name="intellij.vcs.git.backend.split"/>
-    <module name="intellij.vcs.git.model.generated"/>
-
-    <module name="intellij.vcs.git.performanceTesting"/>
   </content>
 
   <extensions defaultExtensionNs="com.intellij">
     <dependencySupport kind="vcs" coordinate="vcs:git" displayName="Git"/>
   </extensions>
-  
 </idea-plugin>
