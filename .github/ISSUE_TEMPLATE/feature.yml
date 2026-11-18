@@ -1,0 +1,17 @@
+name: Feature request
+description: Propose an improvement to Phantom.
+title: "feat: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe the task you cannot complete or the behavior you want to improve.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change and alternatives
+    validations:
+      required: true

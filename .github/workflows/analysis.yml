@@ -1,0 +1,114 @@
+name: Plugin analysis
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plugin-analysis-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  strings:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@017a9effdb900e5b5b2fddfb590a105619dca3c3 # v4.4.2
+      - name: Test Strings and measure coverage
+        run: >-
+          xvfb-run --auto-servernum ./gradlew --no-configuration-cache
+          -PplatformFromRepository=true -Porg.gradle.java.installations.paths="$JAVA_HOME"
+          :strings:test :strings:jacocoTestReport :strings:buildPlugin
+      - name: Preserve Strings plugin archive
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: strings-plugin
+          path: strings/build/distributions/*.zip
+          if-no-files-found: error
+      - name: Preserve test and coverage reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: strings-test-coverage
+          path: |
+            strings/build/test-results/test/
+            strings/build/reports/tests/test/
+            strings/build/reports/jacoco/test/
+          if-no-files-found: error
+      - name: Require measured coverage
+        run: |
+          python3 - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+          report = ET.parse('strings/build/reports/jacoco/test/jacocoTestReport.xml').getroot()
+          lines = report.find("./counter[@type='LINE']")
+          if lines is None or int(lines.get('covered', '0')) == 0:
+              raise SystemExit('JaCoCo recorded no covered lines; check agent/classloader configuration.')
+          covered = int(lines.get('covered'))
+          total = covered + int(lines.get('missed'))
+          summary = f'Strings line coverage: {covered}/{total} ({covered / total:.2%}).'
+          print(summary)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as output:
+              output.write(summary + '\n')
+          PY
+      - name: Check external analysis setup
+        id: services
+        env:
+          TRUSTED: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+          SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+        run: |
+          echo '## Strings analysis' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Tests, JaCoCo coverage and SonarQube analysis cover the Strings plugin only.' >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$TRUSTED" != true ]]; then
+            echo 'enabled=false' >> "$GITHUB_OUTPUT"
+            echo '::warning::Fork PR: external uploads not run because analysis credentials are withheld. Test and coverage reports remain available as artifacts.'
+            echo 'External uploads **not run** for fork PRs; see the report artifact.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [[ -z "$CODECOV_TOKEN" || -z "$SONAR_TOKEN" || -z "$SONAR_HOST_URL" || -z "$SONAR_PROJECT_KEY" || -z "$SONAR_ORGANIZATION" ]]; then
+            echo '::error::Configure CODECOV_TOKEN and SONAR_TOKEN secrets, and SONAR_HOST_URL, SONAR_PROJECT_KEY and SONAR_ORGANIZATION repository variables.'
+            exit 1
+          fi
+          echo 'enabled=true' >> "$GITHUB_OUTPUT"
+      - name: Upload Strings coverage to Codecov
+        if: steps.services.outputs.enabled == 'true'
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: strings/build/reports/jacoco/test/jacocoTestReport.xml
+          disable_search: true
+          flags: strings
+          name: strings
+          fail_ci_if_error: true
+          cleanup: true
+      - name: Limit analysis checkout to Strings sources
+        if: steps.services.outputs.enabled == 'true'
+        run: git sparse-checkout set --no-cone '/.gitignore' '/sonar-project.properties' '/strings/src/'
+      - name: Analyze Strings with SonarQube Cloud
+        if: steps.services.outputs.enabled == 'true'
+        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+        with:
+          args: >-
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.qualitygate.wait=true
