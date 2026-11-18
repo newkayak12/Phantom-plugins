@@ -48,25 +48,28 @@ jobs:
               ancestor = git('merge-base', base, 'HEAD').decode().strip()
               changed = git('diff', '--name-only', '--no-renames', '-z', ancestor, 'HEAD', '--')
           paths = changed.decode('utf-8', errors='surrogateescape').split('\0')
+          registered = set(re.findall(r'^include\("([a-z][a-z0-9-]*)"\)', Path('settings.gradle.kts').read_text(), re.MULTILINE))
           modules = set()
           packaging = set()
           shared = False
           for path in paths:
-              if path in {'settings.gradle.kts', 'build.gradle.kts', 'gradle.properties', 'gradlew', 'gradlew.bat'} or path.startswith(('buildSrc/', 'gradle/')):
+              if path in {'settings.gradle.kts', 'gradle.properties', 'gradlew', 'gradlew.bat'} or path.startswith(('buildSrc/', 'gradle/')):
                   shared = True
               parts = path.split('/', 1)
               if len(parts) != 2:
                   continue
               module, relative = parts
-              if module == 'strings' or not re.fullmatch(r'[a-z][a-z0-9-]*', module):
+              if module == 'strings' or module not in registered:
                   continue
               if relative != 'build.gradle.kts' and not relative.startswith('src/'):
                   continue
               folder = Path(module)
               if not folder.is_symlink() and (folder / 'build.gradle.kts').is_file() and (folder / 'src').is_dir():
                   modules.add(module)
-                  if relative == 'build.gradle.kts' or relative.startswith('src/main/resources/META-INF/'):
-                      packaging.add(module)
+                  packaging.add(module)
+          if shared:
+              modules.update(registered - {'strings'})
+              packaging.update(modules)
           plugins = sorted(modules)
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               output.write('matrix=' + json.dumps({'include': [{'plugin': module, 'package': module in packaging} for module in plugins]}) + '\n')
@@ -75,9 +78,9 @@ jobs:
               summary.write('## Affected plugin tests\n')
               summary.write('Selected modules: ' + (', '.join(plugins) or 'none') + '.\n')
               summary.write('Strings tests run separately in Plugin analysis. Documentation-only changes do not select modules.\n')
-              summary.write('Plugin archives are also built when module build scripts or META-INF descriptors change.\n')
+              summary.write('Selected plugins are tested and packaged as ZIP archives.\n')
               if shared:
-                  summary.write('Shared build configuration changed: Strings analysis provides a configuration smoke check. This workflow does not run every plugin or test downstream dependencies.\n')
+                  summary.write('Shared build configuration changed: all normally registered plugins are selected; Strings runs in analysis CI. Conditional real-IDE probes are excluded.\n')
           PY
 
   test:

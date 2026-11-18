@@ -1,6 +1,6 @@
 # Branch rules
 
-`main.json` uses the supplied `default-ruleset.json` as the common baseline: require a PR with zero approving reviews, resolve review threads, block deletion and force pushes, and allow repository administrators (role ID 5) to bypass. Repository merge settings may further restrict the allowed merge methods.
+`main.json` uses the supplied `default-ruleset.json` as the common baseline: require a PR with zero approving reviews, resolve review threads, block deletion and force pushes, and allow repository administrators (role ID 5) to bypass. The Kotlin `check` status from main is retained as a required check in the prepared JSON. Repository merge settings may further restrict the allowed merge methods.
 
 This JSON does not apply itself. On 2026-11-18, the private repository rulesets API returned HTTP 403 requiring GitHub Pro or public visibility. Visibility was not changed. The prepared rules remain unapplied.
 

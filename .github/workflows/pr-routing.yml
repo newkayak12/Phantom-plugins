@@ -2,7 +2,13 @@ name: Phantom plugins PR routing
 
 on:
   pull_request_target:
-    types: [opened, reopened, ready_for_review]
+    types: [opened, reopened, ready_for_review, synchronize]
+  workflow_dispatch:
+    inputs:
+      pull_number:
+        description: Pull request number to assign and request collaborator reviews
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -10,7 +16,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: phantom-pr-routing-${{ github.event.pull_request.number }}
+  group: phantom-pr-routing-${{ github.event.pull_request.number || inputs.pull_number }}
   cancel-in-progress: false
 
 jobs:
@@ -23,7 +29,10 @@ jobs:
         with:
           script: |
             const { owner, repo } = context.repo;
-            const pull_number = context.issue.number;
+            const pull_number = Number(context.issue.number ?? context.payload.inputs?.pull_number);
+            if (!Number.isSafeInteger(pull_number) || pull_number < 1) {
+              throw new Error('A positive pull request number is required.');
+            }
             const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number });
             if (pr.state !== 'open') {
               core.info('Pull request is closed; skipping routing.');
