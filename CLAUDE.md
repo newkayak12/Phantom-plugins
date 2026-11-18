@@ -2,6 +2,7 @@
 
 @AGENTS.md
 @.ai/workflow.md
+@.ai/rules/coding.md
 @.ai/rules/commits.md
 @.ai/rules/pull-requests.md
 @.ai/rules/porting.md

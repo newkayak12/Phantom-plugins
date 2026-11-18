@@ -6,6 +6,7 @@ rule here.
 
 | File | Covers |
 |------|--------|
+| [coding.md](coding.md) | How to write a change (Karpathy principles) |
 | [commits.md](commits.md) | Size and content of one commit |
 | [pull-requests.md](pull-requests.md) | What a PR holds and how it is merged |
 | [porting.md](porting.md) | Moving an IntelliJ plugin into this repository |

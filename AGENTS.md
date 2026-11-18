@@ -28,7 +28,7 @@ If no compatible Phantom is installed, use `-PplatformFromRepository=true` to do
 
 Run affected tests after code changes and build the affected plugin zip when packaging or descriptors change. Use a fully qualified test filter when narrowing a run (`--tests 'package.ClassName'`). Report commands, results, and anything unverified; documentation-only edits do not need an IDE build.
 
-Binding rules for commits, pull requests and plugin ports are in [`.ai/rules/`](.ai/rules/README.md); read them before committing.
+Binding rules for coding, commits, pull requests and plugin ports are in [`.ai/rules/`](.ai/rules/README.md); read them before committing.
 
 See [`.ai/workflow.md`](.ai/workflow.md) for the task and skill-routing workflow. Personal preferences belong in ignored `.ai/local.md` or `.claude/settings.local.json`; shared skills and instructions remain reviewable in git.
 
