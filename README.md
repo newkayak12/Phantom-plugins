@@ -85,6 +85,7 @@ Public repositories need no token.
 | QueryDSL Support | [querydsl](./querydsl/README.md) · [한국어](./querydsl/KOR.md) | Q class paths go to the entity, Find Usages of entity fields finds QueryDSL paths, out-of-date Q classes |
 | Testcontainers Support | [testcontainers](./testcontainers/README.md) · [한국어](./testcontainers/KOR.md) | Containers that never start or start per test, images without a version, Spring members that must be static |
 | Mermaid Support | [mermaid](./mermaid/README.md) · [한국어](./mermaid/KOR.md) | Mermaid editing and preview (based on the upstream plugin, built under a Phantom id) |
+| Phantom Local Index | [local-index](./local-index/README.md) · [한국어](./local-index/KOR.md) | Reuses index data between checkouts of the same project on this machine (0.1.0: skeleton, passes indexes through) |
 
 ## Repository format
 
