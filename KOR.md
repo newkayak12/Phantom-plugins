@@ -79,6 +79,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Groovy Support | [groovy](./groovy/KOR.md) · [English](./groovy/README.md) | Groovy 언어 지원 (262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Groovy Live Templates Support | [groovy-live-templates](./groovy-live-templates/KOR.md) · [English](./groovy-live-templates/README.md) | groovyScript() 라이브 템플릿 매크로 (262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Images | [images](./images/KOR.md) · [English](./images/README.md) | 이미지 뷰어와 편집 도구(확대, 격자, 체스판, 배경 이미지, 과학용 보기)와 SVG 언어 (Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Phantom Grid | [grid](./grid/KOR.md) · [English](./grid/README.md) | 다른 플러그인이 표를 보여 주는 데이터 그리드(정렬, 필터, 셀 편집, 내보내기)와 CSV/TSV 파일의 표 보기 (Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom CPU Indicator | [cpu](./cpu/KOR.md) · [English](./cpu/README.md) | 상태바에 IDE·시스템 CPU, 호버하면 IDE가 CPU를 어디에 썼는지(인덱싱, 분석, GC, JIT) |
 | Phantom Log Console | [logs](./logs/KOR.md) · [English](./logs/README.md) | JSON 로그를 읽기 쉬운 줄과 스택트레이스로, 레벨 색, traceId를 누르면 그 요청의 줄 목록 |
 | Phantom Key-Value Console | [redis](./redis/KOR.md) · [English](./redis/README.md) | Redis 호환 서버(Redis, Valkey, KeyDB…)용 키 브라우저와 콘솔: 패턴으로 SCAN, 모든 타입의 값, redis-cli 형식 명령줄 |

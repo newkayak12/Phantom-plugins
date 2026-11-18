@@ -79,6 +79,7 @@ Public repositories need no token.
 | Groovy Support | [groovy](./groovy/README.md) · [한국어](./groovy/KOR.md) | Groovy language support (bundled with Phantom from build 262.261116, with updates from the marketplace) |
 | Groovy Live Templates Support | [groovy-live-templates](./groovy-live-templates/README.md) · [한국어](./groovy-live-templates/KOR.md) | The groovyScript() live template macro (bundled with Phantom from build 262.261116, with updates from the marketplace) |
 | Phantom Images | [images](./images/README.md) · [한국어](./images/KOR.md) | Image viewer and editor (zoom, grid, chessboard, background image, scientific view) and the SVG language (bundled with Phantom, with updates from the marketplace) |
+| Phantom Grid | [grid](./grid/README.md) · [한국어](./grid/KOR.md) | The data grid (sorting, filtering, cell editing, export) other plugins show tables in, and CSV/TSV files as a table (bundled with Phantom, with updates from the marketplace) |
 | Phantom CPU Indicator | [cpu](./cpu/README.md) · [한국어](./cpu/KOR.md) | IDE and system CPU in the status bar; hover shows what the IDE spent it on (indexing, analysis, GC, JIT) |
 | Phantom Log Console | [logs](./logs/README.md) · [한국어](./logs/KOR.md) | JSON logs as readable lines with stack traces, level colors, trace ids that list a request's lines |
 | Phantom Key-Value Console | [redis](./redis/README.md) · [한국어](./redis/KOR.md) | Key browser and console for Redis-compatible servers (Redis, Valkey, KeyDB…): SCAN with a pattern, values of every type, a redis-cli style command line |
