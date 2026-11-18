@@ -15,12 +15,15 @@ from pathlib import Path
 
 DUMP_OPTION = "-Dintellij.indexes.diagnostics.dump=true"
 QUIET_SECONDS = 60
+FIRST_DUMP_TIMEOUT = 600
 MEDIAN_KEYS = ("contentIndexingMs", "contentLoadingMs", "scanningMs", "openToSmartMs", "filesFromCache")
 
 
 def parse_time(text):
     """ISO zoned time as written by the diagnostics; a trailing [Zone] is dropped."""
     text = re.sub(r"\[.*\]$", "", text)
+    # Python < 3.11 accepts only 3 or 6 fraction digits; the JVM may emit up to 9.
+    text = re.sub(r"\.(\d+)", lambda m: "." + m.group(1)[:6].ljust(6, "0"), text, count=1)
     if text.endswith("Z"):
         text = text[:-1] + "+00:00"
     return datetime.fromisoformat(text)
@@ -40,6 +43,8 @@ def summarize(project_dir, t0):
         doc = json.loads(f.read_text())
         hist = doc["projectIndexingActivityHistory"]
         times = hist["times"]
+        if parse_time(times["updatingStart"]) < t0:
+            continue  # left over from an earlier run
         wall = times["totalWallTimeWithPauses"] - times["wallTimeOnPause"]
         end = parse_time(times["updatingEnd"])
         last_end = end if last_end is None or end > last_end else last_end
@@ -69,7 +74,10 @@ def summarize(project_dir, t0):
 
 
 def medians(runs):
-    out = {k: statistics.median(r[k] for r in runs) for k in MEDIAN_KEYS if runs}
+    out = {}
+    for k in MEDIAN_KEYS:
+        values = [r[k] for r in runs if r[k] is not None]
+        out[k] = statistics.median(values) if values else None
     out["nonModuleAllZero"] = all(v == 0 for r in runs for v in r["nonModuleFilesIndexed"].values())
     return out
 
@@ -85,8 +93,14 @@ def _project_dir(logs, dir_name):
     return max(dirs, key=lambda d: d.stat().st_mtime) if dirs else None
 
 
-def _wait_quiet(logs, dir_name):
-    """Wait until no new diagnostic JSON has appeared for QUIET_SECONDS."""
+def _wait_quiet(logs, dir_name, before):
+    """Wait for the first new diagnostic JSON, then until none has appeared for QUIET_SECONDS."""
+    deadline = time.time() + FIRST_DUMP_TIMEOUT
+    while _diag_files(logs, dir_name) <= before:
+        if time.time() > deadline:
+            sys.exit(f"No new indexing diagnostics for {dir_name} after {FIRST_DUMP_TIMEOUT} s. "
+                     "Is the project open and the dump option active?")
+        time.sleep(2)
     seen = _diag_files(logs, dir_name)
     last_change = time.time()
     while time.time() - last_change < QUIET_SECONDS:
@@ -113,12 +127,10 @@ def run_once(args, n):
         subprocess.run(["git", "-C", args.repo, "worktree", "add", str(target), "HEAD"], check=True)
     logs = Path(args.logs).expanduser()
     try:
+        before = _diag_files(logs, target.name)
         t0 = datetime.now(timezone.utc)
         subprocess.run(["open", "-a", args.app, str(target)], check=True)
-        # The diagnostic dir appears with the first dump; poll for it, then wait for quiet.
-        while _project_dir(logs, target.name) is None:
-            time.sleep(2)
-        _wait_quiet(logs, target.name)
+        _wait_quiet(logs, target.name, before)
         result = summarize(_project_dir(logs, target.name), t0)
         print(f"run {n}: {json.dumps(result)}")
         input("Close that project window, then press Enter... ")

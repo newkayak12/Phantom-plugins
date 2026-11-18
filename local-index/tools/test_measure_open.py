@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from measure_open import parse_time, summarize
+from measure_open import medians, parse_time, summarize
 
 
 def write(d, name, doc):
@@ -58,6 +58,29 @@ class SummarizeTest(unittest.TestCase):
         self._write_dumb()
         s = summarize(self.dir, t0=parse_time("2026-11-18T10:00:00Z"))
         self.assertEqual(s["openToSmartMs"], 15000)
+
+    def test_nine_digit_fraction_is_accepted(self):
+        self.end = "2026-11-18T10:00:15.123456789Z[UTC]"
+        self._write_dumb()
+        s = summarize(self.dir, t0=parse_time("2026-11-18T10:00:00Z"))
+        self.assertEqual(s["openToSmartMs"], 15123)
+
+    def test_files_older_than_t0_are_ignored(self):
+        write(self.dir, "diagnostic-0.json", {
+            "type": "DumbIndexing",
+            "projectIndexingActivityHistory": {"times": {
+                "updatingStart": "2026-11-18T09:00:00Z", "updatingEnd": "2026-11-18T09:05:00Z",
+                "totalWallTimeWithPauses": 99_000_000_000, "wallTimeOnPause": 0,
+                "contentLoadingVisibleTime": 50_000_000_000}}})
+        s = summarize(self.dir, t0=parse_time("2026-11-18T10:00:00Z"))
+        self.assertEqual(s["contentIndexingMs"], 8000)
+        self.assertEqual(s["openToSmartMs"], 15000)
+
+    def test_medians_skip_missing_open_to_smart(self):
+        base = {"contentIndexingMs": 1, "contentLoadingMs": 1, "scanningMs": 1, "filesFromCache": 1,
+                "nonModuleFilesIndexed": {}}
+        m = medians([dict(base, openToSmartMs=None), dict(base, openToSmartMs=10)])
+        self.assertEqual(m["openToSmartMs"], 10)
 
 
 if __name__ == "__main__":
