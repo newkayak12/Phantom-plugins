@@ -22,25 +22,25 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: temurin
           java-version: '25'
-      - uses: gradle/actions/setup-gradle@017a9effdb900e5b5b2fddfb590a105619dca3c3 # v4.4.2
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
       - name: Test Strings and measure coverage
         run: >-
           xvfb-run --auto-servernum ./gradlew --no-configuration-cache
           -PplatformFromRepository=true -Porg.gradle.java.installations.paths="$JAVA_HOME"
           :strings:test :strings:jacocoTestReport :strings:buildPlugin
       - name: Preserve Strings plugin archive
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: strings-plugin
           path: strings/build/distributions/*.zip
           if-no-files-found: error
       - name: Preserve test and coverage reports
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: strings-test-coverage
           path: |
@@ -103,7 +103,7 @@ jobs:
         run: git sparse-checkout set --no-cone '/.gitignore' '/sonar-project.properties' '/strings/src/'
       - name: Analyze Strings with SonarQube Cloud
         if: steps.services.outputs.enabled == 'true'
-        uses: SonarSource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
+        uses: SonarSource/sonarqube-scan-action@59202af334b4ba7b5db01b701b8e79f8b3bef0f4 # v8.5.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
