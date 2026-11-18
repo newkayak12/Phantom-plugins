@@ -5,6 +5,7 @@
     <ID>ClassNaming:_Json5Lexer.kt:_Json5Lexer : FlexLexer</ID>
     <ID>ClassNaming:_JsonLexer.kt:_JsonLexer : FlexLexer</ID>
     <ID>ComplexCondition:AiIntegrationsScenario.kt:AiIntegrationsScenario$card == null || label == null || body == null || !card.isShowing</ID>
+    <ID>ComplexCondition:ArrayGridCellViewer.kt:ArrayGridViewer$existing != null &amp;&amp; existing.row == rowIdx &amp;&amp; existing.col == columnIdx &amp;&amp; !existing.hasChanges()</ID>
     <ID>ComplexCondition:BootConfigCompletionContributor.kt:BootConfigCompletionContributor.SuffixInsertHandler$tail &lt; document.textLength &amp;&amp; document.charsSequence[tail].let { it == '=' || it == ':' || it == '.' }</ID>
     <ID>ComplexCondition:BootConfigKeyInspection.kt:BootConfigKeyInspection$i &lt; end &amp;&amp; text[i] != '#' &amp;&amp; text[i] != '!' &amp;&amp; text[i] != '-'</ID>
     <ID>ComplexCondition:BootProfileValueLineMarkers.kt:BootProfileValueLineMarkerProvider.Companion$indent &lt; keyIndent || (indent == keyIndent &amp;&amp; !body.startsWith("- ")) || !body.startsWith("-")</ID>
@@ -171,6 +172,7 @@
     <ID>ComplexCondition:StringTransforms.kt:StringTransforms$prev.isLowerCase() || prev.isDigit() || (prev.isUpperCase() &amp;&amp; next != null &amp;&amp; next.isLowerCase())</ID>
     <ID>ComplexCondition:TabGroupModel.kt:TabGroupModel$group != null &amp;&amp; (byChip || group.collapsed || group.members.size == 1)</ID>
     <ID>ComplexCondition:TableColumnAlignmentActionsGroup.kt:TableColumnAlignmentActionsGroup$editor == null || file == null || offset == null || !file.language.isMarkdownLanguage()</ID>
+    <ID>ComplexCondition:TableFloatingToolbar.kt:TableFloatingToolbar.&lt;no name provided>$rowNum &lt; 0 || rowNum >= tableResultView.rowCount || columnNum &lt; 0 || columnNum >= tableResultView.columnCount</ID>
     <ID>ComplexCondition:TagLayout.kt:TagLayout$placed.any { rect.intersects(it) } || obstacles.any { rect.intersects(it) } || (r.up &amp;&amp; upObstacles.any { rect.intersects(it) })</ID>
     <ID>ComplexCondition:TerminalAbsolutePathLinkFinder.kt:TerminalAbsolutePathLinkFinder$((i - 1) > pathStartIndex) &amp;&amp; (line[i - 1] in 'A'..'Z') &amp;&amp; ((i + 1) &lt; line.length) &amp;&amp; (line[i + 1] == '/' || line[i + 1] == '\\')</ID>
     <ID>ComplexCondition:TerminalAbsolutePathLinkFinder.kt:TerminalAbsolutePathLinkFinder$(i - 3) > pathStartIndex &amp;&amp; line[i - 1] == ':' &amp;&amp; line[i - 2] in 'A'..'Z' &amp;&amp; line[i - 3].isWhitespace()</ID>
@@ -215,6 +217,7 @@
     <ID>CyclomaticComplexMethod:AgentDashboardPanel.kt:AgentDashboardPanel$private fun cardView: JComponent</ID>
     <ID>CyclomaticComplexMethod:AgentTerminalService.kt:AgentTerminalService$@RequiresEdt fun reattach: String?</ID>
     <ID>CyclomaticComplexMethod:AgentTerminalService.kt:AgentTerminalService$private fun show: Boolean</ID>
+    <ID>CyclomaticComplexMethod:AggregateView.kt:AggregateView$override fun update</ID>
     <ID>CyclomaticComplexMethod:AiIntegrationsScenario.kt:AiIntegrationsScenario$override suspend fun run</ID>
     <ID>CyclomaticComplexMethod:AiVisualizationScenario.kt:AiVisualizationScenario$override suspend fun run</ID>
     <ID>CyclomaticComplexMethod:Array2020Validator.kt:Array2020Validator$override fun validateIndividualItems: Boolean</ID>
@@ -560,6 +563,7 @@
     <ID>CyclomaticComplexMethod:TabGroupPaneController.kt:TabGroupPaneController$private fun doRefresh</ID>
     <ID>CyclomaticComplexMethod:TabGroupsService.kt:TabGroupsService$@RequiresEdt private fun onChanged</ID>
     <ID>CyclomaticComplexMethod:TableCharacterWidthUtils.kt:TableCharacterWidthUtils$internal fun isFullWidthCharacter: Boolean</ID>
+    <ID>CyclomaticComplexMethod:TableHeatmapColorLayer.kt:TableHeatmapColorLayer$private fun updateRanges</ID>
     <ID>CyclomaticComplexMethod:TabsRestartScenario.kt:TabsRestartScenario$override suspend fun run</ID>
     <ID>CyclomaticComplexMethod:TabsScenario.kt:TabsScenario$override suspend fun run</ID>
     <ID>CyclomaticComplexMethod:TerminalAbsolutePathLinkFinder.kt:TerminalAbsolutePathLinkFinder$fun find</ID>
@@ -579,6 +583,7 @@
     <ID>CyclomaticComplexMethod:TomlDslWriter.kt:TomlDslWriter$override fun createDslElement: PsiElement?</ID>
     <ID>CyclomaticComplexMethod:TomlJsonPsiWalker.kt:TomlJsonPsiWalker$override fun findPosition: JsonPointerPosition</ID>
     <ID>CyclomaticComplexMethod:Validation.kt:Constraints$fun accepts: Boolean</ID>
+    <ID>CyclomaticComplexMethod:ValueParserWrapper.kt:ValueParserWrapper$override fun parse: Any</ID>
     <ID>CyclomaticComplexMethod:WindowStack.kt:WindowStack$fun flush</ID>
     <ID>CyclomaticComplexMethod:WindowStack.kt:WindowStack$private fun flushSplit</ID>
     <ID>CyclomaticComplexMethod:WorkspacesScenario.kt:WorkspacesRun$fun editorText: Map&lt;String, Any?></ID>
@@ -597,6 +602,7 @@
     <ID>CyclomaticComplexMethod:distance.kt:private fun parameterDistance0: Long</ID>
     <ID>CyclomaticComplexMethod:immutable.kt:fun isImmutable: Boolean</ID>
     <ID>CyclomaticComplexMethod:jsonSchemaValidationsCollector.kt:internal fun getBaseValidations: Sequence&lt;JsonSchemaValidation></ID>
+    <ID>CyclomaticComplexMethod:jsonUtil.kt:private fun toJson</ID>
     <ID>CyclomaticComplexMethod:modifiers.kt:private fun getImplicitVisibility: String?</ID>
     <ID>CyclomaticComplexMethod:precision.kt:fun isPossibleLooseOfPrecision: Boolean</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:DbTableEdits.kt:SingleTableSelect$val (columns, name, _, tail) = match.destructured</ID>
@@ -610,6 +616,9 @@
     <ID>EmptyClassBlock:PsiSourceResolveResult.kt:PsiSourceResolveResult${ }</ID>
     <ID>EmptyClassBlock:SpringAutowiringInspectionTest.kt:SpringAutowiringInspectionTest.Companion${ }</ID>
     <ID>EmptyDefaultConstructor:BackendEditorConfigReferenceSupport.kt:BackendEditorConfigReferenceSupport</ID>
+    <ID>EmptyDefaultConstructor:ColumnVisualizationData.kt:ColumnVisualizationData</ID>
+    <ID>EmptyDefaultConstructor:EditorCellViewer.kt:ValueParserCache</ID>
+    <ID>EmptyDefaultConstructor:ErrorNotificationPanel.kt:ErrorNotificationPanel.EmptySpace</ID>
     <ID>EmptyDefaultConstructor:GHPRTimelineThreadViewModel.kt:UpdateableGHPRTimelineThreadViewModel.ReplyViewModel</ID>
     <ID>EmptyDefaultConstructor:ModalCommitSettingsListener.kt:ModalCommitSettingsListener</ID>
     <ID>EmptyDefaultConstructor:SLRUTextMateCache.kt:SLRUTextMateCache.LRUSegment</ID>
@@ -632,10 +641,12 @@
     <ID>EmptyElseBlock:WorkspacesScenario.kt:WorkspacesRun$if (isMax(geomOf(f))) f.extendedState = 0</ID>
     <ID>EmptyFunctionBlock:ActuatorTab.kt:ActuatorTab${}</ID>
     <ID>EmptyFunctionBlock:ActuatorTest.kt:ActuatorTest.&lt;no name provided>${}</ID>
+    <ID>EmptyFunctionBlock:AggregateView.kt:AggregateView${ }</ID>
     <ID>EmptyFunctionBlock:BlockDecorationState.kt:EmptyHighlighterRenderer${ }</ID>
     <ID>EmptyFunctionBlock:BlockDecorationState.kt:EmptyLineMarkerRenderer${ }</ID>
     <ID>EmptyFunctionBlock:BlockTerminalCommandExecutionTest.kt:MyHyperlinkFilter.NopHyperlinkInfo${}</ID>
     <ID>EmptyFunctionBlock:BlockTerminalView.kt:BlockTerminalView${}</ID>
+    <ID>EmptyFunctionBlock:DataGridFontOptionsPanel.kt:DataGridFontOptionsPanel.&lt;no name provided>${ }</ID>
     <ID>EmptyFunctionBlock:DataSources.kt:DbDataSourceService${}</ID>
     <ID>EmptyFunctionBlock:DbColors.kt:DbColorService${}</ID>
     <ID>EmptyFunctionBlock:DbDiagram.kt:DbDiagramEditor${}</ID>
@@ -658,6 +669,7 @@
     <ID>EmptyFunctionBlock:GrazieMassApplyDialog.kt:GrazieMassApplyDialog.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:GrazieScope.kt:GrazieScope${}</ID>
     <ID>EmptyFunctionBlock:GrazieTreeComponent.kt:GrazieTreeComponent${}</ID>
+    <ID>EmptyFunctionBlock:GridHelperImpl.kt:GridHelperImpl${ }</ID>
     <ID>EmptyFunctionBlock:GroovyHighlightingPass.kt:GroovyHighlightingPass${ }</ID>
     <ID>EmptyFunctionBlock:GroovyPostfixTemplateProvider.kt:GroovyPostfixTemplateProvider${ }</ID>
     <ID>EmptyFunctionBlock:GroovySliceProvider.kt:GroovySliceProvider${ }</ID>
@@ -674,6 +686,7 @@
     <ID>EmptyFunctionBlock:JsonSchemaCatalogNotificationProviderTest.kt:JsonSchemaCatalogNotificationProviderTest.TestFileEditor${ }</ID>
     <ID>EmptyFunctionBlock:JsonSchemaVfsListener.kt:JsonSchemaUpdater${ }</ID>
     <ID>EmptyFunctionBlock:JsonTextLiteralService.kt:JsonTextLiteralService${ }</ID>
+    <ID>EmptyFunctionBlock:LocalFilterPopup.kt:LocalFilterPopup.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:LoopbackTtyConnector.kt:LoopbackTtyConnector${}</ID>
     <ID>EmptyFunctionBlock:MarkdownHtmlExportProvider.kt:MarkdownHtmlExportProvider.SaveSettingsListener${}</ID>
     <ID>EmptyFunctionBlock:MarkdownPreviewFileEditor.kt:MarkdownPreviewFileEditor${}</ID>
@@ -685,9 +698,12 @@
     <ID>EmptyFunctionBlock:MemoSenderInIdeTest.kt:MemoSenderInIdeTest.FakeIo${}</ID>
     <ID>EmptyFunctionBlock:MermaidBrowserExtension.kt:MermaidBrowserExtension${}</ID>
     <ID>EmptyFunctionBlock:ModelUpdatingTerminalDisplay.kt:ModelUpdatingTerminalDisplay${}</ID>
+    <ID>EmptyFunctionBlock:MoveColumnListener.kt:MoveColumnListener${ }</ID>
     <ID>EmptyFunctionBlock:MoveTerminalSessionToEditorAction.kt:TerminalEditorWidgetListener${ }</ID>
+    <ID>EmptyFunctionBlock:NestedTableGridPagingModel.kt:NestedTableGridPagingModel.StaticMultiPageModel${}</ID>
     <ID>EmptyFunctionBlock:OldPlainTerminalView.kt:OldPlainTerminalView${}</ID>
     <ID>EmptyFunctionBlock:PlainTerminalView.kt:PlainTerminalView${}</ID>
+    <ID>EmptyFunctionBlock:RecordView.kt:RecordView${ }</ID>
     <ID>EmptyFunctionBlock:RegexFacade.kt:NotMatchingRegexFacade${ }</ID>
     <ID>EmptyFunctionBlock:ReportingTest.kt:ReportingTest.&lt;no name provided>.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:ReportingTest.kt:ReportingTest.MockIntention${}</ID>
@@ -696,6 +712,7 @@
     <ID>EmptyFunctionBlock:SimpleTerminalController.kt:SimpleTerminalController${}</ID>
     <ID>EmptyFunctionBlock:SpringBeansToolWindow.kt:SpringBeansPanel.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:SqlRefactoring.kt:SqlDbRenameProcessor${}</ID>
+    <ID>EmptyFunctionBlock:StatisticsTableHeader.kt:StatisticsTableHeader.StatisticsColumnsControllerPanel.StatisticsPanel${}</ID>
     <ID>EmptyFunctionBlock:TabGroupsService.kt:TabGroupsService${}</ID>
     <ID>EmptyFunctionBlock:TerminalActivityTracker.kt:TerminalNoOpActivityTracker${}</ID>
     <ID>EmptyFunctionBlock:TerminalCompletionFeedbackSurvey.kt:TerminalCompletionSurveyConfig${}</ID>
@@ -714,6 +731,7 @@
     <ID>EmptyFunctionBlock:TextMateBundlesListPanel.kt:TextMateBundlesListPanel${ }</ID>
     <ID>EmptyFunctionBlock:TextMateString.kt:TextMateStringImpl${ }</ID>
     <ID>EmptyFunctionBlock:WorkspacesInIdeTest.kt:WorkspacesInIdeTest.ProjectFrame${}</ID>
+    <ID>EmptyFunctionBlock:XlsxValuesExtractor.kt:XlsxValuesExtractor.XlsxExtraction${ }</ID>
     <ID>EmptyIfBlock:GHPRFilesManagerImpl.kt:GHPRFilesManagerImpl${ }</ID>
     <ID>EmptyIfBlock:jsonSchemaInheritance.kt:{ }</ID>
     <ID>EqualsWithHashCodeExist:GrazieRulesTreeNode.kt:GrazieRulesTreeNode : CheckedTreeNode</ID>
@@ -976,8 +994,11 @@
     <ID>LongMethod:_JsonLexer.kt:_JsonLexer$override fun advance: SyntaxElementType?</ID>
     <ID>MatchingDeclarationName:AutoImplementTransformationSupport.kt:AutoImplementTransformation : AstTransformationSupport</ID>
     <ID>MatchingDeclarationName:BootProfileValueLineMarkers.kt:BootProfileValueLineMarkerProvider : LineMarkerProviderDescriptor</ID>
+    <ID>MatchingDeclarationName:ChangePageSizeAction.kt:ChangePageSizeActionNew : ToggleAction</ID>
+    <ID>MatchingDeclarationName:ColumnLocalFilterClearAction.kt:ColumnLocalFilterClearAllAction : DumbAwareActionGridActionFrontendOtherwiseBackend</ID>
     <ID>MatchingDeclarationName:ComposeLineMarkers.kt:ComposeLineMarkerProvider : LineMarkerProviderDescriptor</ID>
     <ID>MatchingDeclarationName:DbRunFile.kt:DbRunSqlFileAction : DumbAwareAction</ID>
+    <ID>MatchingDeclarationName:DisableGridFloatingPagingAction.kt:MoveGridFloatingPagingAction : DumbAwareActionGridAction</ID>
     <ID>MatchingDeclarationName:DockerfileStageLineMarkers.kt:DockerfileStageLineMarkerProvider : LineMarkerProviderDescriptor</ID>
     <ID>MatchingDeclarationName:DockerfileStages.kt:DockerfileStageGotoDeclarationHandler : GotoDeclarationHandler</ID>
     <ID>MatchingDeclarationName:DocumentChanger.kt:DocumentChange&lt;T : Comparable&lt;T>></ID>
@@ -994,6 +1015,7 @@
     <ID>MatchingDeclarationName:JsonLazyParsing.kt:JsonLazyParsingVetoer</ID>
     <ID>MatchingDeclarationName:MermaidPsiElements.kt:MermaidDiagramBlock : MermaidPsiElement</ID>
     <ID>MatchingDeclarationName:MethodRequestBuilder.kt:MethodRequestsBuilder</ID>
+    <ID>MatchingDeclarationName:NestedTablesAwareGridLoader.kt:NestedTablesGridLoader : NestedTablesAware</ID>
     <ID>MatchingDeclarationName:OpenApiShape.kt:OpenApiSpecShapeInspection : LocalInspectionTool</ID>
     <ID>MatchingDeclarationName:ProjectUtils.kt:ProjectUtil</ID>
     <ID>MatchingDeclarationName:PropertiesCommentCompletionCommand.kt:PropertiesCommentCommandProvider : ActionCommandProvider</ID>
@@ -1005,6 +1027,7 @@
     <ID>MatchingDeclarationName:TomlColors.kt:TomlColor</ID>
     <ID>MatchingDeclarationName:TomlJsonSchemaDocumentationProviderTest.kt:TomlSchemaDocumentationProviderTest : TomlJsonSchemaTestBase</ID>
     <ID>MatchingDeclarationName:TransformationData.kt:ImageTransformationData</ID>
+    <ID>MatchingDeclarationName:UuidConvertor.kt:UuidConverters</ID>
     <ID>MatchingDeclarationName:editorInlays.kt:GHPREditorMappedComponentModel : Ranged</ID>
     <ID>MatchingDeclarationName:filters.kt:Filter</ID>
     <ID>MatchingDeclarationName:schemaParsingUtils.kt:JacksonSchemaNodeAccessor : RawJsonSchemaNodeAccessor</ID>
@@ -1182,6 +1205,7 @@
     <ID>TooGenericExceptionCaught:AgentTerminalService.kt:AgentTerminalService$c: Throwable</ID>
     <ID>TooGenericExceptionCaught:AgentTerminalService.kt:AgentTerminalService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:AgentTerminalService.kt:AgentTerminalService$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:Aggregator.kt:Aggregator$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:AiOfficeEditor.kt:AiOfficeEditor$e: Exception</ID>
     <ID>TooGenericExceptionCaught:BackendTerminalHyperlinkHighlighter.kt:HighlightTaskRunner$e: Exception</ID>
     <ID>TooGenericExceptionCaught:BackendTerminalHyperlinksProcessing.kt:e: Exception</ID>
@@ -1219,6 +1243,7 @@
     <ID>TooGenericExceptionCaught:DependencyCompletionFuzzyMatcher.kt:DependencyCompletionFuzzyMatcher$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:DependencyCompletionServiceImpl.kt:DependencyCompletionServiceImpl$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:DockerToolWindow.kt:ContainersPanel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:DocumentUpdaterWithComputeOnBG.kt:DocumentUpdaterWithComputeOnBG$e: Exception</ID>
     <ID>TooGenericExceptionCaught:EditorConfigCodeStyleSettingsModifier.kt:EditorConfigCodeStyleSettingsModifier$e: Exception</ID>
     <ID>TooGenericExceptionCaught:EditorConfigWrongFileEncodingNotificationProvider.kt:EditorConfigWrongFileEncodingNotificationProvider$e: NullPointerException</ID>
     <ID>TooGenericExceptionCaught:EnglishSpeller.kt:EnglishSpeller$e: Exception</ID>
@@ -1353,6 +1378,7 @@
     <ID>TooGenericExceptionCaught:Utils.kt:exception: Throwable</ID>
     <ID>TooGenericExceptionCaught:WorkspacesScenario.kt:WorkspacesRun$e: Exception</ID>
     <ID>TooGenericExceptionCaught:WorkspacesScenario.kt:WorkspacesRun$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:XlsxValuesExtractor.kt:XlsxValuesExtractor.XlsxWorkbook$e: Exception</ID>
     <ID>TooGenericExceptionCaught:_Json5Lexer.kt:_Json5Lexer$e: IndexOutOfBoundsException</ID>
     <ID>TooGenericExceptionCaught:_JsonLexer.kt:_JsonLexer$e: IndexOutOfBoundsException</ID>
     <ID>TooGenericExceptionCaught:jsonSchemaObjectRendering.kt:exception: Exception</ID>
@@ -1365,6 +1391,7 @@
     <ID>TooGenericExceptionThrown:LibraryDeclarationModelImpl.kt:LibraryDeclarationModelImpl$throw RuntimeException("Trying create version out of ${foundElement?.elementType}")</ID>
     <ID>TooGenericExceptionThrown:NetworkntSchemaValidatorTest.kt:NetworkntSchemaValidatorTest$throw RuntimeException("Validation cancelled")</ID>
     <ID>TooGenericExceptionThrown:PluginDeclarationModelImpl.kt:PluginDeclarationModelImpl$throw RuntimeException("Trying create version out of ${foundElement?.elementType}")</ID>
+    <ID>TooGenericExceptionThrown:ScriptsCleanup.kt:ScriptsCleanup$throw RuntimeException(e)</ID>
     <ID>TooGenericExceptionThrown:TerminalSessionTestUtil.kt:TerminalSessionTestUtil$throw RuntimeException(e)</ID>
     <ID>TooGenericExceptionThrown:_Json5Lexer.kt:_Json5Lexer$throw Error(message)</ID>
     <ID>TooGenericExceptionThrown:_JsonLexer.kt:_JsonLexer$throw Error(message)</ID>
@@ -1388,6 +1415,7 @@
     <ID>TooManyFunctions:CodeIndex.kt:IdeCodeIndex : CodeIndex</ID>
     <ID>TooManyFunctions:CommandRunnerExtension.kt:CommandRunnerExtension : MarkdownBrowserPreviewExtension</ID>
     <ID>TooManyFunctions:CpuWidget.kt:CpuComponent : JComponentListener</ID>
+    <ID>TooManyFunctions:DataGridSearchSessionWorker.kt:DataGridSearchSessionWorker</ID>
     <ID>TooManyFunctions:DataSources.kt:DbDrivers</ID>
     <ID>TooManyFunctions:DbAgentTools.kt:DbAgentTools : AgentTools</ID>
     <ID>TooManyFunctions:DbConnections.kt:DbConnectionService : Disposable</ID>
@@ -1408,6 +1436,7 @@
     <ID>TooManyFunctions:DelegatesToCombiner.kt:DelegatesToCombiner</ID>
     <ID>TooManyFunctions:DetachedSessions.kt:DetachedSessions</ID>
     <ID>TooManyFunctions:DockerToolWindow.kt:ContainersPanel : JPanelDisposable</ID>
+    <ID>TooManyFunctions:EditorCellViewer.kt:EditorCellViewer : CellViewer</ID>
     <ID>TooManyFunctions:EditorConfigAnnotatorVisitor.kt:EditorConfigAnnotatorVisitor : EditorConfigVisitor</ID>
     <ID>TooManyFunctions:EditorConfigDescriptorUtil.kt:org.editorconfig.language.schema.descriptors.EditorConfigDescriptorUtil.kt</ID>
     <ID>TooManyFunctions:EditorConfigDescriptorVisitor.kt:EditorConfigDescriptorVisitor</ID>
@@ -1458,12 +1487,18 @@
     <ID>TooManyFunctions:GrazieReplaceTypoQuickFix.kt:GrazieReplaceTypoQuickFix</ID>
     <ID>TooManyFunctions:GrazieReplaceTypoQuickFix.kt:GrazieReplaceTypoQuickFix$ChangeToVariantAction : ChoiceVariantIntentionActionHighPriorityActionIntentionActionWithFixAllOptionDumbAwareEventTrackingIntentionAction</ID>
     <ID>TooManyFunctions:GrazieSpellCheckerEngine.kt:GrazieSpellCheckerEngine : SpellCheckerEngineDisposable</ID>
+    <ID>TooManyFunctions:GridHelper.kt:GridHelper : CoreGridHelper</ID>
+    <ID>TooManyFunctions:GridHelperImpl.kt:GridHelperImpl : GridHelper</ID>
+    <ID>TooManyFunctions:GridLoaderBase.kt:GridLoaderBase : GridLoader</ID>
+    <ID>TooManyFunctions:GridMainPanel.kt:GridMainPanel : JBLoadingPanelGridPanelUiDataProvider</ID>
+    <ID>TooManyFunctions:GridTreeTableModel.kt:GridTreeTableModel : BaseTreeModelTreeTableModelListener</ID>
     <ID>TooManyFunctions:GroovyAnnotator40.kt:GroovyAnnotator40 : GroovyElementVisitor</ID>
     <ID>TooManyFunctions:GroovyAnnotatorPre30.kt:GroovyAnnotatorPre30 : GroovyElementVisitor</ID>
     <ID>TooManyFunctions:GroovyFileImportsImpl.kt:GroovyFileImportsImpl : GroovyFileImports</ID>
     <ID>TooManyFunctions:GroovyImportCollector.kt:GroovyImportCollector</ID>
     <ID>TooManyFunctions:GroovyInferenceSessionBuilder.kt:org.jetbrains.plugins.groovy.lang.resolve.processors.inference.GroovyInferenceSessionBuilder.kt</ID>
     <ID>TooManyFunctions:GroovyPostfixTemplateUtils.kt:GroovyPostfixTemplateUtils</ID>
+    <ID>TooManyFunctions:HierarchicalTableResultPanel.kt:HierarchicalTableResultPanel : TableResultPanelDataGridWithNestedTables</ID>
     <ID>TooManyFunctions:HierarchyView.kt:HierarchyView : AbstractLightClass</ID>
     <ID>TooManyFunctions:HorizontalBarPresentation.kt:HorizontalBarPresentation : BasePresentation</ID>
     <ID>TooManyFunctions:HttpLexer.kt:HttpLexer : LexerBase</ID>
@@ -1516,6 +1551,9 @@
     <ID>TooManyFunctions:MutableTerminalOutputModelImpl.kt:MutableTerminalOutputModelImpl : MutableTerminalOutputModel</ID>
     <ID>TooManyFunctions:MyBatis.kt:MyBatis</ID>
     <ID>TooManyFunctions:NestedCompletions.kt:com.jetbrains.jsonSchema.impl.nestedCompletions.NestedCompletions.kt</ID>
+    <ID>TooManyFunctions:NestedTableGridPagingModel.kt:NestedTableGridPagingModel$StaticMultiPageModel&lt;Row, Column> : MultiPageModel</ID>
+    <ID>TooManyFunctions:NestedTableGridPagingModel.kt:NestedTableGridPagingModel&lt;Row, Column> : MultiPageModelNestedTablesAware</ID>
+    <ID>TooManyFunctions:NestedTablesSortingModel.kt:NestedTablesSortingModel&lt;T : GridSortingModel&lt;GridRow, GridColumn>> : GridSortingModelNestedTablesAware</ID>
     <ID>TooManyFunctions:NetworkntErrorMapper.kt:NetworkntErrorMapper</ID>
     <ID>TooManyFunctions:OfficeCanvas.kt:OfficeCanvas : JComponent</ID>
     <ID>TooManyFunctions:OfficeLayout.kt:OfficeLayout</ID>
@@ -1562,6 +1600,7 @@
     <ID>TooManyFunctions:StringTransforms.kt:StringTransforms</ID>
     <ID>TooManyFunctions:TabGroupPaneController.kt:TabGroupPaneController</ID>
     <ID>TooManyFunctions:TabGroupsService.kt:TabGroupsService : PersistentStateComponentDisposable</ID>
+    <ID>TooManyFunctions:TableHeatmapColorLayer.kt:TableHeatmapColorLayer : ColorLayerListenerDisposable</ID>
     <ID>TooManyFunctions:TableModificationUtils.kt:TableModificationUtils</ID>
     <ID>TooManyFunctions:TableUtils.kt:TableUtils</ID>
     <ID>TooManyFunctions:TabsProbe.kt:TabsProbe</ID>
@@ -1686,6 +1725,7 @@
     <ID>UnusedParameter:RemoteControlServer.kt:RemoteControlServer$rt: Runtime</ID>
     <ID>UnusedParameter:ShellCommandExecutionManagerImpl.kt:ShellCommandExecutionManagerImpl.Companion$shellType: ShellType</ID>
     <ID>UnusedParameter:ShellCommandExecutionManagerImpl.kt:ShellCommandExecutionManagerImpl.Companion$type: TimeSpanType</ID>
+    <ID>UnusedParameter:ShowPaginationAction.kt:e: AnActionEvent? = null</ID>
     <ID>UnusedParameter:SqlFormatter.kt:SqlLayout$kw: String</ID>
     <ID>UnusedParameter:TerminalAgentsSupport.kt:agent: TerminalAgent</ID>
     <ID>UnusedParameter:TerminalAgentsSupport.kt:contentManager: ContentManager?</ID>
@@ -1699,6 +1739,7 @@
     <ID>UnusedParameter:switch.kt:statements : Array&lt;GrStatement></ID>
     <ID>UnusedPrivateClass:CopyrightManager.kt:CopyrightManagerDocumentListener : BulkFileListenerBackgroundable</ID>
     <ID>UnusedPrivateClass:MarkdownDefaultFlavour.kt:MarkdownDefaultFlavour$ExcludedElementProvider : GeneratingProvider</ID>
+    <ID>UtilityClassWithPublicConstructor:LobInfoHelper.kt:LobInfoHelper</ID>
     <ID>UtilityClassWithPublicConstructor:MarkdownHtmlAnchorPsiReferenceSearcher.kt:MarkdownHtmlAnchorPsiReferenceSearcher</ID>
     <ID>UtilityClassWithPublicConstructor:MermaidElementFactory.kt:MermaidElementFactory</ID>
     <ID>UtilityClassWithPublicConstructor:ProofreadingService.kt:ProofreadingService</ID>
