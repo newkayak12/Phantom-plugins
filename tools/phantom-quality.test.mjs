@@ -53,6 +53,16 @@ test('rejects whitespace errors on changed tracked lines', t => {
   assert.match(check(repo.cwd, repo.base).failures.join('\n'), /trailing whitespace/);
 });
 
+test('rejects untracked whitespace errors before staging, then accepts corrected files', t => {
+  const repo = repository(t);
+  repo.write('new script.mjs', 'export const value = 1;  \n\n');
+  const failures = check(repo.cwd, repo.base).failures.join('\n');
+  assert.match(failures, /trailing whitespace/);
+  assert.match(failures, /new blank line at EOF/);
+  repo.write('new script.mjs', 'export const value = 1;\n');
+  assert.deepEqual(check(repo.cwd, repo.base).failures, []);
+});
+
 test('parses changed JSON without importing its contents', t => {
   const repo = repository(t);
   repo.write('rules.json', '{ "rules": [ }\n');

@@ -77,4 +77,3 @@ async function run({ github, context, core, sleep = ms => new Promise(resolve =>
   }
 }
 module.exports = { run, sizeLabel };
-
