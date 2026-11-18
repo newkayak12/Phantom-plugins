@@ -20,10 +20,6 @@ dependencyResolutionManagement {
     intellijPlatform {
       defaultRepositories()
     }
-    // Grazie's own libraries (ai.grazie.*), for grazie/
-    maven("https://packages.jetbrains.team/maven/p/grazi/grazie-platform-public") {
-      content { includeGroupByRegex("ai\\.grazie(\\..*)?") }
-    }
     // JetBrains' Package Search client and the kotlinx-document-store library it caches in, for repository-search/
     maven("https://packages.jetbrains.team/maven/p/kpm/public") {
       content {
@@ -82,7 +78,7 @@ include("htmltools")
 include("testng")
 include("java-i18n")
 include("terminal")
-include("grazie")
+include("grammar")
 include("properties")
 include("junit")
 include("repository-search")

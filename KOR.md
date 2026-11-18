@@ -63,7 +63,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | TestNG Support | [testng](./testng/KOR.md) · [English](./testng/README.md) | TestNG 실행 구성, 테스트 생성, 참조, 검사 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Internationalization for Java | [java-i18n](./java-i18n/KOR.md) · [English](./java-i18n/README.md) | Java 하드코딩 문자열 검사, I18nize, properties 키 참조 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Terminal | [terminal](./terminal/KOR.md) · [English](./terminal/README.md) | 셸 통합과 명령 자동 완성을 갖춘 Terminal 도구 창 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Phantom Natural Languages | [grazie](./grazie/KOR.md) · [English](./grazie/README.md) | 교정: 텍스트·주석·문자열의 문법, 맞춤법, 문체 검사 (IntelliJ 플러그인 기반. 262.261113 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Phantom Grammar | [grammar](./grammar/KOR.md) · [English](./grammar/README.md) | 교정: LanguageTool로 텍스트·주석·문자열의 문법, 문체, 맞춤법 검사. 오픈 소스 코드만 사용 (IntelliJ Natural Languages 플러그인 기반. Phantom Natural Languages, dev.phantom.grazie를 대신함) |
 | Phantom Properties | [properties](./properties/KOR.md) · [English](./properties/README.md) | .properties 파일 강조, 자동 완성, 키 이름 변경, Resource Bundle 편집기, 검사 (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | JUnit Support | [junit](./junit/KOR.md) · [English](./junit/README.md) | JUnit 3~6 실행 구성, 거터 실행, 테스트 생성, 검사 (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Repository Search | [repository-search](./repository-search/KOR.md) · [English](./repository-search/README.md) | Maven·Gradle 빌드 파일의 의존성 자동 완성(로컬 인덱스·캐시 기반) (IntelliJ 플러그인 기반. 262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
