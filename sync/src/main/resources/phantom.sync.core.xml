@@ -1,0 +1,9 @@
+<idea-plugin package="dev.phantom.sync.core">
+  <dependencies>
+    <module name="intellij.settingsSync.core"/>
+  </dependencies>
+  <resource-bundle>messages.PhantomSyncBundle</resource-bundle>
+  <extensions defaultExtensionNs="com.intellij">
+    <settingsSync.communicatorProvider implementation="dev.phantom.sync.core.GitRepoSyncProvider"/>
+  </extensions>
+</idea-plugin>
