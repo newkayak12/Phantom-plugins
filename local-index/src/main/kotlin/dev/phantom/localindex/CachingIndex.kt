@@ -3,18 +3,23 @@ package dev.phantom.localindex
 
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.vfs.VirtualFileWithId
+import com.intellij.psi.stubs.StubUpdatingIndexStorage
 import com.intellij.util.indexing.FileBasedIndexExtension
 import com.intellij.util.indexing.FileBasedIndexInfrastructureExtensionUpdatableIndex
 import com.intellij.util.indexing.FileContent
 import com.intellij.util.indexing.FileContentImpl
 import com.intellij.util.indexing.IndexInfrastructureExtensionUpdate
+import com.intellij.util.indexing.IndexExtension
 import com.intellij.util.indexing.IndexedFile
 import com.intellij.util.indexing.IndexedHashesSupport
+import com.intellij.util.indexing.StorageUpdate
 import com.intellij.util.indexing.UpdatableIndex
 import com.intellij.util.indexing.ValueContainer
 import com.intellij.util.indexing.impl.InputData
 import com.intellij.util.indexing.impl.MapReduceIndex
+import com.intellij.util.indexing.impl.MapReduceIndexMappingException
 import dev.phantom.localindex.store.LocalIndexStore
 import dev.phantom.localindex.store.StoreHeader
 
@@ -32,12 +37,22 @@ internal class CachingIndex<K, V, D>(
 ) : FileBasedIndexInfrastructureExtensionUpdatableIndex<K, V, FileContent, D>,
     UpdatableIndex<K, V, FileContent, D> by base {
 
+  // A platform clear (rebuild, repaired stub name storage, version change) makes everything cached for this index suspect.
+  override fun clear() {
+    try {
+      base.clear()
+    }
+    finally {
+      store.clear(indexName)
+    }
+  }
+
   override fun getBaseIndex(): UpdatableIndex<K, V, FileContent, D> = base
 
   @Suppress("TooGenericExceptionCaught") // decoding a stale payload fails in any way, see the catch below
   override fun mapInputAndPrepareUpdate(inputId: Int, content: FileContent?): IndexInfrastructureExtensionUpdate {
     // TODO(Task 8): bypass when the index is disabled for the session
-    if (content !is FileContentImpl || content.isTransientContent || content.file !is VirtualFileWithId) {
+    if (content !is FileContentImpl || !isCacheable(content, stubs)) {
       return IndexInfrastructureExtensionUpdate(base.mapInputAndPrepareUpdate(inputId, content), false)
     }
     val stats = LocalIndexStatistics.getInstance()
@@ -58,18 +73,35 @@ internal class CachingIndex<K, V, D>(
       }
       if (data != null) {
         stats.hit(content.project, indexName, content.file.path, stored.mapMicros)
-        return IndexInfrastructureExtensionUpdate(base.prepareUpdate(inputId, InputData(data)), true)
+        return IndexInfrastructureExtensionUpdate(prepareFromData(inputId, content, data), true)
       }
     }
     stats.miss(content.project, indexName, content.file.path)
+    return if (stubs) indexStubs(inputId, content, key) else indexAndStore(inputId, content, key)
+  }
+
+  private fun indexAndStore(inputId: Int, content: FileContentImpl, key: ByteArray): IndexInfrastructureExtensionUpdate {
     val started = System.nanoTime()
     val update = base.mapInputAndPrepareUpdate(inputId, content)
-    if (!stubs && update is MapReduceIndex<*, *, *>.IndexStorageUpdate) {
-      val micros = ((System.nanoTime() - started) / 1000).coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
+    if (update is MapReduceIndex<*, *, *>.IndexStorageUpdate) {
       @Suppress("UNCHECKED_CAST")
-      store.put(indexName, key, micros, codec.encode(update.inputData.keyValues as Map<K, V>))
+      store.put(indexName, key, microsSince(started), codec.encode(update.inputData.keyValues as Map<K, V>))
     }
     return IndexInfrastructureExtensionUpdate(update, false)
+  }
+
+  // The stub storage returns an opaque update, so the map is computed here and the update is built from it.
+  private fun indexStubs(inputId: Int, content: FileContentImpl, key: ByteArray): IndexInfrastructureExtensionUpdate {
+    val started = System.nanoTime()
+    val data = mapLikePlatform(base.extension, content)
+    val micros = microsSince(started)
+    store.put(indexName, key, micros, codec.encode(data))
+    return IndexInfrastructureExtensionUpdate(prepareFromData(inputId, content, data), false)
+  }
+
+  private fun prepareFromData(inputId: Int, content: FileContent, data: Map<K, V>): StorageUpdate {
+    val update = base.prepareUpdate(inputId, InputData(data))
+    return if (stubs) StubUpdatingIndexStorage.withStubIndexingDiagnosticUpdate(inputId, content, update) else update
   }
 
   // Java interface defaults: forwarded by hand so that the base index sees them, not the interface's empty body.
@@ -85,6 +117,26 @@ internal class CachingIndex<K, V, D>(
   override fun getData(key: K & Any): ValueContainer<V> = @Suppress("DEPRECATION") base.getData(key)
 }
 
+private fun isCacheable(content: FileContentImpl, stubs: Boolean): Boolean =
+  !content.isTransientContent && content.file is VirtualFileWithId &&
+    (!stubs || LocalIndexAllowlist.cachesStubsFor(content.fileType))
+
+private fun microsSince(started: Long): Int = ((System.nanoTime() - started) / 1000).coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
+
+// Same contract as MapReduceIndex.mapInputAndPrepareUpdate: a failing indexer is a per-file failure, not an index rebuild.
+@Suppress("TooGenericExceptionCaught")
+private fun <K, V> mapLikePlatform(extension: IndexExtension<K, V, FileContent>, content: FileContent): Map<K, V> {
+  val data = try {
+    extension.indexer.map(content)
+  }
+  catch (e: Exception) {
+    if (e is ProcessCanceledException || e is MapReduceIndexMappingException) throw e
+    throw MapReduceIndexMappingException(e, extension.javaClass)
+  }
+  ProgressManager.checkCanceled()
+  return data
+}
+
 private val LOG = logger<CachingIndex<*, *, *>>()
 
 internal fun <K, V, D> wrapInCache(
@@ -95,7 +147,10 @@ internal fun <K, V, D> wrapInCache(
 ): UpdatableIndex<K, V, FileContent, D> {
   val name = indexExtension.name.name
   // Entries written under another index version, hash version or storage layout are dropped before the first read.
-  val header = StoreHeader(LocalIndexStore.FORMAT_VERSION, indexExtension.version, IndexedHashesSupport.getVersion(), layoutId ?: "", 0)
+  // Stub bytes carry ids from the local serializer name storage, so the stub header also holds a fingerprint.
+  val stubs = name == LocalIndexAllowlist.STUBS
+  val fingerprint = if (stubs) stubFingerprint() else 0
+  val header = StoreHeader(LocalIndexStore.FORMAT_VERSION, indexExtension.version, IndexedHashesSupport.getVersion(), layoutId ?: "", fingerprint)
   store.ensureHeader(name, header)
-  return CachingIndex(baseIndex, name, EntryCodec.of(indexExtension), store, stubs = false)
+  return CachingIndex(baseIndex, name, EntryCodec.of(indexExtension), store, stubs)
 }

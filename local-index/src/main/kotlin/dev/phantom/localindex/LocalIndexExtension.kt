@@ -3,6 +3,7 @@ package dev.phantom.localindex
 
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.project.Project
+import com.intellij.psi.stubs.StubIndexExtension
 import com.intellij.psi.stubs.StubIndexKey
 import com.intellij.util.indexing.FileBasedIndexExtension
 import com.intellij.util.indexing.FileBasedIndexInfrastructureExtension
@@ -32,13 +33,16 @@ class LocalIndexExtension : FileBasedIndexInfrastructureExtension {
     baseIndex: UpdatableIndex<K, V, FileContent, *>,
   ): UpdatableIndex<K, V, FileContent, *>? {
     val store = store ?: return null
-    if (!LocalIndexAllowlist.accepts(indexExtension) || indexExtension.name.name == LocalIndexAllowlist.STUBS) return null
+    if (!LocalIndexAllowlist.accepts(indexExtension)) return null
     return wrapInCache(indexExtension, baseIndex, store, layoutId)
   }
 
   override fun onFileBasedIndexVersionChanged(indexId: ID<*, *>) = Unit
 
-  override fun onStubIndexVersionChanged(indexId: StubIndexKey<*, *>) = Unit
+  // A stub index changed its version: every cached stub tree carries its old indexed-stub bytes.
+  override fun onStubIndexVersionChanged(indexId: StubIndexKey<*, *>) {
+    store?.clear(LocalIndexAllowlist.STUBS)
+  }
 
   override fun initialize(indexLayoutId: String?): InitializationResult {
     layoutId = indexLayoutId
@@ -51,9 +55,14 @@ class LocalIndexExtension : FileBasedIndexInfrastructureExtension {
 
   override fun getPersistentStateRoot(): String = ROOT
 
-  override fun resetPersistentState() = Unit
+  override fun resetPersistentState() {
+    store?.clearAll()
+  }
 
-  override fun resetPersistentState(indexId: ID<*, *>) = Unit
+  // The platform calls this after it dropped the data of a broken index (FileBasedIndexImpl.initIndexStorage).
+  override fun resetPersistentState(indexId: ID<*, *>) {
+    store?.clear(indexId.name)
+  }
 
   override fun shutdown() {
     store?.close()
@@ -69,4 +78,15 @@ class LocalIndexExtension : FileBasedIndexInfrastructureExtension {
 
     fun getInstance(): LocalIndexExtension = FileBasedIndexInfrastructureExtension.EP_NAME.findExtensionOrFail(LocalIndexExtension::class.java)
   }
+}
+
+/**
+ * Identifies what the ids inside cached stub bytes mean: the registered stub indexes with their versions. The
+ * serializer name storage (`rep.names`) is not part of it: every platform path that recreates it (repair at open,
+ * repair followed by a rebuild) ends in `UpdatableIndex.clear` or `resetPersistentState(indexId)`, and both empty
+ * the Stubs entries of this cache.
+ */
+internal fun stubFingerprint(): Long {
+  val indexes = StubIndexExtension.EP_NAME.extensionList.map { "${it.key.name}:${it.version}" }.sorted()
+  return indexes.joinToString("\n").hashCode().toLong()
 }
