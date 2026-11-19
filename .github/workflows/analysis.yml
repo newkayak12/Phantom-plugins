@@ -35,6 +35,8 @@ jobs:
           xvfb-run --auto-servernum ./gradlew --no-configuration-cache
           -PplatformFromRepository=true -Porg.gradle.java.installations.paths="$JAVA_HOME"
           :strings:test :strings:jacocoTestReport :strings:buildPlugin
+      - name: Check Strings packaged notices
+        run: python3 tools/check-plugin-notices.py strings/build/distributions/*.zip
       - name: Summarize Strings tests
         if: always()
         env:

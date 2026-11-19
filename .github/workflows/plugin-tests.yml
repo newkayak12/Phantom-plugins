@@ -124,6 +124,11 @@ jobs:
         run: >-
           ./gradlew --no-configuration-cache -PplatformFromRepository=true
           -Porg.gradle.java.installations.paths="$JAVA_HOME" ":$PLUGIN:buildPlugin"
+      - name: Check packaged licenses and notices
+        if: matrix.package == true
+        env:
+          PLUGIN: ${{ matrix.plugin }}
+        run: python3 tools/check-plugin-notices.py "$PLUGIN"/build/distributions/*.zip
       # Plugin Verifier: the built plugin's bytecode against the IntelliJ Community build Phantom is forked from.
       # (Against a Phantom build too once its product-info.json lists module jars where they are; see the PR.)
       - name: Verify plugin
