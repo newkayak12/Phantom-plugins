@@ -1,0 +1,73 @@
+<!-- Phantom Dark editor colors over Islands Dark: the theme's charcoal, an amber caret and selection, a warmer syntax palette.
+     generate-themes.py merges this into resources/themes/PhantomDarkScheme.xml -->
+<scheme name="Phantom Dark" version="142" parent_scheme="Islands Dark">
+    <metaInfo>
+        <property name="ide">idea</property>
+    </metaInfo>
+    <colors>
+        <option name="CARET_COLOR" value="F0B865" />
+        <option name="CARET_ROW_COLOR" value="1C1D21" />
+        <option name="CONSOLE_BACKGROUND_KEY" value="17181B" />
+        <option name="DOCUMENTATION_COLOR" value="1E1F23" />
+        <option name="GUTTER_BACKGROUND" value="17181B" />
+        <option name="INDENT_GUIDE" value="26272B" />
+        <option name="LINE_NUMBERS_COLOR" value="3E4149" />
+        <option name="LINE_NUMBER_ON_CARET_ROW_COLOR" value="E0A250" />
+        <option name="LOOKUP_COLOR" value="1E1F23" />
+        <option name="RIGHT_MARGIN_COLOR" value="26272B" />
+        <option name="SELECTED_INDENT_GUIDE" value="4A4339" />
+        <option name="SELECTION_BACKGROUND" value="45331D" />
+        <option name="VISUAL_INDENT_GUIDE" value="1E1F23" />
+    </colors>
+    <attributes>
+        <option name="TEXT">
+            <value>
+                <option name="FOREGROUND" value="cdcfd4" />
+                <option name="BACKGROUND" value="17181B" />
+            </value>
+        </option>
+        <option name="DEFAULT_KEYWORD">
+            <value>
+                <option name="FOREGROUND" value="e5a55a" />
+            </value>
+        </option>
+        <option name="DEFAULT_STRING">
+            <value>
+                <option name="FOREGROUND" value="a6c98a" />
+            </value>
+        </option>
+        <option name="DEFAULT_NUMBER">
+            <value>
+                <option name="FOREGROUND" value="7cc4d1" />
+            </value>
+        </option>
+        <option name="DEFAULT_LINE_COMMENT">
+            <value>
+                <option name="FOREGROUND" value="6c707a" />
+                <option name="FONT_TYPE" value="2" />
+            </value>
+        </option>
+        <option name="DEFAULT_BLOCK_COMMENT">
+            <value>
+                <option name="FOREGROUND" value="6c707a" />
+                <option name="FONT_TYPE" value="2" />
+            </value>
+        </option>
+        <option name="DEFAULT_DOC_COMMENT">
+            <value>
+                <option name="FOREGROUND" value="7d8a80" />
+                <option name="FONT_TYPE" value="2" />
+            </value>
+        </option>
+        <option name="DEFAULT_FUNCTION_DECLARATION">
+            <value>
+                <option name="FOREGROUND" value="f2d49b" />
+            </value>
+        </option>
+        <option name="DEFAULT_METADATA">
+            <value>
+                <option name="FOREGROUND" value="c4a1e0" />
+            </value>
+        </option>
+    </attributes>
+</scheme>
