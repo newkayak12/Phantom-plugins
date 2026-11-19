@@ -32,6 +32,8 @@ Fork PRs run tests without upload credentials. Missing settings fail trusted ana
 
 ## Releases
 
+Packaged license checks and corresponding-source preparation are described in [DISTRIBUTION.md](DISTRIBUTION.md).
+
 **Plugin release** defaults to a dry run when started manually. Tests run under Xvfb, results appear in the job summary, and available test reports are retained for 14 days even on failure. Successful builds retain their plugin ZIP. Publishing uses this repository's `GITHUB_TOKEN`; SonarQube and Codecov tokens do not authorize releases.
 
 See [workflow checks](WORKFLOWS.md) for the maintained jobs.
