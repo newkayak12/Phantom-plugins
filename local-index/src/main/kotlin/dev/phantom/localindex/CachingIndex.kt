@@ -44,6 +44,9 @@ internal class CachingIndex<K, V, D>(
   // Set when a verified hit differed from a fresh computation; the index then runs without the cache until restart.
   private val disabled = AtomicBoolean()
 
+  // Resolved once: a service lookup per file per index is overhead stock indexing does not have.
+  private val stats = LocalIndexStatistics.getInstance()
+
   // A platform clear (rebuild, repaired stub name storage, version change) makes everything cached for this index suspect.
   override fun clear() {
     try {
@@ -62,7 +65,6 @@ internal class CachingIndex<K, V, D>(
     if (disabled.get() || content !is FileContentImpl || !isCacheable(content, stubs)) {
       return IndexInfrastructureExtensionUpdate(base.mapInputAndPrepareUpdate(inputId, content), false)
     }
-    val stats = LocalIndexStatistics.getInstance()
     val key = CacheKeys.keyFor(content, base.extension.indexer)
     val stored = store.get(indexName, key)
     if (stored != null) {

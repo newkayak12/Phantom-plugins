@@ -4,10 +4,11 @@ package dev.phantom.localindex
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Key
+import com.intellij.openapi.util.UserDataHolderEx
 import com.intellij.openapi.vfs.VirtualFile
 import org.jetbrains.annotations.TestOnly
-import java.util.Collections
-import java.util.WeakHashMap
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicLong
 
@@ -24,8 +25,8 @@ class LocalIndexStatistics {
     val savedMicros = AtomicLong()
   }
 
-  // Weak keys: a closed project must not stay alive because of its counters.
-  private val perProject = Collections.synchronizedMap(WeakHashMap<Project, MutableMap<String, Counter>>())
+  // Kept in the project's user data, so a closed project is not kept alive by its counters and lookups take no lock.
+  private val countersKey = Key.create<ConcurrentHashMap<String, Counter>>("phantom.localindex.counters")
 
   @Volatile private var trace: MutableList<TraceEvent>? = null
 
@@ -44,8 +45,9 @@ class LocalIndexStatistics {
 
   /** Returns what was counted for [project] since the last call and starts counting from zero. */
   fun takeCounts(project: Project): Map<String, Counts> {
-    val counters = perProject.remove(project) ?: return emptyMap()
-    return synchronized(counters) { counters.mapValues { (_, c) -> Counts(c.hits.toInt(), c.misses.toInt(), c.savedMicros.get()) } }
+    val counters = project.getUserData(countersKey) ?: return emptyMap()
+    project.putUserData(countersKey, null)
+    return counters.mapValues { (_, c) -> Counts(c.hits.toInt(), c.misses.toInt(), c.savedMicros.get()) }
   }
 
   @TestOnly
@@ -58,8 +60,15 @@ class LocalIndexStatistics {
 
   private fun counter(project: Project?, index: String): Counter? {
     if (project == null || project.isDisposed) return null
-    val counters = synchronized(perProject) { perProject.getOrPut(project) { HashMap() } }
-    return synchronized(counters) { counters.getOrPut(index) { Counter() } }
+    val counters = project.getUserData(countersKey) ?: newCounters(project)
+    return counters[index] ?: counters.computeIfAbsent(index) { Counter() }
+  }
+
+  private fun newCounters(project: Project): ConcurrentHashMap<String, Counter> {
+    val fresh = ConcurrentHashMap<String, Counter>()
+    // Project is a UserDataHolderEx in the platform; the fallback only loses a counter in a race.
+    return if (project is UserDataHolderEx) project.putUserDataIfAbsent(countersKey, fresh)
+    else fresh.also { project.putUserData(countersKey, it) }
   }
 
   companion object {

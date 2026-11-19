@@ -265,7 +265,7 @@ class LocalIndexStore private constructor(
   /** Waits until everything queued so far, including the opening scan, has been done. */
   @TestOnly
   fun awaitIdle() {
-    while (pendingEncodes.get() > 0) Thread.sleep(1) // an encode hands its record to the writer before it finishes
+    while (pendingEncodes.get() > 0 && !closed) Thread.sleep(1) // an encode hands its record to the writer before it finishes
     submitAndWait { }
   }
 
@@ -465,7 +465,9 @@ class LocalIndexStore private constructor(
 
     private const val MAX_PENDING_BYTES = 64L shl 20
     private const val MAX_ENCODER_THREADS = 4
-    private const val PENDING_ENCODES_PER_THREAD = 256
+    // Each pending encode holds a whole map until encoded; 64 per thread keeps that to a few hundred maps, and an
+    // encoder more than 64 records behind is not keeping up anyway.
+    private const val PENDING_ENCODES_PER_THREAD = 64
     private val DROP_LOG_INTERVAL_NANOS = TimeUnit.MINUTES.toNanos(1)
     private val LOG = logger<LocalIndexStore>()
     private val SEGMENT_NAME = Regex("seg-(\\d+)\\.dat")
