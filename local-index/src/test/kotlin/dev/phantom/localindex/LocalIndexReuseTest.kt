@@ -9,6 +9,7 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.testFramework.ApplicationRule
 import com.intellij.testFramework.DisposableRule
 import com.intellij.testFramework.EdtRule
@@ -47,6 +48,7 @@ class LocalIndexReuseTest {
   fun setUp() {
     (FileBasedIndex.getInstance() as FileBasedIndexImpl).waitUntilIndicesAreInitialized() // opens the store
     store.clearAll()
+    Registry.get("phantom.localindex.verify.one.in").setValue(1, disposable.disposable) // verify every hit
   }
 
   @After

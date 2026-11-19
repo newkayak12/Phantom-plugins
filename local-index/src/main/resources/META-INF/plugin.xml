@@ -16,6 +16,8 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <fileBasedIndexInfrastructureExtension implementation="dev.phantom.localindex.LocalIndexExtension"/>
+    <registryKey key="phantom.localindex.verify.one.in" defaultValue="0" description="Phantom Local Index: recompute every Nth cache hit and compare (0 = off)"/>
+    <projectIndexingActivityHistoryListener implementation="dev.phantom.localindex.LocalIndexHistoryListener"/>
     <advancedSetting id="phantom.localindex.max.size.mb" default="2048" bundle="messages.PhantomLocalIndexBundle" groupKey="advanced.settings.phantom.localindex"/>
   </extensions>
 </idea-plugin>

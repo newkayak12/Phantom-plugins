@@ -26,3 +26,7 @@ Not cached: `TodoIndex` (depends on your TODO patterns), `FilenameIndex` and `fi
 - A damaged cache needs no manual cleanup: unreadable entries count as misses and are removed, and a cache written by another plugin version, index version or index layout is cleared on start.
 - When the platform rebuilds or resets an index, the cached data of that index is cleared too.
 
+## Diagnostics
+
+- After each project indexing the IDE log (`idea.log`) gets one line, for example `Phantom local index: demo: 190 of 200 index updates from cache (IdIndex 100/100, Stubs 90/100), about 2000 ms of indexing saved`. "Saved" is the time it took to compute the reused data the first time.
+- Registry key `phantom.localindex.verify.one.in` (default 0 = off): with N > 0, every Nth cache hit is also recomputed and compared. A difference is logged as an error, and the cache stays off for that index until restart.

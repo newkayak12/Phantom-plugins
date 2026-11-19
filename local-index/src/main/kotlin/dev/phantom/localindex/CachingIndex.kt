@@ -4,6 +4,7 @@ package dev.phantom.localindex
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VirtualFileWithId
 import com.intellij.psi.stubs.StubUpdatingIndexStorage
 import com.intellij.util.indexing.FileBasedIndexExtension
@@ -22,6 +23,8 @@ import com.intellij.util.indexing.impl.MapReduceIndex
 import com.intellij.util.indexing.impl.MapReduceIndexMappingException
 import dev.phantom.localindex.store.LocalIndexStore
 import dev.phantom.localindex.store.StoreHeader
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Serves the key-value map of a file from the store when another checkout already indexed the same bytes, and
@@ -38,6 +41,9 @@ internal class CachingIndex<K, V, D>(
 ) : FileBasedIndexInfrastructureExtensionUpdatableIndex<K, V, FileContent, D>,
     UpdatableIndex<K, V, FileContent, D> by base {
 
+  // Set when a verified hit differed from a fresh computation; the index then runs without the cache until restart.
+  private val disabled = AtomicBoolean()
+
   // A platform clear (rebuild, repaired stub name storage, version change) makes everything cached for this index suspect.
   override fun clear() {
     try {
@@ -53,8 +59,7 @@ internal class CachingIndex<K, V, D>(
 
   @Suppress("TooGenericExceptionCaught") // decoding a stale payload fails in any way, see the catch below
   override fun mapInputAndPrepareUpdate(inputId: Int, content: FileContent?): IndexInfrastructureExtensionUpdate {
-    // TODO(Task 8): bypass when the index is disabled for the session
-    if (content !is FileContentImpl || !isCacheable(content, stubs)) {
+    if (disabled.get() || content !is FileContentImpl || !isCacheable(content, stubs)) {
       return IndexInfrastructureExtensionUpdate(base.mapInputAndPrepareUpdate(inputId, content), false)
     }
     val stats = LocalIndexStatistics.getInstance()
@@ -74,12 +79,37 @@ internal class CachingIndex<K, V, D>(
         null
       }
       if (data != null) {
-        stats.hit(content.project, indexName, content.file.path, stored.mapMicros)
-        return IndexInfrastructureExtensionUpdate(prepareFromData(inputId, content, data), true)
+        val recomputed = verify(content, data)
+        if (recomputed == null) {
+          stats.hit(content.project, indexName, content.file.path, stored.mapMicros)
+          return IndexInfrastructureExtensionUpdate(prepareFromData(inputId, content, data), true)
+        }
+        LOG.error("Phantom local index: cached data of $indexName differs for ${content.file.path}; cache off for $indexName until restart")
+        disabled.set(true)
+        store.remove(indexName, key)
+        stats.miss(content.project, indexName, content.file.path)
+        return IndexInfrastructureExtensionUpdate(prepareFromData(inputId, content, recomputed), false)
       }
     }
     stats.miss(content.project, indexName, content.file.path)
     return if (stubs) indexStubs(inputId, content, key) else indexAndStore(inputId, content, key)
+  }
+
+  /** For every Nth hit ([VERIFY_KEY]) recomputes the map; returns it when it differs from [cached], else null. */
+  @Suppress("TooGenericExceptionCaught") // a failing verification must never break indexing
+  private fun verify(content: FileContentImpl, cached: Map<K, V>): Map<K, V>? {
+    val every = Registry.intValue(VERIFY_KEY, 0)
+    if (every <= 0 || verifiedHits.incrementAndGet() % every != 0L) return null
+    return try {
+      mapLikePlatform(base.extension, content).takeIf { it != cached }
+    }
+    catch (e: ProcessCanceledException) {
+      throw e
+    }
+    catch (e: Exception) {
+      LOG.debug("Cannot verify the cached entry of $indexName", e)
+      null
+    }
   }
 
   private fun indexAndStore(inputId: Int, content: FileContentImpl, key: ByteArray): IndexInfrastructureExtensionUpdate {
@@ -138,6 +168,11 @@ private fun <K, V> mapLikePlatform(extension: IndexExtension<K, V, FileContent>,
   ProgressManager.checkCanceled()
   return data
 }
+
+private const val VERIFY_KEY = "phantom.localindex.verify.one.in"
+
+// Counts hits of all indexes, so that "every Nth hit" is store-wide.
+private val verifiedHits = AtomicLong()
 
 private val LOG = logger<CachingIndex<*, *, *>>()
 

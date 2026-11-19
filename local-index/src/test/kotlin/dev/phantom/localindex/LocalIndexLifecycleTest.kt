@@ -7,6 +7,7 @@ import com.intellij.openapi.project.ex.ProjectManagerEx
 import com.intellij.psi.impl.cache.impl.id.IdIndex
 import com.intellij.psi.impl.java.stubs.index.JavaStubIndexKeys
 import com.intellij.psi.stubs.StubUpdatingIndex
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.testFramework.ApplicationRule
 import com.intellij.testFramework.DisposableRule
 import com.intellij.testFramework.EdtRule
@@ -60,6 +61,7 @@ class LocalIndexLifecycleTest {
     sizeSetting = AdvancedSettings.getInt(LocalIndexExtension.MAX_SIZE_SETTING)
     (FileBasedIndex.getInstance() as FileBasedIndexImpl).waitUntilIndicesAreInitialized() // opens the store
     store.clearAll()
+    Registry.get("phantom.localindex.verify.one.in").setValue(1, disposable.disposable) // verify every hit
   }
 
   @After
