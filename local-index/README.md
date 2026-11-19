@@ -18,7 +18,7 @@ Measured on a Kotlin/Gradle project of about 2,600 source files, opening a new w
 
 ## What is cached
 
-Only indexes whose result depends on the file's own content (plus its name and file type), never on project settings or other files:
+Only indexes whose result depends on the file's own content (plus its name and file type), never on other files or on a project setting the platform does not already put into the file's hash (the Java language level is such a setting, so it is part of the cache key):
 
 - `IdIndex`: words of the file, from text only.
 - `java.fun.expression`, `java.null.method.argument`, `java.binary.plus.expression`: read the syntax tree or tokens of one Java file.

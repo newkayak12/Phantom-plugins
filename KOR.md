@@ -85,7 +85,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | QueryDSL Support | [querydsl](./querydsl/KOR.md) · [English](./querydsl/README.md) | Q클래스 경로에서 엔티티로 이동, 엔티티 필드 Find Usages에 QueryDSL 경로 포함, 오래된 Q클래스 경고 |
 | Testcontainers Support | [testcontainers](./testcontainers/KOR.md) · [English](./testcontainers/README.md) | 시작되지 않거나 테스트마다 시작하는 컨테이너, 버전 없는 이미지, static이어야 하는 Spring 멤버 |
 | Mermaid Support | [mermaid](./mermaid/KOR.md) · [English](./mermaid/README.md) | Mermaid 편집과 미리보기 (업스트림 플러그인을 기반으로 Phantom id로 빌드) |
-| Phantom Local Index | [local-index](./local-index/KOR.md) · [English](./local-index/README.md) | 같은 프로젝트의 체크아웃 사이에서 이 컴퓨터의 인덱스 데이터를 재사용 (0.1.0: 뼈대, 인덱스는 그대로 통과) |
+| Phantom Local Index | [local-index](./local-index/KOR.md) · [English](./local-index/README.md) | 같은 프로젝트의 체크아웃 사이에서 이 컴퓨터의 인덱스 데이터를 재사용 (선택 설치) |
 
 ## 저장소 형식
 
