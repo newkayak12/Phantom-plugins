@@ -155,7 +155,17 @@ class LocalIndexStore private constructor(
     val state = state(index)
     state.validated = false
     state.map.clear()
-    submit { wipe(state) }
+    // An ensureHeader queued before this call must not re-validate the old data before the wipe has run.
+    state.pendingChecks.incrementAndGet()
+    submit {
+      try {
+        wipe(state)
+        state.validated = false // a check queued before this call may have validated the old header meanwhile
+      }
+      finally {
+        state.pendingChecks.decrementAndGet()
+      }
+    }
   }
 
   /**

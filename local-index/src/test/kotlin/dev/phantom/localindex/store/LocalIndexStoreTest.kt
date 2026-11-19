@@ -229,6 +229,20 @@ class LocalIndexStoreTest {
     assertArrayEquals(payload(3), again.get("Stubs", key(3))!!.payload)
   }
 
+  @Test fun `header check queued before a clear does not leave the index validated`() {
+    val store = open()
+    store.ensureHeader("a", header)
+    store.clear("a")
+    store.awaitIdle()
+    store.put("a", key(1), 1, payload(1))
+    store.awaitIdle()
+    assertNull("no ensureHeader after the clear, so nothing is served", store.get("a", key(1)))
+    store.ensureHeader("a", header)
+    store.put("a", key(2), 2, payload(2))
+    store.awaitIdle()
+    assertArrayEquals(payload(2), store.get("a", key(2))!!.payload)
+  }
+
   @Test fun `second open of the same root returns null while the first is open`() {
     val store = open()
     assertNull(LocalIndexStore.open(root(), 1L shl 20))

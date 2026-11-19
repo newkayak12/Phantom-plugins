@@ -148,11 +148,16 @@ internal fun <K, V, D> wrapInCache(
   layoutId: String?,
 ): UpdatableIndex<K, V, FileContent, D> {
   val name = indexExtension.name.name
-  // Entries written under another index version, hash version or storage layout are dropped before the first read.
-  // Stub bytes carry ids from the local serializer name storage, so the stub header also holds a fingerprint.
-  val stubs = name == LocalIndexAllowlist.STUBS
-  val fingerprint = if (stubs) stubFingerprint() else 0
-  val header = StoreHeader(LocalIndexStore.FORMAT_VERSION, indexExtension.version, IndexedHashesSupport.getVersion(), layoutId ?: "", fingerprint)
+  val header = headerFor(indexExtension, layoutId)
   store.ensureHeader(name, header)
-  return CachingIndex(baseIndex, name, EntryCodec.of(indexExtension), store, stubs, header)
+  return CachingIndex(baseIndex, name, EntryCodec.of(indexExtension), store, name == LocalIndexAllowlist.STUBS, header)
+}
+
+/**
+ * Entries written under another index version, hash version or storage layout are dropped before the first read.
+ * Stub bytes carry ids from the serializer name storage, so the stub header also holds a fingerprint.
+ */
+internal fun headerFor(indexExtension: FileBasedIndexExtension<*, *>, layoutId: String?): StoreHeader {
+  val fingerprint = if (indexExtension.name.name == LocalIndexAllowlist.STUBS) stubFingerprint() else 0
+  return StoreHeader(LocalIndexStore.FORMAT_VERSION, indexExtension.version, IndexedHashesSupport.getVersion(), layoutId ?: "", fingerprint)
 }

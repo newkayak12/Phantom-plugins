@@ -5,7 +5,7 @@
 Reuses index data between checkouts of the same project on this machine, so a new worktree or clone does not index files that another checkout already indexed.
 
 - **Local only:** data is read and written on this machine; nothing is sent anywhere.
-- **Advanced Settings:** a switch in Settings | Advanced Settings | Phantom Local Index will come with the first version that reuses data (not in 0.1.0).
+- **Advanced Settings:** Settings | Advanced Settings | Phantom Local Index | Cache size limit (MB), default 2048. When the cache grows past it, the oldest data is deleted. The new limit applies after restarting the IDE.
 - **Turn off:** disable the plugin in Settings | Plugins.
 
 ## What is cached
@@ -20,4 +20,9 @@ Only indexes whose result depends on the file's own content (plus its name and f
 
 Not cached: `TodoIndex` (depends on your TODO patterns), `FilenameIndex` and `filetypes` (do not read content).
 
-0.1.0 is the skeleton: the plugin registers with the platform's indexing infrastructure and passes every index through unchanged.
+## Lifecycle
+
+- One IDE process owns the cache at a time. If another IDE process already holds it (or it cannot be opened), this process runs without the cache and logs a warning.
+- A damaged cache needs no manual cleanup: unreadable entries count as misses and are removed, and a cache written by another plugin version, index version or index layout is cleared on start.
+- When the platform rebuilds or resets an index, the cached data of that index is cleared too.
+

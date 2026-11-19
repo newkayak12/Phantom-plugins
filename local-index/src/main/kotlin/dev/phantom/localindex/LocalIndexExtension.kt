@@ -2,6 +2,8 @@
 package dev.phantom.localindex
 
 import com.intellij.openapi.application.PathManager
+import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.options.advanced.AdvancedSettings
 import com.intellij.openapi.project.Project
 import com.intellij.psi.stubs.StubIndexExtension
 import com.intellij.psi.stubs.StubIndexKey
@@ -37,17 +39,26 @@ class LocalIndexExtension : FileBasedIndexInfrastructureExtension {
     return wrapInCache(indexExtension, baseIndex, store, layoutId)
   }
 
-  override fun onFileBasedIndexVersionChanged(indexId: ID<*, *>) = Unit
+  // The index's version changed: its cached entries were written by the old indexer.
+  override fun onFileBasedIndexVersionChanged(indexId: ID<*, *>) {
+    store?.clear(indexId.name)
+  }
 
   // A stub index changed its version: every cached stub tree carries its old indexed-stub bytes.
   override fun onStubIndexVersionChanged(indexId: StubIndexKey<*, *>) {
-    store?.clear(LocalIndexAllowlist.STUBS)
+    val store = store ?: return
+    store.clear(LocalIndexAllowlist.STUBS)
+    // Without a header Stubs would stay uncached for the rest of the session.
+    FileBasedIndexExtension.EXTENSION_POINT_NAME.extensionList.firstOrNull { it.name.name == LocalIndexAllowlist.STUBS }
+      ?.let { store.ensureHeader(LocalIndexAllowlist.STUBS, headerFor(it, layoutId)) }
   }
 
   override fun initialize(indexLayoutId: String?): InitializationResult {
     layoutId = indexLayoutId
     store?.close()
-    store = LocalIndexStore.open(PathManager.getIndexRoot().resolve(ROOT), MAX_BYTES)
+    val maxBytes = AdvancedSettings.getInt(MAX_SIZE_SETTING).coerceAtLeast(1).toLong() shl 20
+    store = LocalIndexStore.open(PathManager.getIndexRoot().resolve(ROOT), maxBytes)
+    if (store == null) LOG.warn("Phantom Local Index: the cache at ${PathManager.getIndexRoot().resolve(ROOT)} is locked by another IDE process or unreadable; indexes are not cached in this process")
     return InitializationResult.SUCCESSFULLY
   }
 
@@ -74,7 +85,8 @@ class LocalIndexExtension : FileBasedIndexInfrastructureExtension {
 
   companion object {
     const val ROOT = "phantom-local-index"
-    private const val MAX_BYTES = 2048L shl 20
+    const val MAX_SIZE_SETTING = "phantom.localindex.max.size.mb"
+    private val LOG = logger<LocalIndexExtension>()
 
     fun getInstance(): LocalIndexExtension = FileBasedIndexInfrastructureExtension.EP_NAME.findExtensionOrFail(LocalIndexExtension::class.java)
   }

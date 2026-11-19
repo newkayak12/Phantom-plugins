@@ -16,5 +16,6 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <fileBasedIndexInfrastructureExtension implementation="dev.phantom.localindex.LocalIndexExtension"/>
+    <advancedSetting id="phantom.localindex.max.size.mb" default="2048" bundle="messages.PhantomLocalIndexBundle" groupKey="advanced.settings.phantom.localindex"/>
   </extensions>
 </idea-plugin>
