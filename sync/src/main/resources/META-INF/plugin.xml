@@ -1,0 +1,18 @@
+<idea-plugin>
+  <id>dev.phantom.sync</id>
+  <name>Phantom Settings Repository</name>
+  <vendor>Phantom</vendor>
+  <category>IDE Settings</category>
+  <description><![CDATA[
+  Backup and Sync to a git repository you own (GitHub or any git remote) instead of a JetBrains account.
+  Settings are pushed and pulled with your own git credentials; nothing is sent anywhere else.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.platform"/>
+  </dependencies>
+
+  <content namespace="jetbrains">
+    <module name="phantom.sync.core"/>
+  </content>
+</idea-plugin>
