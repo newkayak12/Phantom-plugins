@@ -13,6 +13,7 @@ import org.junit.rules.TemporaryFolder
 import java.io.RandomAccessFile
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
 
@@ -158,6 +159,69 @@ class LocalIndexStoreTest {
     assertEquals(List(5) { true }, results.get())
     assertEquals(true, flagKept.get())
     for (i in 0 until 5) assertArrayEquals(payload(i), store.get("a", key(i))!!.payload)
+  }
+
+  @Test fun `a deferred put encodes on another thread and get returns the bytes`() {
+    val store = open()
+    val encodedOn = AtomicReference<Thread>()
+    store.put("a", key(1), 5) {
+      encodedOn.set(Thread.currentThread())
+      payload(1)
+    }
+    store.awaitIdle()
+    assertNotNull(encodedOn.get())
+    assertTrue(encodedOn.get() !== Thread.currentThread())
+    assertArrayEquals(payload(1), store.get("a", key(1))!!.payload)
+  }
+
+  @Test fun `an encoder that throws drops only its record`() {
+    val store = open()
+    store.put("a", key(1), 1) { error("odd data") }
+    store.put("a", key(2), 2) { payload(2) }
+    store.awaitIdle()
+    assertNull(store.get("a", key(1)))
+    assertArrayEquals(payload(2), store.get("a", key(2))!!.payload)
+  }
+
+  @Test fun `clear after a deferred put was queued wins over it`() {
+    val store = open()
+    val release = CountDownLatch(1)
+    store.put("a", key(1), 1) {
+      release.await()
+      payload(1)
+    }
+    store.clear("a")
+    store.ensureHeader("a", header)
+    release.countDown()
+    store.awaitIdle()
+    assertNull(store.get("a", key(1)))
+  }
+
+  @Test fun `remove after a deferred put was queued wins over it`() {
+    val store = open()
+    val release = CountDownLatch(1)
+    store.put("a", key(1), 1) {
+      release.await()
+      payload(1)
+    }
+    store.remove("a", key(1))
+    release.countDown()
+    store.awaitIdle()
+    assertNull(store.get("a", key(1)))
+  }
+
+  @Test fun `clearAll leaves no record of a deferred put queued before it`() {
+    val store = open()
+    val release = CountDownLatch(1)
+    store.put("a", key(1), 1) {
+      release.await()
+      payload(1)
+    }
+    store.clearAll()
+    release.countDown()
+    store.awaitIdle()
+    assertNull(store.get("a", key(1)))
+    assertEquals(0, store.totalBytes())
   }
 
   @Test fun `remove wins over a put queued before it`() {

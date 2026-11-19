@@ -81,17 +81,17 @@ internal class CachingIndex<K, V, D>(
       if (data != null) {
         val recomputed = verify(content, data)
         if (recomputed == null) {
-          stats.hit(content.project, indexName, content.file.path, stored.mapMicros)
+          stats.hit(content.project, indexName, content.file, stored.mapMicros)
           return IndexInfrastructureExtensionUpdate(prepareFromData(inputId, content, data), true)
         }
         LOG.error("Phantom local index: cached data of $indexName differs for ${content.file.path}; cache off for $indexName until restart")
         disabled.set(true)
         store.remove(indexName, key)
-        stats.miss(content.project, indexName, content.file.path)
+        stats.miss(content.project, indexName, content.file)
         return IndexInfrastructureExtensionUpdate(prepareFromData(inputId, content, recomputed), false)
       }
     }
-    stats.miss(content.project, indexName, content.file.path)
+    stats.miss(content.project, indexName, content.file)
     return if (stubs) indexStubs(inputId, content, key) else indexAndStore(inputId, content, key)
   }
 
@@ -117,7 +117,8 @@ internal class CachingIndex<K, V, D>(
     val update = base.mapInputAndPrepareUpdate(inputId, content)
     if (update is MapReduceIndex<*, *, *>.IndexStorageUpdate) {
       @Suppress("UNCHECKED_CAST")
-      store.put(indexName, key, microsSince(started), codec.encode(update.inputData.keyValues as Map<K, V>))
+      val data = update.inputData.keyValues as Map<K, V>
+      store.put(indexName, key, microsSince(started)) { codec.encode(data) }
     }
     return IndexInfrastructureExtensionUpdate(update, false)
   }
@@ -127,7 +128,7 @@ internal class CachingIndex<K, V, D>(
     val started = System.nanoTime()
     val data = mapLikePlatform(base.extension, content)
     val micros = microsSince(started)
-    store.put(indexName, key, micros, codec.encode(data))
+    store.put(indexName, key, micros) { codec.encode(data) }
     return IndexInfrastructureExtensionUpdate(prepareFromData(inputId, content, data), false)
   }
 

@@ -4,6 +4,7 @@ package dev.phantom.localindex
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 import org.jetbrains.annotations.TestOnly
 import java.util.Collections
 import java.util.WeakHashMap
@@ -28,17 +29,17 @@ class LocalIndexStatistics {
 
   @Volatile private var trace: MutableList<TraceEvent>? = null
 
-  fun hit(project: Project?, index: String, path: String, savedMicros: Int) {
+  fun hit(project: Project?, index: String, file: VirtualFile, savedMicros: Int) {
     counter(project, index)?.let {
       it.hits.incrementAndGet()
       it.savedMicros.addAndGet(savedMicros.toLong())
     }
-    trace?.add(TraceEvent(index, path, true))
+    trace?.add(TraceEvent(index, file.path, true))
   }
 
-  fun miss(project: Project?, index: String, path: String) {
+  fun miss(project: Project?, index: String, file: VirtualFile) {
     counter(project, index)?.misses?.incrementAndGet()
-    trace?.add(TraceEvent(index, path, false))
+    trace?.add(TraceEvent(index, file.path, false))
   }
 
   /** Returns what was counted for [project] since the last call and starts counting from zero. */

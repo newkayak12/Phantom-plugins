@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.localindex.store
 
+import com.intellij.openapi.diagnostic.logger
 import org.jetbrains.annotations.TestOnly
 import java.io.Closeable
 import java.io.IOException
@@ -53,6 +54,12 @@ class LocalIndexStore private constructor(
 
     val ready get() = validated && pendingChecks.get() == 0
 
+    /**
+     * Bumped by every change that must win over records still being encoded ([clear], [remove], [ensureHeader],
+     * [clearAll]); a deferred put whose epoch is stale when it reaches the writer is dropped.
+     */
+    val epoch = AtomicInteger()
+
     /** The segment appends go to; written by the writer thread only. */
     @Volatile var current: Segment? = null
   }
@@ -61,12 +68,18 @@ class LocalIndexStore private constructor(
   private val segments = ConcurrentSkipListMap<Long, Segment>()
   private val total = AtomicLong()
   private val pendingBytes = AtomicLong()
+  private val pendingEncodes = AtomicInteger()
   private var nextGeneration = 1L // writer thread only
 
   @Volatile private var closed = false
 
   private val writer = ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, LinkedBlockingQueue()) { r ->
     Thread(r, "LocalIndexStore writer").apply { isDaemon = true }
+  }
+
+  // Encoding must neither run on the indexing threads nor slow the single writer thread.
+  private val encoder = ThreadPoolExecutor(ENCODER_THREADS, ENCODER_THREADS, 0L, TimeUnit.MILLISECONDS, LinkedBlockingQueue()) { r ->
+    Thread(r, "LocalIndexStore encoder").apply { isDaemon = true }
   }
 
   private fun start() {
@@ -81,6 +94,7 @@ class LocalIndexStore private constructor(
    */
   fun ensureHeader(index: String, header: StoreHeader) {
     val state = state(index)
+    state.epoch.incrementAndGet()
     // From here on gets miss: entries of the old header must not be served while the writer works its way here.
     state.validated = false
     state.pendingChecks.incrementAndGet()
@@ -138,9 +152,48 @@ class LocalIndexStore private constructor(
     queue(payload.size) { append(state, keyBytes, mapMicros, payload, null) }
   }
 
+  /**
+   * Like [put], but [encode] runs on a background thread, not the caller's: it must only read what it captured, and
+   * what it captured must not change afterwards. The record is dropped when too many encodes are waiting, when
+   * [encode] throws, and when the index was cleared, a key of it removed or its header checked after this call.
+   */
+  @Suppress("TooGenericExceptionCaught") // the externalizer may fail in any way on odd data; that costs the record only
+  fun put(index: String, key: ByteArray, mapMicros: Int, encode: () -> ByteArray) {
+    if (closed || key.size != Segment.KEY_BYTES) return
+    if (pendingEncodes.incrementAndGet() > MAX_PENDING_ENCODES) {
+      pendingEncodes.decrementAndGet()
+      return
+    }
+    val state = state(index)
+    val epoch = state.epoch.get()
+    val keyBytes = KeyBytes(key)
+    try {
+      encoder.execute {
+        try {
+          if (state.epoch.get() != epoch) return@execute
+          val payload = try {
+            encode()
+          }
+          catch (e: Exception) {
+            LOG.debug("Cannot encode a record for ${state.dirName}, dropping it", e)
+            return@execute
+          }
+          queue(payload.size) { if (state.epoch.get() == epoch) append(state, keyBytes, mapMicros, payload, null) }
+        }
+        finally {
+          pendingEncodes.decrementAndGet()
+        }
+      }
+    }
+    catch (_: RejectedExecutionException) {
+      pendingEncodes.decrementAndGet()
+    }
+  }
+
   fun remove(index: String, key: ByteArray) {
     if (key.size != Segment.KEY_BYTES) return
     val state = indexes[dirName(index)] ?: return
+    state.epoch.incrementAndGet() // records of this index still being encoded might hold the key
     val keyBytes = KeyBytes(key)
     state.map.remove(keyBytes)
     submit { state.map.remove(keyBytes) } // after any put queued before this call
@@ -153,6 +206,7 @@ class LocalIndexStore private constructor(
    */
   fun clear(index: String) {
     val state = state(index)
+    state.epoch.incrementAndGet()
     state.validated = false
     state.map.clear()
     // An ensureHeader queued before this call must not re-validate the old data before the wipe has run.
@@ -173,7 +227,11 @@ class LocalIndexStore private constructor(
    * directory on disk has a state; waits for it, like the write queue, so that the store is empty when this returns.
    */
   fun clearAll() {
-    indexes.values.forEach { it.map.clear() }
+    // Records still being encoded are dropped when they reach the writer, behind the wipe below.
+    indexes.values.forEach {
+      it.epoch.incrementAndGet()
+      it.map.clear()
+    }
     submitAndWait { indexes.values.forEach { clearIndex(it) } }
   }
 
@@ -185,12 +243,14 @@ class LocalIndexStore private constructor(
   /** Waits until everything queued so far, including the opening scan, has been done. */
   @TestOnly
   fun awaitIdle() {
+    while (pendingEncodes.get() > 0) Thread.sleep(1) // an encode hands its record to the writer before it finishes
     submitAndWait { }
   }
 
   override fun close() {
     if (closed) return
     closed = true
+    encoder.shutdownNow()
     writer.shutdown()
     writer.awaitTermination(1, TimeUnit.MINUTES)
     segments.values.forEach { it.retire() }
@@ -381,6 +441,9 @@ class LocalIndexStore private constructor(
     const val SEGMENT_BYTES = 64L shl 20
 
     private const val MAX_PENDING_BYTES = 64L shl 20
+    private const val MAX_PENDING_ENCODES = 512
+    private const val ENCODER_THREADS = 2
+    private val LOG = logger<LocalIndexStore>()
     private val SEGMENT_NAME = Regex("seg-(\\d+)\\.dat")
     private val UNSAFE = Regex("[^A-Za-z0-9._-]")
 
