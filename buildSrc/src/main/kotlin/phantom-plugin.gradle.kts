@@ -1,5 +1,7 @@
 // Shared setup for every plugin in this repository: Kotlin, and the installed Phantom as the platform.
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask.FailureLevel
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -18,6 +20,12 @@ java {
   targetCompatibility = JavaVersion.VERSION_25
 }
 
+// Phantom was "Phantom IDEA.app" before the rename; until Phantom.app is installed, the old app is used
+val installedPhantom: Provider<String> = providers.gradleProperty("phantomIde").map { path ->
+  val legacy = "/Applications/Phantom IDEA.app"
+  if (!file(path).exists() && path == "/Applications/Phantom.app" && file(legacy).exists()) legacy else path
+}
+
 dependencies {
   intellijPlatform {
     // Plugins compile against an installed Phantom, not a downloaded IntelliJ. CI (-PplatformFromRepository) has no
@@ -29,15 +37,12 @@ dependencies {
       intellijIdeaCommunity(providers.gradleProperty("platformTestBuild")) { useInstaller = false }
     }
     else {
-      // Phantom was "Phantom IDEA.app" before the rename; until Phantom.app is installed, the old app is used
-      local(providers.gradleProperty("phantomIde").map { path ->
-        val legacy = "/Applications/Phantom IDEA.app"
-        if (!file(path).exists() && path == "/Applications/Phantom.app" && file(legacy).exists()) legacy else path
-      })
+      local(installedPhantom)
       resolveBundledPhantomPluginsByAlias()
     }
     // Phantom is a fork of this IntelliJ build, whose test framework is published
     testFramework(TestFrameworkType.Platform, providers.gradleProperty("platformTestBuild"))
+    pluginVerifier()
   }
   testImplementation("junit:junit:4.13.2")
   testRuntimeOnly("org.opentest4j:opentest4j:1.3.0")
@@ -96,6 +101,28 @@ intellijPlatform {
     ideaVersion {
       sinceBuild = providers.gradleProperty("sinceBuild")
       untilBuild = providers.gradleProperty("untilBuild")
+    }
+  }
+  // ./gradlew :<plugin>:verifyPlugin checks the built plugin's bytecode against the IDE it will run in, which compiling
+  // does not fully cover (APIs that another plugin or a newer IntelliJ has, but this Phantom lacks). The IDE is the
+  // Phantom at -PverifyIde=<dir> (CI unpacks a Phantom release there), else the installed Phantom, else in CI
+  // (-PplatformFromRepository) the IntelliJ Community build Phantom is forked from.
+  pluginVerification {
+    failureLevel = listOf(FailureLevel.COMPATIBILITY_PROBLEMS, FailureLevel.INVALID_PLUGIN)
+    val verifyIde = providers.gradleProperty("verifyIde")
+    // Phantom does not bundle Kotlin (it is published as a plugin of its own), and the verifier only sees the plugins an
+    // IDE lists in product-info.json, so against a Phantom build Kotlin's classes count as external. The IntelliJ
+    // Community check covers them.
+    if (verifyIde.isPresent || !providers.gradleProperty("platformFromRepository").isPresent) {
+      externalPrefixes.add("org.jetbrains.kotlin")
+    }
+    ides {
+      when {
+        verifyIde.isPresent -> local(verifyIde)
+        providers.gradleProperty("platformFromRepository").isPresent ->
+          create(IntelliJPlatformType.IntellijIdeaCommunity, providers.gradleProperty("platformTestBuild")) { useInstaller = false }
+        else -> local(installedPhantom)
+      }
     }
   }
 }

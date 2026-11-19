@@ -115,3 +115,6 @@ tasks.test {
 tasks.prepareTestSandbox {
   disabledPlugins.add("JUnit")
 }
+
+// The test runners (src/rt*) run in the user's test JVM, where JUnit comes from the project, not from the IDE
+intellijPlatform.pluginVerification.externalPrefixes.addAll("junit", "org.junit")

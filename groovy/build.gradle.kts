@@ -229,3 +229,6 @@ tasks.test {
 tasks.prepareTestSandbox {
   disabledPlugins.addAll("org.intellij.groovy", "com.intellij.groovy.scripting", "org.intellij.groovy.live.templates")
 }
+
+// GreclipseBuilder runs in the JPS build process with the user's groovy-eclipse batch compiler (org.eclipse.jdt)
+intellijPlatform.pluginVerification.externalPrefixes.add("org.eclipse.jdt")
