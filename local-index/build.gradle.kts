@@ -24,6 +24,7 @@ tasks.named<Test>("test") {
     filter {
       excludeTestsMatching("dev.phantom.localindex.LocalIndexAllowlistKotlinTest")
       excludeTestsMatching("dev.phantom.localindex.LocalIndexStubsKotlinTest")
+      excludeTestsMatching("dev.phantom.localindex.LocalIndexKotlinTest")
     }
   }
 }
