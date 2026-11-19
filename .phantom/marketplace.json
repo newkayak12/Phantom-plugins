@@ -1067,6 +1067,22 @@
       "since": "262.261118",
       "until": "262.*",
       "download": "maven-262.261118/Maven-262.261118.zip"
+    },
+    {
+      "id": "dev.phantom.local-shared-index",
+      "name": "Phantom Local Shared Index",
+      "version": "0.1.0",
+      "source": "local-shared-index",
+      "description": "Reuses index data between checkouts of the same project on this machine, so a new worktree or clone does not index files that another checkout already indexed. Nothing leaves the machine. Turn it off by disabling the plugin.",
+      "vendor": "Phantom",
+      "category": "Tools",
+      "since": "262.261116",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.platform"
+      ],
+      "download": "local-shared-index-0.1.0/local-shared-index-0.1.0.zip",
+      "detect": []
     }
   ]
 }
