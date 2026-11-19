@@ -8,4 +8,16 @@
 - **고급 설정:** Settings | Advanced Settings | Phantom Local Index의 스위치는 데이터를 재사용하는 첫 버전에서 추가됩니다(0.1.0에는 없음).
 - **끄기:** Settings | Plugins에서 플러그인을 비활성화합니다.
 
+## 캐시 대상
+
+파일 자신의 내용(과 이름, 파일 타입)만으로 결과가 정해지고 프로젝트 설정이나 다른 파일에 의존하지 않는 인덱스만 캐시합니다.
+
+- `IdIndex`: 파일의 단어. 텍스트만 읽습니다.
+- `java.fun.expression`, `java.null.method.argument`, `java.binary.plus.expression`: Java 파일 하나의 구문 트리 또는 토큰만 읽습니다.
+- `Trigram.Index`: 텍스트의 트라이그램.
+- Kotlin 소스 인덱스(`KotlinPackageSourcesMemberNamesIndex`, `KotlinPartialPackageNamesIndex`, `KotlinTopLevelCallableByPackageShortNameIndex`, `KotlinTopLevelClassLikeDeclarationByPackageShortNameIndex`): `.kt` 파일 하나의 패키지와 선언 이름.
+- `Stubs`: 플랫폼이 인덱싱 플레이버를 지정한 파일 타입(Java, 클래스 파일)만.
+
+캐시하지 않음: `TodoIndex`(TODO 패턴 설정에 의존), `FilenameIndex`와 `filetypes`(내용을 읽지 않음), Kotlin `.kt` 스텁.
+
 0.1.0은 뼈대입니다. 플러그인이 플랫폼의 인덱싱 인프라에 등록되지만 모든 인덱스를 그대로 통과시킵니다.

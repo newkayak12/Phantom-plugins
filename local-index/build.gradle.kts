@@ -18,3 +18,7 @@ dependencies {
     testFramework(TestFrameworkType.Plugin.Java, providers.gradleProperty("platformTestBuild"))
   }
 }
+
+tasks.named<Test>("test") {
+  if (!kotlinBundled) filter { excludeTestsMatching("dev.phantom.localindex.LocalIndexAllowlistKotlinTest") }
+}
