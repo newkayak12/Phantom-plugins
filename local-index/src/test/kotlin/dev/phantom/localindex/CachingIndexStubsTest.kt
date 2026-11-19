@@ -2,6 +2,7 @@
 package dev.phantom.localindex
 
 import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.psi.impl.java.stubs.index.JavaStubIndexKeys
 import com.intellij.psi.stubs.StubUpdatingIndex
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import com.intellij.util.indexing.FileBasedIndex
@@ -108,7 +109,15 @@ class CachingIndexStubsTest : LightJavaCodeInsightFixtureTestCase() {
     store.put("Stubs", key, 1, byteArrayOf(1, 0))
     store.awaitIdle()
     assertNotNull(store.get("Stubs", key))
-    LocalIndexExtension.getInstance().resetPersistentState(StubUpdatingIndex.INDEX_ID)
-    assertNull(store.get("Stubs", key))
+    try {
+      LocalIndexExtension.getInstance().resetPersistentState(StubUpdatingIndex.INDEX_ID)
+      assertNull(store.get("Stubs", key))
+    }
+    finally {
+      // The platform re-wraps the stub index after a reset, which writes its header again; nothing does here, and Stubs
+      // would stay uncached for the tests that follow in this JVM. A stub index version change does the same.
+      LocalIndexExtension.getInstance().onStubIndexVersionChanged(JavaStubIndexKeys.CLASS_SHORT_NAMES)
+      store.awaitIdle()
+    }
   }
 }
