@@ -473,9 +473,12 @@ class LocalIndexStore private constructor(
     private val SEGMENT_NAME = Regex("seg-(\\d+)\\.dat")
     private val UNSAFE = Regex("[^A-Za-z0-9._-]")
 
-    private fun dirName(index: String): String {
-      val name = index.replace(UNSAFE, "_")
-      return if (name.all { it == '.' }) "_$name" else name
+    // Looked up for every get and put: computed once per index name, not with a regex per file.
+    private val dirNames = ConcurrentHashMap<String, String>()
+
+    private fun dirName(index: String): String = dirNames.computeIfAbsent(index) {
+      val name = it.replace(UNSAFE, "_")
+      if (name.all { c -> c == '.' }) "_$name" else name
     }
 
     private fun generationOf(path: Path): Long? = SEGMENT_NAME.matchEntire(path.fileName.toString())?.groupValues?.get(1)?.toLongOrNull()
