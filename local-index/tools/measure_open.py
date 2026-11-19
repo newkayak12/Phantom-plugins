@@ -133,13 +133,23 @@ def run_once(args, n):
         _wait_quiet(logs, target.name, before)
         result = summarize(_project_dir(logs, target.name), t0)
         print(f"run {n}: {json.dumps(result)}")
+        if not sys.stdin.isatty():
+            # No terminal to press Enter in (e.g. run from a background shell): keep the window
+            # and its checkout until all runs are done; main() removes them at the end.
+            args.leftovers.append(target)
+            return result
         input("Close that project window, then press Enter... ")
         return result
     finally:
-        if args.mode == "clone":
-            subprocess.run(["rm", "-rf", str(target)])
-        else:
-            subprocess.run(["git", "-C", args.repo, "worktree", "remove", "--force", str(target)])
+        if target not in args.leftovers:
+            _remove(args, target)
+
+
+def _remove(args, target):
+    if args.mode == "clone":
+        subprocess.run(["rm", "-rf", str(target)])
+    else:
+        subprocess.run(["git", "-C", args.repo, "worktree", "remove", "--force", str(target)])
 
 
 def main():
@@ -158,10 +168,20 @@ def main():
     _check_vmoptions(args.config)
     print(f"Add {Path(args.parent).expanduser()} to Settings > Build > Trusted Locations once, "
           "so the trust dialog does not skew timing.")
-    runs = [run_once(args, n) for n in range(1, args.runs + 1)]
-    out = {"label": args.label, "mode": args.mode, "runs": runs, "medians": medians(runs)}
-    Path(args.out).expanduser().parent.mkdir(parents=True, exist_ok=True)
-    Path(args.out).expanduser().write_text(json.dumps(out, indent=2))
+    args.leftovers = []
+    out_file = Path(args.out).expanduser()
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    runs = []
+    try:
+        for n in range(1, args.runs + 1):
+            runs.append(run_once(args, n))
+            out = {"label": args.label, "mode": args.mode, "runs": runs, "medians": medians(runs)}
+            out_file.write_text(json.dumps(out, indent=2))  # keep finished runs if a later one fails
+    finally:
+        if args.leftovers:
+            print(f"Close the {len(args.leftovers)} measurement windows in Phantom; their checkouts are removed now.")
+        for target in args.leftovers:
+            _remove(args, target)
     print(json.dumps(out["medians"], indent=2))
 
 
