@@ -2,7 +2,6 @@
   <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
   <dependencies>
     <module name="intellij.libraries.commons.text"/>
-    <module name="intellij.libraries.grpc"/>
     <module name="intellij.libraries.javax.activation"/>
     <module name="intellij.libraries.lucene.common"/>
   </dependencies>
