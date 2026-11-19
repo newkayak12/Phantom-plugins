@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 """
-Regenerates resources/themes/*.theme.json from the Islands themes and the token overrides below:
+Regenerates src/main/resources/themes/*.theme.json from the Islands themes and the token overrides below. The Islands
+themes are read from a Phantom (or IntelliJ Community) checkout, by default ../Phantom-IDEA next to this repository:
 
-    python3 -I plugins/phantom-theme/tools/generate-themes.py
+    python3 -I theme/tools/generate-themes.py [<Phantom checkout>]
 
 A child theme cannot just redefine a named color: the parent's `ui` values are resolved to colors before the child is
 merged. So every `ui` key of the parent whose color chain passes through an overridden token is written out with the new
@@ -14,8 +15,11 @@ import json
 import pathlib
 import xml.etree.ElementTree as ET
 
-ROOT = pathlib.Path(__file__).resolve().parents[3]
-OUT = pathlib.Path(__file__).resolve().parent.parent / "resources" / "themes"
+import sys
+
+# phantom-idea: the script moved from the Phantom repository; the platform themes it reads stay there
+ROOT = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else pathlib.Path(__file__).resolve().parents[3] / "Phantom-IDEA"
+OUT = pathlib.Path(__file__).resolve().parent.parent / "src" / "main" / "resources" / "themes"
 
 # Softer, rounder shapes than Islands: bigger panel corners and controls
 SHAPE = {
