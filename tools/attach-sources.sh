@@ -5,6 +5,7 @@
 # NOTICE promises: their -sources.jar files, downloaded from the Maven repositories the build takes the libraries from.
 #
 #     tools/attach-sources.sh <tag> --dry-run   # list the files
+#     tools/attach-sources.sh <tag> --download-dir <directory> # prepare without publishing
 #     tools/attach-sources.sh <tag>             # download them and upload them to the release <tag> (needs gh)
 #
 # <tag> is a release tag of:
@@ -21,7 +22,13 @@ jetbrains="https://packages.jetbrains.team/maven/p/ij/intellij-dependencies"
 
 tag="${1:?usage: tools/attach-sources.sh <tag> [--dry-run]}"
 dry_run=false
-[[ "${2:-}" == "--dry-run" ]] && dry_run=true
+download_dir=""
+case "${2:-}" in
+  --dry-run) [[ $# == 2 ]]; dry_run=true ;;
+  --download-dir) [[ $# == 3 && -n "$3" ]]; download_dir="$3" ;;
+  '') [[ $# == 1 ]] ;;
+  *) echo 'error: expected --dry-run or --download-dir <directory>' >&2; exit 1 ;;
+esac
 
 # The version a build script gives group:artifact, e.g. "org.jacoco:org.jacoco.ant:0.8.15" -> 0.8.15
 version_of() { grep -oE "\"$2:[^:\"]+(:|\")" "$root/$1/build.gradle.kts" | head -1 | sed -E "s/\"$2://; s/[:\"]$//"; }
@@ -29,6 +36,7 @@ version_of() { grep -oE "\"$2:[^:\"]+(:|\")" "$root/$1/build.gradle.kts" | head 
 # <repository> <group> <artifact> <version> [classifier]: one file to attach
 urls=()
 add() {
+  [[ -n "$4" ]] || { echo "error: missing version for $2:$3" >&2; exit 1; }
   local path="${2//.//}/$3/$4/$3-$4${5:+-$5}.jar"
   urls+=("$1/$path")
 }
@@ -71,7 +79,19 @@ trap 'rm -rf "$work"' EXIT
 files=()
 for url in "${urls[@]}"; do
   file="$work/$(basename "$url")"
-  curl -fsSL -o "$file" "$url"
+  curl --retry 3 -fsSL -o "$file" "$url"
+  python3 - "$file" <<'PY'
+import sys
+import zipfile
+with zipfile.ZipFile(sys.argv[1]) as jar:
+    if not jar.namelist() or jar.testzip() is not None:
+        raise SystemExit('Invalid or empty source archive: ' + sys.argv[1])
+PY
   files+=("$file")
 done
+if [[ -n "$download_dir" ]]; then
+  mkdir -p "$download_dir"
+  cp "${files[@]}" "$download_dir/"
+  exit 0
+fi
 gh release upload "$tag" --repo "$repo" --clobber "${files[@]}"

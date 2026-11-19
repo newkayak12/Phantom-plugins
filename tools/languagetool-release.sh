@@ -37,7 +37,10 @@ for iso in $isos; do
   echo "  $lower-$version.jar  md5 $(checksum "$iso")  from $origin/$version/$lower-$version.jar"
 done
 echo "  LICENSE-LGPL-2.1.txt  from licenses/LGPL-2.1-only.txt"
-$dry_run && exit 0
+if $dry_run; then
+  bash "$root/tools/attach-sources.sh" "$tag" --dry-run
+  exit 0
+fi
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
@@ -56,6 +59,8 @@ for iso in $isos; do
 done
 cp "$root/licenses/LGPL-2.1-only.txt" "$work/LICENSE-LGPL-2.1.txt"
 files+=("$work/LICENSE-LGPL-2.1.txt")
+bash "$root/tools/attach-sources.sh" "$tag" --download-dir "$work/sources"
+files+=("$work/sources/"*.jar)
 
 notes="LanguageTool $version language bundles that Phantom Grammar (grammar/) downloads when a language is enabled.
 

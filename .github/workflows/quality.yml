@@ -48,6 +48,8 @@ jobs:
           if-no-files-found: warn
       - name: Test report parser
         run: python3 tools/test-summary.test.py
+      - name: Test distribution notice and source checks
+        run: python3 tools/distribution-checks.test.py
       - name: Check repository homepage
         run: |
           node --input-type=module <<'JS'
