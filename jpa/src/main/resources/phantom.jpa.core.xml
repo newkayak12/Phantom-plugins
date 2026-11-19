@@ -1,0 +1,108 @@
+<idea-plugin package="dev.phantom.jpa.core">
+  <dependencies>
+    <plugin id="com.intellij.java"/>
+    <module name="intellij.java.psi"/>
+    <module name="intellij.java.frontback.psi"/>
+    <module name="intellij.java.indexing"/>
+    <module name="intellij.java"/>
+    <module name="intellij.platform.uast"/>
+  </dependencies>
+  <resource-bundle>messages.PhantomJpaBundle</resource-bundle>
+  <extensions defaultExtensionNs="com.intellij">
+    <fileType name="JPQL" language="JPQL" implementationClass="dev.phantom.jpa.core.JpqlFileType" fieldName="INSTANCE"/>
+    <lang.parserDefinition language="JPQL" implementationClass="dev.phantom.jpa.core.JpqlParserDefinition"/>
+    <lang.syntaxHighlighterFactory language="JPQL" implementationClass="dev.phantom.jpa.core.JpqlSyntaxHighlighterFactory"/>
+    <lang.braceMatcher language="JPQL" implementationClass="dev.phantom.jpa.core.JpqlBraceMatcher"/>
+    <annotator language="JPQL" implementationClass="dev.phantom.jpa.core.JpqlAnnotator"/>
+    <multiHostInjector implementation="dev.phantom.jpa.core.JpqlQueryInjector"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomDerivedQuery"
+                     bundle="messages.PhantomJpaBundle" key="derived.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.jpa.core.DerivedQueryInspection"/>
+    <completion.contributor language="JAVA" order="first" implementationClass="dev.phantom.jpa.core.DerivedQueryCompletionContributor"/>
+    <completion.contributor language="kotlin" order="first" implementationClass="dev.phantom.jpa.core.DerivedQueryCompletionContributor"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomJpaEntity"
+                     bundle="messages.PhantomJpaBundle" key="entity.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.JpaEntityInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomModifyingQuery"
+                     bundle="messages.PhantomJpaBundle" key="modifying.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.jpa.core.ModifyingQueryInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomJpaAttribute"
+                     bundle="messages.PhantomJpaBundle" key="attribute.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.JpaAttributeInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomKotlinJpaEntity"
+                     bundle="messages.PhantomJpaBundle" key="kotlin.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.KotlinJpaEntityInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WEAK WARNING" shortName="PhantomKotlinJpaValAttribute"
+                     bundle="messages.PhantomJpaBundle" key="kotlin.val.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.KotlinJpaValAttributeInspection"/>
+    <localInspection language="JAVA" enabledByDefault="true" level="WARNING" shortName="PhantomLombokEntity"
+                     bundle="messages.PhantomJpaBundle" key="lombok.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.LombokEntityInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomRepositoryMethod"
+                     bundle="messages.PhantomJpaBundle" key="repository.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.jpa.core.RepositoryMethodInspection"/>
+    <localInspection language="JPQL" enabledByDefault="true" level="ERROR" shortName="PhantomJpql"
+                     bundle="messages.PhantomJpaBundle" key="jpql.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.JpqlInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomJpaEntityGraph"
+                     bundle="messages.PhantomJpaBundle" key="graph.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.JpaEntityGraphInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomJpaEntityListener"
+                     bundle="messages.PhantomJpaBundle" key="callback.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.JpaEntityListenerInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomJpaEntityListenerUsage"
+                     bundle="messages.PhantomJpaBundle" key="listener.usage.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.JpaEntityListenerUsageInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomJpaNamedQuery"
+                     bundle="messages.PhantomJpaBundle" key="named.query.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.JpaNamedQueryInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSqlInjection"
+                     bundle="messages.PhantomJpaBundle" key="sql.injection.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.SqlInjectionInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomJpaCriteriaAttribute"
+                     bundle="messages.PhantomJpaBundle" key="criteria.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.CriteriaAttributeInspection"/>
+    <psi.referenceContributor language="UAST" implementation="dev.phantom.jpa.core.CriteriaAttributeReferenceContributor"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomJakartaDataMethod"
+                     bundle="messages.PhantomJpaBundle" key="jakarta.data.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.jpa.core.JakartaDataMethodInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomHibernateFind"
+                     bundle="messages.PhantomJpaBundle" key="hibernate.find.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.jpa"
+                     implementationClass="dev.phantom.jpa.core.HibernateFindInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomJdbcAggregateBoundary"
+                     bundle="messages.PhantomJpaBundle" key="jdbc.boundary.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.jpa.core.JdbcAggregateBoundaryInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomJdbcMapping"
+                     bundle="messages.PhantomJpaBundle" key="jdbc.mapping.inspection.display.name"
+                     groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.jpa.core.JdbcMappingInspection"/>
+    <toolWindow id="Entity Diagram" anchor="right" secondary="false" icon="AllIcons.Nodes.DataTables" doNotActivateOnStart="true"
+                factoryClass="dev.phantom.jpa.core.EntityDiagramToolWindowFactory"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.jpa.core.JpaRepositoryLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.jpa.core.JpaRepositoryLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.jpa.core.DerivedQueryLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.jpa.core.DerivedQueryLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.jpa.core.EntityGraphLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.jpa.core.EntityGraphLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.jpa.core.EntityAttributeUsagesLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.jpa.core.EntityAttributeUsagesLineMarkerProvider"/>
+  </extensions>
+</idea-plugin>

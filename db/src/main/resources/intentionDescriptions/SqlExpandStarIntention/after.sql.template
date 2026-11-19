@@ -1,0 +1,1 @@
+SELECT <spot>g.id, g.name, r.id, r.guest_id, r.room_no</spot> FROM guest g JOIN reservation r ON r.guest_id = g.id

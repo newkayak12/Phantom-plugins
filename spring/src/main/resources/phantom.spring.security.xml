@@ -1,0 +1,33 @@
+<idea-plugin package="dev.phantom.spring.security">
+  <dependencies>
+    <module name="phantom.spring.core"/>
+  </dependencies>
+  <extensions defaultExtensionNs="com.intellij">
+    <completion.contributor language="JAVA" order="first" implementationClass="dev.phantom.spring.security.SpringSecurityCompletionContributor"/>
+    <completion.contributor language="kotlin" order="first" implementationClass="dev.phantom.spring.security.SpringSecurityCompletionContributor"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomMethodSecurityExpression"
+                     bundle="messages.PhantomSpringBundle" key="security.inspection.display.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.security.MethodSecurityExpressionInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomMethodSecurityDisabled"
+                     bundle="messages.PhantomSpringBundle" key="security.disabled.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.security.MethodSecurityDisabledInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSecurityDebug"
+                     bundle="messages.PhantomSpringBundle" key="security.debug.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.security.SecurityDebugInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSecuritySelfInvocation"
+                     bundle="messages.PhantomSpringBundle" key="security.self.invocation.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.security.SecuritySelfInvocationInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSecurityBeanReference"
+                     bundle="messages.PhantomSpringBundle" key="security.bean.reference.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.security.SecurityBeanReferenceInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSecurityRolePrefix"
+                     bundle="messages.PhantomSpringBundle" key="security.role.prefix.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.security.SecurityRolePrefixInspection"/>
+  </extensions>
+</idea-plugin>

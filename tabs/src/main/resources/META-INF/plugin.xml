@@ -1,0 +1,49 @@
+<idea-plugin>
+  <id>dev.phantom.tabs</id>
+  <name>Phantom Tab Groups</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>User Interface</category>
+  <description><![CDATA[
+  Editor tab groups, as in a web browser: put tabs into a named, colored group from the tab's context menu, collapse
+  the group to its first tab and expand it again, drag tabs in and out. A line in the group's color runs under all its
+  tabs and the group's name is a chip in that color on its first tab: click the chip to collapse or open the group, as in Chrome;
+  collapsed, it shows the name and how many tabs the group holds. Groups belong to each editor split and are kept with
+  the project. Collapsing only hides tabs; files stay open. Nothing changes in the tab bar until you make a group.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.platform"/>
+  </dependencies>
+
+  <resource-bundle>messages.PhantomTabsBundle</resource-bundle>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <editorTabColorProvider implementation="dev.phantom.tabs.core.TabGroupColorProvider"/>
+    <editorAutoClosingHandler implementation="dev.phantom.tabs.core.TabGroupAutoClosingHandler"/>
+    <editorTabTitleProvider implementation="dev.phantom.tabs.core.TabGroupTitleProvider" order="first"/>
+    <postStartupActivity implementation="dev.phantom.tabs.core.TabGroupsStartup"/>
+  </extensions>
+
+  <projectListeners>
+    <listener class="dev.phantom.tabs.core.TabGroupsListener" topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+    <listener class="dev.phantom.tabs.core.TabGroupsFileListener" topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+    <listener class="dev.phantom.tabs.core.TabGroupsCloseListener"
+              topic="com.intellij.openapi.fileEditor.FileEditorManagerListener$Before"/>
+  </projectListeners>
+
+  <actions resource-bundle="messages.PhantomTabsBundle">
+    <group id="PhantomTabs.TabMenu">
+      <action id="PhantomTabs.AddToNewGroup" class="dev.phantom.tabs.core.AddToNewGroupAction"/>
+      <group id="PhantomTabs.AddToGroup" class="dev.phantom.tabs.core.AddToGroupActionGroup" popup="true"/>
+      <action id="PhantomTabs.RemoveFromGroup" class="dev.phantom.tabs.core.RemoveFromGroupAction"/>
+      <separator/>
+      <action id="PhantomTabs.ToggleCollapsed" class="dev.phantom.tabs.core.ToggleCollapsedAction"/>
+      <action id="PhantomTabs.RenameGroup" class="dev.phantom.tabs.core.RenameGroupAction"/>
+      <group id="PhantomTabs.GroupColor" class="dev.phantom.tabs.core.GroupColorActionGroup" popup="true"/>
+      <action id="PhantomTabs.Ungroup" class="dev.phantom.tabs.core.UngroupAction"/>
+      <action id="PhantomTabs.CloseGroup" class="dev.phantom.tabs.core.CloseGroupAction"/>
+      <separator/>
+      <add-to-group group-id="EditorTabPopupMenu" anchor="first"/>
+    </group>
+  </actions>
+</idea-plugin>

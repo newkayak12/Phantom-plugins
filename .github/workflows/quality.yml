@@ -1,0 +1,72 @@
+name: Plugin quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '53 3 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: plugin-quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scripts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a5914442 # v5.0.0
+        with:
+          node-version: '22'
+      - name: Test quality tooling
+        id: tests
+        run: |
+          mkdir -p out/tooling-tests
+          node --test --test-reporter=spec --test-reporter-destination=stdout \
+            --test-reporter=junit --test-reporter-destination=out/tooling-tests/junit.xml \
+            tools/phantom-quality.test.mjs tools/pr-health.test.cjs
+      - name: Summarize tooling tests
+        if: always()
+        env:
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        run: python3 tools/test-summary.py 'Repository tooling' --outcome "$TEST_OUTCOME" --reports out/tooling-tests/junit.xml
+      - name: Preserve tooling test results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: tooling-test-results
+          path: out/tooling-tests/junit.xml
+          if-no-files-found: warn
+      - name: Test report parser
+        run: python3 tools/test-summary.test.py
+      - name: Check repository homepage
+        run: |
+          node --input-type=module <<'JS'
+          import { existsSync, readdirSync } from 'node:fs';
+          if (!existsSync('README.md')) throw new Error('The product README.md is missing.');
+          const overrides = readdirSync('.github').filter(name => /^readme(?:\..+)?$/i.test(name));
+          if (overrides.length) throw new Error('Move automation notes to .github/WORKFLOWS.md so the product README stays on the repository homepage.');
+          JS
+      - name: Install script and workflow analyzers
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes shellcheck zsh
+          GOBIN="$HOME/.local/bin" go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Check changed scripts and whitespace
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE: ${{ github.event.before }}
+        run: |
+          base="${PR_BASE:-${PUSH_BASE:-origin/main}}"
+          if [[ "$base" =~ ^0+$ ]]; then base=origin/main; fi
+          node tools/phantom-quality.mjs --lint --base "$base"

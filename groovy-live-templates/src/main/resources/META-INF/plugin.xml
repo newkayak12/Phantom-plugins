@@ -1,0 +1,24 @@
+<idea-plugin>
+  <!-- Phantom's own id; org.intellij.groovy.live.templates stays as an alias. The bundled IntelliJ Groovy Live Templates
+       plugin has to be gone, or both claim the same id. The Groovy Scripting dependency keeps the IntelliJ id, which Phantom
+       Groovy Scripting (dev.phantom.groovy-scripting) has as an alias. -->
+  <id>dev.phantom.groovy-live-templates</id>
+  <name>Groovy Live Templates Support</name>
+  <module value="org.intellij.groovy.live.templates"/>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <description><![CDATA[
+    Adds support for Groovy in IDE live templates: the groovyScript() macro evaluates a Groovy script to compute a
+    template variable.
+    <br/>
+    Based on the IntelliJ Community Groovy Live Templates plugin (Apache 2.0).
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.groovy.scripting"/>
+    <module name="intellij.libraries.groovy"/>
+  </dependencies>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <liveTemplateMacro implementation="com.intellij.groovy.live.templates.GroovyScriptMacro"/>
+  </extensions>
+</idea-plugin>

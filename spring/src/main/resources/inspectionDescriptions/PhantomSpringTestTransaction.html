@@ -1,0 +1,5 @@
+<html>
+<body>
+Reports transaction settings of Spring tests that have no effect: <code>@Commit</code> together with <code>@Rollback</code>; <code>@Commit</code>/<code>@Rollback</code> on a test that does not run in a test-managed transaction; <code>@BeforeTransaction</code>/<code>@AfterTransaction</code> methods in a class without transactional tests; and a transactional <code>@SpringBootTest</code> with <code>RANDOM_PORT</code> or <code>DEFINED_PORT</code>, where requests are served on other threads and their writes are not rolled back.
+</body>
+</html>

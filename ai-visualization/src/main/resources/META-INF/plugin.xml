@@ -1,0 +1,32 @@
+<idea-plugin>
+  <id>dev.phantom.ai.visualization</id>
+  <name>Phantom AI Visualization</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Tools</category>
+  <description><![CDATA[
+  The agent sessions of Phantom AI Integration as an isometric pixel-art office: each project is a floor, each worktree a desk
+  area with a rug and a name plate, each agent session a person at a desk (typing, waiting with a raised hand, holding a coffee,
+  or asleep). Opens in the "AI Visualization" tool window (its stripe icon), or as the "AI Visualization" editor tab from Tools | Open AI Visualization. Uses only the public API dev.phantom.ai.api of
+  Phantom AI Integration.
+  <p>Claude is a trademark of Anthropic and Codex a trademark of OpenAI; the names only label the sessions. This plugin
+  is not affiliated with, sponsored or endorsed by Anthropic or OpenAI.</p>
+  ]]></description>
+
+  <depends>com.intellij.modules.platform</depends>
+  <depends>dev.phantom.ai</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <toolWindow id="AI Visualization" anchor="bottom" icon="AllIcons.Toolwindows.ToolWindowHierarchy"
+                factoryClass="dev.phantom.ai.visualization.editor.AiOfficeToolWindowFactory"/>
+    <fileEditorProvider implementation="dev.phantom.ai.visualization.editor.AiOfficeEditorProvider"/>
+    <applicationService serviceImplementation="dev.phantom.ai.visualization.settings.VizSettings"/>
+    <applicationConfigurable parentId="tools" instance="dev.phantom.ai.visualization.settings.VizConfigurable"
+                             id="dev.phantom.ai.visualization" displayName="Phantom AI Visualization"/>
+  </extensions>
+  <actions>
+    <action id="dev.phantom.ai.visualization.OpenAiOffice" class="dev.phantom.ai.visualization.actions.OpenAiOfficeAction"
+            text="Open AI Visualization" description="Show the agent sessions as a pixel-art office">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
+  </actions>
+</idea-plugin>

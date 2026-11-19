@@ -1,0 +1,2 @@
+# Test projects keep their module files: the .iml files here are test data, not IDE state
+!*.iml

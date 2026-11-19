@@ -1,0 +1,110 @@
+# Builds and tests one plugin, then publishes its zip as the GitHub release the marketplace points to.
+#   tag push:  `<dir>-<version>` (e.g. kafka-0.1.1, the release tag style of .phantom/marketplace.json)
+#   manual:    Actions → Plugin release → plugin=<dir>; dry_run builds and tests without touching releases
+# CI has no Phantom installed, so it compiles and tests against the IntelliJ Community build Phantom is forked
+# from (platformTestBuild in gradle.properties); local builds keep using the installed Phantom.
+name: Plugin release
+
+on:
+  push:
+    # kotlin- and maven-262.<YYMMDD>: released by Phantom's phantom-release.sh, not built here; languagetool-<version>: the
+    # LanguageTool language bundles Phantom Grammar downloads, published by tools/languagetool-release.sh
+    tags: ['*-[0-9]*', '!kotlin-*', '!maven-*', '!languagetool-*']
+  workflow_dispatch:
+    inputs:
+      plugin:
+        description: Plugin directory (db, spring, kafka, ...)
+        required: true
+      dry_run:
+        description: Build and test only, no release
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: plugin-release-${{ github.ref_name }}-${{ inputs.plugin }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # groovy runs about 7,100 tests, a third of the time in its compiler tests (each starts a JPS build with groovyc or
+    # Greclipse); they took 40 minutes on an 8-core Mac and didn't finish in 60 on the runner
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+
+      - name: Plugin and version
+        id: plugin
+        env:
+          INPUT_PLUGIN: ${{ inputs.plugin }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            tag="$GITHUB_REF_NAME"; dir="${tag%-*}"; expected="${tag##*-}"
+          else
+            dir="$INPUT_PLUGIN"; expected=""
+          fi
+          [[ -f "$dir/build.gradle.kts" ]] || { echo "::error::no plugin directory '$dir'"; exit 1; }
+          version=$(sed -nE 's/^version = "([^"]+)"/\1/p' "$dir/build.gradle.kts")
+          if [[ -n "$expected" && "$expected" != "$version" ]]; then
+            echo "::error::tag $GITHUB_REF_NAME but $dir/build.gradle.kts has version $version"; exit 1
+          fi
+          {
+            echo "dir=$dir"
+            echo "version=$version"
+            echo "tag=$dir-$version"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+
+      - name: Test and build
+        id: tests
+        run: >
+          xvfb-run --auto-servernum ./gradlew --no-configuration-cache -PplatformFromRepository=true
+          -Porg.gradle.java.installations.paths="$JAVA_HOME"
+          :${{ steps.plugin.outputs.dir }}:test :${{ steps.plugin.outputs.dir }}:buildPlugin
+
+      - name: Test report
+        if: always()
+        env:
+          PLUGIN: ${{ steps.plugin.outputs.dir }}
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        run: python3 tools/test-summary.py "$PLUGIN" --outcome "$TEST_OUTCOME"
+
+      - name: Preserve release test reports
+        if: always() && steps.plugin.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-test-results-${{ steps.plugin.outputs.tag }}
+          path: |
+            ${{ steps.plugin.outputs.dir }}/build/test-results/test/
+            ${{ steps.plugin.outputs.dir }}/build/reports/tests/test/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.plugin.outputs.tag }}
+          path: ${{ steps.plugin.outputs.dir }}/build/distributions/${{ steps.plugin.outputs.tag }}.zip
+          if-no-files-found: error
+
+      - name: Release
+        if: github.event_name == 'push' || !inputs.dry_run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.plugin.outputs.tag }}
+          ZIP: ${{ steps.plugin.outputs.dir }}/build/distributions/${{ steps.plugin.outputs.tag }}.zip
+        run: |
+          # a release created by hand for the same tag only gets its zip replaced
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" "$ZIP" --clobber
+          else
+            gh release create "$TAG" "$ZIP" --title "$TAG" --notes "Built by GitHub Actions from $GITHUB_SHA"
+          fi

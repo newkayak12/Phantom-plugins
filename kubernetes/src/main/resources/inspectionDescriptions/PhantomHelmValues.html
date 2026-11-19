@@ -1,0 +1,7 @@
+<html>
+<body>
+Reports <code>.Values.…</code> paths in Helm chart templates that the chart's <code>values.yaml</code> does not define.
+Helm renders a missing value as empty, so a typo such as <code>.Values.imgae.tag</code> shows up only after deploying.
+Paths under <code>.Values.global</code>, and paths below a key whose default is <code>{}</code> or null, are not reported.
+</body>
+</html>

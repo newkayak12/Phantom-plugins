@@ -1,0 +1,8 @@
+<html>
+<body>
+Reports <code>{{$auth.token("id")}}</code> and <code>{{$auth.idToken("id")}}</code> when no
+<code>Security.Auths</code> entry with that id exists in <code>http-client.env.json</code> or
+<code>http-client.private.env.json</code> for the selected environment (any environment when none is selected).
+Ctrl+B on the reference opens the auth entry, and completion offers the defined ids.
+</body>
+</html>

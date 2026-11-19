@@ -1,0 +1,23 @@
+<idea-plugin>
+  <id>dev.phantom.logs</id>
+  <name>Phantom Log Console</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Tools Integration</category>
+  <description><![CDATA[
+  Readable logs in Run and Debug consoles: a JSON log line (logstash-logback-encoder, ECS, Log4j2 JSON) is shown as
+  <code>time LEVEL [thread] logger : message</code> with its MDC values and the stack trace below it; plain text WARN,
+  ERROR and DEBUG lines take their level's console color; a trace id (traceId=, JSON, the Spring Boot [traceId-spanId] and
+  Sleuth patterns) is a link that lists every console line of that request.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.platform"/>
+  </dependencies>
+
+  <resource-bundle>messages.PhantomLogsBundle</resource-bundle>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <consoleInputFilterProvider implementation="dev.phantom.logs.LogInputFilterProvider"/>
+    <consoleFilterProvider implementation="dev.phantom.logs.TraceIdFilterProvider"/>
+  </extensions>
+</idea-plugin>

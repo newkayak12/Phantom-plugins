@@ -1,0 +1,92 @@
+<idea-plugin>
+  <id>dev.phantom.http</id>
+  <name>Phantom HTTP Client</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Tools Integration</category>
+  <description><![CDATA[
+  Write HTTP requests in .http / .rest files and run them from the editor: variables from the file and from
+  http-client.env.json / http-client.private.env.json environments, <code>import</code> and <code>run</code> lines to
+  reuse requests from other files, a run gutter on each request, checks for common mistakes (broken JSON bodies,
+  headers the client can't send, missing ###), and a response view with status, headers and a formatted body.
+  Nothing is loaded before the first .http file is opened.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+  </dependencies>
+
+  <resource-bundle>messages.PhantomHttpBundle</resource-bundle>
+  <extensions defaultExtensionNs="com.intellij">
+    <fileType name="Phantom HTTP Request" language="PhantomHttpRequest" extensions="http;rest"
+              implementationClass="dev.phantom.http.core.HttpRequestFileType" fieldName="INSTANCE"/>
+    <lang.parserDefinition language="PhantomHttpRequest" implementationClass="dev.phantom.http.core.HttpParserDefinition"/>
+    <lang.syntaxHighlighterFactory language="PhantomHttpRequest" implementationClass="dev.phantom.http.core.HttpSyntaxHighlighterFactory"/>
+    <lang.commenter language="PhantomHttpRequest" implementationClass="dev.phantom.http.core.HttpCommenter"/>
+    <lang.foldingBuilder language="PhantomHttpRequest" implementationClass="dev.phantom.http.core.HttpFoldingBuilder"/>
+    <annotator language="PhantomHttpRequest" implementationClass="dev.phantom.http.core.HttpAnnotator"/>
+    <runLineMarkerContributor language="PhantomHttpRequest" implementationClass="dev.phantom.http.core.exec.HttpRunLineMarkerContributor"/>
+    <editorNotificationProvider implementation="dev.phantom.http.core.exec.HttpEnvironmentNotificationProvider"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpRestrictedHeader" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpRestrictedHeader.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="WARNING"
+                     implementationClass="dev.phantom.http.core.HttpRestrictedHeaderInspection"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpCustomMethod" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpCustomMethod.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="WARNING"
+                     implementationClass="dev.phantom.http.core.HttpCustomMethodInspection"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpWhitespaceInTarget" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpWhitespaceInTarget.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="WARNING"
+                     implementationClass="dev.phantom.http.core.HttpWhitespaceInTargetInspection"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpJsonBody" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpJsonBody.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="WARNING"
+                     implementationClass="dev.phantom.http.core.HttpJsonBodyInspection"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpMissingSeparator" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpMissingSeparator.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="WARNING"
+                     implementationClass="dev.phantom.http.core.HttpMissingSeparatorInspection"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpPlaceholder" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpPlaceholder.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="WARNING"
+                     implementationClass="dev.phantom.http.core.HttpPlaceholderInspection"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpInvalidHeader" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpInvalidHeader.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="WARNING"
+                     implementationClass="dev.phantom.http.core.HttpInvalidHeaderInspection"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpUnknownHeader" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpUnknownHeader.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="WEAK WARNING"
+                     implementationClass="dev.phantom.http.core.HttpUnknownHeaderInspection"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpInsecureUrl" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpInsecureUrl.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="WEAK WARNING"
+                     implementationClass="dev.phantom.http.core.HttpInsecureUrlInspection"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpDuplicateImport" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpDuplicateImport.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="WARNING"
+                     implementationClass="dev.phantom.http.core.HttpDuplicateImportInspection"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpUnresolvedImport" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpUnresolvedImport.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="ERROR"
+                     implementationClass="dev.phantom.http.core.HttpUnresolvedImportInspection"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpRunRequestName" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpRunRequestName.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="ERROR"
+                     implementationClass="dev.phantom.http.core.HttpRunRequestNameInspection"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpUnresolvedAuthId" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpUnresolvedAuthId.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="ERROR"
+                     implementationClass="dev.phantom.http.core.HttpUnresolvedAuthIdInspection"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpProtocol" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpProtocol.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="ERROR"
+                     implementationClass="dev.phantom.http.core.HttpProtocolInspection"/>
+    <localInspection language="PhantomHttpRequest" shortName="PhantomHttpAmbiguousEncoding" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpAmbiguousEncoding.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="WARNING"
+                     implementationClass="dev.phantom.http.core.HttpAmbiguousEncodingInspection"/>
+    <!-- env files are JSON; checked by name, whatever their file type -->
+    <localInspection shortName="PhantomHttpAuthConfiguration" bundle="messages.PhantomHttpBundle" key="inspection.PhantomHttpAuthConfiguration.display.name"
+                     groupKey="inspection.group" enabledByDefault="true" level="ERROR"
+                     implementationClass="dev.phantom.http.core.HttpAuthConfigurationInspection"/>
+    <actionPromoter implementation="dev.phantom.http.core.exec.HttpActionPromoter"/>
+  </extensions>
+  <actions resource-bundle="messages.PhantomHttpBundle">
+    <action id="PhantomHttp.RunRequest" class="dev.phantom.http.core.exec.HttpRunRequestAction" icon="AllIcons.Actions.Execute">
+      <keyboard-shortcut keymap="$default" first-keystroke="control ENTER"/>
+      <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+    </action>
+    <action id="PhantomHttp.RunAll" class="dev.phantom.http.core.exec.HttpRunAllRequestsAction" icon="AllIcons.Actions.RunAll">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomHttp.RunRequest"/>
+    </action>
+    <action id="PhantomHttp.SelectEnvironment" class="dev.phantom.http.core.exec.HttpSelectEnvironmentAction">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomHttp.RunAll"/>
+    </action>
+  </actions>
+</idea-plugin>

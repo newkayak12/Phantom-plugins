@@ -1,0 +1,157 @@
+<idea-plugin xmlns:xi="http://www.w3.org/2001/XInclude">
+  <!-- Phantom's own id; org.jetbrains.plugins.terminal stays as an alias, so plugins depending on the IntelliJ id resolve to
+       this one. The content module names stay the IntelliJ ones, as bundled modules depend on them by name. The bundled
+       IntelliJ Terminal plugin has to be gone, or both claim the same id and modules. -->
+  <id>dev.phantom.terminal</id>
+  <name>Phantom Terminal</name>
+  <module value="org.jetbrains.plugins.terminal"/>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Other Tools</category>
+
+  <description><![CDATA[
+    The integrated terminal (View | Tool Windows | Terminal): run shell commands (Bash, Zsh, Fish, PowerShell, cmd) inside
+    the IDE, with tabs and split panes, shell integration (command blocks, prompt, working directory tracking), command
+    completion, clickable links to files, and Run Anything commands opened in the IDE.
+    <br/>
+    Based on the IntelliJ Community Terminal plugin (Apache 2.0).
+    ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+  </dependencies>
+
+  <!-- One jar: intellij.terminal and intellij.terminal.completion are the main module (as in the bundled terminal.jar).
+       The backend, frontend, cloud and sh modules keep their own class loader as in the bundled plugin: their packages
+       (com.intellij.terminal.backend, com.intellij.terminal.frontend, org.jetbrains.plugins.terminal.cloud,
+       org.jetbrains.plugins.terminal.sh) are their own, and they switch off without their dependency (remote servers,
+       Shell Script). No backend.split / frontend.split: their sources are not in IntelliJ Community (the bundled
+       Phantom plugin has neither). -->
+  <content namespace="jetbrains">
+    <module name="intellij.terminal.backend"/>
+    <module name="intellij.terminal.frontend"/>
+    <module name="intellij.terminal.cloud"/>
+    <module name="intellij.terminal.sh"/>
+  </content>
+
+  <resource-bundle>messages.TerminalBundle</resource-bundle>
+  <xi:include href="/META-INF/terminal.xml"/>
+
+  <actions>
+    <action id="Terminal.OpenInTerminal" class="org.jetbrains.plugins.terminal.action.RevealFileInTerminalAction"
+            icon="com.intellij.terminal.icons.TerminalIcons.OpenTerminal_13x13">
+      <add-to-group group-id="RevealGroup" anchor="last"/>
+      <override-text place="RevealInPopup"/>
+      <add-to-group group-id="TouchBarDefault_alt" anchor="last"/>
+    </action>
+    <action id="Terminal.CloseTab" class="org.jetbrains.plugins.terminal.action.TerminalCloseTabAction" use-shortcut-of="CloseContent"/>
+    <action id="Terminal.MoveToolWindowTabLeft" class="org.jetbrains.plugins.terminal.action.MoveTerminalToolWindowTabLeftAction"/>
+    <action id="Terminal.MoveToolWindowTabRight" class="org.jetbrains.plugins.terminal.action.MoveTerminalToolWindowTabRightAction"/>
+    <action id="Terminal.SwitchFocusToEditor" class="org.jetbrains.plugins.terminal.action.TerminalMoveFocusToEditorAction"/>
+    <action id="Terminal.CopySelectedText" class="org.jetbrains.plugins.terminal.action.TerminalCopyTextAction"
+            icon="AllIcons.Actions.Copy">
+      <!-- use keyboard-shortcuts of $Copy with Ctrl+Shift+C on Linux  -->
+      <keyboard-shortcut first-keystroke="control shift C" keymap="Default for XWin"/>
+      <keyboard-shortcut first-keystroke="control C" keymap="Default for XWin"/>
+      <keyboard-shortcut first-keystroke="control INSERT" keymap="Default for XWin"/>
+      <keyboard-shortcut first-keystroke="control C" keymap="$default"/>
+      <keyboard-shortcut first-keystroke="control INSERT" keymap="$default"/>
+    </action>
+    <action id="Terminal.SelectAll" class="org.jetbrains.plugins.terminal.action.TerminalSelectAllAction">
+      <override-text place="GoToAction"/>
+      <keyboard-shortcut first-keystroke="meta A" keymap="Mac OS X"/>
+      <keyboard-shortcut first-keystroke="meta A" keymap="Mac OS X 10.5+"/>
+    </action>
+    <action id="Terminal.SmartCommandExecution.Run" class="com.intellij.openapi.actionSystem.EmptyAction">
+      <keyboard-shortcut first-keystroke="control ENTER" keymap="$default"/>
+    </action>
+    <action id="Terminal.SmartCommandExecution.Debug" class="com.intellij.openapi.actionSystem.EmptyAction">
+      <keyboard-shortcut first-keystroke="control shift ENTER" keymap="$default"/>
+    </action>
+
+
+    <!--  New Terminal Actions  -->
+    <action id="Terminal.SelectLastBlock" class="org.jetbrains.plugins.terminal.block.prompt.TerminalSelectLastBlockAction">
+      <keyboard-shortcut first-keystroke="control UP" keymap="$default"/>
+      <keyboard-shortcut first-keystroke="meta UP" keymap="Mac OS X" replace-all="true"/>
+      <keyboard-shortcut first-keystroke="meta UP" keymap="Mac OS X 10.5+" replace-all="true"/>
+    </action>
+    <action id="Terminal.SelectPrompt" class="org.jetbrains.plugins.terminal.block.prompt.TerminalSelectPromptAction">
+      <keyboard-shortcut first-keystroke="control DOWN" keymap="$default"/>
+      <keyboard-shortcut first-keystroke="meta DOWN" keymap="Mac OS X" replace-all="true"/>
+      <keyboard-shortcut first-keystroke="meta DOWN" keymap="Mac OS X 10.5+" replace-all="true"/>
+    </action>
+    <action id="Terminal.SelectBlockAbove" class="org.jetbrains.plugins.terminal.block.prompt.TerminalSelectBlockAboveAction">
+      <keyboard-shortcut first-keystroke="UP" keymap="$default"/>
+      <keyboard-shortcut first-keystroke="control UP" keymap="$default"/>
+      <keyboard-shortcut first-keystroke="meta UP" keymap="Mac OS X"/>
+      <keyboard-shortcut first-keystroke="meta UP" keymap="Mac OS X 10.5+"/>
+    </action>
+    <action id="Terminal.SelectBlockBelow" class="org.jetbrains.plugins.terminal.block.prompt.TerminalSelectBlockBelowAction">
+      <keyboard-shortcut first-keystroke="DOWN" keymap="$default"/>
+    </action>
+    <action id="Terminal.ExpandBlockSelectionAbove" class="org.jetbrains.plugins.terminal.block.prompt.TerminalExpandBlockSelectionAboveAction"
+            use-shortcut-of="EditorUpWithSelection">
+    </action>
+    <action id="Terminal.ExpandBlockSelectionBelow" class="org.jetbrains.plugins.terminal.block.prompt.TerminalExpandBlockSelectionBelowAction"
+            use-shortcut-of="EditorDownWithSelection">
+    </action>
+    <action id="Terminal.CopyBlock" class="org.jetbrains.plugins.terminal.action.TerminalCopyBlockAction" icon="AllIcons.Actions.Copy">
+      <keyboard-shortcut first-keystroke="meta C" keymap="Mac OS X"/>
+      <keyboard-shortcut first-keystroke="meta C" keymap="Mac OS X 10.5+"/>
+    </action>
+
+    <action id="Terminal.ShowDocumentation" class="org.jetbrains.plugins.terminal.action.TerminalShowDocAction"
+            use-shortcut-of="QuickJavaDoc"/>
+    <action id="Terminal.CloseSession" class="org.jetbrains.plugins.terminal.action.TerminalCloseSessionAction">
+      <keyboard-shortcut first-keystroke="control D" keymap="$default"/>
+      <keyboard-shortcut first-keystroke="control D" keymap="Mac OS X" replace-all="true"/>
+      <keyboard-shortcut first-keystroke="control D" keymap="Mac OS X 10.5+" replace-all="true"/>
+    </action>
+    <action id="Terminal.ClearPrompt" class="org.jetbrains.plugins.terminal.action.TerminalClearPrompt">
+      <keyboard-shortcut first-keystroke="control C" keymap="$default"/>
+      <keyboard-shortcut first-keystroke="control C" keymap="Mac OS X" replace-all="true"/>
+      <keyboard-shortcut first-keystroke="control C" keymap="Mac OS X 10.5+" replace-all="true"/>
+    </action>
+    <action id="Terminal.DeletePreviousWord" class="org.jetbrains.plugins.terminal.action.TerminalDeletePreviousWordAction">
+      <keyboard-shortcut first-keystroke="control W" keymap="$default"/>
+      <keyboard-shortcut first-keystroke="control W" keymap="Mac OS X" replace-all="true"/>
+      <keyboard-shortcut first-keystroke="control W" keymap="Mac OS X 10.5+" replace-all="true"/>
+    </action>
+    <action id="Terminal.SearchInCommandHistory" class="org.jetbrains.plugins.terminal.block.history.CommandSearchAction">
+      <keyboard-shortcut first-keystroke="control R" keymap="$default"/>
+      <keyboard-shortcut first-keystroke="control R" keymap="Mac OS X" replace-all="true"/>
+      <keyboard-shortcut first-keystroke="control R" keymap="Mac OS X 10.5+" replace-all="true"/>
+    </action>
+
+    <action id="Terminal.LineUp" class="org.jetbrains.plugins.terminal.action.TerminalLineUpAction">
+      <override-text place="GoToAction"/>
+      <keyboard-shortcut first-keystroke="control UP" keymap="$default"/>
+    </action>
+    <action id="Terminal.LineDown" class="org.jetbrains.plugins.terminal.action.TerminalLineDownAction">
+      <override-text place="GoToAction"/>
+      <keyboard-shortcut first-keystroke="control DOWN" keymap="$default"/>
+    </action>
+    <action id="Terminal.PageUp" class="org.jetbrains.plugins.terminal.action.TerminalPageUpAction">
+      <override-text place="GoToAction"/>
+      <keyboard-shortcut first-keystroke="shift PAGE_UP" keymap="$default"/>
+    </action>
+    <action id="Terminal.PageDown" class="org.jetbrains.plugins.terminal.action.TerminalPageDownAction">
+      <override-text place="GoToAction"/>
+      <keyboard-shortcut first-keystroke="shift PAGE_DOWN" keymap="$default"/>
+    </action>
+
+    <group id="Terminal.PromptStyle" popup="true">
+      <action id="Terminal.UseSingleLinePrompt" class="org.jetbrains.plugins.terminal.block.prompt.TerminalUseSingleLinePromptAction"/>
+      <action id="Terminal.UseDoubleLinePrompt" class="org.jetbrains.plugins.terminal.block.prompt.TerminalUseDoubleLinePromptAction"/>
+      <action id="Terminal.UseShellPrompt" class="org.jetbrains.plugins.terminal.block.prompt.TerminalUseShellPromptAction"/>
+    </group>
+
+    <group id="Terminal.PromptToolbar"/>
+
+    <action id="Terminal.ShowFeedbackNotification" internal="true"
+            class="org.jetbrains.plugins.terminal.block.feedback.ShowReworkedTerminalFeedbackNotificationAction"/>
+    <action id="Terminal.Completion.ShowFeedbackNotification" internal="true"
+            class="org.jetbrains.plugins.terminal.block.completion.feedback.ShowTerminalCompletionFeedbackNotificationAction"/>
+  </actions>
+
+</idea-plugin>

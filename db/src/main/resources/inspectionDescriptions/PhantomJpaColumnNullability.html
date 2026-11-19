@@ -1,0 +1,9 @@
+<html>
+<body>
+Reports an attribute that cannot hold <code>null</code> (a primitive, or a Kotlin non-null type) mapped to a column the
+database lets be <code>NULL</code>. Loading a row where the column is <code>NULL</code> fails at run time. Make the attribute
+nullable, or the column <code>NOT NULL</code>. Identifiers are not reported.
+<p>Off by default: schemas created without <code>NOT NULL</code> make every such attribute show up, while only rows that
+really hold <code>NULL</code> fail.</p>
+</body>
+</html>

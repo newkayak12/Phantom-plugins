@@ -1,0 +1,5 @@
+<html>
+<body>
+Reports <code>COPY</code> and <code>ADD</code> sources that do not exist in the build context. The context is the <code>build.context</code> of a compose service that names this Dockerfile, otherwise the Dockerfile's directory. Because <code>docker build -f</code> can use another context, a source found in any directory above the Dockerfile is accepted. Sources with variables, URLs and <code>--from</code> are not checked.
+</body>
+</html>

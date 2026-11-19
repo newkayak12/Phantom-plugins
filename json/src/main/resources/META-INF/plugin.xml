@@ -1,0 +1,37 @@
+<idea-plugin>
+  <!-- Phantom's own id; com.intellij.modules.json stays as an alias, so plugins depending on the IntelliJ id resolve to this one
+       (IntelliJ kept the plugin id equal to a module id because JSON used to be part of the platform, and many plugins still
+       depend on it as <plugin id="com.intellij.modules.json"/> or <depends>). The content module names stay the IntelliJ
+       ones, as YAML, TOML, Markdown, Grazie, GitHub, DevKit and others depend on them by name. The bundled IntelliJ JSON
+       plugin has to be gone, or both claim the same id and modules. -->
+  <id>dev.phantom.json</id>
+  <name>Phantom JSON</name>
+  <module value="com.intellij.modules.json"/>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Languages</category>
+  <description><![CDATA[
+    Provides syntax highlighting and editor features for
+    <a href="https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Objects/JSON">JSON</a> and
+    <a href="https://json-schema.org/overview/what-is-jsonschema">JSON Schema</a> languages.
+    <br/>
+    Based on the IntelliJ Community JSON plugin (Apache 2.0).
+  ]]></description>
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+  </dependencies>
+
+  <!-- One jar: a module with its own class loader in a non-bundled plugin needs a package of its own. The syntax, core and
+       backend modules share com.intellij.json / com.jetbrains.jsonSchema and load embedded; the backend and the networknt
+       validator wrapper were required-if-available="intellij.platform.backend", which Phantom always has (it runs frontend
+       and backend in one process), so they load embedded too. The regexp injection and the structure view stay optional with
+       their own class loader (each descriptor declares a package of its own), so they switch off without RegExp or the
+       structure view plugin. No frontend.split module: its sources are not in IntelliJ Community. -->
+  <content namespace="jetbrains">
+    <module name="intellij.json" loading="embedded"/>
+    <module name="intellij.json.syntax" loading="embedded"/>
+    <module name="intellij.json.backend" loading="embedded"/>
+    <module name="intellij.json.networknt.wrapper" loading="embedded"/>
+    <module name="intellij.json.backend.regexp" loading="optional"/>
+    <module name="intellij.json.structureView" loading="optional"/>
+  </content>
+</idea-plugin>

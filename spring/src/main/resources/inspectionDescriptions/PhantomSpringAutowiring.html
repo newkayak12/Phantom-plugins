@@ -1,0 +1,14 @@
+<html>
+<body>
+Reports injection points that Spring could not satisfy at startup.
+<ul>
+  <li><b>No bean</b>: no bean of the injected type is declared in project sources, but a class that could be one exists
+    (for example, an implementation without <code>@Component</code>).</li>
+  <li><b>More than one bean</b>: several beans match and neither a qualifier, a single <code>@Primary</code> bean, nor the
+    parameter name picks one. Quick fixes add <code>@Qualifier</code> to the injection point or <code>@Primary</code> to a bean.</li>
+</ul>
+<p>Only types declared in project sources are checked; beans from libraries and auto-configuration are not modeled.
+Optional injection (<code>required = false</code>, nullable types, Kotlin default values, collections, <code>Optional</code>,
+<code>ObjectProvider</code>) and test sources are skipped.</p>
+</body>
+</html>

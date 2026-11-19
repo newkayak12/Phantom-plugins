@@ -1,0 +1,10 @@
+<html>
+<body>
+Reports problems with keys in <code>application*.yml</code> and <code>application*.properties</code>:
+<ul>
+  <li>keys that the configuration metadata marks as deprecated, with a quick fix to the replacement key when one is given;</li>
+  <li>unknown keys directly under a prefix of one of the project's own <code>@ConfigurationProperties</code> classes,
+    where every valid key is known from the source.</li>
+</ul>
+</body>
+</html>

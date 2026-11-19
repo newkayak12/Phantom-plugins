@@ -1,0 +1,81 @@
+name: Phantom plugins PR routing
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, synchronize]
+  workflow_dispatch:
+    inputs:
+      pull_number:
+        description: Pull request number to assign and request collaborator reviews
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: phantom-pr-routing-${{ github.event.pull_request.number || inputs.pull_number }}
+  cancel-in-progress: false
+
+jobs:
+  route:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # Metadata-only: never check out or execute code from the pull request.
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const pull_number = Number(context.issue.number ?? context.payload.inputs?.pull_number);
+            if (!Number.isSafeInteger(pull_number) || pull_number < 1) {
+              throw new Error('A positive pull request number is required.');
+            }
+            const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number });
+            if (pr.state !== 'open') {
+              core.info('Pull request is closed; skipping routing.');
+              return;
+            }
+
+            const author = pr.user.login;
+            if (!pr.assignees.some(user => user.login.toLowerCase() === author.toLowerCase())) {
+              await github.rest.issues.addAssignees({
+                owner, repo, issue_number: pull_number, assignees: [author],
+              });
+              core.info(`Assigned PR author ${author}.`);
+            }
+            if (pr.draft) {
+              core.info('Draft pull request: reviewers will be requested when ready for review.');
+              return;
+            }
+
+            const collaborators = await github.paginate(github.rest.repos.listCollaborators, {
+              owner, repo, per_page: 100,
+            });
+            const reviews = await github.paginate(github.rest.pulls.listReviews, {
+              owner, repo, pull_number, per_page: 100,
+            });
+            const requested = pr.requested_reviewers ?? [];
+            const excluded = new Set([
+              author,
+              ...requested.map(user => user.login),
+              ...reviews.map(review => review.user?.login).filter(Boolean),
+            ].map(login => login.toLowerCase()));
+            // GitHub permits at most 15 individual/team reviewer requests.
+            const available = Math.max(0, 15 - requested.length - (pr.requested_teams?.length ?? 0));
+            const reviewers = [...new Set(collaborators
+              .filter(user => user.type === 'User' && !user.login.toLowerCase().endsWith('[bot]'))
+              .filter(user => user.permissions?.pull === true)
+              .filter(user => !excluded.has(user.login.toLowerCase()))
+              .map(user => user.login))]
+              .sort((left, right) => left.localeCompare(right, 'en'))
+              .slice(0, available);
+
+            if (!reviewers.length) {
+              core.info('No eligible collaborators remain to request.');
+              return;
+            }
+            await github.rest.pulls.requestReviewers({ owner, repo, pull_number, reviewers });
+            core.info(`Requested review from ${reviewers.join(', ')}.`);

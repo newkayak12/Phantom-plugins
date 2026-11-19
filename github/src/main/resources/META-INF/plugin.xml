@@ -1,0 +1,50 @@
+<idea-plugin allow-bundled-update="true">
+  <!-- Phantom's own id; org.jetbrains.plugins.github stays as an alias, so plugins depending on the IntelliJ id resolve to this
+       one. The content module names stay the IntelliJ ones, as other plugins depend on them by name. The bundled IntelliJ
+       GitHub plugin has to be gone, or both claim the same id and modules. -->
+  <id>dev.phantom.github</id>
+  <name>GitHub Support</name>
+  <module value="org.jetbrains.plugins.github"/>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Version Controls</category>
+  <description>
+    <![CDATA[
+      Provides integration with <a href="https://github.com/">GitHub</a>.
+        <ul>
+        <li>Specify your GitHub account to access all of your repositories from the IDE.</li>
+        <li>Clone repositories, create and review pull requests, create gists, and much more.</li>
+        </ul>
+        <p>To configure, open <b>Settings / Preferences</b> and go to Version Control | GitHub.</p>
+        <p>Requires the Git plugin.</p>
+        <p>Based on the IntelliJ Community GitHub plugin (Apache 2.0).</p>
+      ]]>
+  </description>
+
+  <!-- One jar: the core loads embedded; Share on GitHub (git) and the GitHub Actions JSON schemas (json) keep their own class
+       loader on a package of their own, so each switches off with what it depends on. No tracker module: it plugs into the
+       Task Management plugin, which Phantom doesn't ship and which isn't on the Marketplace. No ultimate.features,
+       ultimate.docker and ultimate.cron (their sources are not in IntelliJ Community). -->
+  <content namespace="jetbrains">
+    <module name="intellij.vcs.github" loading="embedded"/>
+    <module name="intellij.vcs.github.git"/>
+    <module name="intellij.vcs.github.json"/>
+  </content>
+
+  <dependencies>
+    <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
+    <plugin id="Git4Idea"/>
+    <module name="intellij.platform.collaborationTools"/>
+    <module name="intellij.platform.collaborationTools.auth"/>
+    <module name="intellij.platform.collaborationTools.auth.base"/>
+    <module name="intellij.platform.vcs.dvcs"/>
+    <module name="intellij.platform.vcs.dvcs.impl"/>
+    <module name="intellij.platform.vcs.dvcs.impl.shared"/>
+    <module name="intellij.platform.vcs.impl"/>
+    <module name="intellij.platform.vcs.impl.shared"/>
+    <module name="intellij.platform.vcs.log"/>
+    <module name="intellij.platform.vcs.log.impl"/>
+    <module name="intellij.vcs.git.backend"/>
+    <module name="intellij.vcs.git.shared"/>
+    <!-- endregion -->
+  </dependencies>
+</idea-plugin>

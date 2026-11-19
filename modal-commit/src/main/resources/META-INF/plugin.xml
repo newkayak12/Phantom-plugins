@@ -1,0 +1,29 @@
+<idea-plugin>
+  <id>dev.phantom.modalcommit</id>
+  <name>Phantom Modal Commit</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Version Controls</category>
+  <description><![CDATA[
+  Brings back the modal commit dialog for Git and Mercurial instead of the Commit tool window: Settings | Advanced
+  Settings | Version Control | Use modal commit interface. On the first start it follows the "Use non-modal commit
+  interface" setting you had. Ported from the IntelliJ Community Modal Commit Interface (Apache 2.0) so it updates without
+  a new Phantom build; turn the bundled Modal Commit Interface off if your Phantom still bundles it.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.vcs"/>
+  </dependencies>
+
+  <resource-bundle>messages.PhantomModalCommitBundle</resource-bundle>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <advancedSetting id="phantom.modal.commit" default="false" groupKey="advanced.settings.vcs"/>
+    <vcsStartupActivity implementation="dev.phantom.modalcommit.ModalCommitToggler"/>
+    <commitModeProvider implementation="dev.phantom.modalcommit.ModalCommitModeProvider"/>
+  </extensions>
+
+  <applicationListeners>
+    <listener class="dev.phantom.modalcommit.ModalCommitSettingsListener"
+              topic="com.intellij.openapi.options.advanced.AdvancedSettingsChangeListener"/>
+  </applicationListeners>
+</idea-plugin>

@@ -1,0 +1,7 @@
+<html><body>
+Reports Flyway SQL migrations in <code>db/migration</code> (and the locations set with <code>spring.flyway.locations</code>)
+whose names Flyway skips or rejects, such as <code>V1_init.sql</code> with a single underscore, <code>v1__init.sql</code>
+with a lower-case prefix or <code>V1__.sql</code> without a description, and two migrations with the same version.
+Versions compare as numbers, so <code>V1_16</code>, <code>V1.16</code> and <code>V1.016</code> are the same version. Gaps
+between versions are not reported.
+</body></html>

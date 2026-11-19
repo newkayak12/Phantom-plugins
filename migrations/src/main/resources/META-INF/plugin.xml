@@ -1,0 +1,38 @@
+<idea-plugin>
+  <id>dev.phantom.migrations</id>
+  <name>Phantom Migrations</name>
+  <vendor>Phantom</vendor>
+  <category>Database</category>
+  <description><![CDATA[
+  Flyway and Liquibase checks for Phantom. Flyway: migration file names Flyway would skip or reject
+  (<code>V1_init.sql</code>, an empty description, a lower-case prefix) and two migrations with the same version, in
+  <code>db/migration</code> and the locations set by <code>spring.flyway.locations</code>. Liquibase: changesets with
+  the same id and author in one changelog, and include / includeAll paths that do not exist, in XML, YAML and
+  formatted SQL changelogs. Does nothing in modules without Flyway or Liquibase.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+    <plugin id="org.jetbrains.plugins.yaml"/>
+  </dependencies>
+
+  <resource-bundle>messages.PhantomMigrationsBundle</resource-bundle>
+  <extensions defaultExtensionNs="com.intellij">
+    <localInspection enabledByDefault="true" level="ERROR" shortName="PhantomFlywayMigration"
+                     bundle="messages.PhantomMigrationsBundle" key="flyway.display.name"
+                     groupBundle="messages.PhantomMigrationsBundle" groupKey="group.name"
+                     implementationClass="dev.phantom.migrations.FlywayMigrationInspection"/>
+    <localInspection enabledByDefault="true" level="ERROR" shortName="PhantomLiquibaseChangelog"
+                     bundle="messages.PhantomMigrationsBundle" key="liquibase.display.name"
+                     groupBundle="messages.PhantomMigrationsBundle" groupKey="group.name"
+                     implementationClass="dev.phantom.migrations.LiquibaseChangelogInspection"/>
+    <localInspection language="XML" enabledByDefault="true" level="WARNING" shortName="PhantomLiquibaseUnresolvedProperty"
+                     bundle="messages.PhantomMigrationsBundle" key="liquibase.property.display.name"
+                     groupBundle="messages.PhantomMigrationsBundle" groupKey="group.name"
+                     implementationClass="dev.phantom.migrations.LiquibaseUnresolvedPropertyInspection"/>
+    <!-- every language (language=""): a migration may open as plain text; the provider returns at once for everything but a .sql file's first leaf -->
+    <codeInsight.lineMarkerProvider language="" implementationClass="dev.phantom.migrations.FlywayLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="XML" implementationClass="dev.phantom.migrations.LiquibaseIncludeLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="yaml" implementationClass="dev.phantom.migrations.LiquibaseIncludeLineMarkerProvider"/>
+  </extensions>
+</idea-plugin>

@@ -1,0 +1,20 @@
+{
+  "labels": [
+    {"name": "bug", "color": "d73a4a", "description": "A defect in a Phantom plugin", "titlePrefixes": ["bug:", "fix:"]},
+    {"name": "enhancement", "color": "a2eeef", "description": "New or improved plugin behavior", "titlePrefixes": ["feat:", "enhancement:"]},
+    {"name": "maintenance", "color": "ededed", "description": "Repository maintenance", "titlePrefixes": ["chore:"]},
+    {"name": "revert", "color": "e4e669", "description": "Reverts an earlier change", "titlePrefixes": ["revert ", "revert:"]},
+    {"name": "area: docs", "color": "0075ca", "description": "Plugin documentation and contributor guidance", "titlePrefixes": ["docs:"], "paths": ["(^|/)(README[^/]*|AGENTS|CLAUDE|CHANGELOG)\\.md$", "^docs/", "^\\.(ai|agents|claude)/"]},
+    {"name": "area: build", "color": "5319e7", "description": "Gradle conventions, build tools and plugin packaging", "paths": ["^buildSrc/", "^gradle/", "(^|/)(build|settings)\\.gradle\\.kts$", "^gradle\\.properties$", "^gradlew(\\.bat)?$", "^tools/"]},
+    {"name": "area: automation", "color": "1d76db", "description": "GitHub workflows and repository automation", "paths": ["^\\.github/"]},
+    {"name": "area: plugins", "color": "bfd4f2", "description": "Plugin implementation, tests and resources", "paths": ["^(?!buildSrc/)[^./][^/]*/src/"]},
+    {"name":"size/XS","color":"c2e0c6","description":"PR with fewer than 50 changed lines"},
+    {"name":"size/S","color":"7bd148","description":"PR with 50–149 changed lines"},
+    {"name":"size/M","color":"fbca04","description":"PR with 150–499 changed lines"},
+    {"name":"size/L","color":"f9d0c4","description":"PR with 500–999 changed lines"},
+    {"name":"size/XL","color":"f29513","description":"PR with 1000–2999 changed lines"},
+    {"name":"size/XXL","color":"b60205","description":"PR with at least 3000 changed lines"},
+    {"name":"conflict","color":"d73a4a","description":"PR currently has merge conflicts"},
+    {"name":"stale","color":"ededed","description":"No activity for 60 days; removed on updates"}
+  ]
+}

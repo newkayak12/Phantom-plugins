@@ -1,0 +1,5 @@
+<html>
+<body>
+Reports profiles in <code>@Profile</code> that nothing in the project mentions: no <code>application-&lt;profile&gt;</code> file, no <code>spring.profiles.*</code> or <code>spring.config.activate.on-profile</code> setting, no <code>@ActiveProfiles</code>. Such a profile is often a typo; it may also be activated from outside (an environment variable), so this is a weak warning. Not reported when the project has no configuration files.
+</body>
+</html>

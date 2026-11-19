@@ -1,0 +1,16 @@
+<idea-plugin package="dev.phantom.mybatis.db">
+  <!-- Loads only with Phantom Database Console: syntax errors, run and format for mapper SQL -->
+  <dependencies>
+    <plugin id="dev.phantom.db"/>
+    <module name="phantom.db.core"/>
+  </dependencies>
+  <extensions defaultExtensionNs="dev.phantom.db">
+    <wholeInjection implementation="dev.phantom.mybatis.db.MapperWholeInjection"/>
+  </extensions>
+  <extensions defaultExtensionNs="com.intellij">
+    <codeInsight.lineMarkerProvider language="XML" implementationClass="dev.phantom.mybatis.db.MapperRunLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.mybatis.db.MapperRunLineMarkerProvider"/>
+    <annotator language="XML" implementationClass="dev.phantom.mybatis.db.MapperSqlSyntaxAnnotator"/>
+    <postFormatProcessor implementation="dev.phantom.mybatis.db.MapperSqlPostFormatProcessor"/>
+  </extensions>
+</idea-plugin>

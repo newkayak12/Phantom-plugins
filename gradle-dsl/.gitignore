@@ -1,0 +1,3 @@
+# Upstream packages named build (...gradle.dsl.model.build, ...gradle.dsl.parser.build), which the root .gitignore's
+# build/ would leave out
+!/src/**/build/

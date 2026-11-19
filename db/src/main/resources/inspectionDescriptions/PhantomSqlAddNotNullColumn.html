@@ -1,0 +1,5 @@
+<html>
+<body>
+Reports <code>ALTER TABLE ... ADD</code> of a <code>NOT NULL</code> column without <code>DEFAULT</code>: it fails when the table has rows. MySQL and MariaDB fill such a column with an implicit default, so the check runs for the other databases, and only when the data source is known.
+</body>
+</html>

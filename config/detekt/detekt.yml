@@ -1,0 +1,18 @@
+# detekt on top of its defaults (buildUponDefaultConfig). Off: what the IntelliJ code style the plugins are written in
+# does on purpose. Findings that existed when detekt came in are in baseline.xml; new code must not add any.
+style:
+  WildcardImport:
+    active: false        # IntelliJ's style imports with * from five names on
+  MaxLineLength:
+    active: false        # long signatures and calls stay on one line in IntelliJ code
+  NewLineAtEndOfFile:
+    active: false        # IntelliJ sources end without one
+  ReturnCount:
+    active: false        # early returns (?: return) are the norm in platform code
+  LoopWithTooManyJumpStatements:
+    active: false
+  MagicNumber:
+    active: false        # UI sizes and protocol constants read better in place
+complexity:
+  LongParameterList:
+    active: false        # extension points and dialogs take many arguments

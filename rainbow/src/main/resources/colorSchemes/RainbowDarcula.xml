@@ -1,0 +1,48 @@
+<?xml version='1.0'?>
+<list>
+  <option name="PHANTOM_RAINBOW_BRACKET_1">
+    <value>
+      <option name="FOREGROUND" value="FFD700" />
+    </value>
+  </option>
+  <option name="PHANTOM_RAINBOW_BRACKET_2">
+    <value>
+      <option name="FOREGROUND" value="DA70D6" />
+    </value>
+  </option>
+  <option name="PHANTOM_RAINBOW_BRACKET_3">
+    <value>
+      <option name="FOREGROUND" value="179FFF" />
+    </value>
+  </option>
+  <option name="PHANTOM_RAINBOW_BRACKET_4">
+    <value>
+      <option name="FOREGROUND" value="3EC48B" />
+    </value>
+  </option>
+  <option name="PHANTOM_RAINBOW_BRACKET_5">
+    <value>
+      <option name="FOREGROUND" value="FF8C42" />
+    </value>
+  </option>
+  <option name="PHANTOM_RAINBOW_INDENT_1">
+    <value>
+      <option name="BACKGROUND" value="35352A" />
+    </value>
+  </option>
+  <option name="PHANTOM_RAINBOW_INDENT_2">
+    <value>
+      <option name="BACKGROUND" value="2C372C" />
+    </value>
+  </option>
+  <option name="PHANTOM_RAINBOW_INDENT_3">
+    <value>
+      <option name="BACKGROUND" value="372C37" />
+    </value>
+  </option>
+  <option name="PHANTOM_RAINBOW_INDENT_4">
+    <value>
+      <option name="BACKGROUND" value="2C3539" />
+    </value>
+  </option>
+</list>

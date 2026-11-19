@@ -1,0 +1,7 @@
+<html><body>
+Reports methods of a mapper interface that has a mapper XML when the method has neither a statement in the XML nor
+<code>@Select</code>, <code>@Insert</code>, <code>@Update</code>, <code>@Delete</code> or a provider annotation:
+calling it throws <code>BindingException: Invalid bound statement</code>. The quick fix adds the statement to the
+mapper XML: <code>&lt;insert&gt;</code>, <code>&lt;update&gt;</code> or <code>&lt;delete&gt;</code> by the method
+name, <code>&lt;select&gt;</code> with its <code>resultType</code> otherwise.
+</body></html>

@@ -1,0 +1,8 @@
+<html>
+<body>
+Reports <code>@PreAuthorize</code>, <code>@PostAuthorize</code>, <code>@Secured</code> and <code>@RolesAllowed</code> that Spring ignores
+because no configuration class enables that kind of method security: <code>@EnableMethodSecurity</code> (with
+<code>securedEnabled</code> or <code>jsr250Enabled</code> for the latter two), or <code>@EnableGlobalMethodSecurity</code> with the matching flag.
+The annotated methods then run for every caller.
+</body>
+</html>

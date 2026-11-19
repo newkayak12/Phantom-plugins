@@ -1,0 +1,82 @@
+<idea-plugin>
+  <id>dev.phantom.docker</id>
+  <name>Docker Support</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Cloud</category>
+  <description><![CDATA[
+  Docker Compose for Phantom through the docker command line: run icons on a compose file's services start
+  the whole file or one service with docker compose up, in a Docker Compose run configuration that also shows in
+  the Services tool window. The Docker tool window lists containers grouped by compose project, refreshed only while
+  it is open, with start, stop, restart, remove, logs and compose down. Works with Docker Desktop, OrbStack, Colima
+  or any docker CLI. Compose files are checked for unknown keys, invalid values, references to undefined services,
+  networks and volumes (with Ctrl+B and completion), services without an image, unquoted base-60 port mappings and
+  duplicate container names; Dockerfiles for unknown instructions, missing line continuations, malformed arguments,
+  non-JSON exec forms, shell-form CMD/ENTRYPOINT, unclosed heredocs, stage names and COPY sources missing from the
+  build context.
+  ]]></description>
+
+  <resource-bundle>messages.PhantomDockerBundle</resource-bundle>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+    <plugin id="org.jetbrains.plugins.yaml"/>
+  </dependencies>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <configurationType implementation="dev.phantom.docker.ComposeConfigurationType"/>
+    <runConfigurationProducer implementation="dev.phantom.docker.ComposeRunProducer"/>
+    <runLineMarkerContributor language="yaml" implementationClass="dev.phantom.docker.ComposeRunLineMarkerContributor"/>
+    <runDashboardDefaultTypesProvider implementation="dev.phantom.docker.ComposeDashboardTypes"/>
+    <toolWindow id="Docker" anchor="bottom" secondary="false" icon="/icons/phantom/toolwindow/docker.svg" doNotActivateOnStart="true"
+                factoryClass="dev.phantom.docker.DockerToolWindowFactory"/>
+    <notificationGroup id="Docker Support" displayType="BALLOON"/>
+
+    <!-- Compose and Dockerfile checks; the Dockerfile ones run on files named like a Dockerfile (TextMate-highlighted) -->
+    <localInspection language="yaml" enabledByDefault="true" level="WARNING" shortName="PhantomComposeUnknownKeys"
+                     bundle="messages.PhantomDockerBundle" key="compose.unknown.keys.name"
+                     groupBundle="messages.PhantomDockerBundle" groupKey="group.compose"
+                     implementationClass="dev.phantom.docker.compose.ComposeUnknownKeysInspection"/>
+    <localInspection language="yaml" enabledByDefault="true" level="ERROR" shortName="PhantomComposeValues"
+                     bundle="messages.PhantomDockerBundle" key="compose.values.name"
+                     groupBundle="messages.PhantomDockerBundle" groupKey="group.compose"
+                     implementationClass="dev.phantom.docker.compose.ComposeValuesInspection"/>
+    <localInspection language="yaml" enabledByDefault="true" level="ERROR" shortName="PhantomComposeRelations"
+                     bundle="messages.PhantomDockerBundle" key="compose.relations.name"
+                     groupBundle="messages.PhantomDockerBundle" groupKey="group.compose"
+                     implementationClass="dev.phantom.docker.compose.ComposeRelationsInspection"/>
+    <localInspection language="yaml" enabledByDefault="true" level="WARNING" shortName="PhantomComposeMissingImage"
+                     bundle="messages.PhantomDockerBundle" key="compose.missing.image.name"
+                     groupBundle="messages.PhantomDockerBundle" groupKey="group.compose"
+                     implementationClass="dev.phantom.docker.compose.ComposeMissingImageInspection"/>
+    <localInspection language="yaml" enabledByDefault="true" level="WARNING" shortName="PhantomComposeUnquotedPorts"
+                     bundle="messages.PhantomDockerBundle" key="compose.unquoted.ports.name"
+                     groupBundle="messages.PhantomDockerBundle" groupKey="group.compose"
+                     implementationClass="dev.phantom.docker.compose.ComposeUnquotedPortsInspection"/>
+    <localInspection language="yaml" enabledByDefault="true" level="ERROR" shortName="PhantomComposeDuplicateContainerName"
+                     bundle="messages.PhantomDockerBundle" key="compose.duplicate.container.name"
+                     groupBundle="messages.PhantomDockerBundle" groupKey="group.compose"
+                     implementationClass="dev.phantom.docker.compose.ComposeDuplicateContainerNameInspection"/>
+    <localInspection enabledByDefault="true" level="ERROR" shortName="PhantomDockerfile"
+                     bundle="messages.PhantomDockerBundle" key="dockerfile.name"
+                     groupBundle="messages.PhantomDockerBundle" groupKey="group.dockerfile"
+                     implementationClass="dev.phantom.docker.dockerfile.DockerfileInspectionImpl"/>
+    <localInspection enabledByDefault="true" level="WEAK WARNING" shortName="PhantomDockerfileShellForm"
+                     bundle="messages.PhantomDockerBundle" key="dockerfile.shell.form.name"
+                     groupBundle="messages.PhantomDockerBundle" groupKey="group.dockerfile"
+                     implementationClass="dev.phantom.docker.dockerfile.DockerfileShellFormInspection"/>
+    <localInspection enabledByDefault="true" level="ERROR" shortName="PhantomDockerfileCopyPaths"
+                     bundle="messages.PhantomDockerBundle" key="dockerfile.copy.paths.name"
+                     groupBundle="messages.PhantomDockerBundle" groupKey="group.dockerfile"
+                     implementationClass="dev.phantom.docker.dockerfile.DockerfileCopyPathsInspection"/>
+    <localInspection enabledByDefault="true" level="ERROR" shortName="PhantomDockerfileCopyHeredoc"
+                     bundle="messages.PhantomDockerBundle" key="dockerfile.heredoc.name"
+                     groupBundle="messages.PhantomDockerBundle" groupKey="group.dockerfile"
+                     implementationClass="dev.phantom.docker.dockerfile.DockerfileCopyHeredocInspection"/>
+    <psi.referenceContributor language="yaml" implementation="dev.phantom.docker.compose.ComposeReferenceContributor"/>
+    <gotoDeclarationHandler implementation="dev.phantom.docker.compose.ComposeGotoDeclarationHandler"/>
+    <gotoDeclarationHandler implementation="dev.phantom.docker.dockerfile.DockerfileStageGotoDeclarationHandler"/>
+    <codeInsight.lineMarkerProvider language="yaml" implementationClass="dev.phantom.docker.compose.ComposeLineMarkerProvider"/>
+    <!-- every language: a Dockerfile is plain or TextMate text; returns at once for other files -->
+    <codeInsight.lineMarkerProvider language="" implementationClass="dev.phantom.docker.dockerfile.DockerfileStageLineMarkerProvider"/>
+  </extensions>
+</idea-plugin>

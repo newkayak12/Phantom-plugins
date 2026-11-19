@@ -1,0 +1,239 @@
+<idea-plugin package="dev.phantom.spring.core">
+  <dependencies>
+    <plugin id="com.intellij.java"/>
+    <module name="intellij.java.psi"/>
+    <module name="intellij.java.frontback.psi"/>
+    <module name="intellij.java.indexing"/>
+    <module name="intellij.java"/>
+    <module name="intellij.platform.uast"/>
+  </dependencies>
+  <resource-bundle>messages.PhantomSpringBundle</resource-bundle>
+  <extensions defaultExtensionNs="com.intellij">
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringBeanLineMarkerProvider"/>
+    <implicitUsageProvider implementation="dev.phantom.spring.core.ide.SpringImplicitUsageProvider"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringAutowiring"
+                     bundle="messages.PhantomSpringBundle" key="inspection.autowiring.display.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringAutowiringInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringSelfInvocation"
+                     bundle="messages.PhantomSpringBundle" key="inspection.self.invocation.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringSelfInvocationInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringProxyMethod"
+                     bundle="messages.PhantomSpringBundle" key="inspection.proxy.method.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringProxyMethodInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringScheduled"
+                     bundle="messages.PhantomSpringBundle" key="inspection.scheduled.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringScheduledInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringAsync"
+                     bundle="messages.PhantomSpringBundle" key="inspection.async.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringAsyncInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringEventListener"
+                     bundle="messages.PhantomSpringBundle" key="inspection.event.listener.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringEventListenerInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WEAK WARNING" shortName="PhantomSpringFieldInjection"
+                     bundle="messages.PhantomSpringBundle" key="inspection.field.injection.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringFieldInjectionInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringStaticInjection"
+                     bundle="messages.PhantomSpringBundle" key="inspection.static.injection.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringStaticInjectionInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringDuplicateBeanName"
+                     bundle="messages.PhantomSpringBundle" key="inspection.duplicate.bean.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringDuplicateBeanNameInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringScope"
+                     bundle="messages.PhantomSpringBundle" key="inspection.scope.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringScopeInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringSqlScript"
+                     bundle="messages.PhantomSpringBundle" key="inspection.sql.script.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringSqlScriptInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WEAK WARNING" shortName="PhantomSpringDirtiesContext"
+                     bundle="messages.PhantomSpringBundle" key="inspection.dirties.context.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringDirtiesContextInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringValuePlaceholder"
+                     bundle="messages.PhantomSpringBundle" key="inspection.value.placeholder.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringValuePlaceholderInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringElSyntax"
+                     bundle="messages.PhantomSpringBundle" key="inspection.spel.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringElSyntaxInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringCacheNames"
+                     bundle="messages.PhantomSpringBundle" key="inspection.cache.names.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringCacheNamesInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WEAK WARNING" shortName="PhantomSpringCacheOnInterface"
+                     bundle="messages.PhantomSpringBundle" key="inspection.cache.interface.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringCacheOnInterfaceInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringQualifierUnresolved"
+                     bundle="messages.PhantomSpringBundle" key="inspection.qualifier.typo.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringQualifierUnresolvedInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringDependsOnUnresolved"
+                     bundle="messages.PhantomSpringBundle" key="inspection.depends.on.typo.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringDependsOnUnresolvedInspection"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringEventLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringEventLineMarkerProvider"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomMvcPathVariable"
+                     bundle="messages.PhantomSpringBundle" key="mvc.path.variable.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringMvcPathVariableInspection"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringEndpointLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringEndpointLineMarkerProvider"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomAopPointcut"
+                     bundle="messages.PhantomSpringBundle" key="aop.pointcut.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.AopPointcutInspection"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.AopAdviceLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.AopAdviceLineMarkerProvider"/>
+    <psi.referenceContributor language="UAST" implementation="dev.phantom.spring.core.ide.SpringBeanNameReferenceContributor"/>
+    <toolWindow id="Spring Beans" anchor="right" secondary="true" icon="/icons/phantom/toolwindow/springBeans.svg"
+                factoryClass="dev.phantom.spring.core.ide.SpringBeansToolWindowFactory"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringCacheableAndCachePut"
+                     bundle="messages.PhantomSpringBundle" key="inspection.cacheable.put.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringCacheableAndCachePutInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringAbstractBean"
+                     bundle="messages.PhantomSpringBundle" key="inspection.abstract.bean.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringAbstractBeanInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringValueType"
+                     bundle="messages.PhantomSpringBundle" key="inspection.value.type.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringValueTypeInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringBeanMethod"
+                     bundle="messages.PhantomSpringBundle" key="inspection.bean.method.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringBeanMethodInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringScanPackage"
+                     bundle="messages.PhantomSpringBundle" key="inspection.scan.package.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringScanPackageInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringAspectjAutoproxy"
+                     bundle="messages.PhantomSpringBundle" key="inspection.aspectj.autoproxy.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringAspectjAutoproxyInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringAutowiredOutsideBean"
+                     bundle="messages.PhantomSpringBundle" key="inspection.autowired.outside.bean.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringAutowiredOutsideBeanInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringResourceLocation"
+                     bundle="messages.PhantomSpringBundle" key="inspection.resource.location.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringResourceLocationInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringTestBeanFactory"
+                     bundle="messages.PhantomSpringBundle" key="inspection.test.bean.factory.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringTestBeanFactoryInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomAopAdviceSignature"
+                     bundle="messages.PhantomSpringBundle" key="aop.advice.signature.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.AopAdviceSignatureInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WEAK WARNING" shortName="PhantomAopPointcutMethod"
+                     bundle="messages.PhantomSpringBundle" key="aop.pointcut.method.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.AopPointcutMethodInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomAopArgNames"
+                     bundle="messages.PhantomSpringBundle" key="aop.arg.names.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.AopArgNamesInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomAopDeclareParents"
+                     bundle="messages.PhantomSpringBundle" key="aop.declare.parents.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.AopDeclareParentsInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringBeanLifecycleMethod"
+                     bundle="messages.PhantomSpringBundle" key="inspection.bean.lifecycle.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringBeanLifecycleMethodInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringLookupMethod"
+                     bundle="messages.PhantomSpringBundle" key="inspection.lookup.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringLookupMethodInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringResourceValue"
+                     bundle="messages.PhantomSpringBundle" key="inspection.resource.value.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringResourceValueInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringProfileExpression"
+                     bundle="messages.PhantomSpringBundle" key="inspection.profile.expression.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringProfileExpressionInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WEAK WARNING" shortName="PhantomSpringUnknownProfile"
+                     bundle="messages.PhantomSpringBundle" key="inspection.profile.unknown.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringUnknownProfileInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WEAK WARNING" shortName="PhantomSpringBeanNameConvention"
+                     bundle="messages.PhantomSpringBundle" key="inspection.bean.name.convention.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringBeanNameConventionInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WEAK WARNING" shortName="PhantomAopArgNamesBinding"
+                     bundle="messages.PhantomSpringBundle" key="aop.arg.names.unbound.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.AopArgNamesBindingInspection"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringCacheLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringCacheLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringScheduledLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringScheduledLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringImportLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringImportLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringTransactionalLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringTransactionalLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringComponentScanLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.SpringComponentScanLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.AopAdvisedMethodLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.core.ide.AopAdvisedMethodLineMarkerProvider"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringApiVersionNotConfigured"
+                     bundle="messages.PhantomSpringBundle" key="inspection.api.version.unconfigured.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringApiVersionNotConfiguredInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringApiVersionSyntax"
+                     bundle="messages.PhantomSpringBundle" key="inspection.api.version.syntax.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringApiVersionSyntaxInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringHttpHeader"
+                     bundle="messages.PhantomSpringBundle" key="inspection.http.header.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringHttpHeaderInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringMediaType"
+                     bundle="messages.PhantomSpringBundle" key="inspection.http.media.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringMediaTypeInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringValueStyle"
+                     bundle="messages.PhantomSpringBundle" key="inspection.value.style.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringValueStyleInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringJdkProxyInjection"
+                     bundle="messages.PhantomSpringBundle" key="inspection.jdk.proxy.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringJdkProxyInjectionInspection"/>
+  </extensions>
+  <extensions defaultExtensionNs="com.intellij.microservices">
+    <endpointsProvider implementation="dev.phantom.spring.core.ide.SpringMvcEndpointsProvider"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringTestTransaction"
+                     bundle="messages.PhantomSpringBundle" key="inspection.test.tx.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringTestTransactionInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringInjectionConsistency"
+                     bundle="messages.PhantomSpringBundle" key="inspection.injection.consistency.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringInjectionConsistencyInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringRequired"
+                     bundle="messages.PhantomSpringBundle" key="inspection.required.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringRequiredInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomSpringQualifierType"
+                     bundle="messages.PhantomSpringBundle" key="inspection.qualifier.type.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.core.ide.SpringQualifierTypeInspection"/>
+  </extensions>
+</idea-plugin>

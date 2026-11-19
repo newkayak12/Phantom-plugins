@@ -1,0 +1,38 @@
+<idea-plugin>
+  <id>dev.phantom.testcontainers</id>
+  <name>Testcontainers Support</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>JVM Frameworks</category>
+  <description><![CDATA[
+  Testcontainers checks for Java and Kotlin tests: a <code>@Container</code> that never starts (no
+  <code>@Testcontainers</code> on its class, or not a container), one started again for every test (an instance field),
+  an image without a version tag or with <code>:latest</code>, and Spring's <code>@DynamicPropertySource</code> methods
+  and <code>@ServiceConnection</code> fields that are not static and so are not found. Java fixes make them static.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+    <plugin id="com.intellij.java"/>
+    <!-- Java classes live in the Java plugin's content modules: without these they do not load in Phantom -->
+    <module name="intellij.platform.uast"/>
+    <module name="intellij.java.psi"/>
+    <module name="intellij.java.frontback.psi"/>
+    <module name="intellij.java.indexing"/>
+    <module name="intellij.java"/>
+    <module name="intellij.java.analysis"/>
+    <module name="intellij.java.impl"/>
+  </dependencies>
+
+  <resource-bundle>messages.PhantomTestcontainersBundle</resource-bundle>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <localInspection language="UAST" shortName="PhantomContainerNotStarted" key="inspection.not.started" groupKey="group"
+                     enabledByDefault="true" level="ERROR" implementationClass="dev.phantom.testcontainers.ContainerNotStartedInspection"/>
+    <localInspection language="UAST" shortName="PhantomContainerPerTest" key="inspection.per.test" groupKey="group"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.testcontainers.ContainerPerTestInspection"/>
+    <localInspection language="UAST" shortName="PhantomContainerImageTag" key="inspection.image.tag" groupKey="group"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.testcontainers.ContainerImageTagInspection"/>
+    <localInspection language="UAST" shortName="PhantomSpringStaticRequired" key="inspection.static" groupKey="group"
+                     enabledByDefault="true" level="ERROR" implementationClass="dev.phantom.testcontainers.SpringStaticRequiredInspection"/>
+  </extensions>
+</idea-plugin>
