@@ -11,6 +11,16 @@ val kotlinBundled = providers.gradleProperty("platformFromRepository").isPresent
   project.name in providers.gradleProperty("platformFromRepositoryFor").orNull.orEmpty().split(',').map { it.trim() } ||
   file("${providers.gradleProperty("phantomIde").get()}/Contents/plugins/Kotlin").isDirectory
 
+// Uses @Internal indexing API, so an installed zip must not load on another Phantom build than the one it is tested against
+intellijPlatform {
+  pluginConfiguration {
+    ideaVersion {
+      sinceBuild = "262.261116"
+      untilBuild = "262.*"
+    }
+  }
+}
+
 dependencies {
   intellijPlatform {
     testBundledPlugin("com.intellij.java")
