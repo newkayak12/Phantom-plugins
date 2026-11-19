@@ -88,7 +88,7 @@ include("groovy-scripting")
 include("groovy")
 include("groovy-live-templates")
 include("images")
-include("local-index")
+include("local-shared-index")
 
 // Real-IDE probe (see realide-probe/): only with -PrealIde, never part of CI or the marketplace
 if (providers.gradleProperty("realIde").isPresent) {
