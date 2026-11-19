@@ -89,6 +89,7 @@ Public repositories need no token.
 | Mermaid Support | [mermaid](./mermaid/README.md) · [한국어](./mermaid/KOR.md) | Mermaid editing and preview (based on the upstream plugin, built under a Phantom id) |
 | Phantom Local Shared Index | [local-shared-index](./local-shared-index/README.md) · [한국어](./local-shared-index/KOR.md) | Reuses index data between checkouts of the same project on this machine (optional install) |
 | Phantom Settings Repository | [sync](./sync/README.md) · [한국어](./sync/KOR.md) | Backup and Sync to a git repository you own instead of a JetBrains account (bundled) |
+| Phantom Theme | [theme](./theme/README.md) · [한국어](./theme/KOR.md) | Phantom Dark and Phantom Light, the default look of Phantom (bundled) |
 
 ## Repository format
 

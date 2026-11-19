@@ -89,6 +89,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Mermaid Support | [mermaid](./mermaid/KOR.md) · [English](./mermaid/README.md) | Mermaid 편집과 미리보기 (업스트림 플러그인을 기반으로 Phantom id로 빌드) |
 | Phantom Local Shared Index | [local-shared-index](./local-shared-index/KOR.md) · [English](./local-shared-index/README.md) | 같은 프로젝트의 체크아웃 사이에서 이 컴퓨터의 인덱스 데이터를 재사용 (선택 설치) |
 | Phantom Settings Repository | [sync](./sync/KOR.md) · [English](./sync/README.md) | JetBrains 계정 대신 내가 가진 git 저장소로 Backup and Sync (번들) |
+| Phantom Theme | [theme](./theme/KOR.md) · [English](./theme/README.md) | Phantom의 기본 모양인 Phantom Dark와 Phantom Light (번들) |
 
 ## 저장소 형식
 

@@ -92,6 +92,7 @@ include("images")
 include("grid")
 include("local-shared-index")
 include("sync")
+include("theme")
 
 // Real-IDE probe (see realide-probe/): only with -PrealIde, never part of CI or the marketplace
 if (providers.gradleProperty("realIde").isPresent) {
