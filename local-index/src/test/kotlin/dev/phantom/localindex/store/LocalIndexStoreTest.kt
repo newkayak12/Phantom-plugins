@@ -183,6 +183,30 @@ class LocalIndexStoreTest {
     assertArrayEquals(payload(2), store.get("a", key(2))!!.payload)
   }
 
+  @Test fun `an Error from an encoder drops the record and the worker lives on`() {
+    val store = LocalIndexStore.open(root(), 1L shl 30, encoderThreads = 1)!!.also { opened += it }
+    store.ensureHeader("a", header)
+    store.put("a", key(1), 1) { throw StackOverflowError() }
+    store.put("a", key(2), 2) { payload(2) }
+    store.awaitIdle()
+    assertNull(store.get("a", key(1)))
+    assertArrayEquals(payload(2), store.get("a", key(2))!!.payload)
+  }
+
+  @Test fun `a full encode backlog drops records and counts them`() {
+    val store = LocalIndexStore.open(root(), 1L shl 30, encoderThreads = 1, maxPendingEncodes = 2)!!.also { opened += it }
+    store.ensureHeader("a", header)
+    store.awaitIdle()
+    val release = CountDownLatch(1)
+    for (i in 1..2) store.put("a", key(i), 1) { release.await(); payload(i) }
+    for (i in 3..5) store.put("a", key(i), 1) { payload(i) }
+    assertEquals(3, store.droppedRecords())
+    release.countDown()
+    store.awaitIdle()
+    assertNotNull(store.get("a", key(2)))
+    assertNull(store.get("a", key(3)))
+  }
+
   @Test fun `clear after a deferred put was queued wins over it`() {
     val store = open()
     val release = CountDownLatch(1)

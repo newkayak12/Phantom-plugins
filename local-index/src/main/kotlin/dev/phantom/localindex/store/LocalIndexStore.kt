@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.localindex.store
 
+import com.intellij.openapi.diagnostic.ControlFlowException
 import com.intellij.openapi.diagnostic.logger
 import org.jetbrains.annotations.TestOnly
 import java.io.Closeable
@@ -42,6 +43,8 @@ class LocalIndexStore private constructor(
   private val segmentBytes: Long,
   private val lockChannel: FileChannel,
   private val lock: FileLock,
+  encoderThreads: Int,
+  private val maxPendingEncodes: Int,
 ) : Closeable {
   private class IndexState(val dirName: String, val dir: Path) {
     val map = ConcurrentHashMap<KeyBytes, Location>()
@@ -69,6 +72,9 @@ class LocalIndexStore private constructor(
   private val total = AtomicLong()
   private val pendingBytes = AtomicLong()
   private val pendingEncodes = AtomicInteger()
+  private val dropped = AtomicLong()
+  private val droppedAtLastLog = AtomicLong()
+  private val lastDropLog = AtomicLong(System.nanoTime() - DROP_LOG_INTERVAL_NANOS)
   private var nextGeneration = 1L // writer thread only
 
   @Volatile private var closed = false
@@ -78,7 +84,7 @@ class LocalIndexStore private constructor(
   }
 
   // Encoding must neither run on the indexing threads nor slow the single writer thread.
-  private val encoder = ThreadPoolExecutor(ENCODER_THREADS, ENCODER_THREADS, 0L, TimeUnit.MILLISECONDS, LinkedBlockingQueue()) { r ->
+  private val encoder = ThreadPoolExecutor(encoderThreads, encoderThreads, 0L, TimeUnit.MILLISECONDS, LinkedBlockingQueue()) { r ->
     Thread(r, "LocalIndexStore encoder").apply { isDaemon = true }
   }
 
@@ -160,8 +166,9 @@ class LocalIndexStore private constructor(
   @Suppress("TooGenericExceptionCaught") // the externalizer may fail in any way on odd data; that costs the record only
   fun put(index: String, key: ByteArray, mapMicros: Int, encode: () -> ByteArray) {
     if (closed || key.size != Segment.KEY_BYTES) return
-    if (pendingEncodes.incrementAndGet() > MAX_PENDING_ENCODES) {
+    if (pendingEncodes.incrementAndGet() > maxPendingEncodes) {
       pendingEncodes.decrementAndGet()
+      noteDropped()
       return
     }
     val state = state(index)
@@ -174,8 +181,9 @@ class LocalIndexStore private constructor(
           val payload = try {
             encode()
           }
-          catch (e: Exception) {
-            LOG.debug("Cannot encode a record for ${state.dirName}, dropping it", e)
+          catch (e: Throwable) {
+            // Any failure, Errors included, costs the record, never the worker. A cancellation means nothing on this thread.
+            if (e !is ControlFlowException) LOG.debug("Cannot encode a record for ${state.dirName}, dropping it", e)
             return@execute
           }
           queue(payload.size) { if (state.epoch.get() == epoch) append(state, keyBytes, mapMicros, payload, null) }
@@ -189,6 +197,20 @@ class LocalIndexStore private constructor(
       pendingEncodes.decrementAndGet()
     }
   }
+
+  /** Counts a record lost to a full backlog or the pending-payload cap; logs the total at most once a minute. */
+  private fun noteDropped() {
+    val total = dropped.incrementAndGet()
+    val now = System.nanoTime()
+    val last = lastDropLog.get()
+    if (now - last < DROP_LOG_INTERVAL_NANOS || !lastDropLog.compareAndSet(last, now)) return
+    val since = total - droppedAtLastLog.getAndSet(total)
+    LOG.info("Phantom local index: dropped $since record(s) that were not written because the encode or write backlog was full ($total in this session)")
+  }
+
+  /** Records dropped since the store was opened because a backlog was full. */
+  @TestOnly
+  fun droppedRecords(): Long = dropped.get()
 
   fun remove(index: String, key: ByteArray) {
     if (key.size != Segment.KEY_BYTES) return
@@ -289,6 +311,7 @@ class LocalIndexStore private constructor(
   private fun queue(payloadBytes: Int, task: () -> Unit) {
     if (pendingBytes.addAndGet(payloadBytes.toLong()) > MAX_PENDING_BYTES) {
       pendingBytes.addAndGet(-payloadBytes.toLong())
+      noteDropped()
       return
     }
     try {
@@ -441,8 +464,9 @@ class LocalIndexStore private constructor(
     const val SEGMENT_BYTES = 64L shl 20
 
     private const val MAX_PENDING_BYTES = 64L shl 20
-    private const val MAX_PENDING_ENCODES = 512
-    private const val ENCODER_THREADS = 2
+    private const val MAX_ENCODER_THREADS = 4
+    private const val PENDING_ENCODES_PER_THREAD = 256
+    private val DROP_LOG_INTERVAL_NANOS = TimeUnit.MINUTES.toNanos(1)
     private val LOG = logger<LocalIndexStore>()
     private val SEGMENT_NAME = Regex("seg-(\\d+)\\.dat")
     private val UNSAFE = Regex("[^A-Za-z0-9._-]")
@@ -455,7 +479,14 @@ class LocalIndexStore private constructor(
     private fun generationOf(path: Path): Long? = SEGMENT_NAME.matchEntire(path.fileName.toString())?.groupValues?.get(1)?.toLongOrNull()
 
     /** Opens the store under [root] and starts its background scan; null when another process or store holds the root's lock. */
-    fun open(root: Path, maxBytes: Long, segmentBytes: Long = SEGMENT_BYTES): LocalIndexStore? {
+    fun open(
+      root: Path,
+      maxBytes: Long,
+      segmentBytes: Long = SEGMENT_BYTES,
+      // Half the cores, at most 4: enough to keep up with the indexing threads' misses without competing with them.
+      encoderThreads: Int = (Runtime.getRuntime().availableProcessors() / 2).coerceIn(1, MAX_ENCODER_THREADS),
+      maxPendingEncodes: Int = encoderThreads * PENDING_ENCODES_PER_THREAD,
+    ): LocalIndexStore? {
       var channel: FileChannel? = null
       try {
         Files.createDirectories(root)
@@ -465,7 +496,7 @@ class LocalIndexStore private constructor(
           channel.close()
           return null
         }
-        return LocalIndexStore(root, maxBytes, segmentBytes, channel, lock).also { it.start() }
+        return LocalIndexStore(root, maxBytes, segmentBytes, channel, lock, encoderThreads, maxPendingEncodes).also { it.start() }
       }
       catch (_: OverlappingFileLockException) {
         channel?.close()
