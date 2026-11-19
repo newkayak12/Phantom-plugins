@@ -16,8 +16,8 @@ Only indexes whose result depends on the file's own content (plus its name and f
 - `java.fun.expression`, `java.null.method.argument`, `java.binary.plus.expression`: read the syntax tree or tokens of one Java file.
 - `Trigram.Index`: trigrams of the text.
 - Kotlin source indexes (`KotlinPackageSourcesMemberNamesIndex`, `KotlinPartialPackageNamesIndex`, `KotlinTopLevelCallableByPackageShortNameIndex`, `KotlinTopLevelClassLikeDeclarationByPackageShortNameIndex`): package and declaration names from one `.kt` file.
-- `Stubs`: only for file types the platform marks with an indexing flavor (Java, class files).
+- `Stubs`: the stub trees of Java source files, class files and Kotlin `.kt` files (the file types the platform marks with an indexing flavor, plus Kotlin sources). Kotlin `.kts` scripts are not cached: their stubs can depend on script definitions.
 
-Not cached: `TodoIndex` (depends on your TODO patterns), `FilenameIndex` and `filetypes` (do not read content), Kotlin `.kt` stubs.
+Not cached: `TodoIndex` (depends on your TODO patterns), `FilenameIndex` and `filetypes` (do not read content).
 
 0.1.0 is the skeleton: the plugin registers with the platform's indexing infrastructure and passes every index through unchanged.

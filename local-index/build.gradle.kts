@@ -20,5 +20,10 @@ dependencies {
 }
 
 tasks.named<Test>("test") {
-  if (!kotlinBundled) filter { excludeTestsMatching("dev.phantom.localindex.LocalIndexAllowlistKotlinTest") }
+  if (!kotlinBundled) {
+    filter {
+      excludeTestsMatching("dev.phantom.localindex.LocalIndexAllowlistKotlinTest")
+      excludeTestsMatching("dev.phantom.localindex.LocalIndexStubsKotlinTest")
+    }
+  }
 }

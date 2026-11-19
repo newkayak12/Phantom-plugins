@@ -40,9 +40,19 @@ class LocalIndexAllowlistTest : LightJavaCodeInsightFixtureTestCase() {
     assertFalse(LocalIndexAllowlist.accepts(extension))
   }
 
-  fun `test stubs cached only for flavored file types`() {
-    assertTrue(LocalIndexAllowlist.cachesStubsFor(JavaFileType.INSTANCE))
-    assertFalse(LocalIndexAllowlist.cachesStubsFor(XmlFileType.INSTANCE))
-    assertFalse(LocalIndexAllowlist.cachesStubsFor(PlainTextFileType.INSTANCE))
+  fun `test stubs cached for flavored file types and kotlin kt sources only`() {
+    assertTrue(LocalIndexAllowlist.cachesStubsFor(JavaFileType.INSTANCE, "A.java"))
+    val kotlin = object : com.intellij.openapi.fileTypes.FileType {
+      override fun getName() = "Kotlin"
+      override fun getDescription() = "Kotlin"
+      override fun getDefaultExtension() = "kt"
+      override fun getIcon() = null
+      override fun isBinary() = false
+    }
+    assertTrue(LocalIndexAllowlist.cachesStubsFor(kotlin, "A.kt"))
+    assertFalse(LocalIndexAllowlist.cachesStubsFor(kotlin, "build.gradle.kts"))
+    assertFalse(LocalIndexAllowlist.cachesStubsFor(kotlin, "script.kts"))
+    assertFalse(LocalIndexAllowlist.cachesStubsFor(XmlFileType.INSTANCE, "a.xml"))
+    assertFalse(LocalIndexAllowlist.cachesStubsFor(PlainTextFileType.INSTANCE, "a.txt"))
   }
 }

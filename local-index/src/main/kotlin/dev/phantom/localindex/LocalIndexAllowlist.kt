@@ -58,6 +58,18 @@ object LocalIndexAllowlist {
       extension.canBeShared() &&
       extension.name.name in CONTENT_ONLY + STUBS
 
-  /** Stubs are cached for file types that carry an indexing flavor (JAVA, CLASS, kotlin_builtins); see JavaPlugin.xml. */
-  fun cachesStubsFor(fileType: FileType): Boolean = FileIndexingFlavorProvider.INSTANCE.forFileType(fileType) != null
+  /**
+   * `KotlinFileType.getName()` (`KotlinLanguage.NAME`), matched by name so that this plugin needs no Kotlin dependency.
+   * The Kotlin stub builder reads the file's text and name only: `KtFile.customStubBuilder` is null for a source file
+   * (its only override is `KtDecompiledFile`, for class files) and no IDE-side subclass sets it.
+   */
+  private const val KOTLIN_FILE_TYPE = "Kotlin"
+
+  /**
+   * Stubs are cached for file types that carry an indexing flavor (JAVA, CLASS, kotlin_builtins; see JavaPlugin.xml)
+   * and for `.kt` sources. The Kotlin file type also covers `.kts` and `.gradle.kts` scripts, whose stubs may depend on
+   * script definitions (project state), so those are not cached.
+   */
+  fun cachesStubsFor(fileType: FileType, fileName: CharSequence): Boolean =
+    if (fileType.name == KOTLIN_FILE_TYPE) fileName.endsWith(".kt") else FileIndexingFlavorProvider.INSTANCE.forFileType(fileType) != null
 }

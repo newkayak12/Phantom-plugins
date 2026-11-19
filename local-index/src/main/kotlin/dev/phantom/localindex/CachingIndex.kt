@@ -119,7 +119,7 @@ internal class CachingIndex<K, V, D>(
 
 private fun isCacheable(content: FileContentImpl, stubs: Boolean): Boolean =
   !content.isTransientContent && content.file is VirtualFileWithId &&
-    (!stubs || LocalIndexAllowlist.cachesStubsFor(content.fileType))
+    (!stubs || LocalIndexAllowlist.cachesStubsFor(content.fileType, content.fileName))
 
 private fun microsSince(started: Long): Int = ((System.nanoTime() - started) / 1000).coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
 

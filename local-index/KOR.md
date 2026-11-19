@@ -16,8 +16,8 @@
 - `java.fun.expression`, `java.null.method.argument`, `java.binary.plus.expression`: Java 파일 하나의 구문 트리 또는 토큰만 읽습니다.
 - `Trigram.Index`: 텍스트의 트라이그램.
 - Kotlin 소스 인덱스(`KotlinPackageSourcesMemberNamesIndex`, `KotlinPartialPackageNamesIndex`, `KotlinTopLevelCallableByPackageShortNameIndex`, `KotlinTopLevelClassLikeDeclarationByPackageShortNameIndex`): `.kt` 파일 하나의 패키지와 선언 이름.
-- `Stubs`: 플랫폼이 인덱싱 플레이버를 지정한 파일 타입(Java, 클래스 파일)만.
+- `Stubs`: Java 소스, 클래스 파일, Kotlin `.kt` 파일의 스텁 트리(플랫폼이 인덱싱 플레이버를 지정한 파일 타입과 Kotlin 소스). Kotlin `.kts` 스크립트는 스크립트 정의에 따라 스텁이 달라질 수 있어 캐시하지 않음.
 
-캐시하지 않음: `TodoIndex`(TODO 패턴 설정에 의존), `FilenameIndex`와 `filetypes`(내용을 읽지 않음), Kotlin `.kt` 스텁.
+캐시하지 않음: `TodoIndex`(TODO 패턴 설정에 의존), `FilenameIndex`와 `filetypes`(내용을 읽지 않음).
 
 0.1.0은 뼈대입니다. 플러그인이 플랫폼의 인덱싱 인프라에 등록되지만 모든 인덱스를 그대로 통과시킵니다.
