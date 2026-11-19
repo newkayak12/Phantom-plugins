@@ -1031,44 +1031,6 @@
       "detect": []
     },
     {
-      "id": "org.jetbrains.kotlin",
-      "name": "Kotlin Support",
-      "category": "Languages",
-      "description": "Kotlin language support: editing, inspections, refactorings, debugging and Gradle Kotlin DSL scripts. IntelliJ's Kotlin plugin (Apache 2.0) built with each Phantom release; not bundled, since Java-only projects never use it. org.jetbrains.kotlin stays its id, so plugins depending on Kotlin keep working. Built by Phantom from IntelliJ Community sources; not published by JetBrains.",
-      "depends": [
-        "com.intellij.modules.java"
-      ],
-      "detect": [
-        "org.jetbrains.kotlin:kotlin-stdlib"
-      ],
-      "detectFiles": [
-        "build.gradle.kts",
-        "settings.gradle.kts"
-      ],
-      "version": "262.261118.0-IJ",
-      "vendor": "Phantom",
-      "since": "262.261118",
-      "until": "262.*",
-      "download": "kotlin-262.261118/Kotlin-262.261118.zip"
-    },
-    {
-      "id": "org.jetbrains.idea.maven",
-      "name": "Maven Support",
-      "category": "Build Tools",
-      "description": "Apache Maven projects: import and sync of pom.xml, the Maven tool window, running goals, pom.xml editing and completion, repositories and indexes. IntelliJ's Maven plugin (Apache 2.0) built with each Phantom release; not bundled, since Gradle projects never use it. org.jetbrains.idea.maven stays its id, so plugins depending on Maven keep working. Built by Phantom from IntelliJ Community sources; not published by JetBrains.",
-      "depends": [
-        "com.intellij.modules.java"
-      ],
-      "detectFiles": [
-        "pom.xml"
-      ],
-      "version": "262.261118.0",
-      "vendor": "Phantom",
-      "since": "262.261118",
-      "until": "262.*",
-      "download": "maven-262.261118/Maven-262.261118.zip"
-    },
-    {
       "id": "dev.phantom.local-shared-index",
       "name": "Phantom Local Shared Index",
       "version": "0.1.0",
@@ -1083,6 +1045,44 @@
       ],
       "download": "local-shared-index-0.1.0/local-shared-index-0.1.0.zip",
       "detect": []
+    },
+    {
+      "id": "org.jetbrains.kotlin",
+      "name": "Kotlin Support",
+      "category": "Languages",
+      "description": "Kotlin language support: editing, inspections, refactorings, debugging and Gradle Kotlin DSL scripts. IntelliJ's Kotlin plugin (Apache 2.0) built with each Phantom release; not bundled, since Java-only projects never use it. org.jetbrains.kotlin stays its id, so plugins depending on Kotlin keep working. Built by Phantom from IntelliJ Community sources; not published by JetBrains.",
+      "depends": [
+        "com.intellij.modules.java"
+      ],
+      "detect": [
+        "org.jetbrains.kotlin:kotlin-stdlib"
+      ],
+      "detectFiles": [
+        "build.gradle.kts",
+        "settings.gradle.kts"
+      ],
+      "version": "262.261119.0-IJ",
+      "vendor": "Phantom",
+      "since": "262.261119",
+      "until": "262.*",
+      "download": "kotlin-262.261119/Kotlin-262.261119.zip"
+    },
+    {
+      "id": "org.jetbrains.idea.maven",
+      "name": "Maven Support",
+      "category": "Build Tools",
+      "description": "Apache Maven projects: import and sync of pom.xml, the Maven tool window, running goals, pom.xml editing and completion, repositories and indexes. IntelliJ's Maven plugin (Apache 2.0) built with each Phantom release; not bundled, since Gradle projects never use it. org.jetbrains.idea.maven stays its id, so plugins depending on Maven keep working. Built by Phantom from IntelliJ Community sources; not published by JetBrains.",
+      "depends": [
+        "com.intellij.modules.java"
+      ],
+      "detectFiles": [
+        "pom.xml"
+      ],
+      "version": "262.261119.0",
+      "vendor": "Phantom",
+      "since": "262.261119",
+      "until": "262.*",
+      "download": "maven-262.261119/Maven-262.261119.zip"
     }
   ]
 }
