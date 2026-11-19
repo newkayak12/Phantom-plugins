@@ -78,6 +78,22 @@ jobs:
           TEST_OUTCOME: ${{ steps.tests.outcome }}
         run: python3 tools/test-summary.py "$PLUGIN" --outcome "$TEST_OUTCOME"
 
+      - name: Check packaged licenses and notices
+        env:
+          PLUGIN: ${{ steps.plugin.outputs.dir }}
+          TAG: ${{ steps.plugin.outputs.tag }}
+        run: python3 tools/check-plugin-notices.py "$PLUGIN/build/distributions/$TAG.zip"
+
+      - name: Prepare corresponding source archives
+        id: sources
+        if: steps.plugin.outputs.dir == 'grammar' || steps.plugin.outputs.dir == 'coverage'
+        env:
+          TAG: ${{ steps.plugin.outputs.tag }}
+        run: |
+          directory="$(mktemp -d "$RUNNER_TEMP/plugin-sources.XXXXXX")"
+          bash tools/attach-sources.sh "$TAG" --download-dir "$directory"
+          echo "directory=$directory" >> "$GITHUB_OUTPUT"
+
       - name: Preserve release test reports
         if: always() && steps.plugin.outcome == 'success'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -101,10 +117,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.plugin.outputs.tag }}
           ZIP: ${{ steps.plugin.outputs.dir }}/build/distributions/${{ steps.plugin.outputs.tag }}.zip
+          SOURCES: ${{ steps.sources.outputs.directory }}
         run: |
+          files=("$ZIP")
+          if [[ -n "$SOURCES" ]]; then files+=("$SOURCES/"*.jar); fi
           # a release created by hand for the same tag only gets its zip replaced
           if gh release view "$TAG" > /dev/null 2>&1; then
-            gh release upload "$TAG" "$ZIP" --clobber
+            gh release upload "$TAG" "${files[@]}" --clobber
           else
-            gh release create "$TAG" "$ZIP" --title "$TAG" --notes "Built by GitHub Actions from $GITHUB_SHA"
+            gh release create "$TAG" "${files[@]}" --title "$TAG" --notes "Built by GitHub Actions from $GITHUB_SHA"
           fi
