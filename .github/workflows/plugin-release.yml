@@ -49,9 +49,11 @@ jobs:
           if [[ -n "$expected" && "$expected" != "$version" ]]; then
             echo "::error::tag $GITHUB_REF_NAME but $dir/build.gradle.kts has version $version"; exit 1
           fi
-          echo "dir=$dir" >> "$GITHUB_OUTPUT"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "tag=$dir-$version" >> "$GITHUB_OUTPUT"
+          {
+            echo "dir=$dir"
+            echo "version=$version"
+            echo "tag=$dir-$version"
+          } >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
@@ -61,24 +63,29 @@ jobs:
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
       - name: Test and build
+        id: tests
         run: >
-          ./gradlew --no-configuration-cache -PplatformFromRepository=true
+          xvfb-run --auto-servernum ./gradlew --no-configuration-cache -PplatformFromRepository=true
           -Porg.gradle.java.installations.paths="$JAVA_HOME"
           :${{ steps.plugin.outputs.dir }}:test :${{ steps.plugin.outputs.dir }}:buildPlugin
 
       - name: Test report
         if: always()
-        run: |
-          python3 - "${{ steps.plugin.outputs.dir }}" <<'EOF'
-          import glob, sys, xml.etree.ElementTree as E
-          d = sys.argv[1]; t = f = 0
-          for x in glob.glob(f"{d}/build/test-results/test/*.xml"):
-              r = E.parse(x).getroot(); t += int(r.get("tests")); f += int(r.get("failures")) + int(r.get("errors"))
-              for c in r.iter("testcase"):
-                  for fl in list(c.findall("failure")) + list(c.findall("error")):
-                      print(f"::error::{c.get('classname')}.{c.get('name')}: {(fl.get('message') or '')[:300]}")
-          print(f"{d}: {t} tests, {f} failed")
-          EOF
+        env:
+          PLUGIN: ${{ steps.plugin.outputs.dir }}
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        run: python3 tools/test-summary.py "$PLUGIN" --outcome "$TEST_OUTCOME"
+
+      - name: Preserve release test reports
+        if: always() && steps.plugin.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-test-results-${{ steps.plugin.outputs.tag }}
+          path: |
+            ${{ steps.plugin.outputs.dir }}/build/test-results/test/
+            ${{ steps.plugin.outputs.dir }}/build/reports/tests/test/
+          if-no-files-found: warn
+          retention-days: 14
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
