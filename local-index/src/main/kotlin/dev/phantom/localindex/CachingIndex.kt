@@ -34,6 +34,7 @@ internal class CachingIndex<K, V, D>(
   private val codec: EntryCodec<K, V>,
   private val store: LocalIndexStore,
   private val stubs: Boolean,
+  private val header: StoreHeader,
 ) : FileBasedIndexInfrastructureExtensionUpdatableIndex<K, V, FileContent, D>,
     UpdatableIndex<K, V, FileContent, D> by base {
 
@@ -44,6 +45,7 @@ internal class CachingIndex<K, V, D>(
     }
     finally {
       store.clear(indexName)
+      store.ensureHeader(indexName, header) // the index lives on after a clear and keeps using the cache
     }
   }
 
@@ -152,5 +154,5 @@ internal fun <K, V, D> wrapInCache(
   val fingerprint = if (stubs) stubFingerprint() else 0
   val header = StoreHeader(LocalIndexStore.FORMAT_VERSION, indexExtension.version, IndexedHashesSupport.getVersion(), layoutId ?: "", fingerprint)
   store.ensureHeader(name, header)
-  return CachingIndex(baseIndex, name, EntryCodec.of(indexExtension), store, stubs)
+  return CachingIndex(baseIndex, name, EntryCodec.of(indexExtension), store, stubs, header)
 }

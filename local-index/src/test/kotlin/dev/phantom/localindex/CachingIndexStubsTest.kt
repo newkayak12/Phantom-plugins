@@ -45,7 +45,8 @@ class CachingIndexStubsTest : LightJavaCodeInsightFixtureTestCase() {
         else -> throw UnsupportedOperationException(method.name)
       }
     } as UpdatableIndex<Int, String, FileContent, Any?>
-    return CachingIndex(base, name, EntryCodec.of(extension), store, stubs = true)
+    val header = StoreHeader(LocalIndexStore.FORMAT_VERSION, 1, IndexedHashesSupport.getVersion(), "", 0)
+    return CachingIndex(base, name, EntryCodec.of(extension), store, stubs = true, header)
   }
 
   private fun thrownBy(block: () -> Unit): Throwable? = runCatching(block).exceptionOrNull()
@@ -56,6 +57,7 @@ class CachingIndexStubsTest : LightJavaCodeInsightFixtureTestCase() {
   override fun setUp() {
     super.setUp()
     (FileBasedIndex.getInstance() as FileBasedIndexImpl).waitUntilIndicesAreInitialized() // opens the store
+    store.clear(name) // entries of earlier tests of this class would be served
     store.ensureHeader(name, StoreHeader(LocalIndexStore.FORMAT_VERSION, 1, IndexedHashesSupport.getVersion(), "", 0))
     store.awaitIdle()
   }
@@ -93,6 +95,10 @@ class CachingIndexStubsTest : LightJavaCodeInsightFixtureTestCase() {
     index.clear()
     assertTrue(baseCleared)
     assertNull(store.get(name, key))
+    store.awaitIdle()
+    store.put(name, key, 1, byteArrayOf(1, 0)) // the index keeps using the cache after the clear
+    store.awaitIdle()
+    assertNotNull(store.get(name, key))
   }
 
   fun `test resetting the persistent state of the stub index empties its store entries`() {

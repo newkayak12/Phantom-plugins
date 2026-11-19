@@ -210,6 +210,25 @@ class LocalIndexStoreTest {
     assertArrayEquals(payload(2), store.get("a", key(2))!!.payload)
   }
 
+  @Test fun `clear right after open wipes an index the scan has not registered yet`() {
+    val store = open(indexes = listOf("Stubs"))
+    store.put("Stubs", key(1), 1, payload(1))
+    store.put("Stubs", key(2), 2, payload(2))
+    store.close()
+    val again = LocalIndexStore.open(root(), 1L shl 30)!!
+    opened += again
+    again.clear("Stubs") // before awaitIdle and without ensureHeader
+    assertNull(again.get("Stubs", key(1)))
+    again.ensureHeader("Stubs", header)
+    again.awaitIdle()
+    assertNull(again.get("Stubs", key(1)))
+    assertNull(again.get("Stubs", key(2)))
+    assertEquals(0, segmentFiles("Stubs").size)
+    again.put("Stubs", key(3), 3, payload(3))
+    again.awaitIdle()
+    assertArrayEquals(payload(3), again.get("Stubs", key(3))!!.payload)
+  }
+
   @Test fun `second open of the same root returns null while the first is open`() {
     val store = open()
     assertNull(LocalIndexStore.open(root(), 1L shl 20))

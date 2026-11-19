@@ -146,15 +146,30 @@ class LocalIndexStore private constructor(
     submit { state.map.remove(keyBytes) } // after any put queued before this call
   }
 
+  /**
+   * Forgets everything stored for [index], also right after opening the store, before its scan has registered the
+   * index, and also without a prior [ensureHeader]. The index serves nothing from this call until its next
+   * [ensureHeader]. The deletion runs on the writer thread, behind the opening scan and earlier writes.
+   */
   fun clear(index: String) {
-    val state = indexes[dirName(index)] ?: return
+    val state = state(index)
+    state.validated = false
     state.map.clear()
-    submitAndWait { clearIndex(state) }
+    submit { wipe(state) }
   }
 
+  /**
+   * Deletes the data of every index, headers stay. The scan is queued first, so by the time the task runs every index
+   * directory on disk has a state; waits for it, like the write queue, so that the store is empty when this returns.
+   */
   fun clearAll() {
     indexes.values.forEach { it.map.clear() }
     submitAndWait { indexes.values.forEach { clearIndex(it) } }
+  }
+
+  private fun wipe(state: IndexState) {
+    clearIndex(state)
+    Files.deleteIfExists(state.dir.resolve(StoreHeaderFile.NAME))
   }
 
   /** Waits until everything queued so far, including the opening scan, has been done. */
