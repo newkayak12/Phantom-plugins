@@ -29,5 +29,7 @@ class GitRepoCommunicator(private val repository: GitSettingsRepository) : Abstr
     repository.delete(filePath)
   }
 
-  override fun dispose() {}
+  override fun dispose() {
+    // nothing to release
+  }
 }
