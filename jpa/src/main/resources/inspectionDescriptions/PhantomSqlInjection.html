@@ -1,0 +1,5 @@
+<html>
+<body>
+Reports query text built from a value that is not a constant, passed to JDBC (<code>Statement</code>, <code>Connection.prepareStatement</code>), Spring <code>JdbcTemplate</code>/<code>NamedParameterJdbcTemplate</code>/<code>JdbcClient</code>/<code>DatabaseClient</code>, or JPA/Hibernate <code>createQuery</code>/<code>createNativeQuery</code>: string concatenation, Kotlin string templates and <code>String.format</code>. Pass the value as a bind parameter (<code>?</code>, <code>:name</code>) instead.<p>Numbers, booleans, enums and constants are not reported. A local variable is followed back to its initializer once; values assembled with a <code>StringBuilder</code> or passed through other methods are not traced.</p>
+</body>
+</html>

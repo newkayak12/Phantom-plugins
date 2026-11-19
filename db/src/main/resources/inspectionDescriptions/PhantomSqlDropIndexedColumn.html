@@ -1,0 +1,5 @@
+<html>
+<body>
+Reports <code>ALTER TABLE ... DROP COLUMN</code> of a column that is part of the primary key or of an index, unless the same statement drops that index too. MySQL narrows a composite index to the remaining columns and PostgreSQL drops the index, so queries that relied on it may slow down. Needs the data source's schema.
+</body>
+</html>

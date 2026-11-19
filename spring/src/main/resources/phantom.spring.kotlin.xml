@@ -1,0 +1,13 @@
+<idea-plugin package="dev.phantom.spring.kotlin">
+  <dependencies>
+    <plugin id="org.jetbrains.kotlin"/>
+    <module name="phantom.spring.core"/>
+  </dependencies>
+  <extensions defaultExtensionNs="com.intellij">
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.kotlin.KotlinSpringBeanLineMarkerProvider"/>
+    <localInspection language="kotlin" enabledByDefault="true" level="WARNING" shortName="PhantomSpringKotlinOpen"
+                     bundle="messages.PhantomSpringBundle" key="inspection.kotlin.open.name"
+                     groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
+                     implementationClass="dev.phantom.spring.kotlin.KotlinSpringOpenInspection"/>
+  </extensions>
+</idea-plugin>

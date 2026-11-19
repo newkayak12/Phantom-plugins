@@ -1,0 +1,5 @@
+<html>
+<body>
+Reports keys of built-in resources (Pod, Deployment, StatefulSet, DaemonSet, ReplicaSet, Job, CronJob, Service, Ingress, ConfigMap, Secret, RBAC) that the API does not define, at the levels Phantom lists completely: the top level, metadata, workload and Service spec, the pod template, pod spec, containers and container ports. Also reports missing <code>metadata.name</code>, <code>spec.selector</code>/<code>spec.template</code> of workloads, <code>schedule</code>/<code>jobTemplate</code> of CronJobs and container <code>name</code>/<code>image</code>. Files with template syntax (<code>{{</code>), such as Helm templates, are skipped.
+</body>
+</html>

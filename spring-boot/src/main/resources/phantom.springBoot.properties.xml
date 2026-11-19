@@ -1,0 +1,13 @@
+<idea-plugin package="dev.phantom.springboot.properties">
+  <dependencies>
+    <plugin id="com.intellij.properties"/>
+    <module name="phantom.springBoot.core"/>
+  </dependencies>
+  <extensions defaultExtensionNs="com.intellij">
+    <completion.contributor order="first" language="Properties" implementationClass="dev.phantom.springboot.properties.BootPropertiesCompletionContributor"/>
+    <lang.documentationProvider language="Properties" order="first" implementationClass="dev.phantom.springboot.properties.BootPropertiesDocumentationProvider"/>
+    <codeInsight.lineMarkerProvider language="Properties" implementationClass="dev.phantom.springboot.core.BootConfigKeyLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="Properties" implementationClass="dev.phantom.springboot.core.BootProfileOverrideLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="Properties" implementationClass="dev.phantom.springboot.core.BootProfileValueLineMarkerProvider"/>
+  </extensions>
+</idea-plugin>

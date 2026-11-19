@@ -1,0 +1,7 @@
+<html>
+<body>
+Reports <code>block()</code>, <code>blockFirst()</code>, <code>blockLast()</code>, RxJava <code>blockingGet()</code> and
+<code>Thread.sleep()</code> inside a lambda passed to a reactive operator such as <code>map</code> or <code>flatMap</code>.
+The lambda runs on a scheduler thread (in WebFlux, an event loop), where blocking stalls other work.
+</body>
+</html>

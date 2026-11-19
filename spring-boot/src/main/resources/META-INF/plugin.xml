@@ -1,0 +1,26 @@
+<idea-plugin>
+  <id>dev.phantom.spring.boot</id>
+  <name>Spring Boot Support</name>
+  <vendor>Phantom</vendor>
+  <category>Frameworks</category>
+  <description><![CDATA[
+  Spring Boot support for Phantom: Spring Boot run configurations (compatible with IntelliJ IDEA's, shown in Services), File → New → Project → Spring Boot creates projects with Spring Initializr, and completion and quick documentation for configuration keys and values
+  in application*.yml / application*.properties, from the spring-configuration-metadata.json files of
+  the project's libraries and its own build output. ${...} placeholders in @Value complete and navigate to the key in
+  application.yml/properties. A running app gets an Actuator tab (health, beans, mappings, environment) next to its
+  console, polled only while the tab is shown. Does nothing in projects without Spring Boot.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+    <plugin id="com.intellij.java"/>
+  </dependencies>
+
+  <content namespace="jetbrains">
+    <module name="phantom.springBoot.core"/>
+    <module name="phantom.springBoot.yaml"/>
+    <module name="phantom.springBoot.properties"/>
+    <module name="phantom.springBoot.initializr"/>
+    <module name="phantom.springBoot.run"/>
+  </content>
+</idea-plugin>

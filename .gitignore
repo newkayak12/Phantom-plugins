@@ -1,0 +1,58 @@
+# Gradle and Kotlin build output
+.gradle/
+build/
+.intellijPlatform/
+.kotlin/
+mermaid/browser-build/kotlin-js-store/
+
+# IDE files (the test projects under */testData keep theirs on purpose)
+.idea/
+!*/testData/**/.idea/
+*.iml
+!*/testData/**/*.iml
+out/
+!*/testData/**/out/
+
+# logs and crash files
+*.log
+!*/testData/**/*.log
+hs_err_pid*.log
+replay_pid*.log
+
+# OS files
+.DS_Store
+.claude/settings.local.json
+.claude/worktrees/
+.claude/sessions/
+.claude/projects/
+.ai/local.md
+.ai/state/
+.codex/config.local.toml
+.codex/sessions/
+.codex/worktrees/
+.superpowers/
+.teams_output/
+.harness-run/
+.scannerwork/
+/.sonar/
+/.env
+/.env.*
+!/.env.example
+!/.env.*.example
+/.envrc
+/.codex/auth.json
+/.codex/config.toml
+/.codex/log/
+/.claude/local.md
+/.claude/CLAUDE.md
+/.claude/.feedback/
+/.claude/.harness-markers/
+/.worktrees/
+Thumbs.db
+.orca/
+docs/superpowers/
+
+# Python caches (ai-visualization/art)
+__pycache__/
+*.pyc
+terminal/tools/fig-specs/node_modules/

@@ -1,0 +1,9 @@
+<html><body>
+Reports Kotlin entities that clash with the compiler plugins the module's Gradle build applies: final entities without
+<code>allOpen</code>, missing no-argument constructors without <code>kotlin("plugin.jpa")</code>, redundant <code>open</code> and constructors,
+<code>data class</code> entities, <code>val</code> attributes and read-only collection types on associations.
+The compiler plugin checks are silent in modules without a Gradle build script.
+<p>Also reports a non-null Kotlin type on an attribute mapped as nullable (<code>@Column(nullable = true)</code>,
+<code>@JoinColumn(nullable = true)</code>, <code>@ManyToOne(optional = true)</code>): a NULL in the column puts null into a property
+Kotlin treats as never null.</p>
+</body></html>

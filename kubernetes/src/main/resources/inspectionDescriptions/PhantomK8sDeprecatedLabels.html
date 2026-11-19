@@ -1,0 +1,10 @@
+<html>
+<body>
+Reports well-known labels, annotations and taint keys that Kubernetes renamed or no longer reads, such as
+<code>beta.kubernetes.io/os</code> (use <code>kubernetes.io/os</code>), <code>failure-domain.beta.kubernetes.io/zone</code>
+(use <code>topology.kubernetes.io/zone</code>), <code>node-role.kubernetes.io/master</code>, the
+<code>kubernetes.io/ingress.class</code> annotation and the alpha seccomp and AppArmor annotations.
+They are checked as keys of <code>labels</code>, <code>annotations</code> and <code>nodeSelector</code>, and as the
+<code>key</code> or <code>topologyKey</code> of affinity terms, tolerations and topology spread constraints.
+</body>
+</html>

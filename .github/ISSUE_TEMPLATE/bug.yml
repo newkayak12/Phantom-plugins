@@ -1,0 +1,29 @@
+name: Bug report
+description: Report a reproducible problem in Phantom.
+title: "bug: "
+body:
+  - type: textarea
+    id: environment
+    attributes:
+      label: Version and environment
+      description: Include Phantom/plugin version, OS, architecture and Java version when relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include a minimal example and any required configuration.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs or screenshots
+      description: Remove credentials, tokens and personal data before posting.

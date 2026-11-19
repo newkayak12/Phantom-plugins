@@ -1,0 +1,19 @@
+# This is Strings plugin coverage, not coverage of the full plugin collection.
+coverage:
+  status:
+    project:
+      strings:
+        target: auto
+        threshold: 1%
+        flags:
+          - strings
+    patch:
+      strings:
+        target: 70%
+        flags:
+          - strings
+flags:
+  strings:
+    paths:
+      - strings/src/main/kotlin/
+    carryforward: false

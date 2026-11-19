@@ -1,0 +1,16 @@
+<idea-plugin package="com.intellij.markdown.backend">
+    <dependencies>
+      <module name="intellij.platform.backend"/>
+      <module name="intellij.platform.kernel.backend"/>
+      <module name="intellij.markdown"/>
+    </dependencies>
+    <extensions defaultExtensionNs="com.intellij">
+      <codeInsight.lineMarkerProvider language="Markdown"
+                                      implementationClass="com.intellij.markdown.backend.highlighting.markers.MarkdownAlertLineMarkerProvider"/>
+      <applicationService serviceInterface="org.intellij.plugins.markdown.service.MarkdownLinkOpenerRemoteApi"
+                          serviceImplementation="com.intellij.markdown.backend.services.MarkdownLinkOpenerRemoteApiImpl"/>
+      <applicationService serviceInterface="org.intellij.plugins.markdown.service.VirtualFileAccessor"
+                          serviceImplementation="com.intellij.markdown.backend.services.VirtualFileAccessorImpl"/>
+      <psi.referenceContributor language="Markdown" implementation="com.intellij.markdown.backend.lang.references.CommonLinkDestinationReferenceContributor"/>
+    </extensions>
+</idea-plugin>

@@ -1,0 +1,52 @@
+name: PR health labels
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      pull_number:
+        description: PR number (empty checks all open PRs)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: pr-health-labels-${{ github.event.pull_request.number || inputs.pull_number || 'all' }}
+  cancel-in-progress: false
+
+jobs:
+  label:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      # Resolve trusted default-branch code, even for PRs targeting another branch.
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        id: trusted
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const { data: repository } = await github.rest.repos.get({ owner, repo });
+            const { data: branch } = await github.rest.repos.getBranch({
+              owner, repo, branch: repository.default_branch,
+            });
+            core.setOutput('sha', branch.commit.sha);
+      # Never check out the PR head or execute code supplied by a PR.
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+        with:
+          ref: ${{ steps.trusted.outputs.sha }}
+          persist-credentials: false
+          sparse-checkout: tools/pr-health.cjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const path = require('node:path');
+            const { run } = require(path.join(process.env.GITHUB_WORKSPACE, 'tools/pr-health.cjs'));
+            await run({ github, context, core });

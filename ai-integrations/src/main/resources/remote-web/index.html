@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title>Phantom AI Integration — Remote</title>
+<link rel="stylesheet" href="/vendor/xterm/xterm.css">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div id="app">
+  <aside id="side">
+    <header><h1>Phantom AI Integration</h1><span id="conn" class="conn">connecting</span></header>
+    <div id="msg" class="msg" hidden></div>
+    <nav id="tree"></nav>
+  </aside>
+  <main id="main">
+    <div id="title" class="title">Pick a session</div>
+    <div id="term"></div>
+    <form id="keys" class="keys">
+      <button type="button" data-k="&#x1b;">Esc</button>
+      <button type="button" data-k="&#x9;">Tab</button>
+      <button type="button" data-k="&#x3;">Ctrl-C</button>
+      <button type="button" data-k="&#x1b;[A">&uarr;</button>
+      <button type="button" data-k="&#x1b;[B">&darr;</button>
+      <button type="button" data-k="&#x1b;[D">&larr;</button>
+      <button type="button" data-k="&#x1b;[C">&rarr;</button>
+      <button type="button" data-k="&#xd;">Enter</button>
+    </form>
+  </main>
+</div>
+<script src="/vendor/xterm/xterm.js"></script>
+<script src="/vendor/xterm/addon-fit.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

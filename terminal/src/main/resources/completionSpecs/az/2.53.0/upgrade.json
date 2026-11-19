@@ -1,0 +1,1 @@
+{"names":["upgrade"],"description":"Upgrade Azure CLI and extensions","options":[{"names":["--all"],"description":"Enable updating extensions as well","args":[{"name":"all","suggestions":[{"names":["false"]},{"names":["true"]}]}]},{"names":["--yes","-y"],"description":"Do not prompt for checking release notes"}]}

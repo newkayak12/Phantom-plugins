@@ -1,0 +1,7 @@
+<html>
+<body>
+Reports Spring Data <code>@Query</code> methods whose query is an <code>UPDATE</code>, <code>DELETE</code> or <code>INSERT</code>
+but that are not annotated with <code>@Modifying</code>. Spring Data then runs the statement as a select and the call fails.
+The quick fix adds <code>@Modifying</code>. Queries kept in constants are checked too.
+</body>
+</html>

@@ -1,0 +1,36 @@
+<idea-plugin>
+  <!-- Phantom's own id; com.jetbrains.sh stays as an alias, so plugins depending on the IntelliJ id resolve to this one. The
+       content module names stay the IntelliJ ones, as bundled modules depend on them by name. The bundled IntelliJ
+       Shell Script plugin has to be gone, or both claim the same id and modules. -->
+  <id>dev.phantom.sh</id>
+  <name>Phantom Shell Script</name>
+  <module value="com.jetbrains.sh"/>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Languages</category>
+
+  <!-- One jar: core and backend share com.intellij.sh, so the backend loads embedded; the optional modules (terminal,
+       copyright, markdown) keep their own class loader on a package of their own. No frontend.split (its sources are not
+       in IntelliJ Community) and no python module (Python is not in Phantom). -->
+  <content namespace="jetbrains">
+    <module name="intellij.sh.core" loading="embedded"/>
+    <module name="intellij.sh.backend" loading="embedded"/>
+    <module name="intellij.sh.terminal"/>
+    <module name="intellij.sh.copyright"/>
+    <module name="intellij.sh.markdown"/>
+  </content>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+  </dependencies>
+
+  <description><![CDATA[
+    Adds support for working with shell script files.
+
+    <ul><li>Coding assistance: code completion, quick documentation, code refactorings, etc.</li>
+    <li>Dedicated run/debug configuration for shell scripts</li>
+    <li>Integration with external tools (<a href="https://github.com/koalaman/shellcheck">ShellCheck</a>, <a href="https://github.com/mvdan/sh">Shfmt</a>, <a href="https://explainshell.com/">Explainshell</a>)
+    </li></ul>
+    Based on the IntelliJ Community Shell Script plugin (Apache 2.0).
+  ]]></description>
+
+</idea-plugin>

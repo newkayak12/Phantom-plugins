@@ -1,0 +1,9 @@
+<html>
+<body>
+Reports characters a URL cannot hold as written, such as <code>|</code>, <code>"</code>, <code>&lt;</code>,
+<code>&gt;</code>, <code>\</code>, <code>^</code>, <code>`</code>, <code>{</code> and <code>}</code>, and a
+<code>%</code> that does not start a <code>%XX</code> escape. The request URL is not encoded for you, so the request
+is rejected before it is sent. Encode the character (<code>|</code> as <code>%7C</code>, a literal percent sign as
+<code>%25</code>). <code>{{variables}}</code> are not checked.
+</body>
+</html>

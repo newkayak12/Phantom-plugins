@@ -1,0 +1,13 @@
+<html>
+<body>
+Reports <code>@Value</code> strings whose placeholder syntax is broken, so Spring injects them as literal text or fails:
+<ul>
+  <li>a space between <code>$</code> and <code>{</code>: <code>$ {app.name}</code></li>
+  <li>a placeholder that never closes: <code>${app.name</code></li>
+  <li>an empty placeholder: <code>${}</code></li>
+  <li>an expression inside a placeholder: <code>${#{...}}</code> &mdash; placeholders resolve first, so write
+      <code>#{${...}}</code></li>
+  <li>a bare <code>{app.name}</code> that probably lost its <code>$</code></li>
+</ul>
+</body>
+</html>

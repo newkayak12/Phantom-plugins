@@ -1,0 +1,38 @@
+<idea-plugin package="dev.phantom.db.jvm">
+  <!-- Loads only when the Java plugin is there; SQL strings in Java and Kotlin code. -->
+  <dependencies>
+    <module name="phantom.db.core"/>
+    <plugin id="com.intellij.java"/>
+    <module name="intellij.platform.uast"/>
+    <!-- Java classes live in the Java plugin's content modules: without these they do not load in Phantom
+         (AnnotatedElementsSearch is in intellij.java.indexing) -->
+    <module name="intellij.java.psi"/>
+    <module name="intellij.java.frontback.psi"/>
+    <module name="intellij.java.indexing"/>
+    <module name="intellij.java"/>
+    <module name="intellij.java.analysis"/>
+    <module name="intellij.java.impl"/>
+  </dependencies>
+  <extensions defaultExtensionNs="com.intellij">
+    <multiHostInjector implementation="dev.phantom.db.jvm.SqlStringInjector"/>
+    <!-- JPA entities against the data source's schema; nothing without JPA or without a data source to match -->
+    <localInspection language="UAST" shortName="PhantomJpaTableUnknown" bundle="messages.PhantomDbBundle" key="inspection.PhantomJpaTableUnknown"
+                     groupBundle="messages.PhantomDbBundle" groupKey="inspection.group.jpa" enabledByDefault="true" level="ERROR"
+                     implementationClass="dev.phantom.db.jvm.JpaTableUnknownInspection"/>
+    <localInspection language="UAST" shortName="PhantomJpaColumnUnknown" bundle="messages.PhantomDbBundle" key="inspection.PhantomJpaColumnUnknown"
+                     groupBundle="messages.PhantomDbBundle" groupKey="inspection.group.jpa" enabledByDefault="true" level="ERROR"
+                     implementationClass="dev.phantom.db.jvm.JpaColumnUnknownInspection"/>
+    <localInspection language="UAST" shortName="PhantomJpaColumnNullability" bundle="messages.PhantomDbBundle" key="inspection.PhantomJpaColumnNullability"
+                     groupBundle="messages.PhantomDbBundle" groupKey="inspection.group.jpa" enabledByDefault="false" level="WEAK WARNING"
+                     implementationClass="dev.phantom.db.jvm.JpaColumnNullabilityInspection"/>
+    <!-- CREATE TABLE in SQL files → the entities mapped to that table -->
+    <codeInsight.lineMarkerProvider language="SQL" implementationClass="dev.phantom.db.jvm.SqlEntityLineMarkerProvider"/>
+    <completion.contributor language="JAVA" implementationClass="dev.phantom.db.jvm.JpaSchemaCompletionContributor"/>
+    <completion.contributor language="kotlin" implementationClass="dev.phantom.db.jvm.JpaSchemaCompletionContributor"/>
+    <!-- find usages and rename of a database table or column include the JPA mappings that name it -->
+    <referencesSearch implementation="dev.phantom.db.jvm.JpaDbNameSearcher"/>
+  </extensions>
+  <extensions defaultExtensionNs="dev.phantom.db">
+    <mappings implementation="dev.phantom.db.jvm.JpaDbMappings"/>
+  </extensions>
+</idea-plugin>

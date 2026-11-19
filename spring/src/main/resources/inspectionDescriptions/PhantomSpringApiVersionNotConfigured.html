@@ -1,0 +1,9 @@
+<html>
+<body>
+Reports request mappings that declare an API <code>version</code> (Spring Framework 7) in a project where nothing configures
+API versioning: no <code>configureApiVersioning</code> in a <code>WebMvcConfigurer</code> or <code>WebFluxConfigurer</code>,
+no <code>ApiVersionStrategy</code> of its own and no <code>spring.mvc.apiversion.*</code> / <code>spring.webflux.apiversion.*</code>
+setting. Spring then refuses to start because it cannot tell which version a request asks for.
+<p>Only active when the API versioning classes of Spring Framework 7 are on the classpath.</p>
+</body>
+</html>

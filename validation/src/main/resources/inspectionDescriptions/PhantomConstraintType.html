@@ -1,0 +1,6 @@
+<html><body>
+Reports built-in constraints on types they have no validator for, such as <code>@NotBlank</code> on a number,
+<code>@Size</code> on a date or <code>@Past</code> on a <code>String</code>. Validation of such an element fails at run time
+with <code>UnexpectedTypeException</code> instead of reporting a violation. Generic, <code>Object</code> and
+<code>Optional</code> types are not reported.
+</body></html>

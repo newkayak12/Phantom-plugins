@@ -1,0 +1,31 @@
+<idea-plugin>
+  <id>dev.phantom.reactive</id>
+  <name>Reactive Streams Support</name>
+  <vendor>Phantom</vendor>
+  <category>Frameworks</category>
+  <description><![CDATA[
+  Reactor and RxJava checks for Java and Kotlin: a Mono, Flux or RxJava source that is created and dropped without
+  being subscribed, and blocking calls (block(), Thread.sleep()) inside reactive operators.
+  Does nothing in projects without Reactive Streams or RxJava.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+    <plugin id="com.intellij.java"/>
+    <module name="intellij.java.psi"/>
+    <module name="intellij.java"/>
+    <module name="intellij.platform.uast"/>
+  </dependencies>
+
+  <resource-bundle>messages.PhantomReactiveBundle</resource-bundle>
+  <extensions defaultExtensionNs="com.intellij">
+    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomUnusedPublisher"
+                     bundle="messages.PhantomReactiveBundle" key="unused.display.name"
+                     groupBundle="messages.PhantomReactiveBundle" groupKey="group.name"
+                     implementationClass="dev.phantom.reactive.UnusedPublisherInspection"/>
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomBlockingInReactive"
+                     bundle="messages.PhantomReactiveBundle" key="blocking.display.name"
+                     groupBundle="messages.PhantomReactiveBundle" groupKey="group.name"
+                     implementationClass="dev.phantom.reactive.BlockingInReactiveInspection"/>
+  </extensions>
+</idea-plugin>

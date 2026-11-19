@@ -1,0 +1,12 @@
+<html>
+<body>
+Reports <code>COPY</code> and <code>ADD</code> here-documents (<code>COPY &lt;&lt;EOF /etc/app.conf</code>) that BuildKit rejects:
+<ul>
+  <li>no destination path after the here-document;</li>
+  <li>combined with <code>--from</code>, which copies from another stage or image;</li>
+  <li>a <code># syntax=docker/dockerfile:1.3</code> (or older) directive: here-documents need syntax 1.4 or later
+      (the <code>-labs</code> channels are fine).</li>
+</ul>
+Without a syntax directive the builder's built-in frontend is used, which supports here-documents in current Docker releases.
+</body>
+</html>

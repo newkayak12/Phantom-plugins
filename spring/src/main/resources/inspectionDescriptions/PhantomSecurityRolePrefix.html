@@ -1,0 +1,5 @@
+<html>
+<body>
+Reports role names written with the <code>ROLE_</code> prefix where Spring Security adds it: <code>hasRole</code>/<code>hasAnyRole</code> in the HTTP security configuration, <code>roles(...)</code> of <code>User</code> builders and MockMvc <code>user()</code>, and <code>@WithMockUser(roles = ...)</code> reject such names with an exception; in <code>@PreAuthorize("hasRole(...)")</code> the prefix is accepted but redundant.
+</body>
+</html>

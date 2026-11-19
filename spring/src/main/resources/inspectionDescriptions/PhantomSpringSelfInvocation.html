@@ -1,0 +1,5 @@
+<html>
+<body>
+Reports calls from a bean to its own <code>@Transactional</code>, <code>@Async</code>, <code>@Cacheable</code>, <code>@CachePut</code>, <code>@CacheEvict</code> or <code>@Retryable</code> method. Such calls do not go through the Spring proxy, so the annotation has no effect. A transactional method calling another <code>@Transactional</code> method with the default propagation is not reported: it joins the same transaction.
+</body>
+</html>

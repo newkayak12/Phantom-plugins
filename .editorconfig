@@ -1,0 +1,63 @@
+# Code style of this repository (IntelliJ's): read by the IDE and by ktlint through Spotless (./gradlew spotlessCheck)
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.{kt,kts}]
+max_line_length = 140
+ktlint_code_style = intellij_idea
+# ktlint's rules that disagree with the IntelliJ code style the plugins (many of them IntelliJ's own code) are written
+# in: aligned continuation lines, catch/finally/else on their own line, long signatures on one line, wildcard imports,
+# backticked test names. What stays on catches spacing slips, stray semicolons, unused imports and blank-line clutter.
+ktlint_standard_annotation = disabled
+ktlint_standard_argument-list-wrapping = disabled
+ktlint_standard_backing-property-naming = disabled
+ktlint_standard_binary-expression-wrapping = disabled
+ktlint_standard_blank-line-between-when-conditions = disabled
+ktlint_standard_chain-wrapping = disabled
+ktlint_standard_class-naming = disabled
+ktlint_standard_class-signature = disabled
+ktlint_standard_colon-spacing = disabled
+ktlint_standard_comment-spacing = disabled
+ktlint_standard_comment-wrapping = disabled
+ktlint_standard_enum-wrapping = disabled
+ktlint_standard_filename = disabled
+ktlint_standard_final-newline = disabled
+ktlint_standard_function-expression-body = disabled
+ktlint_standard_function-literal = disabled
+ktlint_standard_function-naming = disabled
+ktlint_standard_function-return-type-spacing = disabled
+ktlint_standard_function-signature = disabled
+ktlint_standard_function-start-of-body-spacing = disabled
+ktlint_standard_import-ordering = disabled
+ktlint_standard_indent = disabled
+ktlint_standard_kdoc = disabled
+ktlint_standard_keyword-spacing = disabled
+ktlint_standard_max-line-length = disabled
+ktlint_standard_mixed-condition-operators = disabled
+ktlint_standard_multiline-if-else = disabled
+ktlint_standard_multiline-loop = disabled
+ktlint_standard_no-blank-line-before-rbrace = disabled
+ktlint_standard_no-blank-lines-in-chained-method-calls = disabled
+ktlint_standard_no-empty-first-line-in-method-block = disabled
+ktlint_standard_no-multi-spaces = disabled
+ktlint_standard_no-wildcard-imports = disabled
+ktlint_standard_package-name = disabled
+ktlint_standard_parameter-list-spacing = disabled
+ktlint_standard_parameter-list-wrapping = disabled
+ktlint_standard_paren-spacing = disabled
+ktlint_standard_property-naming = disabled
+ktlint_standard_property-wrapping = disabled
+ktlint_standard_spacing-between-declarations-with-annotations = disabled
+ktlint_standard_spacing-between-declarations-with-comments = disabled
+ktlint_standard_statement-wrapping = disabled
+ktlint_standard_string-template = disabled
+ktlint_standard_trailing-comma-on-call-site = disabled
+ktlint_standard_trailing-comma-on-declaration-site = disabled
+ktlint_standard_wrapping = disabled

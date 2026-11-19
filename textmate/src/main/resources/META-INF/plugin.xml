@@ -1,0 +1,31 @@
+<idea-plugin>
+  <!-- Phantom's own id; org.jetbrains.plugins.textmate stays as an alias, so plugins depending on the IntelliJ id resolve to this one. The
+       content module names stay the IntelliJ ones, as bundled modules depend on them by name. The bundled IntelliJ
+       TextMate Bundles plugin has to be gone, or both claim the same id and modules. -->
+  <id>dev.phantom.textmate</id>
+  <name>TextMate Bundles Support</name>
+  <module value="org.jetbrains.plugins.textmate"/>
+  <category>Languages</category>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+
+  <description><![CDATA[
+    Supports syntax highlighting for arbitrary file types,
+    controlled by <a href="https://macromates.com/textmate/manual/bundles">TextMate bundles</a>.
+    Based on the IntelliJ Community TextMate Bundles plugin (Apache 2.0).
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+  </dependencies>
+
+  <!-- One jar: the modules share the org.jetbrains.plugins.textmate packages, so they all load embedded. No frontend.split
+       (its sources are not in IntelliJ Community). -->
+  <content namespace="jetbrains">
+    <module name="intellij.textmate" loading="embedded"/>
+    <module name="intellij.textmate.common" loading="embedded"/>
+    <module name="intellij.textmate.core" loading="embedded"/>
+    <module name="intellij.textmate.joni" loading="embedded"/>
+    <module name="intellij.textmate.backend" loading="embedded"/>
+  </content>
+
+</idea-plugin>

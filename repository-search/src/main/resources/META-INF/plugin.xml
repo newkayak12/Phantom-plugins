@@ -1,0 +1,30 @@
+<idea-plugin>
+  <!-- Phantom's own id; org.jetbrains.idea.reposearch stays as an alias, so plugins depending on the IntelliJ id resolve to
+       this one. The content module names stay the IntelliJ ones, as the bundled Maven, Gradle and Kotlin modules depend on
+       them by name. The bundled IntelliJ Artifacts Repository Search plugin has to be gone, or both claim the same id and
+       modules. -->
+  <id>dev.phantom.repository-search</id>
+  <name>Phantom Repository Search</name>
+  <module value="org.jetbrains.idea.reposearch"/>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Build Tools</category>
+  <description><![CDATA[
+    Provides API for artifact search such as Maven/Gradle dependencies.
+    Based on the IntelliJ Community Repository Search plugin (Apache 2.0).
+  ]]></description>
+
+  <!-- Laid out as in IntelliJ: common and completion are jars of their own in lib/modules (built by build.gradle.kts), so
+       each has its own class loader over just its classes, no package attribute needed. common needs intellij.maven.model,
+       a module of the Maven plugin (whose modules depend on this plugin's), so it loads with Maven; completion is what the
+       Gradle and Maven completion modules depend on. The main jar holds only the descriptors. No ultimate module (its
+       sources are not in IntelliJ Community). -->
+  <content namespace="jetbrains">
+    <module name="intellij.repository.search.common"/>
+    <module name="intellij.repository.search.completion"/>
+  </content>
+  <!-- The kotlinx-document-store library (Package Search's local cache, used by common) as a private module in this
+       plugin's own namespace, as in IntelliJ; embedded, as its jars sit in lib/ with the plugin's. -->
+  <content>
+    <module name="intellij.libraries.kotlinx.document.store.mvstore" loading="embedded"/>
+  </content>
+</idea-plugin>

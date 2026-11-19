@@ -1,0 +1,10 @@
+<idea-plugin package="dev.phantom.ai.db">
+  <!-- Loads only with Phantom Database Console: the agents read its data sources through MCP, read-only -->
+  <dependencies>
+    <plugin id="dev.phantom.db"/>
+    <module name="phantom.db.core"/>
+  </dependencies>
+  <extensions defaultExtensionNs="dev.phantom.ai">
+    <agentTools implementation="dev.phantom.ai.db.DbAgentTools"/>
+  </extensions>
+</idea-plugin>

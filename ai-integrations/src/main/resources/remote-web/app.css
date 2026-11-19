@@ -1,0 +1,32 @@
+:root { --bg:#1e1f22; --panel:#2b2d30; --fg:#dfe1e5; --mute:#8a8f98; --line:#393b40; --accent:#3574f0;
+  --working:#e8b339; --waiting:#e06c5a; --done:#5fb865; --launched:#8a8f98; }
+* { box-sizing: border-box; }
+html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); font:14px/1.4 -apple-system, system-ui, sans-serif; }
+#app { display:flex; height:100%; }
+#side { width:320px; flex:none; overflow:auto; background:var(--panel); border-right:1px solid var(--line); padding:8px; }
+#side header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+h1 { font-size:15px; margin:4px 0 8px; }
+.conn { font-size:11px; color:var(--mute); }
+.msg { background:#4a2c2c; border:1px solid var(--waiting); padding:8px; border-radius:6px; margin:6px 0; }
+.project, .repo { font-weight:600; margin:8px 0 2px; }
+.repo { color:var(--mute); font-weight:500; font-size:12px; }
+.wt { margin:6px 0; padding:6px; border:1px solid var(--line); border-radius:6px; }
+.wt .name { display:flex; justify-content:space-between; align-items:center; gap:6px; }
+.wt .branch { color:var(--mute); font-size:12px; }
+button { background:#3c3f45; color:var(--fg); border:1px solid var(--line); border-radius:6px; padding:6px 10px; font:inherit; cursor:pointer; min-height:32px; }
+button:hover { border-color:var(--accent); }
+.sess { display:flex; align-items:center; gap:6px; padding:6px; margin-top:4px; border-radius:6px; cursor:pointer; }
+.sess:hover, .sess.sel { background:#35373c; }
+.dot { width:9px; height:9px; border-radius:50%; background:var(--launched); flex:none; }
+.dot.working { background:var(--working); } .dot.waiting { background:var(--waiting); } .dot.done { background:var(--done); }
+.sess .t { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chip { font-size:11px; color:var(--mute); border:1px solid var(--line); border-radius:8px; padding:0 6px; }
+#main { flex:1; min-width:0; display:flex; flex-direction:column; }
+.title { padding:8px 12px; border-bottom:1px solid var(--line); color:var(--mute); }
+#term { flex:1; min-height:0; padding:6px; background:#000; }
+.keys { display:flex; gap:6px; padding:6px; overflow-x:auto; border-top:1px solid var(--line); background:var(--panel); }
+@media (max-width: 700px) {
+  #app { flex-direction:column; }
+  #side { width:100%; max-height:42%; border-right:0; border-bottom:1px solid var(--line); }
+  #main { min-height:0; }
+}

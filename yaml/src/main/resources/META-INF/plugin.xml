@@ -1,0 +1,24 @@
+<idea-plugin package="org.jetbrains.yaml">
+  <!-- Phantom's own id; org.jetbrains.plugins.yaml stays as an alias, so plugins depending on the IntelliJ id resolve to this one. The
+       content module names stay the IntelliJ ones, as bundled modules depend on them by name. The bundled IntelliJ
+       YAML plugin has to be gone, or both claim the same id and modules. -->
+  <id>dev.phantom.yaml</id>
+  <name>Phantom YAML</name>
+  <module value="org.jetbrains.plugins.yaml"/>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Languages</category>
+  <description><![CDATA[
+    Provides syntax highlighting and editor features for <a href="https://yaml.org/">YAML</a> language.
+    Based on the IntelliJ Community YAML plugin (Apache 2.0).
+  ]]></description>
+
+  <dependencies>
+    <module name="intellij.json"/>
+  </dependencies>
+  <!-- One jar, so the backend loads embedded with the core module (a module with its own class loader in a non-bundled
+       plugin needs a package of its own). No frontend.split or helm module: their sources are not in IntelliJ Community. -->
+  <content namespace="jetbrains">
+    <module name="intellij.yaml" loading="embedded"/>
+    <module name="intellij.yaml.backend" loading="embedded"/>
+  </content>
+</idea-plugin>

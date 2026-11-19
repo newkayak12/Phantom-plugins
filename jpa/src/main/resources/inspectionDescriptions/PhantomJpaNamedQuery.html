@@ -1,0 +1,8 @@
+<html>
+<body>
+Reports <code>EntityManager.createNamedQuery("name")</code> calls whose name no <code>@NamedQuery</code> or
+<code>@NamedNativeQuery</code> of the module's entities declares. Such a call throws <code>IllegalArgumentException</code>
+when it runs.
+<p>Not reported when the project has an <code>orm.xml</code>, which can declare named queries too.</p>
+</body>
+</html>

@@ -1,0 +1,332 @@
+<idea-plugin package="dev.phantom.db.core" visibility="internal">
+  <dependencies>
+    <module name="intellij.grid"/>
+    <module name="intellij.grid.core.impl"/>
+    <module name="intellij.grid.impl"/>
+    <module name="intellij.libraries.sshj"/>
+  </dependencies>
+  <resource-bundle>messages.PhantomDbBundle</resource-bundle>
+  <extensionPoints>
+    <extensionPoint qualifiedName="dev.phantom.db.mappings" interface="dev.phantom.db.core.SqlDbMappings" dynamic="true"/>
+    <extensionPoint qualifiedName="dev.phantom.db.wholeInjection" interface="dev.phantom.db.core.SqlWholeInjection" dynamic="true"/>
+  </extensionPoints>
+  <extensions defaultExtensionNs="com.intellij">
+    <nonProjectFileWritingAccessExtension implementation="dev.phantom.db.core.exec.DbConsoleWritingAccess"/>
+    <fileType name="Phantom SQL" language="SQL" extensions="sql"
+              implementationClass="dev.phantom.db.core.SqlFileType" fieldName="INSTANCE"/>
+    <lang.parserDefinition language="SQL" implementationClass="dev.phantom.db.core.SqlParserDefinition"/>
+    <lang.syntaxHighlighterFactory language="SQL" implementationClass="dev.phantom.db.core.SqlSyntaxHighlighterFactory"/>
+    <lang.commenter language="SQL" implementationClass="dev.phantom.db.core.SqlCommenter"/>
+    <lang.braceMatcher language="SQL" implementationClass="dev.phantom.db.core.SqlBraceMatcher"/>
+    <completion.contributor language="SQL" implementationClass="dev.phantom.db.core.SqlCompletionContributor"/>
+    <annotator language="SQL" implementationClass="dev.phantom.db.core.SqlSyntaxAnnotator"/>
+    <annotator language="SQL" implementationClass="dev.phantom.db.core.SqlSemanticAnnotator"/>
+    <colorSettingsPage implementation="dev.phantom.db.core.SqlColorSettingsPage"/>
+    <typedHandler implementation="dev.phantom.db.core.SqlTypedHandler"/>
+    <extendWordSelectionHandler implementation="dev.phantom.db.core.SqlExtendSelectionHandler"/>
+    <lang.surroundDescriptor language="SQL" implementationClass="dev.phantom.db.core.SqlSurroundDescriptor"/>
+    <lang.smartEnterProcessor language="SQL" implementationClass="dev.phantom.db.core.SqlSmartEnterProcessor"/>
+    <langCodeStyleSettingsProvider implementation="dev.phantom.db.core.SqlLanguageCodeStyleSettingsProvider"/>
+    <postFormatProcessor implementation="dev.phantom.db.core.SqlKeywordCasePostFormatProcessor"/>
+    <lang.foldingBuilder language="SQL" implementationClass="dev.phantom.db.core.SqlFoldingBuilder"/>
+    <lang.quoteHandler language="SQL" implementationClass="dev.phantom.db.core.SqlQuoteHandler"/>
+    <codeInsight.parameterInfo language="SQL" implementationClass="dev.phantom.db.core.SqlParameterInfoHandler"/>
+    <codeInsight.declarativeInlayProvider language="SQL" implementationClass="dev.phantom.db.core.SqlInsertColumnHintsProvider"
+                                          isEnabledByDefault="true" group="PARAMETERS_GROUP" providerId="phantom.sql.insert.columns"
+                                          bundle="messages.PhantomDbBundle" nameKey="sql.hints.insert.columns" descriptionKey="sql.hints.insert.columns.description"/>
+    <intentionAction>
+      <language>SQL</language>
+      <className>dev.phantom.db.core.SqlExpandStarIntention</className>
+      <bundleName>messages.PhantomDbBundle</bundleName>
+      <categoryKey>sql.intention.category</categoryKey>
+    </intentionAction>
+    <localInspection language="SQL" shortName="PhantomSqlUnresolvedTable" key="inspection.PhantomSqlUnresolvedTable" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnresolvedTableInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlUnresolvedColumn" key="inspection.PhantomSqlUnresolvedColumn" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnresolvedColumnInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlSelectStarInjected" key="inspection.PhantomSqlSelectStarInjected" groupKey="inspection.group.sql"
+                     enabledByDefault="false" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlSelectStarInjectedInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlWithoutWhere" key="inspection.PhantomSqlWithoutWhere" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlWithoutWhereInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlJoinWithoutOn" key="inspection.PhantomSqlJoinWithoutOn" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlJoinWithoutOnInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlUnusedCte" key="inspection.PhantomSqlUnusedCte" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnusedCteInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlRedundantAlias" key="inspection.PhantomSqlRedundantAlias" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlRedundantAliasInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlShadowingAlias" key="inspection.PhantomSqlShadowingAlias" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlShadowingAliasInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlInsertValues" key="inspection.PhantomSqlInsertValues" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlInsertValuesInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlUnionColumnCount" key="inspection.PhantomSqlUnionColumnCount" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnionColumnCountInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlMultipleLimit" key="inspection.PhantomSqlMultipleLimit" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlMultipleLimitInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlRedundantOrderingDirection" key="inspection.PhantomSqlRedundantOrderingDirection" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlRedundantOrderingDirectionInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlCaseVsCoalesce" key="inspection.PhantomSqlCaseVsCoalesce" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlCaseVsCoalesceInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlRedundantElseNull" key="inspection.PhantomSqlRedundantElseNull" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlRedundantElseNullInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlShouldBeInGroupBy" key="inspection.PhantomSqlShouldBeInGroupBy" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlShouldBeInGroupByInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlDerivedTableAlias" key="inspection.PhantomSqlDerivedTableAlias" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlDerivedTableAliasInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlMissingColumnAliases" key="inspection.PhantomSqlMissingColumnAliases" groupKey="inspection.group.sql"
+                     enabledByDefault="false" level="WARNING" implementationClass="dev.phantom.db.core.SqlMissingColumnAliasesInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlAmbiguousColumn" key="inspection.PhantomSqlAmbiguousColumn" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlAmbiguousColumnInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlInsertNullIntoNotNull" key="inspection.PhantomSqlInsertNullIntoNotNull" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlInsertNullIntoNotNullInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlStringLengthExceeded" key="inspection.PhantomSqlStringLengthExceeded" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlStringLengthExceededInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlTypeMismatch" key="inspection.PhantomSqlTypeMismatch" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlTypeMismatchInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlNullComparison" key="inspection.PhantomSqlNullComparison" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlNullComparisonInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlConstantCondition" key="inspection.PhantomSqlConstantCondition" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlConstantConditionInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlAggregateMisuse" key="inspection.PhantomSqlAggregateMisuse" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlAggregateMisuseInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlRedundantCoalesce" key="inspection.PhantomSqlRedundantCoalesce" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlRedundantCoalesceInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlRedundantLimit" key="inspection.PhantomSqlRedundantLimit" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlRedundantLimitInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlUnusedSubqueryItem" key="inspection.PhantomSqlUnusedSubqueryItem" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnusedSubqueryItemInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlDuplicateColumn" key="inspection.PhantomSqlDuplicateColumn" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlDuplicateColumnInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlOrderByPosition" key="inspection.PhantomSqlOrderByPosition" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlOrderByPositionInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlAddNotNullColumn" key="inspection.PhantomSqlAddNotNullColumn" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlAddNotNullColumnInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlDeprecatedType" key="inspection.PhantomSqlDeprecatedType" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlDeprecatedTypeInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlUsingColumns" key="inspection.PhantomSqlUsingColumns" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUsingColumnsInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlNotNullColumnTest" key="inspection.PhantomSqlNotNullColumnTest" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlNotNullColumnTestInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlAutoIncrementDuplicate" key="inspection.PhantomSqlAutoIncrementDuplicate" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="ERROR" implementationClass="dev.phantom.db.core.SqlAutoIncrementDuplicateInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlFunctionSpace" key="inspection.PhantomSqlFunctionSpace" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlFunctionSpaceInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlInsertIntoGeneratedColumn" key="inspection.PhantomSqlInsertIntoGeneratedColumn" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="ERROR" implementationClass="dev.phantom.db.core.SqlInsertIntoGeneratedColumnInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlMisleadingReference" key="inspection.PhantomSqlMisleadingReference" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlMisleadingReferenceInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlFunctionArguments" key="inspection.PhantomSqlFunctionArguments" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="ERROR" implementationClass="dev.phantom.db.core.SqlFunctionArgumentsInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlIfFunction" key="inspection.PhantomSqlIfFunction" groupKey="inspection.group.sql"
+                     enabledByDefault="false" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlIfFunctionInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlReservedIdentifier" key="inspection.PhantomSqlReservedIdentifier" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlReservedIdentifierInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlDropIndexedColumn" key="inspection.PhantomSqlDropIndexedColumn" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlDropIndexedColumnInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlTriggerTransition" key="inspection.PhantomSqlTriggerTransition" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="ERROR" implementationClass="dev.phantom.db.core.SqlTriggerTransitionInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlTransactionInTrigger" key="inspection.PhantomSqlTransactionInTrigger" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="ERROR" implementationClass="dev.phantom.db.core.SqlTransactionInTriggerInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlUnusedVariable" key="inspection.PhantomSqlUnusedVariable" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnusedVariableInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlMissingReturn" key="inspection.PhantomSqlMissingReturn" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlMissingReturnInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlUnreachableCode" key="inspection.PhantomSqlUnreachableCode" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlUnreachableCodeInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlIllegalCursorState" key="inspection.PhantomSqlIllegalCursorState" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="ERROR" implementationClass="dev.phantom.db.core.SqlIllegalCursorStateInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlSideEffects" key="inspection.PhantomSqlSideEffects" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlSideEffectsInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlDateTimeLiteral" key="inspection.PhantomSqlDateTimeLiteral" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="ERROR" implementationClass="dev.phantom.db.core.SqlDateTimeLiteralInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlLoadDataPath" key="inspection.PhantomSqlLoadDataPath" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WARNING" implementationClass="dev.phantom.db.core.SqlLoadDataPathInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlJoinCount" key="inspection.PhantomSqlJoinCount" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlJoinCountInspection"/>
+    <localInspection language="SQL" shortName="PhantomSqlNoDataSource" key="inspection.PhantomSqlNoDataSource" groupKey="inspection.group.sql"
+                     enabledByDefault="true" level="WEAK WARNING" implementationClass="dev.phantom.db.core.SqlNoDataSourceInspection"/>
+    <lang.formatter language="SQL" implementationClass="dev.phantom.db.core.SqlFormattingModelBuilder"/>
+    <lang.findUsagesProvider language="SQL" implementationClass="dev.phantom.db.core.SqlFindUsagesProvider"/>
+    <lang.documentationProvider language="SQL" implementationClass="dev.phantom.db.core.SqlDocumentationProvider"/>
+    <lang.psiStructureViewFactory language="SQL" implementationClass="dev.phantom.db.core.SqlStructureViewFactory"/>
+    <referencesSearch implementation="dev.phantom.db.core.SqlDbReferenceSearcher"/>
+    <findUsagesHandlerFactory implementation="dev.phantom.db.core.SqlDbFindUsagesHandlerFactory"/>
+    <renamePsiElementProcessor implementation="dev.phantom.db.core.SqlDbRenameProcessor"/>
+    <lang.elementManipulator forClass="dev.phantom.db.core.SqlTableRef" implementationClass="dev.phantom.db.core.SqlNameManipulator"/>
+    <lang.elementManipulator forClass="dev.phantom.db.core.SqlColumnRef" implementationClass="dev.phantom.db.core.SqlNameManipulator"/>
+    <lang.elementManipulator forClass="dev.phantom.db.core.SqlQualifier" implementationClass="dev.phantom.db.core.SqlNameManipulator"/>
+    <liveTemplateContext contextId="PHANTOM_SQL" implementation="dev.phantom.db.core.SqlTemplateContextType"/>
+    <defaultLiveTemplates file="/liveTemplates/PhantomSql.xml"/>
+    <liveTemplateMacro implementation="dev.phantom.db.core.SqlColumnsMacro"/>
+    <runLineMarkerContributor language="SQL" implementationClass="dev.phantom.db.core.exec.SqlRunLineMarkerContributor"/>
+    <editorNotificationProvider implementation="dev.phantom.db.core.exec.SqlDataSourceNotificationProvider"/>
+    <editorTabColorProvider implementation="dev.phantom.db.core.DbEditorTabColorProvider"/>
+    <editorFactoryListener implementation="dev.phantom.db.core.DbEditorColorListener"/>
+    <actionPromoter implementation="dev.phantom.db.core.exec.SqlActionPromoter"/>
+    <actionPromoter implementation="dev.phantom.db.core.ui.DbTreeActionPromoter"/>
+    <actionPromoter implementation="dev.phantom.db.core.exec.DbGridActionPromoter"/>
+    <serviceViewContributor implementation="dev.phantom.db.core.ui.DbServiceViewContributor"/>
+    <toolWindow id="Database" anchor="right" secondary="false" icon="AllIcons.Nodes.DataTables"
+                factoryClass="dev.phantom.db.core.ui.DbToolWindowFactory"/>
+    <toolWindow id="Database Changes" anchor="bottom" secondary="false" icon="AllIcons.Vcs.Changelist"
+                factoryClass="dev.phantom.db.core.ui.DbChangesToolWindowFactory"/>
+    <projectCloseHandler implementation="dev.phantom.db.core.exec.DbPendingChangesCloseHandler"/>
+    <fileEditorProvider implementation="dev.phantom.db.core.ui.DbDiagramEditorProvider"/>
+    <fileType name="Phantom ERD" implementationClass="dev.phantom.db.core.erd.ErdFileType" fieldName="INSTANCE" extensions="erd"/>
+    <fileEditorProvider implementation="dev.phantom.db.core.erd.ErdEditorProvider"/>
+    <scratch.rootType implementation="dev.phantom.db.core.exec.DbConsoleRootType"/>
+    <searchEverywhereContributor implementation="dev.phantom.db.core.ui.DbSearchEverywhereContributor$Factory"/>
+    <database.datagrid.formatterCreatorProvider implementation="dev.phantom.db.core.exec.DbFormatterCreatorProvider" order="first"/>
+    <database.datagrid.extractorsHelper implementation="dev.phantom.db.core.exec.DbExtractorsHelper" order="first"/>
+    <notificationGroup id="Phantom Database" displayType="BALLOON" bundle="messages.PhantomDbBundle" key="db.notification.group"/>
+  </extensions>
+  <actions resource-bundle="messages.PhantomDbBundle">
+    <action id="PhantomDb.NewErd" class="dev.phantom.db.core.erd.ErdNewFileAction" icon="AllIcons.FileTypes.Diagram">
+      <add-to-group group-id="NewGroup" anchor="last"/>
+    </action>
+    <action id="PhantomDb.RunStatement" class="dev.phantom.db.core.exec.SqlRunStatementAction" icon="AllIcons.Actions.Execute">
+      <keyboard-shortcut keymap="$default" first-keystroke="control ENTER"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta ENTER"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta ENTER"/>
+      <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+    </action>
+    <action id="PhantomDb.RunFile" class="dev.phantom.db.core.exec.DbRunSqlFileAction" icon="AllIcons.Actions.Execute">
+      <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
+      <add-to-group group-id="EditorTabPopupMenu" anchor="first"/>
+    </action>
+    <action id="PhantomDb.SelectDataSource" class="dev.phantom.db.core.exec.SqlSelectDataSourceAction">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.RunStatement"/>
+    </action>
+    <action id="PhantomDb.SelectSchema" class="dev.phantom.db.core.exec.SqlSelectSchemaAction" icon="AllIcons.Nodes.DataSchema">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.SelectDataSource"/>
+    </action>
+    <action id="PhantomDb.SelectSession" class="dev.phantom.db.core.exec.SqlSelectSessionAction" icon="AllIcons.Debugger.Console">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.SelectSchema"/>
+    </action>
+    <action id="PhantomDb.ShowHistory" class="dev.phantom.db.core.exec.DbShowHistoryAction" icon="AllIcons.Vcs.History">
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt E"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt E"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt E"/>
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.SelectDataSource"/>
+    </action>
+    <action id="PhantomDb.ExplainPlan" class="dev.phantom.db.core.exec.DbExplainPlanAction">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.RunStatement"/>
+    </action>
+    <action id="PhantomDb.ExplainAnalyze" class="dev.phantom.db.core.exec.DbExplainAnalyzeAction">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.ExplainPlan"/>
+    </action>
+    <action id="PhantomDb.ManualCommit" class="dev.phantom.db.core.exec.DbManualCommitToggleAction">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.ShowHistory"/>
+    </action>
+    <action id="PhantomDb.Commit" class="dev.phantom.db.core.exec.DbCommitAction" icon="AllIcons.Actions.Commit">
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt shift ENTER"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift ENTER"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt shift ENTER"/>
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.ManualCommit"/>
+    </action>
+    <action id="PhantomDb.Rollback" class="dev.phantom.db.core.exec.DbRollbackAction" icon="AllIcons.Actions.Rollback">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.Commit"/>
+    </action>
+    <action id="PhantomDb.NewConsole" class="dev.phantom.db.core.ui.DbNewConsoleAction">
+      <keyboard-shortcut keymap="$default" first-keystroke="control shift Q"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt shift Q"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift L"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta control N"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta shift L"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta control N"/>
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
+    <action id="PhantomDb.SelectInTree" class="dev.phantom.db.core.ui.DbSelectInTreeAction" icon="AllIcons.General.Locate">
+      <keyboard-shortcut keymap="$default" first-keystroke="alt shift B"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="alt shift B"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="alt shift B"/>
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.SelectSchema"/>
+    </action>
+    <action id="PhantomDb.JumpToConsole" class="dev.phantom.db.core.ui.DbJumpToConsoleAction" icon="AllIcons.Debugger.Console"
+            use-shortcut-of="Console.Open">
+      <add-to-group group-id="GoToTargetEx" anchor="last"/>
+    </action>
+    <action id="PhantomDb.GotoObject" class="dev.phantom.db.core.ui.DbGotoObjectAction" icon="AllIcons.Nodes.DataTables">
+      <add-to-group group-id="GoToTargetEx" anchor="last"/>
+    </action>
+    <action id="PhantomDb.ShowDatabase" class="dev.phantom.db.core.ui.DbShowToolWindowAction" icon="AllIcons.Nodes.DataTables">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
+    <action id="PhantomDb.Cancel" class="dev.phantom.db.core.exec.DbCancelAction" icon="AllIcons.Actions.Suspend" use-shortcut-of="Stop">
+      <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.RunStatement"/>
+    </action>
+    <action id="PhantomDb.Grid.SetNull" class="dev.phantom.db.core.exec.DbGridSetNullAction">
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt N"/>
+    </action>
+    <action id="PhantomDb.Grid.SetDefault" class="dev.phantom.db.core.exec.DbGridSetDefaultAction">
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt D"/>
+    </action>
+    <action id="PhantomDb.Grid.Submit" class="dev.phantom.db.core.exec.DbGridSubmitAction" icon="AllIcons.Actions.Commit"
+            use-shortcut-of="PhantomDb.RunStatement"/>
+    <action id="PhantomDb.Grid.SubmitAndCommit" class="dev.phantom.db.core.exec.DbGridSubmitAndCommitAction" icon="AllIcons.Actions.Commit"
+            use-shortcut-of="PhantomDb.Commit"/>
+    <action id="PhantomDb.Grid.PreviewChanges" class="dev.phantom.db.core.exec.DbGridPreviewChangesAction" icon="AllIcons.Actions.Preview"/>
+    <action id="PhantomDb.Grid.SubmitImmediately" class="dev.phantom.db.core.exec.DbGridSubmitImmediatelyAction"/>
+    <action id="PhantomDb.Grid.SelectRow" class="dev.phantom.db.core.exec.DbGridSelectRowAction">
+      <keyboard-shortcut keymap="$default" first-keystroke="shift SPACE"/>
+    </action>
+    <action id="PhantomDb.Grid.SelectColumn" class="dev.phantom.db.core.exec.DbGridSelectColumnAction">
+      <keyboard-shortcut keymap="$default" first-keystroke="control SPACE"/>
+    </action>
+    <action id="PhantomDb.Grid.EditFilterCriteria" class="dev.phantom.db.core.exec.DbGridEditFilterAction">
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt shift F"/>
+    </action>
+    <action id="PhantomDb.Grid.EditOrdering" class="dev.phantom.db.core.exec.DbGridEditOrderingAction"/>
+    <action id="PhantomDb.Grid.ColumnStatistics" class="dev.phantom.db.core.exec.DbGridColumnStatisticsAction"/>
+    <!-- Database tree commands, with DataGrip's keys; the tree's own toolbar and popup show them -->
+    <action id="PhantomDb.Tree.Add" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.General.Add" use-shortcut-of="NewElement"/>
+    <action id="PhantomDb.Tree.Edit" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Edit">
+      <keyboard-shortcut keymap="$default" first-keystroke="shift ENTER"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta I"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta I"/>
+    </action>
+    <action id="PhantomDb.Tree.Remove" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.General.Remove" use-shortcut-of="$Delete"/>
+    <action id="PhantomDb.Tree.Disconnect" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Suspend" use-shortcut-of="Stop"/>
+    <action id="PhantomDb.Tree.Sessions" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Nodes.Plugin"/>
+    <action id="PhantomDb.Tree.Duplicate" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Copy" use-shortcut-of="EditorDuplicate"/>
+    <action id="PhantomDb.Tree.CopySource" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Copy" use-shortcut-of="$Copy"/>
+    <action id="PhantomDb.Tree.PasteSource" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.MenuPaste" use-shortcut-of="$Paste"/>
+    <action id="PhantomDb.Tree.MoveToGroup" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Nodes.Folder" use-shortcut-of="Move"/>
+    <action id="PhantomDb.Tree.MakeGlobal" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Nodes.PpWeb"/>
+    <action id="PhantomDb.Tree.Refresh" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Refresh" use-shortcut-of="Refresh"/>
+    <action id="PhantomDb.Tree.Drivers" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.General.Settings"/>
+    <action id="PhantomDb.Tree.OpenConsole" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Debugger.Console"/>
+    <action id="PhantomDb.Tree.Data" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Nodes.DataTables"/>
+    <action id="PhantomDb.Tree.Ddl" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Preview" use-shortcut-of="GotoDeclaration"/>
+    <action id="PhantomDb.Tree.CopyDdl" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Copy">
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt shift G"/>
+      <keyboard-shortcut keymap="$default" first-keystroke="control shift C"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift G"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta shift C"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt shift G"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta shift C"/>
+    </action>
+    <action id="PhantomDb.Tree.SqlGenerator" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Lightning">
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt G"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt G"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt G"/>
+    </action>
+    <action id="PhantomDb.Tree.Modify" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Edit" use-shortcut-of="ChangeSignature"/>
+    <action id="PhantomDb.Tree.Select" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Debugger.Console"/>
+    <action id="PhantomDb.Tree.ImportCsv" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.ToolbarDecorator.Import"/>
+    <action id="PhantomDb.Tree.CopyTable" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Copy"/>
+    <action id="PhantomDb.Tree.FullTextSearch" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Find">
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt shift F"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift F"/>
+    </action>
+    <action id="PhantomDb.Tree.Diagram" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.FileTypes.Diagram">
+      <keyboard-shortcut keymap="$default" first-keystroke="control alt shift U"/>
+      <keyboard-shortcut keymap="Mac OS X 10.5+" first-keystroke="meta alt shift U"/>
+      <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt shift U"/>
+    </action>
+    <action id="PhantomDb.Tree.Entity" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Nodes.Class"/>
+    <action id="PhantomDb.Tree.Compare" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Diff" use-shortcut-of="CompareTwoFiles"/>
+    <action id="PhantomDb.Tree.CompareContent" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Diff"/>
+    <action id="PhantomDb.Tree.Dump" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Download"/>
+    <action id="PhantomDb.Tree.Restore" class="dev.phantom.db.core.ui.DbTreeAction" icon="AllIcons.Actions.Upload"/>
+  </actions>
+</idea-plugin>

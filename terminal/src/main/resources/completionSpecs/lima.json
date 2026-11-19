@@ -1,0 +1,1 @@
+{"names":["lima"],"description":"Lima is an alias for \"limactl shell $LIMA_INSTANCE\"","options":[{"names":["-h","--help"],"description":"Help for lima"}],"args":[{"name":"COMMAND","isOptional":true,"isVariadic":true,"isCommand":true}]}

@@ -1,0 +1,30 @@
+<idea-plugin>
+  <id>dev.phantom.iconpack</id>
+  <name>Phantom Icon Pack</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>User Interface</category>
+  <description><![CDATA[
+  Colored file and folder icons by name and extension, drawn from the Material Icon Theme by Philipp Kief (MIT).
+  Java classes show a cup by kind (full, half-full or empty for a class, an abstract class or an interface; dots, lines
+  or ! for an enum, a record or an exception; @ for an annotation), Kotlin classes the Kotlin logo the same way (dots,
+  lines or one dot for an enum, a data class or an object). A Java file, and a Kotlin file of
+  one class, shows its class's kind also as a file (Project view, navigation bar, editor tabs); other Kotlin files show
+  the Kotlin logo, a Java file without a class the Java cup. Source, test and resource roots get their own folder colors.
+  Only the icons of files on screen are loaded. Turn the plugin off to get the platform icons back.
+  ]]></description>
+
+  <depends>com.intellij.modules.lang</depends>
+  <depends optional="true" config-file="iconpack-java.xml">com.intellij.java</depends>
+  <depends optional="true" config-file="iconpack-kotlin.xml">org.jetbrains.kotlin</depends>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <fileIconProvider implementation="dev.phantom.iconpack.MaterialFileIconProvider" order="first"/>
+    <iconProvider id="phantomIconPack" implementation="dev.phantom.iconpack.MaterialPsiIconProvider" order="first"/>
+    <!-- first: before the language navbar extensions return the class icon -->
+    <navbar implementation="dev.phantom.iconpack.LogoFileNavBarIcon" order="first"/>
+    <!-- last: after the Kotlin and Java plugins have set the class icon -->
+    <projectViewNodeDecorator implementation="dev.phantom.iconpack.LogoFileNodeDecorator" order="last"/>
+    <!-- a deleted or not yet fetched file in the VCS views keeps its icon -->
+    <openapi.vcs.changes.ui.filePathIconProvider implementation="dev.phantom.iconpack.MaterialFilePathIconProvider"/>
+  </extensions>
+</idea-plugin>

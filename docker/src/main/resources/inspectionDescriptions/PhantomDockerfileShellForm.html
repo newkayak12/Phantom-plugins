@@ -1,0 +1,5 @@
+<html>
+<body>
+Reports <code>CMD</code> and <code>ENTRYPOINT</code> in shell form. The command runs under <code>/bin/sh -c</code>, so it is not PID 1 and does not receive SIGTERM when the container stops. The exec form <code>["executable", "arg"]</code> avoids that.
+</body>
+</html>

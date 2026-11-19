@@ -1,0 +1,30 @@
+<idea-plugin package="com.intellij.lang.properties" allow-bundled-update="true">
+  <!-- Phantom's own id; com.intellij.properties stays as an alias, so plugins depending on the IntelliJ id resolve to this one.
+       The content module names stay the IntelliJ ones, as the Java I18n, Grazie, Groovy, Gradle, Maven, Kotlin, JavaFX and
+       DevKit modules depend on them by name. The bundled IntelliJ Properties plugin has to be gone, or both claim the same
+       id and modules. -->
+  <id>dev.phantom.properties</id>
+  <name>Phantom Properties</name>
+  <module value="com.intellij.properties"/>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Languages</category>
+  <description><![CDATA[
+    Enables smart editing of .properties files.
+    <br/>
+    Based on the IntelliJ Community Properties plugin (Apache 2.0).
+  ]]></description>
+  <resource-bundle>messages.PropertiesBundle</resource-bundle>
+
+  <!-- One jar: a module with its own class loader in a non-bundled plugin needs a package of its own, and the PSI API, the
+       core module and both backend modules share com.intellij.lang.properties, so they load embedded (the backend ones were
+       required-if-available="intellij.platform.backend", which Phantom always has: it runs frontend and backend in one
+       process). The copyright module has no classes, only the updater registration, and keeps its own class loader so it
+       switches off without Copyright; its descriptor declares a package of its own for that. -->
+  <content namespace="jetbrains">
+    <module name="intellij.properties.copyright"/>
+    <module name="intellij.properties.backend.psi" loading="embedded"/>
+    <module name="intellij.properties.backend" loading="embedded"/>
+    <module name="intellij.properties" loading="embedded"/>
+    <module name="intellij.properties.psi" loading="embedded"/>
+  </content>
+</idea-plugin>

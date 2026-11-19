@@ -1,0 +1,23 @@
+<idea-plugin>
+  <id>dev.phantom.local-shared-index</id>
+  <name>Phantom Local Shared Index</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Other</category>
+  <description><![CDATA[
+  Reuses index data between checkouts of the same project on this machine, so a new worktree or clone does not index
+  files that another checkout already indexed. Nothing leaves the machine. Turn it off by disabling the plugin.
+  ]]></description>
+
+  <resource-bundle>messages.PhantomLocalSharedIndexBundle</resource-bundle>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.platform"/>
+  </dependencies>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <fileBasedIndexInfrastructureExtension implementation="dev.phantom.localsharedindex.LocalSharedIndexExtension"/>
+    <registryKey key="phantom.localsharedindex.verify.one.in" defaultValue="0" description="Phantom Local Shared Index: recompute every Nth cache hit and compare (0 = off)"/>
+    <projectIndexingActivityHistoryListener implementation="dev.phantom.localsharedindex.LocalSharedIndexHistoryListener"/>
+    <advancedSetting id="phantom.localsharedindex.max.size.mb" default="2048" bundle="messages.PhantomLocalSharedIndexBundle" groupKey="advanced.settings.phantom.localsharedindex"/>
+  </extensions>
+</idea-plugin>

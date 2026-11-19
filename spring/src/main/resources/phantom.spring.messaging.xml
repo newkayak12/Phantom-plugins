@@ -1,0 +1,11 @@
+<idea-plugin package="dev.phantom.spring.messaging">
+  <dependencies>
+    <module name="phantom.spring.core"/>
+  </dependencies>
+  <extensions defaultExtensionNs="com.intellij">
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.messaging.MessagingLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.spring.messaging.MessagingLineMarkerProvider"/>
+    <completion.contributor language="JAVA" order="first" implementationClass="dev.phantom.spring.messaging.MessagingCompletionContributor"/>
+    <completion.contributor language="kotlin" order="first" implementationClass="dev.phantom.spring.messaging.MessagingCompletionContributor"/>
+  </extensions>
+</idea-plugin>

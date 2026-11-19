@@ -1,0 +1,53 @@
+name: Phantom plugins close linked issues
+
+on:
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+
+jobs:
+  close:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # phantom-idea: use GitHub's closing links, never treat every #number as a close request.
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const pull_number = context.issue.number;
+            const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number });
+            const { data: repository } = await github.rest.repos.get({ owner, repo });
+            if (!pr.merged || pr.base.ref !== repository.default_branch) {
+              core.info('Only merged PRs targeting the default branch close linked issues.');
+              return;
+            }
+            let cursor = null;
+            do {
+              const data = await github.graphql(`
+                query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
+                  repository(owner: $owner, name: $repo) {
+                    pullRequest(number: $number) {
+                      closingIssuesReferences(first: 100, after: $cursor) {
+                        nodes { number state repository { nameWithOwner } }
+                        pageInfo { hasNextPage endCursor }
+                      }
+                    }
+                  }
+                }`, { owner, repo, number: pull_number, cursor });
+              const links = data.repository.pullRequest.closingIssuesReferences;
+              for (const issue of links.nodes) {
+                if (issue.state === 'CLOSED' ||
+                    issue.repository.nameWithOwner.toLowerCase() !== `${owner}/${repo}`.toLowerCase()) continue;
+                await github.rest.issues.update({
+                  owner, repo, issue_number: issue.number, state: 'closed', state_reason: 'completed',
+                });
+                core.info(`Closed linked issue #${issue.number}.`);
+              }
+              cursor = links.pageInfo.hasNextPage ? links.pageInfo.endCursor : null;
+            } while (cursor);

@@ -1,0 +1,12 @@
+<idea-plugin package="dev.phantom.profiler.gradle">
+  <!-- Loads only with the Gradle plugin: Profile on Gradle run configurations (tests, delegated application runs). -->
+  <dependencies>
+    <plugin id="com.intellij.gradle"/>
+  </dependencies>
+  <extensions defaultExtensionNs="com.intellij">
+    <programRunner implementation="dev.phantom.profiler.gradle.ProfileGradleRunner"/>
+  </extensions>
+  <extensions defaultExtensionNs="org.jetbrains.plugins.gradle">
+    <taskManager implementation="dev.phantom.profiler.gradle.GradleProfileInitScript"/>
+  </extensions>
+</idea-plugin>
