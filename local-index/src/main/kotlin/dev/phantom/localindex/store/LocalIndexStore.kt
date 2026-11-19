@@ -161,10 +161,10 @@ class LocalIndexStore private constructor(
   /**
    * Like [put], but [encode] runs on a background thread, not the caller's: it must only read what it captured, and
    * what it captured must not change afterwards. The record is dropped when too many encodes are waiting, when
-   * [encode] throws, and when the index was cleared, a key of it removed or its header checked after this call.
+   * [encode] throws, and when the index was cleared, a key of it removed or its header checked after [epoch] was read.
    */
   @Suppress("TooGenericExceptionCaught") // the externalizer may fail in any way on odd data; that costs the record only
-  fun put(index: String, key: ByteArray, mapMicros: Int, encode: () -> ByteArray) {
+  fun put(index: String, key: ByteArray, mapMicros: Int, epoch: Int = epochOf(index), encode: () -> ByteArray) {
     if (closed || key.size != Segment.KEY_BYTES) return
     if (pendingEncodes.incrementAndGet() > maxPendingEncodes) {
       pendingEncodes.decrementAndGet()
@@ -172,7 +172,6 @@ class LocalIndexStore private constructor(
       return
     }
     val state = state(index)
-    val epoch = state.epoch.get()
     val keyBytes = KeyBytes(key)
     try {
       encoder.execute {
@@ -197,6 +196,9 @@ class LocalIndexStore private constructor(
       pendingEncodes.decrementAndGet()
     }
   }
+
+  /** The index's current epoch; a caller that maps a file first passes the value it read before mapping to [put]. */
+  fun epochOf(index: String): Int = state(index).epoch.get()
 
   /** Counts a record lost to a full backlog or the pending-payload cap; logs the total at most once a minute. */
   private fun noteDropped() {

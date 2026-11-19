@@ -18,7 +18,10 @@ import com.intellij.util.io.EnumeratorStringDescriptor
 import dev.phantom.localindex.store.StoreHeader
 import dev.phantom.localindex.store.LocalIndexStore
 import com.intellij.util.indexing.IndexedHashesSupport
+import com.intellij.util.indexing.FileBasedIndexExtension
+import com.intellij.util.indexing.IndexInfrastructure
 import java.lang.reflect.Proxy
+import java.nio.file.Files
 
 /** The stub path of [CachingIndex] against a stand-in base index whose indexer fails on demand. */
 class CachingIndexStubsTest : LightJavaCodeInsightFixtureTestCase() {
@@ -116,6 +119,32 @@ class CachingIndexStubsTest : LightJavaCodeInsightFixtureTestCase() {
     finally {
       // The platform re-wraps the stub index after a reset, which writes its header again; nothing does here, and Stubs
       // would stay uncached for the tests that follow in this JVM. A stub index version change does the same.
+      LocalIndexExtension.getInstance().onStubIndexVersionChanged(JavaStubIndexKeys.CLASS_SHORT_NAMES)
+      store.awaitIdle()
+    }
+  }
+
+  fun `test a rewritten stubs version file changes the stub header and empties the Stubs entries`() {
+    val stubs = FileBasedIndexExtension.EXTENSION_POINT_NAME.extensionList.first { it.name.name == "Stubs" }
+    val versionFile = IndexInfrastructure.getVersionFile(StubUpdatingIndex.INDEX_ID)
+    val original = if (Files.exists(versionFile)) Files.readAllBytes(versionFile) else null
+    val key = ByteArray(20) { it.toByte() }
+    try {
+      val before = headerFor(stubs, null)
+      store.ensureHeader("Stubs", before)
+      store.awaitIdle()
+      store.put("Stubs", key, 1, byteArrayOf(1, 0))
+      store.awaitIdle()
+      assertNotNull(store.get("Stubs", key))
+      Files.write(versionFile, (original ?: ByteArray(0)) + byteArrayOf(42)) // what a Stubs rebuild does
+      val after = headerFor(stubs, null)
+      assertFalse(before == after)
+      store.ensureHeader("Stubs", after)
+      store.awaitIdle()
+      assertNull(store.get("Stubs", key))
+    }
+    finally {
+      if (original != null) Files.write(versionFile, original) else Files.deleteIfExists(versionFile)
       LocalIndexExtension.getInstance().onStubIndexVersionChanged(JavaStubIndexKeys.CLASS_SHORT_NAMES)
       store.awaitIdle()
     }

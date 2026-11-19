@@ -7,14 +7,17 @@ import com.intellij.openapi.options.advanced.AdvancedSettings
 import com.intellij.openapi.project.Project
 import com.intellij.psi.stubs.StubIndexExtension
 import com.intellij.psi.stubs.StubIndexKey
+import com.intellij.psi.stubs.StubUpdatingIndex
 import com.intellij.util.indexing.FileBasedIndexExtension
 import com.intellij.util.indexing.FileBasedIndexInfrastructureExtension
 import com.intellij.util.indexing.FileBasedIndexInfrastructureExtension.FileIndexingStatusProcessor
 import com.intellij.util.indexing.FileBasedIndexInfrastructureExtension.InitializationResult
 import com.intellij.util.indexing.FileContent
 import com.intellij.util.indexing.ID
+import com.intellij.util.indexing.IndexInfrastructure
 import com.intellij.util.indexing.UpdatableIndex
 import dev.phantom.localindex.store.LocalIndexStore
+import java.nio.file.Files
 
 /**
  * Wraps the content-only map-reduce indexes with a [CachingIndex] backed by an on-disk store under the index root.
@@ -93,12 +96,14 @@ class LocalIndexExtension : FileBasedIndexInfrastructureExtension {
 }
 
 /**
- * Identifies what the ids inside cached stub bytes mean: the registered stub indexes with their versions. The
- * serializer name storage (`rep.names`) is not part of it: every platform path that recreates it (repair at open,
- * repair followed by a rebuild) ends in `UpdatableIndex.clear` or `resetPersistentState(indexId)`, and both empty
- * the Stubs entries of this cache.
+ * Identifies what the ids inside cached stub bytes mean: the registered stub indexes with their versions, and the
+ * bytes of the platform's own Stubs version file. The serializer name storage (`rep.names`) can be recreated, and its
+ * ids renumbered, in a session where this plugin was off or its store did not open, which no hook here would see. Every
+ * Stubs rebuild path (version change, corruption retry, dropped index root) rewrites that version file, so a changed
+ * file changes the header, and the store empties the Stubs entries when the header is ensured.
  */
 internal fun stubFingerprint(): Long {
   val indexes = StubIndexExtension.EP_NAME.extensionList.map { "${it.key.name}:${it.version}" }.sorted()
-  return indexes.joinToString("\n").hashCode().toLong()
+  val versionFile = runCatching { Files.readAllBytes(IndexInfrastructure.getVersionFile(StubUpdatingIndex.INDEX_ID)) }.getOrNull()
+  return indexes.joinToString("\n").hashCode().toLong() * 31 + (versionFile?.contentHashCode() ?: 0)
 }

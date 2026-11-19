@@ -1,6 +1,8 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.localindex
 
+import com.intellij.ide.plugins.PluginManager
+import com.intellij.openapi.diagnostic.ControlFlowException
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressManager
@@ -23,6 +25,7 @@ import com.intellij.util.indexing.impl.MapReduceIndex
 import com.intellij.util.indexing.impl.MapReduceIndexMappingException
 import dev.phantom.localindex.store.LocalIndexStore
 import dev.phantom.localindex.store.StoreHeader
+import java.util.concurrent.CancellationException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
@@ -65,17 +68,16 @@ internal class CachingIndex<K, V, D>(
     if (disabled.get() || content !is FileContentImpl || !isCacheable(content, stubs)) {
       return IndexInfrastructureExtensionUpdate(base.mapInputAndPrepareUpdate(inputId, content), false)
     }
+    val epoch = store.epochOf(indexName) // before anything is mapped: a clear after this point drops the record
     val key = CacheKeys.keyFor(content, base.extension.indexer)
     val stored = store.get(indexName, key)
     if (stored != null) {
       val data = try {
         codec.decode(stored.payload, inputId)
       }
-      catch (e: ProcessCanceledException) {
-        throw e
-      }
       // A CRC-valid payload can still be stale for the current indexer, and then the externalizer fails in any way.
       catch (e: Exception) {
+        rethrowCancellation(e)
         LOG.debug("Cannot decode the cached entry of $indexName, indexing the file", e)
         store.remove(indexName, key) // unreadable record: forget it and index the file
         null
@@ -94,7 +96,7 @@ internal class CachingIndex<K, V, D>(
       }
     }
     stats.miss(content.project, indexName, content.file)
-    return if (stubs) indexStubs(inputId, content, key) else indexAndStore(inputId, content, key)
+    return if (stubs) indexStubs(inputId, content, key, epoch) else indexAndStore(inputId, content, key, epoch)
   }
 
   /** For every Nth hit ([VERIFY_KEY]) recomputes the map; returns it when it differs from [cached], else null. */
@@ -105,32 +107,30 @@ internal class CachingIndex<K, V, D>(
     return try {
       mapLikePlatform(base.extension, content).takeIf { it != cached }
     }
-    catch (e: ProcessCanceledException) {
-      throw e
-    }
     catch (e: Exception) {
+      rethrowCancellation(e)
       LOG.debug("Cannot verify the cached entry of $indexName", e)
       null
     }
   }
 
-  private fun indexAndStore(inputId: Int, content: FileContentImpl, key: ByteArray): IndexInfrastructureExtensionUpdate {
+  private fun indexAndStore(inputId: Int, content: FileContentImpl, key: ByteArray, epoch: Int): IndexInfrastructureExtensionUpdate {
     val started = System.nanoTime()
     val update = base.mapInputAndPrepareUpdate(inputId, content)
     if (update is MapReduceIndex<*, *, *>.IndexStorageUpdate) {
       @Suppress("UNCHECKED_CAST")
       val data = update.inputData.keyValues as Map<K, V>
-      store.put(indexName, key, microsSince(started)) { codec.encode(data) }
+      store.put(indexName, key, microsSince(started), epoch) { codec.encode(data) }
     }
     return IndexInfrastructureExtensionUpdate(update, false)
   }
 
   // The stub storage returns an opaque update, so the map is computed here and the update is built from it.
-  private fun indexStubs(inputId: Int, content: FileContentImpl, key: ByteArray): IndexInfrastructureExtensionUpdate {
+  private fun indexStubs(inputId: Int, content: FileContentImpl, key: ByteArray, epoch: Int): IndexInfrastructureExtensionUpdate {
     val started = System.nanoTime()
     val data = mapLikePlatform(base.extension, content)
     val micros = microsSince(started)
-    store.put(indexName, key, micros) { codec.encode(data) }
+    store.put(indexName, key, micros, epoch) { codec.encode(data) }
     return IndexInfrastructureExtensionUpdate(prepareFromData(inputId, content, data), false)
   }
 
@@ -155,6 +155,11 @@ internal class CachingIndex<K, V, D>(
 private fun isCacheable(content: FileContentImpl, stubs: Boolean): Boolean =
   !content.isTransientContent && content.file is VirtualFileWithId &&
     (!stubs || LocalIndexAllowlist.cachesStubsFor(content.fileType, content.fileName))
+
+// A cancelled indexing must not be taken for a bad record: that would drop a good one.
+private fun rethrowCancellation(e: Exception) {
+  if (e is ProcessCanceledException || e is ControlFlowException || e is CancellationException) throw e
+}
 
 private fun microsSince(started: Long): Int = ((System.nanoTime() - started) / 1000).coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
 
@@ -193,9 +198,14 @@ internal fun <K, V, D> wrapInCache(
 
 /**
  * Entries written under another index version, hash version or storage layout are dropped before the first read.
- * Stub bytes carry ids from the serializer name storage, so the stub header also holds a fingerprint.
+ * Stub bytes carry ids from the serializer name storage, so the stub header also holds a fingerprint. The header also
+ * holds the version of this plugin, so a cache written by another release is dropped.
  */
 internal fun headerFor(indexExtension: FileBasedIndexExtension<*, *>, layoutId: String?): StoreHeader {
   val fingerprint = if (indexExtension.name.name == LocalIndexAllowlist.STUBS) stubFingerprint() else 0
-  return StoreHeader(LocalIndexStore.FORMAT_VERSION, indexExtension.version, IndexedHashesSupport.getVersion(), layoutId ?: "", fingerprint)
+  // The plugin version is part of the layout: another plugin release may encode or key records differently.
+  val layout = "${layoutId ?: ""}|${pluginVersion()}"
+  return StoreHeader(LocalIndexStore.FORMAT_VERSION, indexExtension.version, IndexedHashesSupport.getVersion(), layout, fingerprint)
 }
+
+private fun pluginVersion(): String = PluginManager.getPluginByClass(LocalIndexExtension::class.java)?.version.orEmpty()
