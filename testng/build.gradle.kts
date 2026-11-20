@@ -5,7 +5,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.1"
+version = "0.1.2"
 
 // The IntelliJ sources keep Java next to Kotlin. src/rt is testng-rt.jar (intellij.testng.rt): the starter and listeners
 // that run inside the user's test JVM, so Java 8 bytecode in a jar of its own (the run configuration puts that jar on the
