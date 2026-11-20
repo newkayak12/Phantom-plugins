@@ -47,7 +47,7 @@ class LocalSharedIndexStore private constructor(
   private val maxPendingEncodes: Int,
 ) : Closeable {
   private class IndexState(val dirName: String, val dir: Path) {
-    val map = ConcurrentHashMap<KeyBytes, Location>()
+    val map = KeyMap()
 
     /** Set when the writer has checked the index's header; unchecked data is never served. */
     @Volatile var validated = false
@@ -407,7 +407,7 @@ class LocalSharedIndexStore private constructor(
     val renamed = Segment(generation, path, state.dirName)
     segments.remove(old.generation)
     segments[generation] = renamed
-    state.map.replaceAll { _, location -> if (location.generation == old.generation) location.copy(generation = generation) else location }
+    state.map.renameGeneration(old.generation, generation)
     return renamed
   }
 
@@ -442,7 +442,7 @@ class LocalSharedIndexStore private constructor(
     val state = indexes[segment.indexDir]
     if (state != null) {
       if (state.current === segment) state.current = null
-      state.map.values.removeIf { it.generation == segment.generation }
+      state.map.removeGeneration(segment.generation)
     }
     segment.retire()
     total.addAndGet(-segment.size.get())
