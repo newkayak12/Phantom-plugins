@@ -11,6 +11,7 @@ dependencies {
     bundledPlugin("com.intellij.java")
     testFramework(TestFrameworkType.Plugin.Java, providers.gradleProperty("platformTestBuild"))
     // Kotlin tests in the tests; the plugin itself needs only UAST
-    bundledPlugin("org.jetbrains.kotlin")
+    // phantom-compat.yml: Phantom publishes Kotlin as a plugin of its own; -PkotlinPlugin=<Kotlin plugin zip or dir> takes it from there
+    providers.gradleProperty("kotlinPlugin").orNull?.let { localPlugin(it) } ?: bundledPlugin("org.jetbrains.kotlin")
   }
 }
