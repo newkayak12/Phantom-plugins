@@ -22,9 +22,4 @@
     <module name="intellij.repository.search.common"/>
     <module name="intellij.repository.search.completion"/>
   </content>
-  <!-- The kotlinx-document-store library (Package Search's local cache, used by common) as a private module in this
-       plugin's own namespace, as in IntelliJ; embedded, as its jars sit in lib/ with the plugin's. -->
-  <content>
-    <module name="intellij.libraries.kotlinx.document.store.mvstore" loading="embedded"/>
-  </content>
 </idea-plugin>
