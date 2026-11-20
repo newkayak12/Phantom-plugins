@@ -40,6 +40,7 @@ internal class KeyMap {
   val size: Int get() = shards.sumOf { it.size() }
 
   /** Open addressing with linear probing; fingerprint 0 marks an empty slot. */
+  @Suppress("TooManyFunctions") // the map operations plus the probing helpers they share under one lock
   private class Shard {
     private var fingerprints = LongArray(INITIAL_CAPACITY)
     private var generations = LongArray(INITIAL_CAPACITY)
