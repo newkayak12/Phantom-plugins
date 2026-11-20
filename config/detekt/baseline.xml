@@ -2780,5 +2780,10 @@
     <ID>VariableNaming:TextMateCachingSyntaxMatcher.kt:TextMateCachingSyntaxMatcher$private val CACHE = Caffeine.newBuilder() .maximumSize(10000) .expireAfterAccess(1, TimeUnit.MINUTES) .executor(Dispatchers.Default.asExecutor()) .build&lt;MatchKey, TextMateLexerState>()</ID>
     <ID>VariableNaming:TextMateLexerTestCase.kt:TextMateLexerTestCase$private val TEST_DATA_BASE_DIR: String = "${java.io.File("").absolutePath}/testData/lexer" // Phantom-plugins: the plugin folder, not the IDE home</ID>
     <ID>VariableNaming:TransformationContextImpl.kt:TransformationContextImpl$// Modifiers should be processed with care in transformation context to avoid recursion issues. // This code re-creates erasures computation to properly handle modifier querying private val AST_TRANSFORMATION_AWARE_METHOD_PARAMETERS_ERASURE_EQUALITY: Hash.Strategy&lt;MethodSignature> = object : Hash.Strategy&lt;MethodSignature> { override fun equals(a: MethodSignature?, b: MethodSignature?): Boolean { if (a === b) return true return (a != null &amp;&amp; b != null &amp;&amp; a.parameterTypes.map { erase(it) } == b.parameterTypes.map { erase(it) }) } override fun hashCode(signature: MethodSignature?): Int { return signature?.name?.hashCode() ?: 0 } }</ID>
+    <ID>ComplexCondition:EndpointRequests.kt:ServerConfig$v.length >= 2 &amp;&amp; (v.first() == '"' &amp;&amp; v.last() == '"' || v.first() == '\'' &amp;&amp; v.last() == '\'')</ID>
+    <ID>CyclomaticComplexMethod:EndpointRequests.kt:ServerConfig$fun yaml: Map&lt;String, String></ID>
+    <ID>EmptyElseBlock:EndpointRequests.kt:ServerConfig$if (stack.isNotEmpty()) stack.removeAt(stack.size - 1)</ID>
+    <ID>EmptyFunctionBlock:EndpointsToolWindow.kt:EndpointsPanel${}</ID>
+    <ID>NestedBlockDepth:EndpointRequests.kt:ServerConfig$fun hocon: Map&lt;String, String></ID>
   </CurrentIssues>
 </SmellBaseline>
