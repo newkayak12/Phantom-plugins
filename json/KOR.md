@@ -10,3 +10,6 @@ IntelliJ 플러그인 대신 이 빌드를 번들합니다.
 
 **0.1.1**: 플러그인 jar의 `META-INF/THIRD-PARTY-NOTICES.txt`에 포함된 라이브러리(json-schema-validator, Apache 2.0; Joni와 JCodings,
 MIT) 목록이 있고, `META-INF/licenses/`에 MIT 전문이 들어 있습니다.
+
+**0.1.2**: `JsonSchemaObjectBackedByJacksonBase`의 private 스키마 전략 헬퍼 이름이 루트 객체의 `schemaInterpretationStrategy` getter와
+겹치지 않게 바꿨습니다. Plugin Verifier가 final 메서드를 오버라이드한 것으로 보고하지 않습니다.

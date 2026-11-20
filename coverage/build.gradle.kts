@@ -5,7 +5,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.2"
+version = "0.1.3"
 
 // The IntelliJ sources keep Java next to Kotlin. src/rt is java-coverage-rt.jar: the JUnit and TestNG listeners that
 // run inside the user's test JVM, so Java 8 bytecode in a jar of its own (the IDE's run configurations add that jar)
@@ -24,7 +24,9 @@ val rtLibraries = listOf(
 
 val rtJar by tasks.registering(Jar::class) {
   archiveFileName = "java-coverage-rt.jar"
-  from(sourceSets["rt"].output)
+  // classes only: the platform plugin adds the patched plugin.xml to every source set's resources, and a second
+  // plugin.xml in lib/ makes the descriptor invalid
+  from(sourceSets["rt"].output.classesDirs)
 }
 
 dependencies {
