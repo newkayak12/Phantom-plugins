@@ -3,7 +3,7 @@ plugins {
   jacoco
 }
 
-version = "0.1.1"
+version = "0.1.2"
 
 // Java 25 support; coverage is deliberately limited to this plugin initially.
 jacoco {
