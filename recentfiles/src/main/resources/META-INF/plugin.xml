@@ -1,0 +1,26 @@
+<idea-plugin>
+  <!-- Phantom's own id; intellij.recentFiles.plugin stays as an alias. The content module names stay the IntelliJ ones, as
+       the platform depends on them by name (intellij.platform.vcs.impl.frontend needs intellij.platform.recentFiles). The
+       bundled IntelliJ Recent Files plugin has to be gone, or both claim the same id and modules. -->
+  <id>dev.phantom.recentfiles</id>
+  <name>Recent Files</name>
+  <module value="intellij.recentFiles.plugin"/>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Navigation</category>
+  <description><![CDATA[
+    Recent Files, Recent Locations and the Switcher (Ctrl+Tab).
+    <br/>
+    Based on the IntelliJ Community Recent Files plugin (Apache 2.0).
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+  </dependencies>
+
+  <!-- One jar. Each module keeps its own class loader on a package of its own (shared, backend, frontend). -->
+  <content namespace="jetbrains">
+    <module name="intellij.platform.recentFiles"/>
+    <module name="intellij.platform.recentFiles.backend"/>
+    <module name="intellij.platform.recentFiles.frontend"/>
+  </content>
+</idea-plugin>
