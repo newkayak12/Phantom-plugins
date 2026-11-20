@@ -10,6 +10,7 @@ dependencies {
   intellijPlatform {
     bundledPlugin("com.intellij.java")
     testFramework(TestFrameworkType.Plugin.Java, providers.gradleProperty("platformTestBuild"))
-    bundledPlugin("org.jetbrains.kotlin")
+    // phantom-compat.yml: Phantom publishes Kotlin as a plugin of its own; -PkotlinPlugin=<Kotlin plugin zip or dir> takes it from there
+    providers.gradleProperty("kotlinPlugin").orNull?.let { localPlugin(it) } ?: bundledPlugin("org.jetbrains.kotlin")
   }
 }

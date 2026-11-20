@@ -9,7 +9,8 @@ version = "0.1.1"
 dependencies {
   intellijPlatform {
     // common builds on the Maven plugin's model module
-    bundledPlugin("org.jetbrains.idea.maven")
+    // phantom-compat.yml: Phantom publishes Maven as a plugin of its own; -PmavenPlugin=<Maven plugin zip or dir> takes it from there
+    providers.gradleProperty("mavenPlugin").orNull?.let { localPlugin(it) } ?: bundledPlugin("org.jetbrains.idea.maven")
     bundledModule("intellij.libraries.ktor.client")
     bundledModule("intellij.libraries.kotlinx.io")
     bundledModule("intellij.libraries.kotlinx.coroutines.slf4j")
