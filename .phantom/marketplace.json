@@ -1132,6 +1132,22 @@
       ],
       "download": "serviceview-0.1.0/serviceview-0.1.0.zip",
       "detect": []
+    },
+    {
+      "id": "dev.phantom.endpoints",
+      "name": "Phantom Endpoints",
+      "version": "0.1.0",
+      "source": "endpoints",
+      "description": "The Endpoints tool window: every HTTP endpoint that installed plugins report (Spring MVC and WebFlux, Ktor, …), grouped by module, with a filter. Enter or double-click opens the handler; Generate HTTP Request adds a request for the endpoint to the scratch file generated-requests.http, with the host and port from the module's Spring Boot or Ktor configuration. Bundled with Phantom (it used to be part of the IDE).",
+      "vendor": "Phantom",
+      "category": "Tools Integration",
+      "since": "262.261120",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "endpoints-0.1.0/endpoints-0.1.0.zip",
+      "detect": []
     }
   ]
 }
