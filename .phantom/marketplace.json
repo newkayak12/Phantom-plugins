@@ -189,7 +189,7 @@
     {
       "id": "dev.phantom.profiler",
       "name": "Phantom Profiler",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "source": "profiler",
       "description": "CPU and allocation profiling for Java and Kotlin with Java Flight Recorder: a Profile action next to Run and Debug, a Profiler tool window that records any running JVM, and a .jfr viewer with flame graph, call tree, hot methods, allocations and GC summary. Profile also works on Gradle run configurations: tests run by Gradle and applications delegated to Gradle, one recording per forked JVM.",
       "vendor": "Phantom",
@@ -200,7 +200,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "profiler-0.2.0/profiler-0.2.0.zip"
+      "download": "profiler-0.2.1/profiler-0.2.1.zip"
     },
     {
       "id": "dev.phantom.docker",
@@ -821,7 +821,7 @@
     {
       "id": "dev.phantom.testng",
       "name": "TestNG Support",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "source": "testng",
       "description": "TestNG for Java: run configurations for classes, methods, packages, groups, patterns and suite files with the test tree, forked runs and debugging; test generation; references from dataProvider, dependsOnMethods, groups and testng.xml; inspections and quick fixes such as converting JUnit tests to TestNG. Based on the IntelliJ Community TestNG plugin (Apache 2.0); TestNG-J stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -831,7 +831,7 @@
       "depends": [
         "com.intellij.java"
       ],
-      "download": "testng-0.1.1/testng-0.1.1.zip",
+      "download": "testng-0.1.2/testng-0.1.2.zip",
       "detect": []
     },
     {
@@ -950,7 +950,7 @@
     {
       "id": "dev.phantom.gradle-dsl",
       "name": "Gradle DSL Support",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "gradle-dsl",
       "description": "A technical plugin with no UI of its own: an API that reads Gradle build files (Groovy, Kotlin script, version catalog TOML) as a model and edits them in place — dependencies, plugins, repositories, ext properties, Android blocks; Gradle-Java's dependency updater and build analysis use it. The Kotlin script parser switches on only with the Kotlin plugin installed. Based on the IntelliJ Community Gradle DSL API plugin (Apache 2.0); org.jetbrains.idea.gradle.dsl stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -961,7 +961,7 @@
         "com.intellij.java",
         "com.intellij.gradle"
       ],
-      "download": "gradle-dsl-0.1.0/gradle-dsl-0.1.0.zip",
+      "download": "gradle-dsl-0.1.1/gradle-dsl-0.1.1.zip",
       "detect": []
     },
     {
