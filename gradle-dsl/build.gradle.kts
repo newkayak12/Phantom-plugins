@@ -75,6 +75,9 @@ dependencies {
     // The installed Phantom's TOML is Phantom TOML, which its module alone brings in (bundledPlugin("org.toml.lang")
     // resolves the alias to an artifact the Gradle plugin doesn't create); IntelliJ Community's needs the plugin
     if (fromRepository) bundledPlugin("org.toml.lang")
+    // Phantom's Gradle and Groovy plugins depend on the alias com.intellij.groovy.scripting (Phantom Groovy Scripting), whose
+    // artifact the Gradle plugin creates only when it is asked for directly
+    if (!fromRepository) bundledPlugin("com.intellij.groovy.scripting")
     if (fromRepository) testLocalPlugin(kotlinPluginDir)
     testFramework(TestFrameworkType.Plugin.Java, providers.gradleProperty("platformTestBuild"))
   }
