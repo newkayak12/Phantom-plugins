@@ -14,14 +14,10 @@ data class StoreHeader(val formatVersion: Int, val indexVersion: Int, val hashVe
 
 class StoredEntry(val payload: ByteArray, val mapMicros: Int)
 
-/** Index key bytes with content equality, usable as a map key. */
+/** A copy of index key bytes and their [KeyMap] fingerprint. */
 internal class KeyBytes(bytes: ByteArray) {
   val bytes: ByteArray = bytes.copyOf()
-  private val hash = this.bytes.contentHashCode()
-
-  override fun equals(other: Any?): Boolean = other is KeyBytes && bytes.contentEquals(other.bytes)
-
-  override fun hashCode(): Int = hash
+  val fingerprint: Long = KeyMap.fingerprint(this.bytes)
 }
 
 /** Where a record starts: its segment generation, byte offset, and total length (record header plus payload). */
