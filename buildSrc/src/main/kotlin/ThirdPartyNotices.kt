@@ -156,14 +156,8 @@ class ThirdPartyNotices(private val project: Project, private val configurations
 
     // Libraries (group:artifact, or a whole group) whose POM names no license or project, taken from the project's
     // own LICENSE file
-    val knownLicenses = mapOf(
-      "org.jetbrains.packagesearch" to listOf("Apache License, Version 2.0" to "https://www.apache.org/licenses/LICENSE-2.0"),
-      "com.github.lamba92" to listOf("Apache License, Version 2.0" to "https://www.apache.org/licenses/LICENSE-2.0"),
-    )
-    val knownUrls = mapOf(
-      "org.jetbrains.packagesearch" to "https://github.com/JetBrains/package-search-api-models",
-      "com.github.lamba92" to "https://github.com/lamba92/kotlinx-document-store",
-    )
+    val knownLicenses = emptyMap<String, List<Pair<String, String>>>()
+    val knownUrls = emptyMap<String, String>()
 
     // The copyright lines of the MIT and BSD licensed libraries whose jar carries no license file, from the LICENSE file
     // in each project's repository; MIT and BSD ask that the copyright notice goes with the binaries
@@ -172,7 +166,6 @@ class ThirdPartyNotices(private val project: Project, private val configurations
       "org.jruby.jcodings:jcodings" to listOf("Copyright (c) JRuby Team"),
       "com.vdurmont:emoji-java" to listOf("Copyright (c) 2014-present Vincent DURMONT <vdurmont@gmail.com>"),
       "net.loomchild:segment" to listOf("Copyright (c) 2006-2015 Jarek Lipski"),
-      "com.soywiz.korlibs.krypto:krypto-jvm" to listOf("Copyright (c) 2017 Carlos Ballesteros Velasco"),
       "org.webjars:jquery" to listOf("Copyright OpenJS Foundation and other contributors, https://openjsf.org/"),
       "org.carrot2" to listOf("Copyright (c) 2006 Dawid Weiss", "Copyright (c) 2007-2015 Dawid Weiss, Marcin Milkowski"),
       "javax.measure:unit-api" to listOf("Copyright (c) 2014-2020, Jean-Marie Dautelle, Werner Keil, Otavio Santana."),

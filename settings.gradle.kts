@@ -20,13 +20,6 @@ dependencyResolutionManagement {
     intellijPlatform {
       defaultRepositories()
     }
-    // JetBrains' Package Search client and the kotlinx-document-store library it caches in, for repository-search/
-    maven("https://packages.jetbrains.team/maven/p/kpm/public") {
-      content {
-        includeGroup("org.jetbrains.packagesearch")
-        includeGroup("com.github.lamba92")
-      }
-    }
   }
 }
 
