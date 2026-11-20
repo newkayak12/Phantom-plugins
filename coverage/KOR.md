@@ -13,3 +13,6 @@ IntelliJ 플러그인 대신 이 빌드를 번들합니다.
 **0.1.2**: 플러그인 jar의 `META-INF/THIRD-PARTY-NOTICES.txt`에 포함된 라이브러리(JaCoCo, EPL 2.0; ASM, BSD 3-Clause;
 FreeMarker와 coverage-report, Apache 2.0) 목록이 있고, `META-INF/licenses/`에 EPL 2.0과 BSD 전문이 들어 있습니다. JaCoCo 소스를
 받는 곳은 NOTICE에 있습니다.
+
+**0.1.3**: `java-coverage-rt.jar`에 `plugin.xml` 사본이 더 이상 들어 있지 않아 `lib/`의 플러그인 디스크립터가 하나뿐이고, Plugin
+Verifier가 플러그인을 받아들입니다.

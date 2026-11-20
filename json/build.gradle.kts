@@ -4,7 +4,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.1"
+version = "0.1.2"
 
 // The IntelliJ sources keep Java next to Kotlin
 sourceSets {
