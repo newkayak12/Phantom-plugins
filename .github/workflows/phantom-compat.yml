@@ -1,0 +1,137 @@
+name: Phantom compatibility
+
+# Builds plugins against a released Phantom (not the IntelliJ Community build that plugin-tests.yml uses), so an API
+# Phantom removed or changed fails here before users see it, and runs the IntelliJ Plugin Verifier against it as a report.
+#   pull_request / push: the plugins whose build.gradle.kts or src/ changed (all of them when shared build files change)
+#   schedule / workflow_dispatch: every plugin, against the latest Phantom release or the tag given
+# Phantom is released only as a macOS aarch64 .dmg, so this runs on an Apple silicon runner.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      plugins:
+        description: Plugin directories, comma separated (empty checks every plugin)
+        required: false
+        type: string
+      phantom_tag:
+        description: Phantom release tag (empty takes the latest release)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phantom-compat-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select plugins
+        id: plugins
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          INPUT_PLUGINS: ${{ inputs.plugins }}
+        run: |
+          python3 - <<'PY'
+          import os, re, subprocess
+          from pathlib import Path
+          registered = sorted(set(re.findall(r'^include\("([a-z][a-z0-9-]*)"\)', Path('settings.gradle.kts').read_text(), re.M)))
+          plugins = [p for p in registered if (Path(p) / 'src').is_dir() and not Path(p).is_symlink()]
+          event, base = os.environ['EVENT'], os.environ.get('BASE_SHA', '')
+          if event == 'workflow_dispatch' and os.environ.get('INPUT_PLUGINS', '').strip():
+              wanted = [p.strip() for p in os.environ['INPUT_PLUGINS'].split(',') if p.strip()]
+              unknown = [p for p in wanted if p not in plugins]
+              if unknown:
+                  raise SystemExit('Unknown plugins: ' + ', '.join(unknown))
+              plugins = wanted
+          elif event in ('pull_request', 'push') and re.fullmatch(r'[0-9a-f]{40}', base) and set(base) != {'0'}:
+              ancestor = subprocess.check_output(['git', 'merge-base', base, 'HEAD'], text=True).strip()
+              paths = subprocess.check_output(['git', 'diff', '--name-only', '--no-renames', ancestor, 'HEAD'], text=True).split()
+              shared = any(p in {'settings.gradle.kts', 'gradle.properties'} or p.startswith(('buildSrc/', 'gradle/')) for p in paths)
+              if not shared:
+                  changed = {p.split('/', 1)[0] for p in paths if '/' in p and (p.split('/', 1)[1] == 'build.gradle.kts' or p.split('/', 1)[1].startswith('src/'))}
+                  plugins = [p for p in plugins if p in changed]
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('list=' + ' '.join(plugins) + '\n')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('## Phantom compatibility\nPlugins: ' + (', '.join(plugins) or 'none') + '\n')
+          PY
+      - name: Download Phantom
+        if: steps.plugins.outputs.list != ''
+        env:
+          GH_TOKEN: ${{ secrets.PHANTOM_RELEASE_TOKEN || github.token }}
+          TAG: ${{ inputs.phantom_tag }}
+        run: |
+          tag="${TAG:-$(gh release view -R newkayak12/Phantom --json tagName -q .tagName)}"
+          gh release download "$tag" -R newkayak12/Phantom -p '*-aarch64.dmg' -D "$RUNNER_TEMP/phantom"
+          mount="$RUNNER_TEMP/phantom/mnt"
+          hdiutil attach -nobrowse -readonly -mountpoint "$mount" "$RUNNER_TEMP"/phantom/*.dmg
+          app="$(find "$mount" -maxdepth 1 -name '*.app' | head -1)"
+          cp -R "$app" "$RUNNER_TEMP/Phantom.app"
+          hdiutil detach "$mount"
+          echo "PHANTOM_APP=$RUNNER_TEMP/Phantom.app" >> "$GITHUB_ENV"
+          # Phantom bundles neither Kotlin nor Maven; plugins that need them build against the plugins Phantom publishes here
+          for name in kotlin maven; do
+            rel="$(gh release list -R "$GITHUB_REPOSITORY" --limit 1000 --json tagName -q '.[].tagName' | grep "^$name-" | sort -V | tail -1)"
+            gh release download "$rel" -R "$GITHUB_REPOSITORY" -p '*.zip' -D "$RUNNER_TEMP/$name"
+            unzip -q "$RUNNER_TEMP/$name"/*.zip -d "$RUNNER_TEMP/$name/plugin"
+            echo "${name^^}_PLUGIN=$(find "$RUNNER_TEMP/$name/plugin" -mindepth 1 -maxdepth 1 -type d | head -1)" >> "$GITHUB_ENV"
+            echo "$rel" >> "$RUNNER_TEMP/companions"
+          done
+          kotlin="$(paste -sd, "$RUNNER_TEMP/companions")"
+          echo "Phantom: $tag, plugins: $kotlin" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        if: steps.plugins.outputs.list != ''
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        if: steps.plugins.outputs.list != ''
+      # Compiles and packages each plugin against the Phantom app (phantomIde); a failure here fails the check.
+      - name: Build against Phantom
+        if: steps.plugins.outputs.list != ''
+        env:
+          PLUGINS: ${{ steps.plugins.outputs.list }}
+        run: |
+          tasks=()
+          for p in $PLUGINS; do
+            [[ "$p" =~ ^[a-z][a-z0-9-]*$ ]] || exit 1
+            tasks+=(":$p:buildPlugin")
+          done
+          ./gradlew --no-configuration-cache --continue \
+            -PphantomIde="$PHANTOM_APP" -PkotlinPlugin="$KOTLIN_PLUGIN" -PmavenPlugin="$MAVEN_PLUGIN" \
+            -Porg.gradle.java.installations.paths="$JAVA_HOME" "${tasks[@]}"
+      # Plugin Verifier against the same app. Report only for now: against a Phantom build it still reports classes of
+      # bundled plugins (Java's PsiClass for groovy, Structure View for db) as unresolved although the app has them.
+      - name: Verify against Phantom (report only)
+        if: steps.plugins.outputs.list != ''
+        continue-on-error: true
+        env:
+          PLUGINS: ${{ steps.plugins.outputs.list }}
+        run: |
+          tasks=()
+          for p in $PLUGINS; do tasks+=(":$p:verifyPlugin"); done
+          ./gradlew --no-configuration-cache --continue \
+            -PphantomIde="$PHANTOM_APP" -PverifyIde="$PHANTOM_APP" -PkotlinPlugin="$KOTLIN_PLUGIN" -PmavenPlugin="$MAVEN_PLUGIN" \
+            -Porg.gradle.java.installations.paths="$JAVA_HOME" "${tasks[@]}"
+      - name: Preserve verifier reports
+        if: always() && steps.plugins.outputs.list != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: phantom-compat-reports
+          path: '*/build/reports/pluginVerifier/'
+          if-no-files-found: warn
