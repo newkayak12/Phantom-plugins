@@ -96,6 +96,7 @@ include("serviceview")
 // Not plugins: Kotlin compiler plugins some plugins compile with
 include(":compiler-plugins:fleet-rpc")
 include("grid")
+include("endpoints")
 include("local-shared-index")
 include("sync")
 include("theme")

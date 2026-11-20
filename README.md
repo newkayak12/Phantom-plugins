@@ -82,6 +82,7 @@ Public repositories need no token.
 | Navigation Bar | [navbar](./navbar/README.md) · [한국어](./navbar/KOR.md) | The navigation bar with the current file's path (bundled with Phantom, with updates from the marketplace) |
 | Recent Files | [recentfiles](./recentfiles/README.md) · [한국어](./recentfiles/KOR.md) | Recent Files, Recent Locations and the Switcher (bundled with Phantom, with updates from the marketplace) |
 | Services View | [serviceview](./serviceview/README.md) · [한국어](./serviceview/KOR.md) | The Services tool window and run dashboard (bundled with Phantom, with updates from the marketplace) |
+| Phantom Endpoints | [endpoints](./endpoints/README.md) · [한국어](./endpoints/KOR.md) | The Endpoints tool window: HTTP endpoints from Spring, Ktor and other plugins, with Generate HTTP Request (bundled with Phantom, with updates from the marketplace) |
 | Phantom Grid | [grid](./grid/README.md) · [한국어](./grid/KOR.md) | The data grid (sorting, filtering, cell editing, export) other plugins show tables in, and CSV/TSV files as a table (bundled with Phantom, with updates from the marketplace) |
 | Git Support | [git](./git/README.md) · [한국어](./git/KOR.md) | Git in the IDE: clone, commit, push, pull, merge and rebase, branches, the Git log, stash, staging area and worktrees; GitHub Support and others build on it (bundled with Phantom, with updates from the marketplace) |
 | Phantom CPU Indicator | [cpu](./cpu/README.md) · [한국어](./cpu/KOR.md) | IDE and system CPU in the status bar; hover shows what the IDE spent it on (indexing, analysis, GC, JIT) |

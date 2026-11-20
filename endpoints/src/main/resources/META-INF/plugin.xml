@@ -1,0 +1,24 @@
+<idea-plugin>
+  <id>dev.phantom.endpoints</id>
+  <name>Phantom Endpoints</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Tools Integration</category>
+  <description><![CDATA[
+  The Endpoints tool window: every HTTP endpoint that installed plugins report (Spring MVC and WebFlux, Ktor, …),
+  grouped by module, with a filter field. Enter or double-click opens the handler; Generate HTTP Request adds a request
+  for the endpoint to the scratch file generated-requests.http, with the host and port taken from the module's Spring
+  Boot or Ktor configuration. Nothing is computed while the window stays closed, and projects without endpoints don't get
+  the window.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+  </dependencies>
+
+  <resource-bundle>messages.EndpointsBundle</resource-bundle>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <toolWindow id="Endpoints" anchor="bottom" secondary="false" icon="AllIcons.Webreferences.Server"
+                doNotActivateOnStart="true" factoryClass="dev.phantom.endpoints.EndpointsToolWindowFactory"/>
+  </extensions>
+</idea-plugin>
