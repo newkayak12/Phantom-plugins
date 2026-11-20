@@ -44,6 +44,7 @@ val rtJar by tasks.registering(Jar::class) {
 dependencies {
   intellijPlatform {
     bundledPlugin("com.intellij.java")
+    bundledPlugin("intellij.testRunner.plugin") // SMRunnerConsolePropertiesProvider (intellij.platform.smRunner)
     testFramework(TestFrameworkType.Plugin.Java, providers.gradleProperty("platformTestBuild"))
     testFramework(TestFrameworkType.JUnit5, providers.gradleProperty("platformTestBuild"))
   }
