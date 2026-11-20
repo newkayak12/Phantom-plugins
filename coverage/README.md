@@ -13,3 +13,6 @@ The JUnit and TestNG listeners that run in your test JVM are `java-coverage-rt.j
 **0.1.2**: The plugin jar lists its packaged libraries in `META-INF/THIRD-PARTY-NOTICES.txt` (JaCoCo, EPL 2.0; ASM,
 BSD 3-Clause; FreeMarker and coverage-report, Apache 2.0) and carries the EPL 2.0 and BSD texts in `META-INF/licenses/`.
 NOTICE says where JaCoCo's sources are.
+
+**0.1.3**: `java-coverage-rt.jar` no longer carries a copy of `plugin.xml`, so `lib/` holds a single plugin descriptor and the Plugin
+Verifier accepts the plugin.
