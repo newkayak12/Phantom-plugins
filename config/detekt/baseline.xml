@@ -35,6 +35,7 @@
     <ID>ComplexCondition:DockerfileInspections.kt:DockerfileInspectionImpl$tokens.isEmpty() || (newForm &amp;&amp; tokens.any { !it.contains('=') }) || (!newForm &amp;&amp; tokens.size &lt; 2)</ID>
     <ID>ComplexCondition:DuplicateVariableProcessor.kt:DuplicateVariableProcessor$associated is GrClosableBlock &amp;&amp; GrClosableBlock.OWNER_NAME == name || associated is PsiClass &amp;&amp; associated !is PsiAnonymousClass || associated is GrMethod &amp;&amp; associated.parent is GroovyFile</ID>
     <ID>ComplexCondition:EditorConfigIndentOptionsProvider.kt:EditorConfigIndentOptionsProvider$Utils.isFullIntellijSettingsSupport() &amp;&amp; (activeUiContributor == null || DetectableIndentOptionsProvider.isIndentDetectionContributor(activeUiContributor)) &amp;&amp; !Utils.isEnabled(file.project) &amp;&amp; Utils.hasEditorConfig(file)</ID>
+    <ID>ComplexCondition:EndpointRequests.kt:ServerConfig$v.length >= 2 &amp;&amp; (v.first() == '"' &amp;&amp; v.last() == '"' || v.first() == '\'' &amp;&amp; v.last() == '\'')</ID>
     <ID>ComplexCondition:ErdDetailPanel.kt:ErdDetailPanel.IndexesModel$(column == 0 &amp;&amp; text.isEmpty()) || (column == 2 &amp;&amp; names.isEmpty())</ID>
     <ID>ComplexCondition:ErdEditor.kt:ErdEditor$!force &amp;&amp; key == liveKey &amp;&amp; (live != null || liveMessage != null)</ID>
     <ID>ComplexCondition:ErdSql.kt:ErdSql$!modified &amp;&amp; (default || auto || comment)</ID>
@@ -179,6 +180,8 @@
     <ID>ComplexCondition:SqlSyntaxCheck.kt:SqlSyntaxCheck$prev?.type == SqlTokens.DOT || next?.type == SqlTokens.DOT || block.typoAt == index - 1 &amp;&amp; index > 0</ID>
     <ID>ComplexCondition:StrategyUtils.kt:StrategyUtils$(Text.isNewline(char) || (index == 0 &amp;&amp; char in chars)) &amp;&amp; from == -1</ID>
     <ID>ComplexCondition:StringTransforms.kt:StringTransforms$prev.isLowerCase() || prev.isDigit() || (prev.isUpperCase() &amp;&amp; next != null &amp;&amp; next.isLowerCase())</ID>
+    <ID>ComplexCondition:Switcher.kt:Switcher.SwitcherPanel$forward &amp;&amp; index >= list.itemsCount || !forward &amp;&amp; index &lt; 0</ID>
+    <ID>ComplexCondition:Switcher.kt:Switcher.SwitcherPanel.&lt;no name provided>$pinned &amp;&amp; (e.isControlDown || e.isMetaDown || e.isShiftDown)</ID>
     <ID>ComplexCondition:TabGroupModel.kt:TabGroupModel$group != null &amp;&amp; (byChip || group.collapsed || group.members.size == 1)</ID>
     <ID>ComplexCondition:TableColumnAlignmentActionsGroup.kt:TableColumnAlignmentActionsGroup$editor == null || file == null || offset == null || !file.language.isMarkdownLanguage()</ID>
     <ID>ComplexCondition:TableFloatingToolbar.kt:TableFloatingToolbar.&lt;no name provided>$rowNum &lt; 0 || rowNum >= tableResultView.rowCount || columnNum &lt; 0 || columnNum >= tableResultView.columnCount</ID>
@@ -218,6 +221,7 @@
     <ID>ConstructorParameterNaming:MutableShellExecOptionsImpl.kt:MutableShellExecOptionsImpl$private var _execCommand: ShellExecCommand</ID>
     <ID>ConstructorParameterNaming:OriginAwareMembersHolder.kt:OriginAwareMembersHolder$private val GDSLOrigin: VirtualFile</ID>
     <ID>ConstructorParameterNaming:ShellExecOptionsImpl.kt:ShellExecOptionsImpl$private val _envs: Map&lt;String, String></ID>
+    <ID>ConstructorParameterNaming:StaticNavBarPanel.kt:StaticNavBarPanel$private val _vm: StaticNavBarPanelVm</ID>
     <ID>ConstructorParameterNaming:TemplateCommentPanel.kt:TemplateCommentPanel$_fileType: FileType?</ID>
     <ID>ConstructorParameterNaming:YAMLlInspectionSuppressor.kt:YAMLSuppressFileQuickFix$ID: String</ID>
     <ID>ConstructorParameterNaming:YAMLlInspectionSuppressor.kt:YAMLSuppressKeyQuickFix$ID: String</ID>
@@ -302,12 +306,14 @@
     <ID>CyclomaticComplexMethod:DockerfileInspections.kt:DockerfileInspectionImpl$override fun check</ID>
     <ID>CyclomaticComplexMethod:DslWriterTestUtil.kt:fun mapToProperties</ID>
     <ID>CyclomaticComplexMethod:EditorConfigFoldingBuilder.kt:EditorConfigFoldingBuilder$override fun buildFoldRegions: Array&lt;FoldingDescriptor></ID>
+    <ID>CyclomaticComplexMethod:EndpointRequests.kt:ServerConfig$fun yaml: Map&lt;String, String></ID>
     <ID>CyclomaticComplexMethod:EntityDiagram.kt:ErModel.Companion$fun from: ErModel</ID>
     <ID>CyclomaticComplexMethod:ErdDetailPanel.kt:ErdDetailPanel.ColumnsModel$override fun setValueAt</ID>
     <ID>CyclomaticComplexMethod:ErdModel.kt:ErdJson$private fun table</ID>
     <ID>CyclomaticComplexMethod:ErdSql.kt:ErdSql$private fun changedAttributes: List&lt;String></ID>
     <ID>CyclomaticComplexMethod:ExpressionConstraint.kt:ExpressionConstraint$override fun reduce: Boolean</ID>
     <ID>CyclomaticComplexMethod:FindMergedLocalBranchesAction.kt:FindMergedLocalBranchesAction$override fun actionPerformed</ID>
+    <ID>CyclomaticComplexMethod:FrontendRecentFilesModel.kt:FrontendRecentFilesModel$fun applyFrontendChanges</ID>
     <ID>CyclomaticComplexMethod:GHGQLDataTest.kt:GHGQLDTOTest$private fun verifyQuery: Pair&lt;GQLTypeDefinition, List&lt;GQLSelection>>?</ID>
     <ID>CyclomaticComplexMethod:GHPRCreateViewModel.kt:GHPRCreateViewModelImpl$override fun create</ID>
     <ID>CyclomaticComplexMethod:GHPRFileEditorComponentFactory.kt:GHPRFileEditorComponentFactory$fun create: JComponent</ID>
@@ -590,6 +596,7 @@
     <ID>CyclomaticComplexMethod:SqlSyntaxCheck.kt:SqlSyntaxCheck$private fun identifier</ID>
     <ID>CyclomaticComplexMethod:SqlSyntaxCheck.kt:SqlSyntaxCheck$private fun keyword</ID>
     <ID>CyclomaticComplexMethod:SqlSyntaxCheck.kt:SqlSyntaxCheck$private fun typo: String?</ID>
+    <ID>CyclomaticComplexMethod:SwitcherActions.kt:SwitcherProblemAction$private fun getErrorIndex: Int?</ID>
     <ID>CyclomaticComplexMethod:TabGroupModel.kt:TabGroupModel$fun onMoved</ID>
     <ID>CyclomaticComplexMethod:TabGroupPaneController.kt:TabGroupPaneController$private fun doRefresh</ID>
     <ID>CyclomaticComplexMethod:TabGroupsService.kt:TabGroupsService$@RequiresEdt private fun onChanged</ID>
@@ -628,9 +635,11 @@
     <ID>CyclomaticComplexMethod:_Json5Lexer.kt:_Json5Lexer$override fun advance: SyntaxElementType?</ID>
     <ID>CyclomaticComplexMethod:_JsonLexer.kt:_JsonLexer$internal fun CharSequence.offsetByCodePoints: Int</ID>
     <ID>CyclomaticComplexMethod:_JsonLexer.kt:_JsonLexer$override fun advance: SyntaxElementType?</ID>
+    <ID>CyclomaticComplexMethod:backendRecentFilesCollector.kt:@RequiresReadLock internal fun getFilesToShow: List&lt;VirtualFile></ID>
     <ID>CyclomaticComplexMethod:bindings.kt:internal fun GroovyFile.processBindings: Boolean</ID>
     <ID>CyclomaticComplexMethod:bytecodeLineMapping.kt:internal fun mapLines: IntRange</ID>
     <ID>CyclomaticComplexMethod:distance.kt:private fun parameterDistance0: Long</ID>
+    <ID>CyclomaticComplexMethod:frontendSwitcherItemsCollector.kt:private fun updateMnemonics: List&lt;SwitcherToolWindow></ID>
     <ID>CyclomaticComplexMethod:immutable.kt:fun isImmutable: Boolean</ID>
     <ID>CyclomaticComplexMethod:jsonSchemaValidationsCollector.kt:internal fun getBaseValidations: Sequence&lt;JsonSchemaValidation></ID>
     <ID>CyclomaticComplexMethod:jsonUtil.kt:private fun toJson</ID>
@@ -644,16 +653,17 @@
     <ID>DestructuringDeclarationWithTooManyEntries:InsertImageAction.kt:InsertImageAction$val (path, _, _, title, description) = imageData</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:SpringProxyLineMarkers.kt:AopAdviceMatching.Evaluator$val (modifiers, returnType, declaration, parameters) = m.destructured</ID>
     <ID>EmptyCatchBlock:GitHistoryTraverserImplTest.kt:GitHistoryTraverserImplTest${ }</ID>
+    <ID>EmptyClassBlock:FrontendRecentFileEventsController.kt:FrontendRecentFileEventsController${ }</ID>
     <ID>EmptyClassBlock:GrParameterWrapper.kt:GrParameterWrapper${ }</ID>
     <ID>EmptyClassBlock:PsiSourceResolveResult.kt:PsiSourceResolveResult${ }</ID>
     <ID>EmptyClassBlock:SpringAutowiringInspectionTest.kt:SpringAutowiringInspectionTest.Companion${ }</ID>
     <ID>EmptyDefaultConstructor:BackendEditorConfigReferenceSupport.kt:BackendEditorConfigReferenceSupport</ID>
-    <ID>EmptyDefaultConstructor:ColumnVisualizationData.kt:ColumnVisualizationData</ID>
-    <ID>EmptyDefaultConstructor:EditorCellViewer.kt:ValueParserCache</ID>
-    <ID>EmptyDefaultConstructor:ErrorNotificationPanel.kt:ErrorNotificationPanel.EmptySpace</ID>
     <ID>EmptyDefaultConstructor:BranchesDashboardActions.kt:BranchesDashboardActions.HeadAndBranchActions</ID>
     <ID>EmptyDefaultConstructor:BranchesDashboardActions.kt:BranchesDashboardActions.ShowArbitraryBranchesDiffAction</ID>
     <ID>EmptyDefaultConstructor:BranchesDashboardActions.kt:BranchesDashboardActions.ShowArbitraryBranchesFileDiffAction</ID>
+    <ID>EmptyDefaultConstructor:ColumnVisualizationData.kt:ColumnVisualizationData</ID>
+    <ID>EmptyDefaultConstructor:EditorCellViewer.kt:ValueParserCache</ID>
+    <ID>EmptyDefaultConstructor:ErrorNotificationPanel.kt:ErrorNotificationPanel.EmptySpace</ID>
     <ID>EmptyDefaultConstructor:GHPRTimelineThreadViewModel.kt:UpdateableGHPRTimelineThreadViewModel.ReplyViewModel</ID>
     <ID>EmptyDefaultConstructor:GitConfigurationCache.kt:GitConfigurationCache</ID>
     <ID>EmptyDefaultConstructor:GitConfigurationCache.kt:GitConfigurationCacheBase</ID>
@@ -661,13 +671,16 @@
     <ID>EmptyDefaultConstructor:GitRepositoryReaderNewTest.kt:GitRepositoryReaderNewTest.UsingReftable</ID>
     <ID>EmptyDefaultConstructor:GitShallowRepositoryCheck.kt:GitShallowRepositoryCheck</ID>
     <ID>EmptyDefaultConstructor:ModalCommitSettingsListener.kt:ModalCommitSettingsListener</ID>
+    <ID>EmptyDefaultConstructor:RunContentSyncListener.kt:RunContentSyncListener</ID>
     <ID>EmptyDefaultConstructor:SLRUTextMateCache.kt:SLRUTextMateCache.LRUSegment</ID>
+    <ID>EmptyDefaultConstructor:ServiceViewDescriptorIdSerializer.kt:ServiceViewDescriptorIdsSerializer</ID>
     <ID>EmptyElseBlock:AiIntegrationsScenario.kt:AiIntegrationsScenario$if (n &lt; 0) break</ID>
     <ID>EmptyElseBlock:AiIntegrationsScenario.kt:AiIntegrationsScenario$if (win.width != w || win.height != h) win.setSize(w, h)</ID>
     <ID>EmptyElseBlock:CodexUsageParseTest.kt:CodexUsageParseTest.FakeChannel$if (timeoutMs > 0) Thread.sleep(minOf(timeoutMs, 20))</ID>
     <ID>EmptyElseBlock:DbSchemaObjects.kt:DbObjectCache$if (p.seq == 1) unnamed++</ID>
     <ID>EmptyElseBlock:DbSessionSchemaTest.kt:DbSessionSchemaTest.Fake$if (!ignoresSetters) catalog = args[0] as String</ID>
     <ID>EmptyElseBlock:DbSessionSchemaTest.kt:DbSessionSchemaTest.Fake$if (!ignoresSetters) schema = args[0] as String</ID>
+    <ID>EmptyElseBlock:EndpointRequests.kt:ServerConfig$if (stack.isNotEmpty()) stack.removeAt(stack.size - 1)</ID>
     <ID>EmptyElseBlock:JsInterpreter.kt:Builtins$if (JsValues.truthy(r)) out.add(v)</ID>
     <ID>EmptyElseBlock:JsParser.kt:JsLexer$if (c == '\n') line++</ID>
     <ID>EmptyElseBlock:JsParser.kt:JsParser$if (t.text in RESERVED) fail("Unexpected '${t.text}'")</ID>
@@ -687,8 +700,8 @@
     <ID>EmptyFunctionBlock:BlockDecorationState.kt:EmptyLineMarkerRenderer${ }</ID>
     <ID>EmptyFunctionBlock:BlockTerminalCommandExecutionTest.kt:MyHyperlinkFilter.NopHyperlinkInfo${}</ID>
     <ID>EmptyFunctionBlock:BlockTerminalView.kt:BlockTerminalView${}</ID>
-    <ID>EmptyFunctionBlock:DataGridFontOptionsPanel.kt:DataGridFontOptionsPanel.&lt;no name provided>${ }</ID>
     <ID>EmptyFunctionBlock:CleanupBranchesDialog.kt:CleanupBranchesDialog.&lt;no name provided>${}</ID>
+    <ID>EmptyFunctionBlock:DataGridFontOptionsPanel.kt:DataGridFontOptionsPanel.&lt;no name provided>${ }</ID>
     <ID>EmptyFunctionBlock:DataSources.kt:DbDataSourceService${}</ID>
     <ID>EmptyFunctionBlock:DbColors.kt:DbColorService${}</ID>
     <ID>EmptyFunctionBlock:DbDiagram.kt:DbDiagramEditor${}</ID>
@@ -701,6 +714,7 @@
     <ID>EmptyFunctionBlock:EditorConfigConfigurable.kt:EditorConfigConfigurable${ }</ID>
     <ID>EmptyFunctionBlock:EditorConfigFileHierarchyServiceImpl.kt:EditorConfigFileHierarchyServiceImpl${ }</ID>
     <ID>EmptyFunctionBlock:EmptyDriver.kt:EmptyDriver${}</ID>
+    <ID>EmptyFunctionBlock:EndpointsToolWindow.kt:EndpointsPanel${}</ID>
     <ID>EmptyFunctionBlock:EntityDiagram.kt:EntityDiagramPanel${}</ID>
     <ID>EmptyFunctionBlock:ErdEditor.kt:ErdEditor${}</ID>
     <ID>EmptyFunctionBlock:GHPRReviewSuggestedChangeComponentFactory.kt:GHPRReviewSuggestedChangeComponentFactory.CommitSuggestedChangeAction.&lt;no name provided>${}</ID>
@@ -744,8 +758,8 @@
     <ID>EmptyFunctionBlock:JsonSchemaCatalogNotificationProviderTest.kt:JsonSchemaCatalogNotificationProviderTest.TestFileEditor${ }</ID>
     <ID>EmptyFunctionBlock:JsonSchemaVfsListener.kt:JsonSchemaUpdater${ }</ID>
     <ID>EmptyFunctionBlock:JsonTextLiteralService.kt:JsonTextLiteralService${ }</ID>
-    <ID>EmptyFunctionBlock:LocalFilterPopup.kt:LocalFilterPopup.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:LightGitTracker.kt:LightGitTracker${ }</ID>
+    <ID>EmptyFunctionBlock:LocalFilterPopup.kt:LocalFilterPopup.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:LoopbackTtyConnector.kt:LoopbackTtyConnector${}</ID>
     <ID>EmptyFunctionBlock:MarkdownHtmlExportProvider.kt:MarkdownHtmlExportProvider.SaveSettingsListener${}</ID>
     <ID>EmptyFunctionBlock:MarkdownPreviewFileEditor.kt:MarkdownPreviewFileEditor${}</ID>
@@ -762,6 +776,7 @@
     <ID>EmptyFunctionBlock:ModelUpdatingTerminalDisplay.kt:ModelUpdatingTerminalDisplay${}</ID>
     <ID>EmptyFunctionBlock:MoveColumnListener.kt:MoveColumnListener${ }</ID>
     <ID>EmptyFunctionBlock:MoveTerminalSessionToEditorAction.kt:TerminalEditorWidgetListener${ }</ID>
+    <ID>EmptyFunctionBlock:NavBarRootPaneExtension.kt:&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:NestedTableGridPagingModel.kt:NestedTableGridPagingModel.StaticMultiPageModel${}</ID>
     <ID>EmptyFunctionBlock:NotificationErrorNotifier.kt:NotificationErrorNotifier${ }</ID>
     <ID>EmptyFunctionBlock:OldPlainTerminalView.kt:OldPlainTerminalView${}</ID>
@@ -776,6 +791,7 @@
     <ID>EmptyFunctionBlock:SpringBeansToolWindow.kt:SpringBeansPanel.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:SqlRefactoring.kt:SqlDbRenameProcessor${}</ID>
     <ID>EmptyFunctionBlock:StatisticsTableHeader.kt:StatisticsTableHeader.StatisticsColumnsControllerPanel.StatisticsPanel${}</ID>
+    <ID>EmptyFunctionBlock:Switcher.kt:Switcher.SwitcherPanel.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:TabGroupsService.kt:TabGroupsService${}</ID>
     <ID>EmptyFunctionBlock:TerminalActivityTracker.kt:TerminalNoOpActivityTracker${}</ID>
     <ID>EmptyFunctionBlock:TerminalCompletionFeedbackSurvey.kt:TerminalCompletionSurveyConfig${}</ID>
@@ -804,6 +820,10 @@
     <ID>ExplicitItLambdaParameter:GrSignatureWrapper.kt:GrSignatureWrapper${ it -> GrParameterWrapper( it.name, it.type, it.defaultInitializer ) }</ID>
     <ID>ExplicitItLambdaParameter:GrStaticExpressionReference.kt:GrStaticExpressionReference.Resolver${ it -> arrayOf(it) }</ID>
     <ID>ForbiddenComment:CodeInsightFixtureExtension.kt:CodeInsightFixtureExtension$// TODO: Investigate why createLightFixtureBuilder is not working correctly with TestApplicationExtension</ID>
+    <ID>ForbiddenComment:DefaultNavBarItem.kt:// TODO: remove. It doesn't look like we'll have packages in navbar ever again</ID>
+    <ID>ForbiddenComment:DefaultNavBarItemProvider.kt:DefaultNavBarItemProvider$/*TODO: think about passing root here*/</ID>
+    <ID>ForbiddenComment:DefaultNavBarItemProvider.kt:DefaultNavBarItemProvider$// TODO: cache all roots? (like passing through NavBarModelBuilder.traverseToRoot)</ID>
+    <ID>ForbiddenComment:DefaultNavBarItemProvider.kt:DefaultNavBarItemProvider$// TODO: hash all roots? (Set instead of Sequence)</ID>
     <ID>ForbiddenComment:ExportedDiagramEditorNotificationProvider.kt:ExportedDiagramEditorNotificationProvider$// TODO: JCefImageViewer became the default image viewer in 232, so this should be removed after dropping 232 support</ID>
     <ID>ForbiddenComment:GHCloneDialogExtensionComponentBase.kt:GHCloneDialogExtensionComponentBase$//TODO: fix jumping selection in the presence of filter</ID>
     <ID>ForbiddenComment:GHGQLData.kt:GHGQLQueryTestData$// TODO: Double-check when creating version-restricted queries / re-using in GitLab</ID>
@@ -886,6 +906,7 @@
     <ID>ForbiddenComment:TomlJsonSchemaValueCompletionTest.kt:TomlJsonSchemaValueCompletionTest$// TODO: Support value completion in inline tables</ID>
     <ID>ForbiddenComment:UnresolvedIdentifierSymbol.kt:UnresolvedIdentifierSymbol$// TODO: Split UnresolvedIdentifierSymbol and IdentifierSymbol</ID>
     <ID>ForbiddenComment:YAMLInlineExpandTest.kt:YAMLInlineExpandTest$// FIXME: Is it possible to add beforeEach and afterEach cals of fixing indent?</ID>
+    <ID>ForbiddenComment:serviceViewImplementationChooser.kt:// FIXME: When we consider client services stable enough, all usages of the method must be removed,</ID>
     <ID>ForbiddenComment:terminalStartup.kt:// TODO: this check is very fragile and should be replaced with a more robust solution.</ID>
     <ID>FunctionNaming:GHUIUtil.kt:GHUIUtil.SelectionPresenters$fun Labels: (GHLabel) -> PopupItemPresentation.Simple</ID>
     <ID>FunctionNaming:GHUIUtil.kt:GHUIUtil.SelectionPresenters$fun PRReviewers: (GHPullRequestRequestedReviewer) -> PopupItemPresentation.Simple</ID>
@@ -901,6 +922,7 @@
     <ID>FunctionNaming:_JsonLexer.kt:_JsonLexer.Companion$@JvmStatic private fun zzUnpackcmap_top: IntArray</ID>
     <ID>FunctionOnlyReturningConstant:DeclarativeIdeSupport.kt:DeclarativeIdeSupport$@JvmStatic fun isEnabled: Boolean</ID>
     <ID>FunctionOnlyReturningConstant:GHNewPRDiffVirtualFile.kt:private fun getFileName: String</ID>
+    <ID>FunctionOnlyReturningConstant:NavBarRootPaneExtension.kt:MyNavBarWrapperPanel$private fun shouldPaintWrapperPanel: Boolean</ID>
     <ID>FunctionOnlyReturningConstant:TomlParserUtil.kt:TomlParserUtil$@Suppress("UNUSED_PARAMETER") @JvmStatic fun any: Boolean</ID>
     <ID>FunctionOnlyReturningConstant:_Json5Lexer.kt:_Json5Lexer$private fun zzCanGrow: Boolean</ID>
     <ID>FunctionOnlyReturningConstant:_Json5Lexer.kt:_Json5Lexer$private fun zzRefill: Boolean</ID>
@@ -1096,11 +1118,13 @@
     <ID>LongMethod:WorkspacesScenario.kt:WorkspacesRun$suspend fun openProject: Project?</ID>
     <ID>LongMethod:_Json5Lexer.kt:_Json5Lexer$override fun advance: SyntaxElementType?</ID>
     <ID>LongMethod:_JsonLexer.kt:_JsonLexer$override fun advance: SyntaxElementType?</ID>
+    <ID>LongMethod:frontendSwitcherItemsCollector.kt:private fun updateMnemonics: List&lt;SwitcherToolWindow></ID>
     <ID>MatchingDeclarationName:AutoImplementTransformationSupport.kt:AutoImplementTransformation : AstTransformationSupport</ID>
+    <ID>MatchingDeclarationName:BackendRunDashboardContentDescriptorLifecycleListener.kt:BackendDashboardListenerInstaller : ProjectActivity</ID>
     <ID>MatchingDeclarationName:BootProfileValueLineMarkers.kt:BootProfileValueLineMarkerProvider : LineMarkerProviderDescriptor</ID>
     <ID>MatchingDeclarationName:ChangePageSizeAction.kt:ChangePageSizeActionNew : ToggleAction</ID>
-    <ID>MatchingDeclarationName:ColumnLocalFilterClearAction.kt:ColumnLocalFilterClearAllAction : DumbAwareActionGridActionFrontendOtherwiseBackend</ID>
     <ID>MatchingDeclarationName:CherryPickProcess.kt:GitCherryPickProcess : GitApplyChangesProcess</ID>
+    <ID>MatchingDeclarationName:ColumnLocalFilterClearAction.kt:ColumnLocalFilterClearAllAction : DumbAwareActionGridActionFrontendOtherwiseBackend</ID>
     <ID>MatchingDeclarationName:ComposeLineMarkers.kt:ComposeLineMarkerProvider : LineMarkerProviderDescriptor</ID>
     <ID>MatchingDeclarationName:CopyRepositoryRootPathProvider.kt:CopyPathFromRepositoryRootProvider : DumbAwareCopyPathProvider</ID>
     <ID>MatchingDeclarationName:DbRunFile.kt:DbRunSqlFileAction : DumbAwareAction</ID>
@@ -1126,11 +1150,13 @@
     <ID>MatchingDeclarationName:JsonLazyParsing.kt:JsonLazyParsingVetoer</ID>
     <ID>MatchingDeclarationName:MermaidPsiElements.kt:MermaidDiagramBlock : MermaidPsiElement</ID>
     <ID>MatchingDeclarationName:MethodRequestBuilder.kt:MethodRequestsBuilder</ID>
+    <ID>MatchingDeclarationName:MonolithNavBarServiceDelegate.kt:MonolithNavbarServiceDelegate : NavBarServiceDelegate</ID>
     <ID>MatchingDeclarationName:NestedTablesAwareGridLoader.kt:NestedTablesGridLoader : NestedTablesAware</ID>
     <ID>MatchingDeclarationName:OpenApiShape.kt:OpenApiSpecShapeInspection : LocalInspectionTool</ID>
     <ID>MatchingDeclarationName:ProjectUtils.kt:ProjectUtil</ID>
     <ID>MatchingDeclarationName:PropertiesCommentCompletionCommand.kt:PropertiesCommentCommandProvider : ActionCommandProvider</ID>
     <ID>MatchingDeclarationName:SecurityRoles.kt:SecurityRolePrefixInspection : AbstractBaseUastLocalInspectionTool</ID>
+    <ID>MatchingDeclarationName:ServiceViewDescriptorIdSerializer.kt:ServiceViewDescriptorIdsSerializer : CustomDataContextSerializer</ID>
     <ID>MatchingDeclarationName:SqlDocumentation.kt:SqlDocumentationProvider : AbstractDocumentationProvider</ID>
     <ID>MatchingDeclarationName:SqlEntityLineMarker.kt:SqlEntityLineMarkerProvider : LineMarkerProviderDescriptor</ID>
     <ID>MatchingDeclarationName:TerminalAgentsSupport.kt:TerminalAvailableAgentEntry</ID>
@@ -1163,6 +1189,8 @@
     <ID>NestedBlockDepth:DbSshTunnel.kt:DbSshTunnelOpener$override fun open: DbTunnel</ID>
     <ID>NestedBlockDepth:Dockerfile.kt:Dockerfile.Companion$fun parse: Dockerfile</ID>
     <ID>NestedBlockDepth:EditorConfigCodeStyleSettingsModifier.kt:private fun processOptions: Boolean</ID>
+    <ID>NestedBlockDepth:EndpointRequests.kt:ServerConfig$fun hocon: Map&lt;String, String></ID>
+    <ID>NestedBlockDepth:FrontendRunDashboardManager.kt:FrontendRunDashboardManager$fun detachServiceRunContentDescriptor</ID>
     <ID>NestedBlockDepth:GitBranchComparisonResultImpl.kt:GitBranchComparisonResultImpl$private fun initForLinearHistory</ID>
     <ID>NestedBlockDepth:HelpersTest.kt:HelpersTest$@Test fun helpersSitOnTheirRugBesideTheParentClearOfPeopleAndFurniture</ID>
     <ID>NestedBlockDepth:HelpersTest.kt:HelpersTest$@Test fun twoSubagentsDrawExtraPixelsNextToTheParentInEveryTheme</ID>
@@ -1191,6 +1219,7 @@
     <ID>NestedBlockDepth:TomlDslParser.kt:TomlDslParser$private fun replaceLibraryRefsInBundlesWithInjections</ID>
     <ID>NestedBlockDepth:TomlDslParser.kt:TomlDslParser$private fun replaceVersionRefsWithInjections</ID>
     <ID>NestedBlockDepth:TomlJsonPsiWalker.kt:TomlJsonPsiWalker$override fun findPosition: JsonPointerPosition</ID>
+    <ID>NestedBlockDepth:backendRecentFilesCollector.kt:@RequiresReadLock internal fun getFilesToShow: List&lt;VirtualFile></ID>
     <ID>PackageNaming:AddGenericToDeclarationFixTest.kt:package com.phantom.mermaid.lang.intention.undeclared_generic</ID>
     <ID>PackageNaming:AnActionOptionButton.kt:package git4idea.rebase.interactive.dialog</ID>
     <ID>PackageNaming:BranchIconUtil.kt:package git4idea.ui.branch</ID>
@@ -1912,8 +1941,6 @@
     <ID>SwallowedException:AndroidGradleDeclarativeBuildModelImpl.kt:AndroidGradleDeclarativeBuildModelImpl$e: IllegalStateException</ID>
     <ID>SwallowedException:BlockTerminalSearchSession.kt:BlockTerminalSearchSession$e: PatternSyntaxException</ID>
     <ID>SwallowedException:BrowserLogin.kt:BrowserLogin$e: IOException</ID>
-    <ID>SwallowedException:ClaudeCredentials.kt:TimedProcessRunner$e: java.io.IOException</ID>
-    <ID>SwallowedException:ClaudeUsageClient.kt:ClaudeUsageClient$e: java.io.IOException</ID>
     <ID>SwallowedException:CodeIndex.kt:IdeCodeIndex$e: TimeoutException</ID>
     <ID>SwallowedException:CodexProbeLaunchTest.kt:CodexProbeLaunchTest$e: IOException</ID>
     <ID>SwallowedException:CodexUsageClient.kt:CodexUsageClient$e: IOException</ID>
@@ -1928,6 +1955,9 @@
     <ID>SwallowedException:DbResultsGridTest.kt:DbResultsGridTest$e: DbException</ID>
     <ID>SwallowedException:DbTableEdits.kt:DbEditTargets$e: SQLException</ID>
     <ID>SwallowedException:DbToolWindow.kt:DbExplorerPanel.Companion$e: SQLException</ID>
+    <ID>SwallowedException:DefaultNavBarItem.kt:PsiNavBarItem$e: IndexNotReadyException</ID>
+    <ID>SwallowedException:DefaultNavBarItemProvider.kt:DefaultNavBarItemProvider$t: Throwable</ID>
+    <ID>SwallowedException:DefaultNavBarItemProvider.kt:pce: ProcessCanceledException</ID>
     <ID>SwallowedException:EditorConfigDescriptorParseHandlerBase.kt:EditorConfigDescriptorParseHandlerBase$ex: ClassCastException</ID>
     <ID>SwallowedException:EditorConfigDescriptorParseHandlerBase.kt:EditorConfigDescriptorParseHandlerBase$ex: IllegalStateException</ID>
     <ID>SwallowedException:EditorConfigEditorProvider.kt:e: IOException</ID>
@@ -2022,6 +2052,7 @@
     <ID>ThrowsCount:DbSshTunnel.kt:DbSshAgent$private fun call: Buffer.PlainBuffer</ID>
     <ID>ThrowsCount:DbSshTunnel.kt:DbSshTunnelOpener$override fun open: DbTunnel</ID>
     <ID>ThrowsCount:DbTableCopy.kt:DbTableCopy$suspend fun run: DbTableCopyResult</ID>
+    <ID>ThrowsCount:DefaultNavBarItemProvider.kt:internal fun ensurePsiFromExtensionIsValid</ID>
     <ID>ThrowsCount:DependencyCompletionServiceImpl.kt:DependencyCompletionServiceImpl$private fun &lt;C : DependencyCompletionContributor, R : BaseDependencyCompletionResult> parallelStream: Flow&lt;DependencyCompletionEvent&lt;R>></ID>
     <ID>ThrowsCount:EditorConfigJsonSchemaParser.kt:EditorConfigJsonSchemaParser$fun parse: EditorConfigDescriptor</ID>
     <ID>ThrowsCount:GitAmendSpecificCommitSquasher.kt:GitAmendSpecificCommitSquasher$fun squashAmendCommitIntoTarget</ID>
@@ -2091,6 +2122,8 @@
     <ID>TooGenericExceptionCaught:DbToolWindow.kt:DbExplorerPanel$e: Exception</ID>
     <ID>TooGenericExceptionCaught:DbTunnels.kt:DbTunnels$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:DeepComparator.kt:DeepComparator$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:DefaultNavBarItemProvider.kt:DefaultNavBarItemProvider$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:DefaultNavBarItemProvider.kt:t: Throwable</ID>
     <ID>TooGenericExceptionCaught:DependencyCompletionFuzzyMatcher.kt:DependencyCompletionFuzzyMatcher$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:DependencyCompletionServiceImpl.kt:DependencyCompletionServiceImpl$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:DockerToolWindow.kt:ContainersPanel$e: Exception</ID>
@@ -2186,6 +2219,7 @@
     <ID>TooGenericExceptionCaught:MarkdownLinkOpenerImpl.kt:MarkdownLinkOpenerImpl$exception: Throwable</ID>
     <ID>TooGenericExceptionCaught:MergeConflictResolveUtil.kt:MergeConflictResolveUtil.MyProducer$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:MermaidEditorWithPreviewProvider.kt:MermaidEditorWithPreviewProvider$exception: Exception</ID>
+    <ID>TooGenericExceptionCaught:NavBarService.kt:t: Throwable</ID>
     <ID>TooGenericExceptionCaught:NetworkntSchemaService.kt:FallbackDialectRegistry$e: Exception</ID>
     <ID>TooGenericExceptionCaught:NetworkntValidationService.kt:NetworkntValidationService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ObservableTtyConnector.kt:ObservableTtyConnector$t: Throwable</ID>
@@ -2292,6 +2326,9 @@
     <ID>TooManyFunctions:AgentTerminalService.kt:AgentTerminalService</ID>
     <ID>TooManyFunctions:AgentToolWindowPanel.kt:AgentToolWindowPanel : JPanel</ID>
     <ID>TooManyFunctions:AiOfficeEditor.kt:AiOfficeEditor : UserDataHolderBaseFileEditor</ID>
+    <ID>TooManyFunctions:BackendLuxedRunDashboardContentManager.kt:BackendLuxedRunDashboardContentManager</ID>
+    <ID>TooManyFunctions:BackendRecentFileEventsModel.kt:BackendRecentFileEventsModel</ID>
+    <ID>TooManyFunctions:BackendRunDashboardManagerState.kt:BackendRunDashboardManagerState</ID>
     <ID>TooManyFunctions:BackendTerminalHyperlinkHighlighter.kt:HighlightTaskRunner</ID>
     <ID>TooManyFunctions:BaseJunitAnnotationReference.kt:BaseJunitAnnotationReference&lt;Psi : PsiMember, U : UDeclaration> : PsiReferenceBasePsiMemberReferencePsiPolyVariantReference</ID>
     <ID>TooManyFunctions:BaseToggleStateAction.kt:BaseToggleStateAction : ToggleActionDumbAware</ID>
@@ -2345,6 +2382,7 @@
     <ID>TooManyFunctions:ErdSql.kt:ErdSql</ID>
     <ID>TooManyFunctions:FixTrackedBranchDialog.kt:FixTrackedBranchDialog : DialogWrapper</ID>
     <ID>TooManyFunctions:FlameGraph.kt:FlameGraph : JComponentScrollable</ID>
+    <ID>TooManyFunctions:FrontendRunDashboardManager.kt:FrontendRunDashboardManager : RunDashboardManager</ID>
     <ID>TooManyFunctions:GHAccountsUtil.kt:GHAccountsUtil</ID>
     <ID>TooManyFunctions:GHCloneDialogExtensionComponentBase.kt:GHCloneDialogExtensionComponentBase : VcsCloneDialogExtensionComponent</ID>
     <ID>TooManyFunctions:GHGQLRequests.kt:GHGQLRequests$PullRequest</ID>
@@ -2520,6 +2558,9 @@
     <ID>TooManyFunctions:RepositoryMethodInspection.kt:RepositoryMethodInspection$Visitor : AbstractUastNonRecursiveVisitor</ID>
     <ID>TooManyFunctions:ResolveUtil.kt:org.jetbrains.plugins.groovy.lang.resolve.ResolveUtil.kt</ID>
     <ID>TooManyFunctions:RulesConfigurable.kt:RulesConfigurable : BoundConfigurableDisposableNoScroll</ID>
+    <ID>TooManyFunctions:RunDashboardRunContentManagerExtension.kt:RunDashboardRunContentManagerExtension : RunContentManagerExtension</ID>
+    <ID>TooManyFunctions:RunDashboardServiceRpc.kt:RunDashboardServiceRpc : RemoteApi</ID>
+    <ID>TooManyFunctions:RunDashboardServiceRpcImpl.kt:RunDashboardServiceRpcImpl : RunDashboardServiceRpc</ID>
     <ID>TooManyFunctions:SLRUTextMateCache.kt:SLRUTextMateCache&lt;K : Any, V : Any?> : TextMateCache</ID>
     <ID>TooManyFunctions:ShellCommandExecutionManagerImpl.kt:ShellCommandExecutionManagerImpl : ShellCommandExecutionManager</ID>
     <ID>TooManyFunctions:ShellCommandManager.kt:ShellCommandManager</ID>
@@ -2541,6 +2582,7 @@
     <ID>TooManyFunctions:SqlResolve.kt:SqlDbTarget : FakePsiElement</ID>
     <ID>TooManyFunctions:SqlSchema.kt:SqlSchema</ID>
     <ID>TooManyFunctions:StringTransforms.kt:StringTransforms</ID>
+    <ID>TooManyFunctions:Switcher.kt:Switcher$SwitcherPanel : BorderLayoutPanelUiDataProviderQuickSearchComponentDisposable</ID>
     <ID>TooManyFunctions:TabGroupPaneController.kt:TabGroupPaneController</ID>
     <ID>TooManyFunctions:TabGroupsService.kt:TabGroupsService : PersistentStateComponentDisposable</ID>
     <ID>TooManyFunctions:TableHeatmapColorLayer.kt:TableHeatmapColorLayer : ColorLayerListenerDisposable</ID>
@@ -2687,14 +2729,18 @@
     <ID>UnusedParameter:switch.kt:statements : Array&lt;GrStatement></ID>
     <ID>UnusedPrivateClass:CopyrightManager.kt:CopyrightManagerDocumentListener : BulkFileListenerBackgroundable</ID>
     <ID>UnusedPrivateClass:MarkdownDefaultFlavour.kt:MarkdownDefaultFlavour$ExcludedElementProvider : GeneratingProvider</ID>
-    <ID>UtilityClassWithPublicConstructor:LobInfoHelper.kt:LobInfoHelper</ID>
+    <ID>UnusedPrivateClass:RecentFilesEditorTypingListener.kt:RecentFilesEditorTypingListener : AnActionListener</ID>
+    <ID>UnusedPrivateClass:RecentlyOpenedFileListener.kt:RecentlySelectedEditorListener : FileEditorManagerListener</ID>
+    <ID>UnusedPrivateClass:RunDashboardConfigurationsListener.kt:RunDashboardConfigurationsListener : RunManagerListener</ID>
     <ID>UtilityClassWithPublicConstructor:BranchIconUtil.kt:BranchIconUtil</ID>
+    <ID>UtilityClassWithPublicConstructor:LobInfoHelper.kt:LobInfoHelper</ID>
     <ID>UtilityClassWithPublicConstructor:MarkdownHtmlAnchorPsiReferenceSearcher.kt:MarkdownHtmlAnchorPsiReferenceSearcher</ID>
     <ID>UtilityClassWithPublicConstructor:MermaidElementFactory.kt:MermaidElementFactory</ID>
     <ID>UtilityClassWithPublicConstructor:ProofreadingService.kt:ProofreadingService</ID>
     <ID>UtilityClassWithPublicConstructor:TerminalCommandCompletionActionOld.kt:TerminalCommandCompletionAction</ID>
     <ID>UtilityClassWithPublicConstructor:TextCheckerManager.kt:TextCheckerManager</ID>
     <ID>UtilityClassWithPublicConstructor:Utils.kt:Utils</ID>
+    <ID>VariableNaming:AddServiceEmptyTreeSuggestion.kt:AddServiceEmptyTreeSuggestion$private val ADD_SERVICE_ACTION_ID: String = "ServiceView.AddService"</ID>
     <ID>VariableNaming:BlockTerminalTest.kt:BlockTerminalTest$val LOG = Logger.getInstance(BlockTerminalTest::class.java)</ID>
     <ID>VariableNaming:CaffeineCachingRegexProvider.kt:CachingRegexFactory$private val REGEX_CACHE: Cache&lt;CharSequence, RegexFacade> = Caffeine.newBuilder() .maximumSize(1000) .expireAfterAccess(1, TimeUnit.MINUTES) .removalListener { _: CharSequence?, v: RegexFacade?, _ -> v?.close() } .executor(Dispatchers.Default.asExecutor()) .build()</ID>
     <ID>VariableNaming:CaffeineCachingRegexProvider.kt:CaffeineCachingRegexProvider$private val REGEX_CACHE: Cache&lt;CharSequence, RegexFacade> = Caffeine.newBuilder() .maximumSize(1000) .expireAfterAccess(1, TimeUnit.MINUTES) .removalListener { _: CharSequence?, v: RegexFacade?, _ -> v?.close() } .executor(Dispatchers.Default.asExecutor()) .build()</ID>
@@ -2770,20 +2816,17 @@
     <ID>VariableNaming:MarkdownJCEFHtmlPanel.kt:MarkdownJCEFHtmlPanel$private val TEMPORARY_FONT_SIZE = Key.create&lt;Int>("Markdown.Preview.FontSize")</ID>
     <ID>VariableNaming:PropertiesMergeConflictResolver.kt:PropertiesMergeConflictResolver$private val FILTERS = listOf(OUTSIDE_INTERSECTIONS, INNER_INCONSISTENCY, COMMENT_INTERSECTIONS, COMMENT_INCONSISTENCY)</ID>
     <ID>VariableNaming:PsiBuilderFillingVisitor.kt:PsiBuilderFillingVisitor$private val HEADERS = MarkdownTokenTypeSets.HEADERS.types.map { MarkdownElementType.markdownType(it) }.toSet()</ID>
+    <ID>VariableNaming:RecentFilesEditorTypingListener.kt:RecentFilesEditorTypingListener$private val LOG = thisLogger()</ID>
     <ID>VariableNaming:ShellIntegrationTest.kt:ShellIntegrationTest$private val CTRL_C_BYTES: ByteArray = byteArrayOf(Ascii.ETX)</ID>
     <ID>VariableNaming:ShellIntegrationTest.kt:ShellIntegrationTest$private val CTRL_L_BYTES: ByteArray = byteArrayOf(Ascii.FF)</ID>
     <ID>VariableNaming:ShellIntegrationTest.kt:ShellIntegrationTest$private val TAB_BYTES: ByteArray = byteArrayOf(Ascii.HT)</ID>
     <ID>VariableNaming:SqlCodeStyle.kt:SqlCodeStyleSettings$/** [AS_WRITTEN], [UPPER] or [LOWER]: what Reformat Code does to keywords. */ @JvmField var KEYWORD_CASE: Int = AS_WRITTEN</ID>
+    <ID>VariableNaming:SwitcherRendering.kt:SwitcherListRenderer$private val SEPARATOR = JBUI.CurrentTheme.CustomFrameDecorations.separatorForeground()</ID>
     <ID>VariableNaming:TerminalFontSettingsService.kt:TerminalFontSettingsState$var COLUMN_SPACING: Float = DEFAULT_TERMINAL_COLUMN_SPACING.floatValue</ID>
     <ID>VariableNaming:TestDialogManager.kt:TestDialogManager$private val DEFAULT_MESSAGE_HANDLER : (String) -> Int = { throw IllegalStateException("Message is not expected: $it") }</ID>
     <ID>VariableNaming:TestGit.kt:TestGitImpl$private val LOG = Logger.getInstance(TestGitImpl::class.java)</ID>
     <ID>VariableNaming:TextMateCachingSyntaxMatcher.kt:TextMateCachingSyntaxMatcher$private val CACHE = Caffeine.newBuilder() .maximumSize(10000) .expireAfterAccess(1, TimeUnit.MINUTES) .executor(Dispatchers.Default.asExecutor()) .build&lt;MatchKey, TextMateLexerState>()</ID>
     <ID>VariableNaming:TextMateLexerTestCase.kt:TextMateLexerTestCase$private val TEST_DATA_BASE_DIR: String = "${java.io.File("").absolutePath}/testData/lexer" // Phantom-plugins: the plugin folder, not the IDE home</ID>
     <ID>VariableNaming:TransformationContextImpl.kt:TransformationContextImpl$// Modifiers should be processed with care in transformation context to avoid recursion issues. // This code re-creates erasures computation to properly handle modifier querying private val AST_TRANSFORMATION_AWARE_METHOD_PARAMETERS_ERASURE_EQUALITY: Hash.Strategy&lt;MethodSignature> = object : Hash.Strategy&lt;MethodSignature> { override fun equals(a: MethodSignature?, b: MethodSignature?): Boolean { if (a === b) return true return (a != null &amp;&amp; b != null &amp;&amp; a.parameterTypes.map { erase(it) } == b.parameterTypes.map { erase(it) }) } override fun hashCode(signature: MethodSignature?): Int { return signature?.name?.hashCode() ?: 0 } }</ID>
-    <ID>ComplexCondition:EndpointRequests.kt:ServerConfig$v.length >= 2 &amp;&amp; (v.first() == '"' &amp;&amp; v.last() == '"' || v.first() == '\'' &amp;&amp; v.last() == '\'')</ID>
-    <ID>CyclomaticComplexMethod:EndpointRequests.kt:ServerConfig$fun yaml: Map&lt;String, String></ID>
-    <ID>EmptyElseBlock:EndpointRequests.kt:ServerConfig$if (stack.isNotEmpty()) stack.removeAt(stack.size - 1)</ID>
-    <ID>EmptyFunctionBlock:EndpointsToolWindow.kt:EndpointsPanel${}</ID>
-    <ID>NestedBlockDepth:EndpointRequests.kt:ServerConfig$fun hocon: Map&lt;String, String></ID>
   </CurrentIssues>
 </SmellBaseline>
