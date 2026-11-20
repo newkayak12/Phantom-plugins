@@ -19,6 +19,8 @@ sourceSets {
 }
 
 dependencies {
+  // Generates the RemoteApiDescriptor of the @Rpc interfaces and passes it to remoteApiDescriptor<T>()
+  kotlinCompilerPluginClasspathMain(project(":compiler-plugins:fleet-rpc"))
   intellijPlatform {
     bundledModule("intellij.platform.backend")
     bundledModule("intellij.platform.kernel.backend")
