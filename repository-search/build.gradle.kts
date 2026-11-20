@@ -4,32 +4,16 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.1"
+version = "0.1.2"
 
 dependencies {
   intellijPlatform {
     // common builds on the Maven plugin's model module
     // phantom-compat.yml: Phantom publishes Maven as a plugin of its own; -PmavenPlugin=<Maven plugin zip or dir> takes it from there
     providers.gradleProperty("mavenPlugin").orNull?.let { localPlugin(it) } ?: bundledPlugin("org.jetbrains.idea.maven")
-    bundledModule("intellij.libraries.ktor.client")
-    bundledModule("intellij.libraries.kotlinx.io")
-    bundledModule("intellij.libraries.kotlinx.coroutines.slf4j")
-    bundledModule("intellij.libraries.mvstore")
     bundledModule("intellij.platform.externalSystem")
     testFramework(TestFrameworkType.JUnit5, providers.gradleProperty("platformTestBuild"))
   }
-  // Packaged in the plugin, as IntelliJ's package-search-api-client library and kotlinx-document-store-mvstore module are.
-  // Their own dependencies (Ktor, kotlinx.serialization, kotlinx-datetime, H2 MVStore) come with the platform.
-  listOf(
-    "org.jetbrains.packagesearch:packagesearch-api-client-jvm:3.4.0",
-    "org.jetbrains.packagesearch:packagesearch-http-models-jvm:3.4.0",
-    "org.jetbrains.packagesearch:packagesearch-api-models-jvm:3.4.0",
-    "org.jetbrains.packagesearch:packagesearch-version-utils-jvm:3.4.0",
-    "com.soywiz.korlibs.krypto:krypto-jvm:4.0.10",
-    "com.github.lamba92:kotlinx-document-store-mvstore:0.0.4",
-    "com.github.lamba92:kotlinx-document-store-core-jvm:0.0.4",
-  ).forEach { implementation(it) { isTransitive = false } }
-
   testImplementation(platform("org.junit:junit-bom:6.0.3"))
   testImplementation("org.junit.jupiter:junit-jupiter")
   testRuntimeOnly("org.junit.platform:junit-platform-launcher")
