@@ -89,6 +89,12 @@ include("groovy-scripting")
 include("groovy")
 include("groovy-live-templates")
 include("images")
+include("navbar")
+include("recentfiles")
+include("serviceview")
+
+// Not plugins: Kotlin compiler plugins some plugins compile with
+include(":compiler-plugins:fleet-rpc")
 include("grid")
 include("local-shared-index")
 include("sync")

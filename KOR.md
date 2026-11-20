@@ -79,6 +79,9 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Groovy Support | [groovy](./groovy/KOR.md) · [English](./groovy/README.md) | Groovy 언어 지원 (262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Groovy Live Templates Support | [groovy-live-templates](./groovy-live-templates/KOR.md) · [English](./groovy-live-templates/README.md) | groovyScript() 라이브 템플릿 매크로 (262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Images | [images](./images/KOR.md) · [English](./images/README.md) | 이미지 뷰어와 편집 도구(확대, 격자, 체스판, 배경 이미지, 과학용 보기)와 SVG 언어 (Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Navigation Bar | [navbar](./navbar/KOR.md) · [English](./navbar/README.md) | 현재 파일 경로를 보여 주는 내비게이션 바 (Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Recent Files | [recentfiles](./recentfiles/KOR.md) · [English](./recentfiles/README.md) | 최근 파일, 최근 위치, 스위처 (Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Services View | [serviceview](./serviceview/KOR.md) · [English](./serviceview/README.md) | 서비스 도구 창과 실행 대시보드 (Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Grid | [grid](./grid/KOR.md) · [English](./grid/README.md) | 다른 플러그인이 표를 보여 주는 데이터 그리드(정렬, 필터, 셀 편집, 내보내기)와 CSV/TSV 파일의 표 보기 (Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Git Support | [git](./git/KOR.md) · [English](./git/README.md) | IDE 안의 Git: 클론, 커밋, 푸시, 풀, 병합과 리베이스, 브랜치, Git 로그, 스태시, 스테이징 영역, 워크트리. GitHub Support 등이 이것을 바탕으로 동작 (Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom CPU Indicator | [cpu](./cpu/KOR.md) · [English](./cpu/README.md) | 상태바에 IDE·시스템 CPU, 호버하면 IDE가 CPU를 어디에 썼는지(인덱싱, 분석, GC, JIT) |
