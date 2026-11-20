@@ -1083,6 +1083,55 @@
       "since": "262.261119",
       "until": "262.*",
       "download": "maven-262.261119/Maven-262.261119.zip"
+    },
+    {
+      "id": "dev.phantom.navbar",
+      "name": "Navigation Bar",
+      "version": "0.1.0",
+      "source": "navbar",
+      "description": "The navigation bar: the path of the current file above or below the editor, with popups to browse and open files. Based on the IntelliJ Community Navbar plugin (Apache 2.0); intellij.navbar.plugin stays as an alias and the content module names stay the IntelliJ ones. Bundled with Phantom from build 262.261120; older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Navigation",
+      "since": "262.261120",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "navbar-0.1.0/navbar-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.recentfiles",
+      "name": "Recent Files",
+      "version": "0.1.0",
+      "source": "recentfiles",
+      "description": "Recent Files, Recent Locations and the Switcher (Ctrl+Tab). Based on the IntelliJ Community Recent Files plugin (Apache 2.0); intellij.recentFiles.plugin stays as an alias and the content module names stay the IntelliJ ones. Bundled with Phantom from build 262.261120; older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Navigation",
+      "since": "262.261120",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "recentfiles-0.1.0/recentfiles-0.1.0.zip",
+      "detect": []
+    },
+    {
+      "id": "dev.phantom.serviceview",
+      "name": "Services View",
+      "version": "0.1.0",
+      "source": "serviceview",
+      "description": "The Services tool window: run configurations, servers, databases, Docker and other services in one place, with the run dashboard. Based on the IntelliJ Community Services View plugin (Apache 2.0); intellij.execution.serviceView.plugin stays as an alias and the content module names stay the IntelliJ ones. Needs Navigation Bar. Bundled with Phantom from build 262.261120; older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Tools Integration",
+      "since": "262.261120",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang",
+        "intellij.navbar.plugin"
+      ],
+      "download": "serviceview-0.1.0/serviceview-0.1.0.zip",
+      "detect": []
     }
   ]
 }

@@ -1,0 +1,29 @@
+<idea-plugin>
+  <!-- Phantom's own id; intellij.navbar.plugin stays as an alias. The content module names stay the IntelliJ ones, as the
+       platform depends on them by name (intellij.platform.navbar). The bundled IntelliJ Navbar plugin has to be gone, or
+       both claim the same id and modules. -->
+  <id>dev.phantom.navbar</id>
+  <name>Navigation Bar</name>
+  <module value="intellij.navbar.plugin"/>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Navigation</category>
+  <description><![CDATA[
+    The navigation bar: the path of the current file above or below the editor, with popups to browse and open files.
+    <br/>
+    Based on the IntelliJ Community Navbar plugin (Apache 2.0).
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+  </dependencies>
+
+  <!-- One jar. The shared module loads embedded: its package (com.intellij.platform.navbar) holds the packages of the
+       other three, so it cannot have a class loader filtered to a package of its own. Backend, frontend and monolith keep
+       their own class loader on a package of their own. -->
+  <content namespace="jetbrains">
+    <module name="intellij.platform.navbar" loading="embedded"/>
+    <module name="intellij.platform.navbar.backend"/>
+    <module name="intellij.platform.navbar.frontend"/>
+    <module name="intellij.platform.navbar.monolith"/>
+  </content>
+</idea-plugin>
