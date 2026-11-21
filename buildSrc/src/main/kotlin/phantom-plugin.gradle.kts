@@ -73,6 +73,10 @@ val packedLibraries = configurations.create("packedLibraries") {
   isCanBeConsumed = false
 }
 
+// After the Gradle plugin's own arguments, which carry Phantom's class data sharing options (see NoClassDataSharing)
+tasks.withType<Test>().configureEach { doFirst { (this as Test).jvmArgumentProviders.add(NoClassDataSharing()) } }
+tasks.withType<JavaExec>().configureEach { doFirst { (this as JavaExec).jvmArgumentProviders.add(NoClassDataSharing()) } }
+
 // META-INF/THIRD-PARTY-NOTICES.txt and META-INF/licenses/: every library packed into the plugin's lib/, with its license
 // and the license texts. Computed from the resolved POMs when the task's input is read.
 val thirdPartyNotices = tasks.register<ThirdPartyNoticesTask>("thirdPartyNotices") {
