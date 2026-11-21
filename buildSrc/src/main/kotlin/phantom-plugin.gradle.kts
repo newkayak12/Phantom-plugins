@@ -76,6 +76,9 @@ val packedLibraries = configurations.create("packedLibraries") {
 // After the Gradle plugin's own arguments, which carry Phantom's class data sharing options (see NoClassDataSharing)
 tasks.withType<Test>().configureEach { doFirst { (this as Test).jvmArgumentProviders.add(NoClassDataSharing()) } }
 tasks.withType<JavaExec>().configureEach { doFirst { (this as JavaExec).jvmArgumentProviders.add(NoClassDataSharing()) } }
+// The IDE test framework only lets tests read files under the user's home and a few other roots; a checkout elsewhere
+// (/tmp, a CI workspace) failed every test reading its testData. The real path: VfsRootAccess compares resolved paths.
+tasks.withType<Test>().configureEach { systemProperty("vfs.additional-allowed-roots", rootDir.canonicalPath) }
 
 // META-INF/THIRD-PARTY-NOTICES.txt and META-INF/licenses/: every library packed into the plugin's lib/, with its license
 // and the license texts. Computed from the resolved POMs when the task's input is read.
@@ -91,9 +94,11 @@ val thirdPartyNotices = tasks.register<ThirdPartyNoticesTask>("thirdPartyNotices
 // Every plugin zip carries the licenses with it: the repository's LICENSE and NOTICE, a plugin folder's own LICENSE
 // (TOML's MIT license, for one) as META-INF/LICENSE-<plugin>, and the notices of its third-party libraries
 tasks.named<Jar>("jar") {
+  // Read here: the rename runs at execution time, where Task.project breaks the configuration cache
+  val pluginLicense = "LICENSE-${project.name}"
   metaInf {
     from(rootDir.resolve("LICENSE"), rootDir.resolve("NOTICE"))
-    from(projectDir.resolve("LICENSE").takeIf { it.isFile } ?: files()) { rename { "LICENSE-${project.name}" } }
+    from(projectDir.resolve("LICENSE").takeIf { it.isFile } ?: files()) { rename { pluginLicense } }
     from(thirdPartyNotices)
   }
 }
