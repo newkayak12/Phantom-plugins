@@ -19,3 +19,8 @@ JSP, AsciiDoc, HCL, Terraform, Bazel, CMake, JavaScript, TypeScript, CSS, SCSS a
 shipped grammar when a project opens. The ones left out are covered by a Phantom plugin (Java, Groovy, JSON, YAML,
 Markdown, shell, XML, HTML) or are not used in a Java or Kotlin backend project. Add any of them back in Settings | Editor |
 TextMate Bundles.
+
+**0.1.3**: each shipped grammar that VS Code took from another project carries that project's license in its folder
+(`lib/bundles/<name>/LICENSE`, plus Docker's `NOTICE`): Batch (Michael Mims, MIT), SQL, CSS, JavaScript and TypeScript
+(Microsoft, MIT), Dockerfile (Docker, Apache 2.0), .env, logs, Makefile, PowerShell, git files, SCSS, Less, and the
+TextMate bundle license for INI, diff and JavaScript regular expressions.
