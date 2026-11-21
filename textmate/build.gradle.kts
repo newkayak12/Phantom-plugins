@@ -51,8 +51,8 @@ val shippedBundles = listOf(
   "jsp", "adoc",
   // infrastructure
   "hcl", "terraform", "bazel", "cmake",
-  // front end and scripts kept next to a backend
-  "javascript", "typescript-basics", "css", "scss", "less", "python",
+  // front end kept next to a backend
+  "javascript", "typescript-basics", "css", "scss", "less",
 )
 
 tasks.prepareSandbox {
