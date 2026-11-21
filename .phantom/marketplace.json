@@ -724,9 +724,9 @@
     {
       "id": "dev.phantom.textmate",
       "name": "TextMate Bundles Support",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "source": "textmate",
-      "description": "Highlighting, brace matching, commenting and snippets from TextMate and VS Code grammars for file types no other plugin covers: 64 bundled grammars and any you add. Based on the IntelliJ Community TextMate Bundles plugin (Apache 2.0); org.jetbrains.plugins.textmate stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "description": "Highlighting, brace matching, commenting and snippets from TextMate and VS Code grammars for file types no other plugin covers: 22 bundled grammars and any you add. Based on the IntelliJ Community TextMate Bundles plugin (Apache 2.0); org.jetbrains.plugins.textmate stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
       "category": "Languages",
       "since": "262.261112",
@@ -734,7 +734,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "textmate-0.1.1/textmate-0.1.1.zip",
+      "download": "textmate-0.1.2/textmate-0.1.2.zip",
       "detect": []
     },
     {
