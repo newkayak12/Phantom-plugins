@@ -5,7 +5,7 @@ plugins {
   id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-version = "0.1.1"
+version = "0.1.2"
 
 // The IntelliJ sources keep Java next to Kotlin
 sourceSets {
@@ -41,9 +41,23 @@ tasks.test {
   useJUnitPlatform()
 }
 
-// The grammars (lib/bundles in the plugin folder, where TextMateServiceImpl reads them)
+// The grammars the plugin ships (lib/bundles in the plugin folder, where TextMateServiceImpl reads them). The IDE reads
+// every shipped grammar when a project opens, so only these go in: languages Phantom has no plugin for that a Java or
+// Kotlin backend project still holds. bundles/ keeps the rest because the tests read some of them.
+val shippedBundles = listOf(
+  // Kotlin until the Kotlin plugin is installed; config, build and repository files
+  "kotlin", "sql", "docker", "dotenv", "ini", "log", "make", "bat", "powershell", "diff", "git-base",
+  // JSP views and AsciiDoc (Spring REST Docs)
+  "jsp", "adoc",
+  // infrastructure
+  "hcl", "terraform", "bazel", "cmake",
+  // front end kept next to a backend
+  "javascript", "typescript-basics", "css", "scss", "less",
+)
+
 tasks.prepareSandbox {
   from(layout.projectDirectory.dir("bundles")) {
+    include(shippedBundles.map { "$it/**" })
     into(pluginName.map { "$it/lib/bundles" })
   }
 }
