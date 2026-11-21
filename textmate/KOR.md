@@ -18,3 +18,8 @@ IntelliJ 플러그인 대신 이 빌드를 번들합니다.
 JSP, AsciiDoc, HCL, Terraform, Bazel, CMake, JavaScript, TypeScript, CSS, SCSS, Less입니다. IDE는 프로젝트를 열 때
 넣어 둔 문법을 모두 읽습니다. 뺀 것은 Phantom 플러그인이 다루거나(Java, Groovy, JSON, YAML, Markdown, 셸, XML, HTML)
 Java·Kotlin 백엔드 프로젝트에서 쓰지 않는 언어입니다. 필요하면 Settings | Editor | TextMate Bundles에서 추가할 수 있습니다.
+
+**0.1.3**: VS Code가 다른 프로젝트에서 가져온 문법은 넣은 문법마다 그 프로젝트의 라이선스를 폴더에 함께 담습니다
+(`lib/bundles/<이름>/LICENSE`, Docker는 `NOTICE`도). Batch(Michael Mims, MIT), SQL·CSS·JavaScript·TypeScript(Microsoft, MIT),
+Dockerfile(Docker, Apache 2.0), .env, 로그, Makefile, PowerShell, git 파일, SCSS, Less, 그리고 INI·diff·JavaScript 정규식의
+TextMate 번들 라이선스입니다.
