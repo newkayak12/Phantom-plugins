@@ -7,7 +7,6 @@ dependencyResolutionManagement {
   @Suppress("UnstableApiUsage")
   repositories {
     mavenCentral()
-    maven("https://www.jetbrains.com/intellij-repository/snapshots")
   }
 }
 

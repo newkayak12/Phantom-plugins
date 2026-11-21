@@ -48,7 +48,7 @@ rm -rf browser/extension/build/dist
 rm -rf build/js
 
 echo "Running Gradle build..."
-./gradlew :browser:extension:browserDistribution --quiet -PuseNodeMirror=false -PautomatedProductionBuild=true
+./gradlew :browser:extension:browserDistribution --quiet -PautomatedProductionBuild=true
 
 # Copy results to resources
 echo "Copying bundle to resources..."
