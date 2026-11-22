@@ -92,8 +92,8 @@ class PreferencesTest {
 
   @Test
   fun loadOnEnterRules() {
-    val preferencesRegistry = loadPreferences(TestUtil.RESTRUCTURED_TEXT)
-    val preferences: Preferences = mergeAll(preferencesRegistry.getPreferences(TestUtil.scopeFromString("source.rst")))
+    val preferencesRegistry = loadPreferences(TestUtil.SCSS)
+    val preferences: Preferences = mergeAll(preferencesRegistry.getPreferences(TestUtil.scopeFromString("source.css.scss")))
     assertNotNull(preferences.onEnterRules)
     assertFalse(preferences.onEnterRules!!.isEmpty())
   }
