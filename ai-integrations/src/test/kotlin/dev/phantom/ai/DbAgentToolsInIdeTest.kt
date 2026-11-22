@@ -30,6 +30,8 @@ class DbAgentToolsInIdeTest : BasePlatformTestCase() {
       user = "sa"
     }
     DbDataSourceService.getInstance(project).save(ds, CharArray(0))
+    // the user already allowed this one (the consent itself: testAsksOncePerDataSource)
+    AiState.getInstance().state.dbAllowedSources = mutableListOf(ds.id)
     runBlocking {
       DbExecutor.execute(project, ds, listOf(
         "CREATE TABLE orders (id INT PRIMARY KEY, name VARCHAR(20) NOT NULL, note VARCHAR(20))",
@@ -43,6 +45,7 @@ class DbAgentToolsInIdeTest : BasePlatformTestCase() {
       DbConnectionService.getInstance(project).disconnect(ds.id)
       DbDataSourceService.getInstance(project).remove(ds.id)
       AiState.getInstance().state.dbTools = false
+      AiState.getInstance().state.dbAllowedSources = mutableListOf()
     }
     finally {
       super.tearDown()
@@ -70,7 +73,29 @@ class DbAgentToolsInIdeTest : BasePlatformTestCase() {
     AiState.getInstance().state.dbTools = false
     assertFalse(AiStateData().dbTools)
     assertTrue(AgentTools.all().none { it.name == "list_databases" })
-    assertTrue(dev.phantom.ai.db.DbAgentTools { false }.tools().isEmpty())
+    assertTrue(dev.phantom.ai.db.DbAgentTools(enabled = { false }).tools().isEmpty())
+  }
+
+  // Each data source is asked for once: denied, the agent gets an error and nothing of it; allowed, it is remembered.
+  fun testAsksOncePerDataSource() {
+    AiState.getInstance().state.dbAllowedSources = mutableListOf()
+    val asked = java.util.concurrent.atomic.AtomicInteger()
+    var answer = false
+    val tools = dev.phantom.ai.db.DbAgentTools(enabled = { true }, ask = { _, source -> asked.incrementAndGet(); assertEquals("shop", source.name); answer })
+    fun tables(): Result<String> {
+      val tool = tools.tools().single { it.name == "list_tables" }
+      val json = JsonObject().apply { addProperty("database", "shop") }
+      return ApplicationManager.getApplication().executeOnPooledThread<Result<String>> { runCatching { tool.call(project.basePath, json) } }
+        .get(60, TimeUnit.SECONDS)
+    }
+    val denied = tables().exceptionOrNull()
+    assertTrue(denied.toString(), denied is McpToolError && denied.message!!.contains("did not allow"))
+    assertTrue(AiState.getInstance().state.dbAllowedSources.isEmpty())
+    answer = true
+    assertTrue(tables().getOrThrow().contains("ORDERS"))
+    assertEquals(listOf(ds.id), AiState.getInstance().state.dbAllowedSources)
+    tables().getOrThrow()
+    assertEquals(2, asked.get())
   }
 
   fun testListsTablesAndColumns() {

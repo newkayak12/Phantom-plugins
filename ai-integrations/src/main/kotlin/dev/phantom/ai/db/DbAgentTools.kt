@@ -39,7 +39,11 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Off until the user turns on the database tools in the settings: what these tools return goes into the agent's
  * conversation, and so to the agent's AI provider.
  */
-class DbAgentTools(private val enabled: () -> Boolean = { AiState.getInstance().state.dbTools }) : AgentTools {
+class DbAgentTools(
+  private val enabled: () -> Boolean = { AiState.getInstance().state.dbTools },
+  /** Asks the user whether agents may read [DbDataSource]; a seam for tests. */
+  private val ask: (Project, DbDataSource) -> Boolean = ::askUser,
+) : AgentTools {
   override fun tools(): List<AgentTool> = if (!enabled()) emptyList() else listOf(
     AgentTool(LIST, LIST_DESCRIPTION, JsonObject(), emptyList(), readOnly = true) { worktree, _ -> list(projectOf(worktree)) },
     AgentTool(TABLES, TABLES_DESCRIPTION, props("database" to DATABASE, "schema" to SCHEMA), listOf("database"), readOnly = true) { worktree, args ->
@@ -198,8 +202,21 @@ class DbAgentTools(private val enabled: () -> Boolean = { AiState.getInstance().
   private fun dataSource(project: Project, args: JsonObject): DbDataSource {
     val name = string(args, "database") ?: throw McpToolError("database is required")
     val sources = DbDataSourceService.getInstance(project).dataSources
-    return sources.firstOrNull { it.name == name } ?: sources.firstOrNull { it.name.equals(name, ignoreCase = true) }
+    val ds = sources.firstOrNull { it.name == name } ?: sources.firstOrNull { it.name.equals(name, ignoreCase = true) }
       ?: throw McpToolError("No data source $name; list_databases shows them: ${sources.joinToString { it.name }}")
+    allow(project, ds)
+    return ds
+  }
+
+  /**
+   * The setting lets agents use the Database Console at all; each data source is still asked for once, naming it and
+   * where its results go, before anything of it (tables, columns, rows) reaches the agent and its provider.
+   */
+  private fun allow(project: Project, ds: DbDataSource) {
+    val state = AiState.getInstance().state
+    if (ds.id in state.dbAllowedSources) return
+    if (!ask(project, ds)) throw McpToolError("The user did not allow agents to read the data source ${ds.name}. Do not retry; ask the user if it is needed.")
+    state.dbAllowedSources = (state.dbAllowedSources + ds.id).toMutableList()
   }
 
   private fun schemaNamed(schemas: List<DbSchemaRef>, name: String): DbSchemaRef? =
@@ -267,4 +284,17 @@ internal object DbRows {
     val tail = if (more) "... more rows; raise max_rows or narrow the query" else "(${rows.size} rows)"
     return (lines + tail).joinToString("\n")
   }
+}
+
+/** On the EDT, over whatever dialog is open: may agents read [ds]? Its results go to the agent's AI provider. */
+private fun askUser(project: Project, ds: DbDataSource): Boolean {
+  var answer = false
+  ApplicationManager.getApplication().invokeAndWait({
+    answer = com.intellij.openapi.ui.Messages.showYesNoDialog(project,
+      dev.phantom.ai.core.PhantomAiBundle.message("db.consent.message", ds.name, ds.dbms.name, ds.user.ifBlank { "-" }),
+      dev.phantom.ai.core.PhantomAiBundle.message("db.consent.title"),
+      dev.phantom.ai.core.PhantomAiBundle.message("db.consent.allow"), dev.phantom.ai.core.PhantomAiBundle.message("db.consent.deny"),
+      com.intellij.openapi.ui.Messages.getWarningIcon()) == com.intellij.openapi.ui.Messages.YES
+  }, ModalityState.any())
+  return answer
 }
