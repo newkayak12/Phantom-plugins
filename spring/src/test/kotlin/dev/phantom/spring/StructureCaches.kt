@@ -8,7 +8,12 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiMethod
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiModifierListOwner
+import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.search.GlobalSearchScopesCore
+import com.intellij.psi.search.searches.ClassInheritorsSearch
 import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.testFramework.UsefulTestCase.assertTrue
 import com.intellij.testFramework.fixtures.JavaCodeInsightTestFixture
@@ -38,24 +43,42 @@ class StructureCaches(private val fixture: JavaCodeInsightTestFixture) {
   }
 
   /** Reads every cache, makes the edit, reads again: nothing recomputed, the tracker did not move, results still match. */
-  fun assertKept(file: VirtualFile, find: String, replace: String) {
+  fun assertKept(file: VirtualFile, find: String, replace: String) = assertKept(file, "'$replace'") { edit(file, find, replace) }
+
+  /** The edit moves the tracker, and the caches then match a full computation. */
+  fun assertRecomputed(file: VirtualFile, find: String, replace: String) = assertRecomputed("'$replace'") { edit(file, find, replace) }
+
+  /** A PSI write (as refactorings and quick fixes make) on [file] that must keep the caches. */
+  fun assertPsiKept(file: VirtualFile, what: String, write: (PsiFile) -> Unit) = assertKept(file, what) { psiWrite(file, write) }
+
+  /** A PSI write on [file] that must move the tracker. */
+  fun assertPsiRecomputed(file: VirtualFile, what: String, write: (PsiFile) -> Unit) = assertRecomputed(what) { psiWrite(file, write) }
+
+  private fun psiWrite(file: VirtualFile, write: (PsiFile) -> Unit) {
+    val psiFile = PsiManager.getInstance(project).findFile(file)!!
+    val modifications = PsiModificationTracker.getInstance(project).modificationCount
+    WriteCommandAction.runWriteCommandAction(project) { write(psiFile) }
+    PsiDocumentManager.getInstance(project).commitAllDocuments()
+    assertTrue(PsiModificationTracker.getInstance(project).modificationCount > modifications)
+  }
+
+  private fun assertKept(file: VirtualFile, what: String, change: () -> Unit) {
     // the first document of a file may reload its PSI, a change of its own; have it before counting
     FileDocumentManager.getInstance().getDocument(file)
     PsiDocumentManager.getInstance(project).commitAllDocuments()
     readAll()
     val before = counts()
-    edit(file, find, replace)
+    change()
     readAll()
-    assertEquals("caches recomputed after '$replace'", before, counts())
+    assertEquals("caches recomputed after $what", before, counts())
     assertParity()
   }
 
-  /** The edit moves the tracker, and the caches then match a full computation. */
-  fun assertRecomputed(file: VirtualFile, find: String, replace: String) {
+  private fun assertRecomputed(what: String, change: () -> Unit) {
     readAll()
     val before = SpringStructureTracker.getInstance(project).modificationCount
-    edit(file, find, replace)
-    assertTrue("tracker did not move after '$replace'", SpringStructureTracker.getInstance(project).modificationCount > before)
+    change()
+    assertTrue("tracker did not move after $what", SpringStructureTracker.getInstance(project).modificationCount > before)
     assertParity()
   }
 
@@ -91,6 +114,12 @@ class StructureCaches(private val fixture: JavaCodeInsightTestFixture) {
         // functions of one file come back in either order after a body edit), and nothing relies on it
         assertEquals("candidates of ${describe(dependency.point.element)}", SpringBeans.findCandidates(dependency.point, true).map(::describe).sorted(),
                      dependency.candidates.map(::describe).sorted())
+        val target = SpringBeans.beanTypeOf(dependency.point.type) ?: continue
+        for (production in listOf(true, false)) {
+          val scope = if (production) GlobalSearchScopesCore.projectProductionScope(project) else GlobalSearchScope.projectScope(project)
+          assertEquals("inheritors of ${target.qualifiedName}", ClassInheritorsSearch.search(target, scope, true).findAll().map(::describe).sorted(),
+                       SpringBeans.inheritors(target, production).map(::describe).sorted())
+        }
       }
     }
   }
@@ -102,7 +131,7 @@ class StructureCaches(private val fixture: JavaCodeInsightTestFixture) {
     assertTrue("stale element $element", element.isValid)
     return when (element) {
       is PsiMethod -> "${element.containingClass?.qualifiedName}#${element.name}: ${element.returnType?.canonicalText}"
-      is PsiClass -> element.qualifiedName ?: element.name.orEmpty()
+      is PsiClass -> element.qualifiedName ?: "$element in ${element.containingFile?.name}"
       else -> element.toString()
     }
   }

@@ -2,12 +2,15 @@
 package dev.phantom.spring.kotlin
 
 import com.intellij.openapi.application.WriteAction
+import com.intellij.psi.PsiFile
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import dev.phantom.spring.RealJdkWithKotlin
 import dev.phantom.spring.SpringStubs
 import dev.phantom.spring.StructureCaches
 import dev.phantom.spring.core.SpringStructureTracker
 import dev.phantom.spring.core.ide.SpringBeanNames
+import org.jetbrains.kotlin.psi.*
 
 /**
  * Kotlin: block bodies and bodies of declarations with a written type are kept; expression bodies and initializers
@@ -92,5 +95,46 @@ class KotlinSpringStructureCachesTest : LightJavaCodeInsightFixtureTestCase() {
     WriteAction.run<Throwable> { impl.delete(this) }
     caches.assertParity()
     assertNull(SpringBeanNames.byName(project)["repoImpl"])
+  }
+
+  /** Refactorings and quick fixes write PSI directly, with other events than typing. */
+  fun testKotlinPsiWrites() {
+    add("app/Repo.kt", "package app\nfun interface Repo { fun go() }")
+    val impl = add("app/Impl.kt", "package app\n@org.springframework.stereotype.Component class Impl : Repo { override fun go() {} }")
+    val other = add("app/Other.kt", "package app\n@org.springframework.stereotype.Component class Other : Repo { override fun go() {} }")
+    val config = add("app/Config.kt", """
+      package app
+      import org.springframework.context.annotation.Bean
+      @org.springframework.context.annotation.Configuration
+      class Config {
+          @Bean fun repoBean(): Repo = Impl()
+          @Bean fun second(): Repo = Impl()
+      }
+    """)
+    val user = add("app/UseIt.kt", """
+      package app
+      @org.springframework.stereotype.Service
+      class UseIt(val repo: Repo) {
+          fun m() { val r = object : Repo { override fun go() {} } }
+          fun n() { val b = 1; class Local : Repo { override fun go() {} } }
+      }
+    """)
+    caches.assertParity()
+    val factory = KtPsiFactory(project)
+    fun PsiFile.cls(name: String) = PsiTreeUtil.findChildrenOfType(this, KtClass::class.java).single { it.name == name }
+    fun PsiFile.fn(name: String) = PsiTreeUtil.findChildrenOfType(this, KtNamedFunction::class.java).single { it.name == name }
+
+    caches.assertPsiKept(config, "an expression body with a written type replaced") { file ->
+      file.fn("repoBean").bodyExpression!!.replace(factory.createExpression("Impl().also { }"))
+    }
+    caches.assertPsiRecomputed(config, "a @Bean function deleted") { it.fn("second").delete() }
+    caches.assertPsiRecomputed(impl, "a supertype removed") { file ->
+      file.cls("Impl").run { removeSuperTypeListEntry(superTypeListEntries.single()) }
+    }
+    caches.assertPsiRecomputed(user, "an object literal replaced with a lambda") { file ->
+      PsiTreeUtil.findChildOfType(file, KtObjectLiteralExpression::class.java)!!.replace(factory.createExpression("Repo { }"))
+    }
+    caches.assertPsiRecomputed(other, "an annotation entry deleted") { it.cls("Other").annotationEntries.single().delete() }
+    caches.assertPsiRecomputed(user, "a local class deleted") { it.cls("Local").delete() }
   }
 }

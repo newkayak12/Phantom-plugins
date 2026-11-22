@@ -3,7 +3,6 @@ package dev.phantom.spring.kotlin
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.util.PsiTreeUtil
 import dev.phantom.spring.core.SpringCodeBodies
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.*
@@ -37,5 +36,5 @@ class KotlinSpringCodeBodies : SpringCodeBodies {
 
   private fun isTyped(property: KtProperty): Boolean = property.typeReference != null && !property.hasModifier(KtTokens.CONST_KEYWORD)
 
-  override fun declaresClasses(body: PsiElement): Boolean = PsiTreeUtil.findChildOfType(body, KtClassOrObject::class.java) != null
+  override fun declaresClasses(element: PsiElement): Boolean = SpringCodeBodies.containsClass(element) { it is KtClassOrObject }
 }

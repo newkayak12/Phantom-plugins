@@ -2,6 +2,8 @@
 package dev.phantom.spring
 
 import com.intellij.openapi.application.WriteAction
+import com.intellij.psi.*
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import dev.phantom.spring.core.SpringStructureTracker
 import dev.phantom.spring.core.ide.SpringBeanNames
@@ -81,6 +83,58 @@ class SpringStructureCachesTest : LightJavaCodeInsightFixtureTestCase() {
     WriteAction.run<Throwable> { impl.delete(this) }
     caches.assertParity()
     assertNull(SpringBeanNames.byName(project)["repoImpl"])
+  }
+
+  /** Refactorings and quick fixes write PSI directly, with other events than typing. */
+  fun testJavaPsiWrites() {
+    add("app/Repo.java", "package app; public interface Repo { void go(); }")
+    val impl = add("app/Impl.java", "package app; @org.springframework.stereotype.Component public class Impl implements Repo { public void go() {} }")
+    val other = add("app/Other.java", "package app; @org.springframework.stereotype.Component public class Other implements Repo { public void go() {} }")
+    val config = add("app/Config.java", """
+      package app;
+      import org.springframework.context.annotation.Bean;
+      @org.springframework.context.annotation.Configuration
+      public class Config {
+        @Bean Repo repoBean() { return new Impl(); }
+        @Bean Repo second() { return new Impl(); }
+      }
+    """)
+    val user = add("app/UseIt.java", """
+      package app;
+      @org.springframework.stereotype.Service
+      public class UseIt {
+        UseIt(Repo repo) {}
+        void m() { int a = 1; Repo r = new Repo() { public void go() {} }; }
+        void n() { int b = 1; }
+        void n2() { int c = 1; Runnable q = () -> { class L2 implements Repo { public void go() {} } }; }
+      }
+    """)
+    caches.assertParity()
+    val factory = JavaPsiFacade.getElementFactory(project)
+    fun PsiFile.cls(name: String) = (this as PsiJavaFile).classes.single { it.name == name }
+
+    caches.assertPsiKept(user, "a statement replaced in a body") { file ->
+      val statement = file.cls("UseIt").findMethodsByName("n", false).single().body!!.statements.single()
+      statement.replace(factory.createStatementFromText("int b = 2;", null))
+    }
+    caches.assertPsiRecomputed(config, "a @Bean method deleted") { it.cls("Config").findMethodsByName("second", false).single().delete() }
+    caches.assertPsiRecomputed(impl, "implements removed") { it.cls("Impl").implementsList!!.referenceElements.single().delete() }
+    caches.assertPsiRecomputed(user, "an anonymous class replaced with a lambda") { file ->
+      val anonymous = PsiTreeUtil.findChildOfType(file, PsiAnonymousClass::class.java)!!
+      anonymous.parent.replace(factory.createExpressionFromText("() -> {}", anonymous))
+    }
+    caches.assertPsiRecomputed(other, "@Component deleted") { it.cls("Other").modifierList!!.annotations.single().delete() }
+    caches.assertPsiRecomputed(user, "a local class added") { file ->
+      val body = file.cls("UseIt").findMethodsByName("n", false).single().body!!
+      body.add(factory.createStatementFromText("class Local implements Repo { public void go() {} }", null))
+    }
+    caches.assertPsiRecomputed(user, "a local class deleted") { it.cls("UseIt").findMethodsByName("n", false).single().body!!.statements.last().delete() }
+    // two changes under one block in one write: the deeper one arrives folded into "contents changed" of a statement
+    caches.assertPsiRecomputed(user, "a nested local class deleted next to another change") { file ->
+      val body = file.cls("UseIt").findMethodsByName("n2", false).single().body!!
+      body.statements.first().replace(factory.createStatementFromText("int c = 2;", null))
+      PsiTreeUtil.findChildrenOfType(body, PsiClass::class.java).single { it.name == "L2" }.parent.delete()
+    }
   }
 
   fun testFinalFieldInitializerCounts() {
