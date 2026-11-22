@@ -14,13 +14,14 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.InheritanceUtil
-import com.intellij.psi.util.PsiModificationTracker
+import java.util.concurrent.atomic.AtomicInteger
 import dev.phantom.db.core.DbDataSource
 import dev.phantom.db.core.DbDataSourceService
 import dev.phantom.db.core.SqlNames
 import dev.phantom.db.core.SqlSchema
 import dev.phantom.db.core.exec.DbColumnInfo
 import dev.phantom.db.core.exec.DbTableRef
+import org.jetbrains.annotations.TestOnly
 import org.jetbrains.uast.UAnnotated
 import org.jetbrains.uast.UField
 import org.jetbrains.uast.toUElement
@@ -49,7 +50,9 @@ internal class JpaNaming(val standard: Boolean, val implicitKnown: Boolean) {
 }
 
 /** What the project's Spring configuration says about the database: its JDBC URLs and the Hibernate naming strategies. */
-internal class JpaSpringConfig(val urls: List<String>, val physical: String?, val physicalAmbiguous: Boolean, val implicit: String?) {
+internal class JpaSpringConfig(val urls: List<String>, val physical: String?, val physicalAmbiguous: Boolean, val implicit: String?,
+                               /** The config files looked at: the result depends on their content. */
+                               val files: List<VirtualFile> = emptyList()) {
   companion object {
     private val JDBC_URL = Regex("""jdbc:[a-z0-9]+(?::[a-z0-9]+)*:[^\s"'`,}]+""", RegexOption.IGNORE_CASE)
     private val PHYSICAL = Regex("""(?:physical[-_]?strategy|physical_naming_strategy)\s*[:=]\s*["']?([\w.$]+)""", RegexOption.IGNORE_CASE)
@@ -58,20 +61,32 @@ internal class JpaSpringConfig(val urls: List<String>, val physical: String?, va
     private const val MAX_FILES = 300
     private const val MAX_BYTES = 256 * 1024
 
+    @TestOnly
+    internal val computeCount = AtomicInteger()
+
     fun get(project: Project): JpaSpringConfig = CachedValuesManager.getManager(project).getCachedValue(project) {
-      CachedValueProvider.Result.create(compute(project), PsiModificationTracker.MODIFICATION_COUNT, ProjectRootManager.getInstance(project))
+      val config = compute(project)
+      // only config edits and the files read matter: a Java or SQL keystroke leaves the walk below alone
+      CachedValueProvider.Result.create(config, *dependencies(project, config))
     }
 
+    /** What [config] depends on, for caches built on it. */
+    fun dependencies(project: Project, config: JpaSpringConfig): Array<Any> = CacheDeps.config(project, config.files)
+
     private fun compute(project: Project): JpaSpringConfig {
+      computeCount.incrementAndGet()
       val urls = LinkedHashSet<String>()
       val physical = LinkedHashSet<String>()
       val implicit = LinkedHashSet<String>()
+      val read = ArrayList<VirtualFile>()
       var files = 0
       for (module in ModuleManager.getInstance(project).modules) {
         for (folder in ModuleRootManager.getInstance(module).contentEntries.flatMap { it.sourceFolders.toList() }) {
           val root = folder.file ?: continue
           VfsUtilCore.iterateChildrenRecursively(root, { it.isDirectory || it.extension?.lowercase() in CONFIG_EXTENSIONS }) { file ->
-            if (file.isDirectory || file.length > MAX_BYTES) return@iterateChildrenRecursively true
+            if (file.isDirectory) return@iterateChildrenRecursively true
+            read += file
+            if (file.length > MAX_BYTES) return@iterateChildrenRecursively true
             val text = text(file) ?: return@iterateChildrenRecursively true
             JDBC_URL.findAll(text).mapTo(urls) { it.value.trimEnd('}', ')', ']') }
             // the naming the application runs with: test resources may override it for tests only
@@ -83,7 +98,7 @@ internal class JpaSpringConfig(val urls: List<String>, val physical: String?, va
           }
         }
       }
-      return JpaSpringConfig(urls.toList(), physical.singleOrNull(), physical.size > 1, implicit.singleOrNull() ?: implicit.firstOrNull())
+      return JpaSpringConfig(urls.toList(), physical.singleOrNull(), physical.size > 1, implicit.singleOrNull() ?: implicit.firstOrNull(), read)
     }
 
     private fun text(file: VirtualFile): String? =
