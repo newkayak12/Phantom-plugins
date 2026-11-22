@@ -20,8 +20,9 @@ on:
         type: boolean
         default: true
 
+# Build and test only read; the publish job alone writes releases
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: plugin-release-${{ github.ref_name }}-${{ inputs.plugin }}
@@ -33,6 +34,8 @@ jobs:
     # groovy runs about 7,100 tests, a third of the time in its compiler tests (each starts a JPS build with groovyc or
     # Greclipse); they took 40 minutes on an 8-core Mac and didn't finish in 60 on the runner
     timeout-minutes: 150
+    outputs:
+      tag: ${{ steps.plugin.outputs.tag }}
     steps:
       - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
 
@@ -105,25 +108,57 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: ${{ steps.plugin.outputs.tag }}
-          path: ${{ steps.plugin.outputs.dir }}/build/distributions/${{ steps.plugin.outputs.tag }}.zip
-          if-no-files-found: error
-
-      - name: Release
-        if: github.event_name == 'push' || !inputs.dry_run
+      - name: Release files
         env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.plugin.outputs.tag }}
           ZIP: ${{ steps.plugin.outputs.dir }}/build/distributions/${{ steps.plugin.outputs.tag }}.zip
           SOURCES: ${{ steps.sources.outputs.directory }}
         run: |
-          files=("$ZIP")
-          if [[ -n "$SOURCES" ]]; then files+=("$SOURCES/"*.jar); fi
-          # a release created by hand for the same tag only gets its zip replaced
-          if gh release view "$TAG" > /dev/null 2>&1; then
-            gh release upload "$TAG" "${files[@]}" --clobber
+          mkdir -p "$RUNNER_TEMP/release"
+          cp "$ZIP" "$RUNNER_TEMP/release/"
+          if [[ -n "$SOURCES" ]]; then cp "$SOURCES/"*.jar "$RUNNER_TEMP/release/"; fi
+          ls -l "$RUNNER_TEMP/release"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.plugin.outputs.tag }}
+          path: ${{ runner.temp }}/release/
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: github.event_name == 'push' || !inputs.dry_run
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: ${{ needs.build.outputs.tag }}
+          path: release
+
+      # Phantom pins each bundled zip by sha256, so a published zip is never replaced: a release that already holds
+      # it passes only when this build's zip has the same bytes (a rerun), and only files it lacks are added (e.g.
+      # sources missing from a release made by hand). Changed contents need a new version.
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          cd release
+          if ! gh release view "$TAG" > /dev/null 2>&1; then
+            gh release create "$TAG" ./* --title "$TAG" --notes "Built by GitHub Actions from $GITHUB_SHA"
           else
-            gh release create "$TAG" "${files[@]}" --title "$TAG" --notes "Built by GitHub Actions from $GITHUB_SHA"
+            published="$(gh release view "$TAG" --json assets -q '.assets[].name')"
+            if grep -qxF "$TAG.zip" <<< "$published"; then
+              gh release download "$TAG" -p "$TAG.zip" -O "$RUNNER_TEMP/published.zip"
+              cmp -s "$TAG.zip" "$RUNNER_TEMP/published.zip" \
+                || { echo "::error::$TAG.zip is already published with different contents; release a new version"; exit 1; }
+            fi
+            missing=()
+            for f in *; do grep -qxF "$f" <<< "$published" || missing+=("$f"); done
+            if (( ${#missing[@]} )); then gh release upload "$TAG" "${missing[@]}"; fi
           fi
+          # every built file (the zip and any corresponding sources NOTICE promises) must be on the release
+          published="$(gh release view "$TAG" --json assets -q '.assets[].name')"
+          for f in *; do grep -qxF "$f" <<< "$published" || { echo "::error::$f is missing from release $TAG"; exit 1; }; done
