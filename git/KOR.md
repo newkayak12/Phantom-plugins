@@ -14,3 +14,6 @@ shared, backend, 로컬 히스토리 모듈은 플러그인과 함께 로드되�
 클래스 로더를 따로 씁니다. backend가 frontend에 제공하는 서비스는 원격 API가 아니라 일반 애플리케이션 서비스입니다(Phantom은
 frontend와 backend를 한 프로세스에서 실행). 사용 통계는 수집하지 않습니다. 메모리 내 리베이스는
 [git-revise](https://github.com/mystor/git-revise)(MIT, jar의 `licenses/NOTICE`)에서 가져온 코드입니다.
+
+Backup and Sync 기록(도구 창 "Backup and Sync History"와 기록 보기 동작)도 선택 모듈 `phantom.git.settingsSync`로 여기에 있습니다.
+그래서 IDE 본체는 Git 없이 컴파일됩니다. Phantom 262.261123 이상이 필요합니다. 그보다 이전 빌드는 본체에 이 화면이 아직 있습니다.

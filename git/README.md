@@ -15,3 +15,7 @@ The shared, backend and local history modules load with the plugin; the frontend
 their own class loader, as in the bundled plugin. The backend's services for the frontend are plain application services
 (Phantom runs frontend and backend in one process), not remote APIs. No usage statistics are collected. The in-memory
 rebase is derived from [git-revise](https://github.com/mystor/git-revise) (MIT, `licenses/NOTICE` in the jar).
+
+The Backup and Sync history (the "Backup and Sync History" tool window and action) is here too, as the optional module
+`phantom.git.settingsSync`, so the IDE core compiles without Git. It needs Phantom 262.261123 or later: earlier builds
+still have it in the core.
