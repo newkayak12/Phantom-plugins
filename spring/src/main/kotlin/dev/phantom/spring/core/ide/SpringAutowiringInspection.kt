@@ -9,9 +9,7 @@ import com.intellij.lang.jvm.actions.annotationRequest
 import com.intellij.lang.jvm.actions.createAddAnnotationActions
 import com.intellij.lang.jvm.actions.stringAttribute
 import com.intellij.psi.*
-import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.GlobalSearchScopesCore
-import com.intellij.psi.search.searches.ClassInheritorsSearch
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.uast.UastHintedVisitorAdapter
 import dev.phantom.spring.core.*
@@ -111,8 +109,7 @@ class SpringAutowiringInspection : AbstractBaseUastLocalInspectionTool() {
      */
     private fun couldBeBean(beanType: PsiClass): Boolean {
       if (isConcrete(beanType)) return true
-      val scope = GlobalSearchScope.projectScope(beanType.project)
-      return ClassInheritorsSearch.search(beanType, scope, true).anyMatch { isConcrete(it) }
+      return SpringBeans.inheritors(beanType, production = false).any { isConcrete(it) }
     }
 
     private fun isConcrete(psiClass: PsiClass): Boolean =
@@ -124,7 +121,7 @@ class SpringAutowiringInspection : AbstractBaseUastLocalInspectionTool() {
       val scope = GlobalSearchScopesCore.projectProductionScope(beanType.project)
       val types = LinkedHashSet<PsiClass>().apply {
         add(beanType)
-        ClassInheritorsSearch.search(beanType, scope, true).forEach { add(it) }
+        addAll(SpringBeans.inheritors(beanType, production = true))
       }
       return types.any { type ->
         ReferencesSearch.search(type, scope).anyMatch { reference ->

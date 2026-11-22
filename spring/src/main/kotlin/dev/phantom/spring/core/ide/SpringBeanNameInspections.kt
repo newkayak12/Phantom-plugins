@@ -16,17 +16,25 @@ import com.intellij.psi.registerUastReferenceProvider
 import com.intellij.psi.uastInjectionHostReferenceProvider
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.uast.UastHintedVisitorAdapter
 import dev.phantom.spring.core.*
 import org.jetbrains.annotations.NonNls
+import org.jetbrains.annotations.TestOnly
 import org.jetbrains.jps.model.java.JavaSourceRootType
 import org.jetbrains.uast.*
 import org.jetbrains.uast.visitor.AbstractUastNonRecursiveVisitor
+import java.util.concurrent.atomic.AtomicInteger
 
-/** Project beans by name, from the same collection the Spring Beans window uses, recomputed after PSI changes. */
+/**
+ * Project beans by name, from the same collection the Spring Beans window uses, recomputed when declarations change
+ * (typing in a method body does not).
+ */
 object SpringBeanNames {
+  @TestOnly
+  val computeCount: AtomicInteger = AtomicInteger()
+
   fun byName(project: Project): Map<String, List<PsiModifierListOwner>> = CachedValuesManager.getManager(project).getCachedValue(project) {
+    computeCount.incrementAndGet()
     val map = LinkedHashMap<String, MutableList<PsiModifierListOwner>>()
     for (beans in SpringBeanCatalog.collect(project).values) {
       for (bean in beans) {
@@ -34,12 +42,12 @@ object SpringBeanNames {
         bean.beanMethods.forEach { map.getOrPut(it.name) { ArrayList() }.add(it.element) }
       }
     }
-    CachedValueProvider.Result.create<Map<String, List<PsiModifierListOwner>>>(map, PsiModificationTracker.MODIFICATION_COUNT)
+    CachedValueProvider.Result.create<Map<String, List<PsiModifierListOwner>>>(map, *SpringStructureTracker.deps(project))
   }
 
   /**
    * The beans [byName] lists under [name], found from the name alone when that finds them all: the catalog behind
-   * [byName] is rebuilt after every PSI change, and the duplicate check asks for one name per bean it highlights.
+   * [byName] is rebuilt after every change of declarations, and the duplicate check asks for one name per bean it highlights.
    */
   fun named(project: Project, name: String): List<PsiModifierListOwner> =
     SpringBeanCatalog.named(project, name) ?: byName(project)[name].orEmpty()
