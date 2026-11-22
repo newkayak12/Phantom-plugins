@@ -1,3 +1,4 @@
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 @file:ApiStatus.Experimental
 
 package com.intellij.repository.search.completion.statistics

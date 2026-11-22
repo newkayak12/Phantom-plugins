@@ -1,3 +1,4 @@
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 /// Some javadoc. Maybe with some <TYPO descr="Typo: In word 'grammr'">grammr</TYPO> and, punctuation, <TYPO descr="Typo: In word 'mistaks'">mistaks</TYPO>.
 ///
 /// ```
