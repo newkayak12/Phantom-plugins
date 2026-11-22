@@ -1,5 +1,5 @@
 <idea-plugin>
-  <id>dev.phantom.mermaid</id>
+  <id>com.phantom.mermaid</id>
   <name>Phantom for Mermaid</name>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Languages</category>
@@ -12,8 +12,6 @@
 
   <!-- the JetBrains copy registers the same language and file type; with it enabled this plugin does not load -->
   <incompatible-with>com.intellij.mermaid</incompatible-with>
-  <!-- this plugin's id before 0.1.4; both register the same language -->
-  <incompatible-with>com.phantom.mermaid</incompatible-with>
 
   <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
   <dependencies>

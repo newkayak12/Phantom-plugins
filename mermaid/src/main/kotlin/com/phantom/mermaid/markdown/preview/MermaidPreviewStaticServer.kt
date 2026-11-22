@@ -161,7 +161,7 @@ internal class MermaidPreviewStaticServer : HttpRequestHandler() {
      * updated, so the browser kept the old mermaid.js.
      */
     private val staticResourcesStamp: Long by lazy {
-      val plugin = PluginManagerCore.getPlugin(PluginId.getId("dev.phantom.mermaid"))
+      val plugin = PluginManagerCore.getPlugin(PluginId.getId("com.phantom.mermaid"))
       plugin?.pluginPath?.let { runCatching { Files.getLastModifiedTime(it).toMillis() }.getOrNull() }
         ?: ApplicationInfo.getInstance().buildDate.timeInMillis
     }

@@ -610,7 +610,7 @@
       ]
     },
     {
-      "id": "dev.phantom.mermaid",
+      "id": "com.phantom.mermaid",
       "name": "Phantom for Mermaid",
       "version": "0.1.3",
       "source": "mermaid",

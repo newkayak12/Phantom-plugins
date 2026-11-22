@@ -1,10 +1,11 @@
 # Phantom for Mermaid
-`dev.phantom.mermaid` · [English](./README.md)
+
+`com.phantom.mermaid` · [English](./README.md)
 
 `.mmd`, `.mermaid` 파일과 Markdown의 ` ```mermaid ` 블록에서 [Mermaid](https://mermaid.js.org/)를 편집하고 미리 봅니다.
 하이라이트, 자동 완성, 포맷, 접기, 노드 id 이름 바꾸기와 사용처 찾기, 검사, 에디터 옆 미리보기를 제공합니다.
 
-IntelliJ Community의 Mermaid 플러그인(`plugins/mermaid`, Apache 2.0)을 자체 id(`dev.phantom.mermaid`)와 패키지(`com.phantom.mermaid`)로
+IntelliJ Community의 Mermaid 플러그인(`plugins/mermaid`, Apache 2.0)을 자체 id와 패키지(`com.phantom.mermaid`)로
 빌드한 것입니다. Phantom 빌드 없이 업데이트되고, Phantom은 JetBrains 사본을 번들하지 않아도 됩니다.
 두 플러그인이 같은 Mermaid 언어와 파일 형식을 등록하므로 함께 켤 수 없습니다. JetBrains 사본(`com.intellij.mermaid`)이
 켜져 있으면 이 플러그인은 로드되지 않고 IDE가 그 사실을 알립니다. Settings → Plugins에서 Mermaid(JetBrains)를 끄고
@@ -41,7 +42,7 @@ cd browser-build && ./updateMermaidJs.sh
 업스트림 테스트(421개, 문서 예제를 추출해야 하는 `OfficialExamplesParsingTest` 제외)와, 두 미리보기가 다이어그램을
 몇 번 그리는지 세는 `PreviewRenderingTest`입니다. 미리보기 테스트는 JCEF를 쓰며 `CI`가 설정된 곳에서는 건너뜁니다.
 
-**0.1.4**: 이름을 바꿨습니다: Mermaid Support → Phantom for Mermaid. Phantom으로 시작하고 지원하는 프로젝트 이름을 뒤에 둡니다. id도 `dev.phantom.mermaid`로 바뀌었습니다(이전 `com.phantom.mermaid`는 Phantom이 소유하지 않은 도메인). 이전 플러그인은 지워 주세요. 둘은 함께 켤 수 없습니다.
+**0.1.4**: 이름을 바꿨습니다: Mermaid Support → Phantom for Mermaid. Phantom으로 시작하고 지원하는 프로젝트 이름을 뒤에 둡니다.
 
 **0.1.3**: mermaid.js 첫 줄이 가리키는 `mermaid.js.LICENSE.txt`(mermaid.js에 번들된 npm 패키지의 라이선스)가 플러그인에 들어
 있습니다.
