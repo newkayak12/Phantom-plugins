@@ -41,10 +41,13 @@ import java.util.concurrent.TimeUnit
 @Service(Service.Level.PROJECT)
 class AgentTerminalService(private val project: Project) {
   private val host get() = AgentTabsHost.getInstance(project)
-  @Volatile private var starter: TerminalStarter = LocalTerminalStarter(project)
+  /** Set by tests; else the starter of the backend chosen in the settings, looked up for each terminal. */
+  @Volatile private var replacedStarter: TerminalStarter? = null
+  private val starter: TerminalStarter
+    get() = replacedStarter ?: (TerminalBackends.current()?.starter(project) ?: LocalTerminalStarter(project))
 
   @TestOnly fun replaceStarter(next: TerminalStarter) {
-    starter = next
+    replacedStarter = next
   }
 
   /**

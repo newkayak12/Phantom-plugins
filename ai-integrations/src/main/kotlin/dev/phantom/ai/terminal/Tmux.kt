@@ -59,12 +59,13 @@ object Tmux {
    * The shell command that runs [command] in a new tmux session [name] in [cwd], with [env] set in it (a running tmux
    * server does not take the client's environment), mouse mode on and no status line. When the agent exits the session
    * keeps a login shell, as the plain terminal does. destroy-unattached is forced off: a user's ~/.tmux.conf must not end
-   * the agent when its window closes and leaves it detached.
+   * the agent when its window closes and leaves it detached. [detached]: the session starts with no client (a terminal
+   * outside the IDE attaches to it), and the line returns.
    */
-  fun wrap(tmux: String, name: String, cwd: String, env: Map<String, String>, command: String): String {
+  fun wrap(tmux: String, name: String, cwd: String, env: Map<String, String>, command: String, detached: Boolean = false): String {
     val inner = plain(command)
     val args = buildList {
-      add(tmux); add("-L"); add(SOCKET); add("new-session"); add("-s"); add(name); add("-c"); add(cwd)
+      add(tmux); add("-L"); add(SOCKET); add("new-session"); if (detached) add("-d"); add("-s"); add(name); add("-c"); add(cwd)
       env.toSortedMap().forEach { (k, v) -> add("-e"); add("$k=$v") }
       add(inner)
       add(";"); add("set-option"); add("-t"); add(name); add("mouse"); add("on")
@@ -73,7 +74,7 @@ object Tmux {
       // tmux holds an Esc back (500 ms by default) to see if a key sequence follows: Claude's Esc (stop) goes through at once
       add(";"); add("set-option"); add("-s"); add("escape-time"); add("0")
     }
-    return "exec " + args.joinToString(" ") { quote(it) }
+    return (if (detached) "" else "exec ") + args.joinToString(" ") { quote(it) }
   }
 
   /** The shell command that shows the running session [name] (its agent kept running while no window showed it). */
