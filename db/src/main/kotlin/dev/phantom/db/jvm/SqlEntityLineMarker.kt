@@ -8,6 +8,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.NotNullLazyValue
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
@@ -16,7 +17,6 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.searches.AnnotatedElementsSearch
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiTreeUtil
 import dev.phantom.db.core.PhantomDbBundle
 import dev.phantom.db.core.SqlNames
@@ -24,7 +24,12 @@ import dev.phantom.db.core.SqlRoutine
 import dev.phantom.db.core.SqlStatement
 import dev.phantom.db.core.SqlTableRef
 import dev.phantom.db.core.SqlTokens
+import org.jetbrains.annotations.TestOnly
+import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.Icon
+
+@TestOnly
+internal val entityScanCount = AtomicInteger()
 
 /**
  * On the table name of `CREATE TABLE` in a SQL file (a migration, a schema script): the JPA entities mapped to that
@@ -69,8 +74,15 @@ class SqlEntityLineMarkerProvider : LineMarkerProviderDescriptor() {
 
     /** Lowercased physical table name → the entities whose table it is. */
     fun entitiesByTable(project: Project): Map<String, List<PsiClass>> = CachedValuesManager.getManager(project).getCachedValue(project) {
+      entityScanCount.incrementAndGet()
       val result = HashMap<String, MutableList<PsiClass>>()
-      val naming = if (JpaSchemaModel.isJpaProject(project)) JpaSchemaModel.naming(project) else null
+      // entities live in JVM sources; a SQL keystroke does not touch them. The naming also depends on the config files
+      val deps = arrayListOf<Any>(CacheDeps.jvm(project), ProjectRootManager.getInstance(project))
+      val naming = if (JpaSchemaModel.isJpaProject(project)) {
+        deps.addAll(JpaSpringConfig.dependencies(project, JpaSpringConfig.get(project)))
+        JpaSchemaModel.naming(project)
+      }
+      else null
       if (naming != null) {
         val facade = JavaPsiFacade.getInstance(project)
         val all = GlobalSearchScope.allScope(project)
@@ -83,7 +95,7 @@ class SqlEntityLineMarkerProvider : LineMarkerProviderDescriptor() {
           }
         }
       }
-      CachedValueProvider.Result.create(result, PsiModificationTracker.MODIFICATION_COUNT)
+      CachedValueProvider.Result.create(result, *deps.toTypedArray())
     }
   }
 }
