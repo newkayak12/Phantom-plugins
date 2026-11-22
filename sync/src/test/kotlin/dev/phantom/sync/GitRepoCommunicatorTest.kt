@@ -2,6 +2,7 @@
 package dev.phantom.sync
 
 import com.intellij.settingsSync.core.FileState
+import com.intellij.settingsSync.core.InvalidVersionIdException
 import com.intellij.settingsSync.core.ServerState
 import com.intellij.settingsSync.core.SettingsSnapshot
 import com.intellij.settingsSync.core.SettingsSyncLocalSettings
@@ -12,10 +13,17 @@ import kotlin.io.path.createDirectories
 import dev.phantom.sync.core.GitRepoCommunicator
 import dev.phantom.sync.core.GitRepoSyncAccounts
 import dev.phantom.sync.core.GitSettingsRepository
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
 import java.util.UUID
+import java.util.logging.Handler
+import java.util.logging.Level
+import java.util.logging.LogRecord
+import java.util.logging.Logger
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.measureTimedValue
 
 /** Two machines (two working copies) sharing one bare repository, as two IDEs share a GitHub repository. */
 class GitRepoCommunicatorTest : BasePlatformTestCase() {
@@ -101,5 +109,90 @@ class GitRepoCommunicatorTest : BasePlatformTestCase() {
     assertEquals("me/ide-settings", GitRepoSyncAccounts.repositoryName("https://github.com/me/ide-settings.git"))
     assertEquals("me/ide-settings", GitRepoSyncAccounts.repositoryName("https://github.com/me/ide-settings/"))
     assertEquals("ssh/settings", GitRepoSyncAccounts.repositoryName("/tmp/ssh/settings.git"))
+  }
+
+  fun testPushBetweenVersionCheckAndWriteIsNotOverwritten() {
+    val a = GitSettingsRepository(remote, root.resolve("a"))
+    val b = GitSettingsRepository(remote, root.resolve("b"))
+    val first = a.write("settings.zip", null, "<one/>".toByteArray())
+
+    // b pushes after a checked that the remote is at `first`, before a commits
+    a.afterVersionCheck = {
+      a.afterVersionCheck = {}
+      b.write("settings.zip", first, "<b/>".toByteArray())
+    }
+    assertInstanceOf(runCatching { a.write("settings.zip", first, "<a/>".toByteArray()) }.exceptionOrNull(), InvalidVersionIdException::class.java)
+    val (content, version) = a.read("settings.zip")
+    assertEquals("<b/>", String(content!!))
+    assertFalse(version == first)
+
+    // the retry sees b's version: still rejected with the old one, accepted once a has b's version
+    assertInstanceOf(runCatching { a.write("settings.zip", first, "<a/>".toByteArray()) }.exceptionOrNull(), InvalidVersionIdException::class.java)
+    val third = a.write("settings.zip", version, "<a/>".toByteArray())
+    assertEquals("<a/>" to third, b.read("settings.zip").let { String(it.first!!) to it.second })
+  }
+
+  fun testCredentialsAreMasked() {
+    assertEquals("https://user:***@github.com/me/s.git", GitSettingsRepository.maskCredentials("https://user:ghp_secret@github.com/me/s.git"))
+    assertEquals("https://***@github.com/me/s.git", GitSettingsRepository.maskCredentials("https://ghp_secret@github.com/me/s.git"))
+    assertEquals("fatal: unable to access 'https://x-access-token:***@host/s.git/': 403",
+                 GitSettingsRepository.maskCredentials("fatal: unable to access 'https://x-access-token:ghs_secret@host/s.git/': 403"))
+    assertEquals("ssh://git@github.com/me/s.git", GitSettingsRepository.maskCredentials("ssh://git@github.com/me/s.git"))
+    assertEquals("git@github.com:me/s.git", GitSettingsRepository.maskCredentials("git@github.com:me/s.git"))
+  }
+
+  fun testCredentialsStayOutOfLogAndErrors() {
+    val token = "ghp_FAKE0123456789token"
+    val url = "https://x-access-token:$token@127.0.0.1:9/me/settings.git"
+    val logged = mutableListOf<String>()
+    val handler = object : Handler() {
+      override fun publish(record: LogRecord) {
+        logged += "${record.message} ${record.thrown?.message}"
+      }
+      override fun flush() {}
+      override fun close() {}
+    }
+    val log = Logger.getLogger("#" + GitSettingsRepository::class.java.name)
+    val level = log.level
+    log.level = Level.ALL
+    log.addHandler(handler)
+    try {
+      // a git that quotes the URL with its credentials in stderr, as older git versions do
+      val fake = runCatching {
+        GitSettingsRepository.run(listOf("sh", "-c", "echo \"fatal: unable to access '$0/': failed\" >&2; exit 128", url), workDir = null)
+      }.exceptionOrNull()
+      assertInstanceOf(fake, IOException::class.java)
+      // the real connection check against an unreachable host, and the message the user sees
+      val repository = GitSettingsRepository(url, root.resolve("c"))
+      val access = runCatching { repository.checkAccess() }.exceptionOrNull()
+      assertInstanceOf(access, IOException::class.java)
+      val shown = (GitRepoCommunicator(repository).checkServerState() as ServerState.Error).message
+
+      assertTrue(logged.isNotEmpty())
+      for (text in logged + listOf(fake!!.message!!, access!!.message!!, shown)) {
+        assertFalse(text, token in text)
+      }
+      assertTrue(fake.message!!, "x-access-token:***@127.0.0.1" in fake.message!!)
+    }
+    finally {
+      log.removeHandler(handler)
+      log.level = level
+    }
+  }
+
+  fun testHangingCommandIsKilledAtTheTimeout() {
+    val marker = "phantom-sync-timeout-" + UUID.randomUUID()
+    // a child that keeps stdout open and never ends, under a parent shell, like ssh under git
+    val (error, elapsed) = measureTimedValue {
+      runCatching {
+        GitSettingsRepository.run(listOf("sh", "-c", "sh -c 'sleep 60; :' $marker; :"), workDir = null, timeout = 1.seconds)
+      }.exceptionOrNull()
+    }
+    assertInstanceOf(error, IOException::class.java)
+    assertTrue(error!!.message!!, "timed out" in error.message!!)
+    assertTrue("took $elapsed", elapsed < 10.seconds)
+    Thread.sleep(500)
+    val left = ProcessHandle.allProcesses().filter { it.info().commandLine().orElse("").contains(marker) }.toList()
+    assertTrue("still running: $left", left.isEmpty())
   }
 }

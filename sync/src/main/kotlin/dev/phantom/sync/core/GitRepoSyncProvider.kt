@@ -72,7 +72,7 @@ class GitRepoAuthService : SettingsSyncAuthService {
         return userData(url)
       }
       withContext(Dispatchers.EDT) {
-        val message = PhantomSyncBundle.message("login.failed", url, problem)
+        val message = PhantomSyncBundle.message("login.failed", GitSettingsRepository.maskCredentials(url), problem)
         if (parentComponent != null) Messages.showErrorDialog(parentComponent, message, PhantomSyncBundle.message("login.title"))
         else Messages.showErrorDialog(message, PhantomSyncBundle.message("login.title"))
       }
