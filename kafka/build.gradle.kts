@@ -2,7 +2,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.3"
+version = "0.1.4"
 
 dependencies {
   // the platform has its own slf4j; two copies in one class loader chain break logging

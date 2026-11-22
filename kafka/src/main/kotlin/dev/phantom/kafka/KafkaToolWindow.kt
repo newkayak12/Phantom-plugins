@@ -86,6 +86,7 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
     listOf(it.group, it.state, it.members, it.topic, it.lag)
   }
   private val tabs = JBTabbedPane()
+  private val reads = KafkaTopicLoads()
 
   // touched only on the executor thread
   private var session: KafkaSession? = null
@@ -205,7 +206,8 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
     reloadClusters(null)
   }
 
-  private fun <T> onSession(what: String, task: (KafkaSession) -> T, done: (T) -> Unit) {
+  /** [current] false when the result arrives means it no longer belongs on screen: dropped, status included. */
+  private fun <T> onSession(what: String, task: (KafkaSession) -> T, current: () -> Boolean = { true }, done: (T) -> Unit) {
     val cluster = clusters.selectedItem as? KafkaCluster ?: return
     status.text = "$what…"
     executor.execute {
@@ -217,6 +219,7 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
         task(s)
       }
       ApplicationManager.getApplication().invokeLater({
+        if (!current()) return@invokeLater
         result.fold({ status.text = ""; done(it) }) { e ->
           val cause = if (e is ExecutionException) e.cause ?: e else e
           status.text = "${cause.javaClass.simpleName}: ${cause.message ?: ""}".take(200)
@@ -226,6 +229,7 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
   }
 
   private fun loadTopics() {
+    reads.invalidate()
     onSession("Loading topics", { it.topics(showInternal.isSelected) }) { list ->
       allTopics = list
       showTopics()
@@ -243,6 +247,7 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
   }
 
   private fun topicSelected() {
+    reads.invalidate()
     messagesModel.rows = emptyList()
     partitionsModel.rows = emptyList()
     if (tabs.selectedIndex == 2) loadPartitions()
@@ -257,10 +262,13 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
       else -> KafkaStart.Since(System.currentTimeMillis() - minutes.number * 60_000L, n)
     }
     messages.emptyText.text = "Reading…"
-    onSession("Reading $topic", { it.consume(topic, start) }) { list ->
-      messagesModel.rows = list
-      messages.emptyText.text = "No messages"
-      status.text = "${list.size} messages"
+    val request = reads.messages.start(topic)
+    onSession("Reading $topic", { it.consume(topic, start, cancelled = { request.cancelled }) },
+              { reads.messages.isCurrent(request, topics.selectedValue?.name) }) { result ->
+      messagesModel.rows = result.messages
+      val (empty, summary) = KafkaReads.describe(result)
+      messages.emptyText.text = empty
+      status.text = summary
     }
   }
 
@@ -295,7 +303,10 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
 
   private fun loadPartitions() {
     val topic = topics.selectedValue?.name ?: return
-    onSession("Describing $topic", { it.partitions(topic) }) { partitionsModel.rows = it }
+    val request = reads.partitions.start(topic)
+    onSession("Describing $topic", { it.partitions(topic) }, { reads.partitions.isCurrent(request, topics.selectedValue?.name) }) {
+      partitionsModel.rows = it
+    }
   }
 
   private fun loadGroups() {
@@ -320,7 +331,10 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
     onSession("Deleting $topic", { it.deleteTopic(topic) }) { loadTopics() }
   }
 
-  private fun closeSession() = executor.execute { closeSessionNow() }
+  private fun closeSession() {
+    reads.invalidate()
+    executor.execute { closeSessionNow() }
+  }
 
   private fun closeSessionNow() {
     session?.close()
@@ -332,6 +346,56 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
 
   private companion object {
     val TIME = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+  }
+}
+
+/**
+ * Which message read may still fill the table. Each read gets a fresh id; choosing another topic, refreshing, switching
+ * cluster or closing the window cancels the one in flight, so a slow read of topic A can never land under topic B.
+ * EDT only, except [Request.cancelled], which the poll loop reads.
+ */
+internal class KafkaReads {
+  class Request(val id: Long, val topic: String) {
+    @Volatile var cancelled = false
+  }
+
+  private var generation = 0L
+  private var current: Request? = null
+
+  fun start(topic: String): Request {
+    invalidate()
+    return Request(++generation, topic).also { current = it }
+  }
+
+  fun invalidate() {
+    current?.cancelled = true
+    current = null
+  }
+
+  fun isCurrent(request: Request, selectedTopic: String?): Boolean =
+    !request.cancelled && request.id == current?.id && request.topic == selectedTopic
+
+  companion object {
+    /** The table's empty text and the status line; a read cut off by the timeout says so instead of looking complete. */
+    fun describe(result: KafkaReadResult): Pair<String, String> {
+      val n = result.messages.size
+      if (!result.partial) return "No messages" to "$n messages"
+      val unfinished = "${result.unfinishedPartitions} ${if (result.unfinishedPartitions == 1) "partition" else "partitions"} " +
+                       "not finished within ${result.timeoutMs / 1000} s"
+      val empty = "No messages read yet: $unfinished"
+      return empty to if (n == 0) empty else "$n messages (partial: $unfinished)"
+    }
+  }
+}
+
+/** One guard per tab that loads per topic; whatever changes the topic or the cluster invalidates them all. */
+internal class KafkaTopicLoads {
+  val messages = KafkaReads()
+  val partitions = KafkaReads()
+
+  fun invalidate() {
+    messages.invalidate()
+    partitions.invalidate()
   }
 }
 

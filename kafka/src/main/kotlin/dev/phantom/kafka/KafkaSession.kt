@@ -5,6 +5,7 @@ import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.admin.OffsetSpec
+import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.producer.KafkaProducer
@@ -23,6 +24,10 @@ import java.util.concurrent.TimeUnit
 data class KafkaTopic(val name: String, val partitions: Int, val internal: Boolean)
 data class KafkaPartition(val partition: Int, val leader: String, val replicas: Int, val inSync: Int, val begin: Long, val end: Long)
 data class KafkaMessage(val partition: Int, val offset: Long, val timestamp: Long, val key: String?, val value: String?, val headers: List<Pair<String, String>>)
+/** What a read got; [unfinishedPartitions] > 0 means it gave up (timeout or cancel) before reaching the end of those. */
+data class KafkaReadResult(val messages: List<KafkaMessage>, val unfinishedPartitions: Int, val timeoutMs: Long) {
+  val partial: Boolean get() = unfinishedPartitions > 0
+}
 data class KafkaGroupLag(val group: String, val state: String, val topic: String, val lag: Long, val members: Int)
 
 /** Where reading starts: the last [count] records of each partition, the first ones, or those after [epochMs]. */
@@ -86,16 +91,28 @@ class KafkaSession(private val bootstrap: String, private val extra: String?) : 
     }
   }
 
-  /** Reads up to `count` records per partition from [start], newest first, giving up after [timeoutMs]. */
-  fun consume(topic: String, start: KafkaStart, timeoutMs: Long = 8_000): List<KafkaMessage> {
+  /**
+   * Reads up to `count` records per partition from [start], newest first, giving up after [timeoutMs] or once
+   * [cancelled] returns true; the result says how many partitions were left unfinished.
+   */
+  fun consume(topic: String, start: KafkaStart, timeoutMs: Long = 8_000, cancelled: () -> Boolean = { false }): KafkaReadResult {
+    // a read queued behind another one may be stale before it starts: skip connecting at all
+    if (cancelled()) return KafkaReadResult(emptyList(), 0, timeoutMs)
     val props = base().apply {
       put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
       put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "500")
       remove(AdminClientConfig.DEFAULT_API_TIMEOUT_MS_CONFIG)
     }
     return withPluginLoader { KafkaConsumer(props, ByteArrayDeserializer(), ByteArrayDeserializer()) }.use { consumer ->
+      read(consumer, topic, start, timeoutMs, cancelled)
+    }
+  }
+
+  companion object {
+    /** The poll loop of [consume], on any consumer so tests can drive it with a MockConsumer. */
+    internal fun read(consumer: Consumer<ByteArray, ByteArray>, topic: String, start: KafkaStart, timeoutMs: Long, cancelled: () -> Boolean): KafkaReadResult {
       val tps = consumer.partitionsFor(topic, Duration.ofSeconds(10)).map { TopicPartition(topic, it.partition()) }
-      if (tps.isEmpty()) return emptyList()
+      if (tps.isEmpty()) return KafkaReadResult(emptyList(), 0, timeoutMs)
       consumer.assign(tps)
       val begin = consumer.beginningOffsets(tps)
       val end = consumer.endOffsets(tps)
@@ -111,7 +128,7 @@ class KafkaSession(private val bootstrap: String, private val extra: String?) : 
       consumer.pause(tps - pending)
       val out = ArrayList<KafkaMessage>()
       val deadline = System.currentTimeMillis() + timeoutMs
-      while (pending.isNotEmpty() && System.currentTimeMillis() < deadline) {
+      while (pending.isNotEmpty() && System.currentTimeMillis() < deadline && !cancelled()) {
         for (record in consumer.poll(Duration.ofMillis(500))) {
           val tp = TopicPartition(record.topic(), record.partition())
           if (record.offset() >= until.getValue(tp)) continue
@@ -122,7 +139,9 @@ class KafkaSession(private val bootstrap: String, private val extra: String?) : 
           if (consumer.position(tp) >= until.getValue(tp)) { pending.remove(tp); consumer.pause(listOf(tp)) }
         }
       }
-      out.sortedWith(compareByDescending<KafkaMessage> { it.timestamp }.thenBy { it.partition }.thenByDescending { it.offset })
+      // whatever is still pending was cut off by the deadline (or a cancel): the caller must not present this as complete
+      return KafkaReadResult(out.sortedWith(compareByDescending<KafkaMessage> { it.timestamp }.thenBy { it.partition }.thenByDescending { it.offset }),
+                             pending.size, timeoutMs)
     }
   }
 
