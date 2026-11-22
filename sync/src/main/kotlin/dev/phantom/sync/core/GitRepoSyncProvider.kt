@@ -72,7 +72,7 @@ class GitRepoAuthService : SettingsSyncAuthService {
         return userData(url)
       }
       withContext(Dispatchers.EDT) {
-        val message = PhantomSyncBundle.message("login.failed", url, problem)
+        val message = PhantomSyncBundle.message("login.failed", GitSettingsRepository.maskCredentials(url), problem)
         if (parentComponent != null) Messages.showErrorDialog(parentComponent, message, PhantomSyncBundle.message("login.title"))
         else Messages.showErrorDialog(message, PhantomSyncBundle.message("login.title"))
       }
@@ -85,7 +85,9 @@ class GitRepoAuthService : SettingsSyncAuthService {
   override fun getAvailableUserAccounts(): List<SettingsSyncUserData> = GitRepoSyncAccounts.getInstance().urls.map(::userData)
 
   private fun userData(url: String) =
-    SettingsSyncUserData(id = url, providerCode = GIT_REPO_PROVIDER_CODE, name = GitRepoSyncAccounts.repositoryName(url), email = null, printableName = url)
+    SettingsSyncUserData(id = url, providerCode = GIT_REPO_PROVIDER_CODE, name = GitRepoSyncAccounts.repositoryName(url), email = null,
+                       // shown in the UI; the id keeps the real URL, which git needs
+                       printableName = GitSettingsRepository.maskCredentials(url))
 
   private object UrlValidator : InputValidatorEx {
     override fun getErrorText(inputString: String): String? =
