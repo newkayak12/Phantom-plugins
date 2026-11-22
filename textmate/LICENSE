@@ -1,14 +1,13 @@
 The grammars in bundles/ (lib/bundles in the plugin) come from other projects and keep their licenses:
 
-- adoc, bazel, bicep, cmake, erlang, hcl, jsp, kconfig, kotlin, mdx, terraform, twig and viml are under the license
-  file in their own folder. hcl and terraform are HashiCorp's (IBM Corp.) HCL and Terraform grammars
-  (https://github.com/hashicorp/syntax) under the Mozilla Public License 2.0; the files in their folders are their
+- adoc, bazel, cmake, hcl, jsp, kotlin and terraform are under the license file in their own folder. hcl and
+  terraform are HashiCorp's (IBM Corp.) HCL and Terraform grammars (https://github.com/hashicorp/syntax) under the Mozilla Public License 2.0; the files in their folders are their
   source form.
 - The others are the grammars of the built-in extensions of Visual Studio Code
   (https://github.com/microsoft/vscode/tree/main/extensions), under the license below. The grammars VS Code takes
   from other projects (each JSON file names its origin) keep those projects' licenses, listed in VS Code's
-  ThirdPartyNotices.txt (https://github.com/microsoft/vscode/blob/main/ThirdPartyNotices.txt). For the grammars
-  this plugin ships, that license is also in the grammar's folder: LICENSE in bat, css, diff, docker (with NOTICE),
+  ThirdPartyNotices.txt (https://github.com/microsoft/vscode/blob/main/ThirdPartyNotices.txt). That license is
+  also in the grammar's folder: LICENSE in bat, css, diff, docker (with NOTICE),
   dotenv, git-base, ini, javascript, less, log, make, powershell, scss, sql and typescript-basics.
 
 MIT License
