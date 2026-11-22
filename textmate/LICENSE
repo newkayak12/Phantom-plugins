@@ -9,6 +9,8 @@ The grammars in bundles/ (lib/bundles in the plugin) come from other projects an
   ThirdPartyNotices.txt (https://github.com/microsoft/vscode/blob/main/ThirdPartyNotices.txt). That license is
   also in the grammar's folder: LICENSE in bat, css, diff, docker (with NOTICE),
   dotenv, git-base, ini, javascript, less, log, make, powershell, scss, sql and typescript-basics.
+- testData/bundles holds test copies of grammars from other projects. Each folder carries its license in LICENSE;
+  invalid_bundle and preferences_test are test fixtures of this project.
 
 MIT License
 
