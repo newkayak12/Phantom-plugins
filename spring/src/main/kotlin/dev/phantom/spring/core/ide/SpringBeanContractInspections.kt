@@ -5,13 +5,13 @@ import com.intellij.codeInspection.*
 import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.psi.*
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.searches.AnnotatedElementsSearch
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiUtil
 import com.intellij.uast.UastHintedVisitorAdapter
 import dev.phantom.spring.core.*
@@ -230,49 +230,65 @@ class SpringUnknownProfileInspection : AbstractBaseUastLocalInspectionTool() {
 
 /** Profile names the project mentions, or null when it has no configuration files to judge by. */
 private object KnownProfiles {
-  fun of(project: Project): Set<String>? = CachedValuesManager.getManager(project).getCachedValue(project) {
-    CachedValueProvider.Result.create(computeKnown(project), PsiModificationTracker.MODIFICATION_COUNT)
+  private val WORD = Regex("""[A-Za-z0-9_.\-]+""")
+  private val PROFILE_FILE = Regex("""^(?:application|bootstrap)-(.+)\.(?:properties|ya?ml)$""")
+
+  // the config files are read once per set of config keys, the @ActiveProfiles classes searched on code changes only
+  fun of(project: Project): Set<String>? {
+    val keys = SpringConfigKeys.get(project)
+    if (keys.files.isEmpty()) return null
+    return keys.derived("profiles", ::fromConfig) + fromActiveProfiles(project)
   }
 
-  private fun computeKnown(project: Project): Set<String>? {
-    val files = SpringConfigKeys.get(project).files
-    if (files.isEmpty()) return null
+  private fun fromConfig(keys: SpringConfigKeys.Keys): Set<String> {
     val known = HashSet<String>()
     known += "default"
-    val word = Regex("""[A-Za-z0-9_.\-]+""")
-    for (file in files) {
-      Regex("""^(?:application|bootstrap)-(.+)\.(?:properties|ya?ml)$""").find(file.name)?.let { known += it.groupValues[1] }
+    for (file in keys.files) {
+      PROFILE_FILE.find(file.name)?.let { known += it.groupValues[1] }
       val text = FileDocumentManager.getInstance().getCachedDocument(file)?.text ?: runCatching { VfsUtilCore.loadText(file) }.getOrNull() ?: continue
-      // values of profile settings, generously: the line naming a profile key and everything nested under it
-      var blockIndent = -1
-      for (line in text.lines()) {
-        val trimmed = line.trimStart()
-        if (trimmed.isEmpty() || trimmed.startsWith("#")) continue
-        val indent = line.length - trimmed.length
-        if (blockIndent >= 0 && (indent > blockIndent || indent == blockIndent && trimmed.startsWith("-"))) {
-          val value = if (trimmed.startsWith("-")) trimmed.removePrefix("-") else trimmed.substringAfter(':', "")
-          word.findAll(value).forEach { known += it.value }
-          continue
-        }
-        blockIndent = -1
-        if (!line.contains("profile", ignoreCase = true)) continue
-        val value = line.substringAfter('=', line.substringAfter(':', ""))
-        word.findAll(value).forEach { known += it.value }
-        blockIndent = indent
-      }
+      profileValues(text, known)
     }
+    return known
+  }
+
+  /** Values of profile settings, generously: the line naming a profile key and everything nested under it. */
+  private fun profileValues(text: String, known: MutableSet<String>) {
+    var blockIndent = -1
+    for (line in text.lines()) {
+      val trimmed = line.trimStart()
+      if (trimmed.isEmpty() || trimmed.startsWith("#")) continue
+      val indent = line.length - trimmed.length
+      if (isNested(blockIndent, indent, trimmed)) {
+        val value = if (trimmed.startsWith("-")) trimmed.removePrefix("-") else trimmed.substringAfter(':', "")
+        WORD.findAll(value).forEach { known += it.value }
+        continue
+      }
+      blockIndent = -1
+      if (!line.contains("profile", ignoreCase = true)) continue
+      val value = line.substringAfter('=', line.substringAfter(':', ""))
+      WORD.findAll(value).forEach { known += it.value }
+      blockIndent = indent
+    }
+  }
+
+  /** A line under the profile key's line at [blockIndent] (none when negative): deeper, or a list item at the same depth. */
+  private fun isNested(blockIndent: Int, indent: Int, trimmed: String): Boolean =
+    blockIndent >= 0 && (indent > blockIndent || indent == blockIndent && trimmed.startsWith("-"))
+
+  private fun fromActiveProfiles(project: Project): Set<String> = CachedValuesManager.getManager(project).getCachedValue(project) {
+    val known = HashSet<String>()
     val facade = JavaPsiFacade.getInstance(project)
     facade.findClass(SpringContractNames.ACTIVE_PROFILES, GlobalSearchScope.allScope(project))?.let { annotation ->
       AnnotatedElementsSearch.searchPsiClasses(annotation, GlobalSearchScope.projectScope(project)).forEach { psiClass ->
         val active = psiClass.getAnnotation(SpringContractNames.ACTIVE_PROFILES) ?: return@forEach
         for (attribute in listOf("value", "profiles")) {
           com.intellij.codeInsight.AnnotationUtil.arrayAttributeValues(active.findDeclaredAttributeValue(attribute)).forEach { v ->
-            (facade.constantEvaluationHelper.computeConstantExpression(v) as? String)?.let { word.findAll(it).forEach { m -> known += m.value } }
+            (facade.constantEvaluationHelper.computeConstantExpression(v) as? String)?.let { WORD.findAll(it).forEach { m -> known += m.value } }
           }
         }
       }
     }
-    return known
+    CachedValueProvider.Result.create<Set<String>>(known, SpringCacheDeps.jvm(project), ProjectRootManager.getInstance(project))
   }
 }
 

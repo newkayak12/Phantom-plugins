@@ -78,10 +78,11 @@ class SpringCacheLineMarkerProvider : LineMarkerProviderDescriptor() {
     if (element.firstChild != null) return null
     val owner = element.parent as? PsiNameIdentifierOwner ?: return null
     if (owner.nameIdentifier != element) return null
-    val method = getUParentForIdentifier(element) as? UMethod ?: return null
-    // cheap check before anything else: one of the caching annotations by short name
-    if (method.uAnnotations.none { it.qualifiedName?.startsWith("org.springframework.cache.annotation.Cach") == true }) return null
+    // the project gate before the UAST conversion: outside Spring projects no leaf pays for it
     if (!SpringProjectGate.isSpringProject(element.project)) return null
+    val method = getUParentForIdentifier(element) as? UMethod ?: return null
+    // cheap check before resolving anything: one of the caching annotations by short name
+    if (method.uAnnotations.none { it.qualifiedName?.startsWith("org.springframework.cache.annotation.Cach") == true }) return null
     val psiMethod = method.javaPsi
     val caches = SpringCacheOperations.of(psiMethod).flatMap { it.caches }.toSet().ifEmpty { return null }
     val label = caches.sorted().joinToString(", ")
@@ -108,9 +109,9 @@ class SpringScheduledLineMarkerProvider : LineMarkerProviderDescriptor() {
     if (element.firstChild != null) return null
     val owner = element.parent as? PsiNameIdentifierOwner ?: return null
     if (owner.nameIdentifier != element) return null
+    if (!SpringProjectGate.isSpringProject(element.project)) return null
     val method = getUParentForIdentifier(element) as? UMethod ?: return null
     val scheduled = method.findAnnotation(SpringMethodContracts.SCHEDULED) ?: return null
-    if (!SpringProjectGate.isSpringProject(element.project)) return null
     val trigger = describe(scheduled)
     val tooltip = PhantomSpringBundle.message("scheduled.gutter.tooltip", trigger)
     return LineMarkerInfo(element, element.textRange, AllIcons.Vcs.History, { tooltip }, null, GutterIconRenderer.Alignment.LEFT, { tooltip })
@@ -142,9 +143,9 @@ class SpringImportLineMarkerProvider : LineMarkerProviderDescriptor() {
     if (element.firstChild != null) return null
     val owner = element.parent as? PsiNameIdentifierOwner ?: return null
     if (owner.nameIdentifier != element) return null
+    if (!SpringProjectGate.isSpringProject(element.project)) return null
     val uClass = getUParentForIdentifier(element) as? UClass ?: return null
     val annotation = uClass.findAnnotation(import) ?: return null
-    if (!SpringProjectGate.isSpringProject(element.project)) return null
     val classes = attributeItems(annotation, "value").mapNotNull { (it as? UClassLiteralExpression)?.type?.let { t -> (t as? PsiClassType)?.resolve() } }
     if (classes.isEmpty()) return null
     val names = classes.mapNotNull { it.name }.joinToString(", ")

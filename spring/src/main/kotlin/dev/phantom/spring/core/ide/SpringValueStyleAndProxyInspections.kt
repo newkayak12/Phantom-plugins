@@ -9,12 +9,12 @@ import com.intellij.java.library.JavaLibraryUtil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.psi.*
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.uast.UastHintedVisitorAdapter
 import dev.phantom.spring.core.*
 import org.jetbrains.annotations.NonNls
@@ -126,11 +126,20 @@ object JdkProxyMode {
       fqn != "java.io.Serializable" && fqn != "java.lang.AutoCloseable" && !fqn.startsWith("groovy.")
     }
 
-  fun isJdkProxying(project: Project): Boolean = CachedValuesManager.getManager(project).getCachedValue(project) {
-    CachedValueProvider.Result.create(compute(project), PsiModificationTracker.MODIFICATION_COUNT)
+  private enum class CodeMode { CLASS, INTERFACE, BOOT }
+
+  /** The `@Enable*` search runs on code and library changes, the property is read once per set of config keys. */
+  fun isJdkProxying(project: Project): Boolean = when (codeMode(project)) {
+    CodeMode.CLASS -> false
+    CodeMode.INTERFACE -> true
+    CodeMode.BOOT -> SpringConfigKeys.get(project).derived("proxyTargetClassFalse", ::propertySaysFalse)
   }
 
-  private fun compute(project: Project): Boolean {
+  private fun codeMode(project: Project): CodeMode = CachedValuesManager.getManager(project).getCachedValue(project) {
+    CachedValueProvider.Result.create(computeCodeMode(project), SpringCacheDeps.jvm(project), ProjectRootManager.getInstance(project))
+  }
+
+  private fun computeCodeMode(project: Project): CodeMode {
     val facade = JavaPsiFacade.getInstance(project)
     val all = GlobalSearchScope.allScope(project)
     val scope = GlobalSearchScope.projectScope(project)
@@ -146,14 +155,14 @@ object JdkProxyMode {
         }
       }
     }
-    if (anyTrue) return false
+    if (anyTrue) return CodeMode.CLASS
     val boot = JavaLibraryUtil.hasLibraryClass(project, BOOT_AUTOCONFIGURE) ||
                (ApplicationManager.getApplication().isUnitTestMode && facade.findClass(BOOT_AUTOCONFIGURE, all) != null)
     // Spring Boot forces class proxies for every auto-proxy creator unless the property turns it off
-    return if (boot) propertySaysFalse(project) else anyFalse
+    return if (boot) CodeMode.BOOT else if (anyFalse) CodeMode.INTERFACE else CodeMode.CLASS
   }
 
-  private fun propertySaysFalse(project: Project): Boolean = SpringConfigKeys.get(project).files.any { file ->
+  private fun propertySaysFalse(keys: SpringConfigKeys.Keys): Boolean = keys.files.any { file ->
     val text = FileDocumentManager.getInstance().getCachedDocument(file)?.text ?: runCatching { VfsUtilCore.loadText(file) }.getOrNull() ?: return@any false
     text.lineSequence().any { line -> !line.trimStart().startsWith("#") && PROPERTY_FALSE.containsMatchIn(line) }
   }

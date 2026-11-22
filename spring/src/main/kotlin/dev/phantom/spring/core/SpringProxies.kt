@@ -4,7 +4,9 @@ package dev.phantom.spring.core
 import com.intellij.codeInsight.AnnotationUtil
 import com.intellij.codeInsight.MetaAnnotationUtil
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VfsUtilCore
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiAnnotation
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiMethod
@@ -15,6 +17,8 @@ import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import org.jetbrains.annotations.NonNls
+import org.jetbrains.annotations.TestOnly
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Annotations that Spring applies through a proxy around the bean. Advice on them runs only when the call comes from
@@ -94,22 +98,30 @@ object KotlinOpenPlugins {
   private val ALL_OPEN_ANNOTATION = Regex("""annotation\s*\(\s*"([\w.$]+)"\s*\)|<option>all-open:annotation=([\w.$]+)</option>""")
   private val BUILD_FILES = listOf("build.gradle.kts", "build.gradle", "pom.xml")
 
+  /**
+   * The build files are read from disk, so the value changes only with their contents on disk, the set of files (one
+   * created, deleted or renamed) and the roots that make up the project scope; not with each Kotlin keystroke.
+   */
   fun settings(project: Project): Settings = CachedValuesManager.getManager(project).getCachedValue(project) {
+    readCount.incrementAndGet()
     var spring = false
     val annotations = HashSet<String>()
     val scope = GlobalSearchScope.projectScope(project)
-    for (name in BUILD_FILES) {
-      for (file in FilenameIndex.getVirtualFilesByName(name, scope)) {
-        val text = runCatching { VfsUtilCore.loadText(file) }.getOrNull() ?: continue
-        if (SPRING_PLUGIN.containsMatchIn(text)) spring = true
-        if (text.contains("allOpen") || text.contains("all-open")) {
-          ALL_OPEN_ANNOTATION.findAll(text).forEach { m -> annotations += m.groupValues.drop(1).first { it.isNotEmpty() } }
-        }
+    val files = BUILD_FILES.flatMap { FilenameIndex.getVirtualFilesByName(it, scope) }
+    for (file in files) {
+      val text = runCatching { VfsUtilCore.loadText(file) }.getOrNull() ?: continue
+      if (SPRING_PLUGIN.containsMatchIn(text)) spring = true
+      if (text.contains("allOpen") || text.contains("all-open")) {
+        ALL_OPEN_ANNOTATION.findAll(text).forEach { m -> annotations += m.groupValues.drop(1).first { it.isNotEmpty() } }
       }
     }
-    CachedValueProvider.Result.create(Settings(spring, annotations), PsiModificationTracker.MODIFICATION_COUNT,
-                                      com.intellij.openapi.vfs.VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS)
+    val deps = files.toTypedArray<Any>() + VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS + ProjectRootManager.getInstance(project)
+    CachedValueProvider.Result.create(Settings(spring, annotations), *deps)
   }
+
+  /** How often the build files were read, for tests that check the cache survives unrelated edits. */
+  @TestOnly
+  val readCount: AtomicInteger = AtomicInteger()
 
   /** Whether a compiler plugin makes this Kotlin class (and its members) open. */
   fun opensClass(psiClass: PsiClass): Boolean {
