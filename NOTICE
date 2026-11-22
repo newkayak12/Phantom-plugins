@@ -6,8 +6,9 @@ Licensed under the Apache License, Version 2.0 (LICENSE), except where a plugin 
 Several plugins are modified versions of plugins from IntelliJ IDEA Community Edition
 (https://github.com/JetBrains/intellij-community), Copyright (C) JetBrains s.r.o. and contributors,
 licensed under the Apache License, Version 2.0; each such plugin's README names the plugin it is based on.
-Plugins based on IntelliJ Community code were modified by Phantom contributors: the changed files keep their original
-copyright header, the changes are recorded in this repository's Git history, and many are marked with "phantom" comments.
+Plugins based on IntelliJ Community code were modified by Phantom contributors: each changed file keeps its original
+copyright header and carries the line "Modified by Phantom contributors" below it, and the changes are recorded in this
+repository's Git history.
 The Gradle DSL plugin (gradle-dsl/) is based on code of the Android Open Source Project
 (https://source.android.com/), Copyright (C) The Android Open Source Project, under the Apache License, Version 2.0.
 The TOML plugin (toml/) includes code from the intellij-rust project under the MIT License (toml/LICENSE).
@@ -28,6 +29,13 @@ Copyright (c) 2026 Lovecast Inc., under the MIT License (ai-integrations/LICENSE
 (https://github.com/xtermjs/xterm.js), Copyright (c) 2017-2019 The xterm.js authors and others, under the MIT
 License (its LICENSE next to it in remote-web/vendor/xterm); and QR Code generator (https://github.com/nayuki/QR-Code-generator),
 Copyright (c) Project Nayuki, under the MIT License.
+
+The Java Decompiler plugin (decompiler/) includes Fernflower, Copyright 2014-2025 JetBrains s.r.o. (decompiler/NOTICE.txt).
+The Groovy plugin (groovy/) ships the Groovy HotSwap agent, which contains ASM 3.x, Copyright (c) 2000-2007 INRIA,
+France Telecom, under a BSD license (groovy/NOTICE).
+Phantom Grammar (grammar/) ships English dictionaries built from SCOWL and other word lists, whose copyright notices
+and terms are in grammar/NOTICE.
+A plugin folder's own NOTICE is packaged as META-INF/NOTICE-<plugin> in the plugin's main jar.
 
 Third-party libraries packaged in a plugin (the jars in its lib/ folder) are listed in META-INF/THIRD-PARTY-NOTICES.txt
 inside the plugin's main jar, each with its Maven coordinates, project page, the license its POM names and the
