@@ -26,6 +26,13 @@ object DerivedQuery {
 
   val PREFIX: Regex = Regex("^(find|read|get|query|search|stream|count|exists|delete|remove)((\\p{Lu}.*?))??By")
 
+  // Method names are parsed on every scan of the repositories: the patterns are compiled once.
+  private val ORDER_BY = Regex("OrderBy(?=\\p{Lu})")
+  private val ALL_IGNORE_CASE = Regex("All(IgnoreCase|IgnoringCase)$")
+  private val ORDER_PART = Regex("(.+?)(Asc|Desc)(?=\\p{Lu}|$)")
+  private val IGNORE_CASE = Regex("(IgnoreCase|IgnoringCase)$")
+  private val SPLITTERS = listOf("Or", "And").associateWith { Regex("$it(?=\\p{Lu})") }
+
   /** Subjects offered while the user has not typed `By` yet. */
   val SUBJECTS: List<String> = listOf("findBy", "findAllBy", "findFirstBy", "findTop10By", "findDistinctBy", "existsBy", "countBy", "deleteBy", "streamBy")
 
@@ -67,12 +74,12 @@ object DerivedQuery {
     val subjectEnd = prefix.range.last + 1
     var predicate = name.substring(subjectEnd)
     var orderSource: String? = null
-    val orderIndex = Regex("OrderBy(?=\\p{Lu})").find(predicate)?.range?.first
+    val orderIndex = ORDER_BY.find(predicate)?.range?.first
     if (orderIndex != null) {
       orderSource = predicate.substring(orderIndex + "OrderBy".length)
       predicate = predicate.substring(0, orderIndex)
     }
-    val allIgnoreCase = Regex("All(IgnoreCase|IgnoringCase)$").find(predicate)
+    val allIgnoreCase = ALL_IGNORE_CASE.find(predicate)
     if (allIgnoreCase != null) predicate = predicate.substring(0, allIgnoreCase.range.first)
 
     val parts = ArrayList<Part>()
@@ -86,7 +93,7 @@ object DerivedQuery {
     if (orderSource != null) {
       var orderOffset = subjectEnd + orderIndex!! + "OrderBy".length
       // `OrderByLastnameAscFirstnameDesc`: each property ends with Asc or Desc
-      val matcher = Regex("(.+?)(Asc|Desc)(?=\\p{Lu}|$)").findAll(orderSource).toList()
+      val matcher = ORDER_PART.findAll(orderSource).toList()
       if (matcher.isEmpty()) orderBy.add(Part(orderSource, orderOffset, orderSource, null, 0))
       for (m in matcher) {
         orderBy.add(Part(m.value, orderOffset + m.range.first, m.groupValues[1], m.groupValues[2], 0))
@@ -98,7 +105,7 @@ object DerivedQuery {
 
   private fun predicatePart(source: String, offset: Int): Part {
     var rest = source
-    Regex("(IgnoreCase|IgnoringCase)$").find(rest)?.let { rest = rest.substring(0, it.range.first) }
+    IGNORE_CASE.find(rest)?.let { rest = rest.substring(0, it.range.first) }
     for ((keyword, arguments) in OPERATORS) {
       if (rest.length > keyword.length && rest.endsWith(keyword) && rest[rest.length - keyword.length - 1].let { it.isLetterOrDigit() || it == '_' }) {
         return Part(source, offset, rest.substring(0, rest.length - keyword.length), keyword, arguments)
@@ -111,7 +118,7 @@ object DerivedQuery {
   private fun splitKeeping(text: String, keyword: String): List<Pair<String, Int>> {
     val result = ArrayList<Pair<String, Int>>()
     var start = 0
-    for (m in Regex("$keyword(?=\\p{Lu})").findAll(text)) {
+    for (m in SPLITTERS.getValue(keyword).findAll(text)) {
       if (m.range.first == 0) continue
       result.add(text.substring(start, m.range.first) to start)
       start = m.range.last + 1
