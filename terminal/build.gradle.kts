@@ -6,7 +6,18 @@ plugins {
   id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-version = "0.2.0"
+version = "0.3.0"
+
+// The Java support modules (intellij.java.terminal.*) moved here from the IDE core: the IDE core of earlier Phantom builds still holds them, so an installed zip must not load there
+intellijPlatform {
+  pluginConfiguration {
+    ideaVersion {
+      sinceBuild = "262.261123"
+      untilBuild = "262.*"
+    }
+  }
+}
+
 
 // The IntelliJ sources keep Java next to Kotlin
 sourceSets {
@@ -49,6 +60,8 @@ dependencies {
     // What intellij.terminal.sh builds on (it switches off without Shell Script)
     bundledPlugin("com.jetbrains.sh")
     bundledModule("intellij.sh.core")
+    // What the intellij.java.terminal.* modules build on (they switch off without Java)
+    bundledPlugin("com.intellij.java")
     testFramework(TestFrameworkType.JUnit5, providers.gradleProperty("platformTestBuild"))
   }
   // Some tests are JUnit Jupiter; the rest are JUnit 4, run by the vintage engine

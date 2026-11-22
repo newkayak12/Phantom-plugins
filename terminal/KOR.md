@@ -12,6 +12,10 @@ backend, frontend, cloud, Shell Script 모듈은 번들 플러그인처럼 각�
 일반 애플리케이션 서비스입니다(Phantom은 frontend와 backend를 한 프로세스에서 돌립니다). 사용 통계는 수집하지 않고, Agent Workbench
 홍보도 없습니다.
 
+Java 지원(터미널 PATH의 JDK, `java`·`javac` 자동완성, 터미널 설정의 Java 항목)도 IDE 본체에서 옮겨 온 선택 모듈
+`intellij.java.terminal.*`로 여기에 있습니다. 그래서 본체는 Terminal 플러그인 없이 컴파일됩니다. Java 플러그인이 없으면 꺼집니다.
+0.3.0은 Phantom 262.261123 이상이 필요합니다. 그보다 이전 빌드는 본체에 이 모듈이 아직 있습니다.
+
 명령 자동완성은 [Fig 자동완성 스펙](https://github.com/withfig/autocomplete)(MIT, `terminal/LICENSE`)에서 옵니다.
 `tools/fig-specs`가 고정한 버전의 스펙을 `src/main/resources/completionSpecs`의 JSON으로 바꾸고(명령 720개, git, docker,
 npm, kubectl, aws, az, gcloud 포함), 이 JSON을 커밋해 두어 빌드에 Node가 필요 없습니다. JSON에는 Fig가 정적으로 적은 것만
