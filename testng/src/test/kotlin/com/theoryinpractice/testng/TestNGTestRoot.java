@@ -13,8 +13,8 @@ import java.io.File;
 public final class TestNGTestRoot {
   public static final String PATH = new File("").getAbsolutePath().replace(File.separatorChar, '/');
 
-  /** IdeaTestUtil's mock JDK 1.7 is community/java/mockJDK-1.7 under the IDE home; a copy sits in testData. */
-  public static final String MOCK_JDK_17 = PATH + "/testData/mockJDK-1.7";
+  /** IdeaTestUtil's mock JDK 1.7 is community/java/mockJDK-1.7 under the IDE home; Gradle downloads it (MockJdks.kt). */
+  public static final String MOCK_JDK_17 = System.getProperty("phantom.mockjdk.home") + "/java/mockJDK-1.7";
 
   /** LightJavaCodeInsightFixtureTestCase.JAVA_LATEST (the default): the highest language level on mock JDK 1.7. */
   public static final LightProjectDescriptor JAVA_LATEST =

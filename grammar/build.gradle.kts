@@ -117,3 +117,6 @@ tasks.test {
 tasks.prepareTestSandbox {
   disabledPlugins.add("tanvd.grazi")
 }
+
+// IntelliJ's mock JDKs for the light Java test projects (see MockJdks.kt)
+useMockJdks()

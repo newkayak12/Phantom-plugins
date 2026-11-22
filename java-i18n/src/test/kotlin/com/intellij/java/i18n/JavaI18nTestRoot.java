@@ -13,11 +13,11 @@ import java.io.File;
 public final class JavaI18nTestRoot {
   public static final String PATH = new File("").getAbsolutePath().replace(File.separatorChar, '/');
 
-  /** IdeaTestUtil's mock JDKs 1.7 and 1.8 are community/java/mockJDK-1.x under the IDE home; copies sit in testData. */
-  public static final String MOCK_JDK_17 = PATH + "/testData/mockJDK-1.7";
-  public static final String MOCK_JDK_18 = PATH + "/testData/mockJDK-1.8";
+  /** IdeaTestUtil's mock JDKs 1.7 and 1.8 are community/java/mockJDK-1.x under the IDE home; Gradle downloads them (MockJdks.kt). */
+  public static final String MOCK_JDK_17 = System.getProperty("phantom.mockjdk.home") + "/java/mockJDK-1.7";
+  public static final String MOCK_JDK_18 = System.getProperty("phantom.mockjdk.home") + "/java/mockJDK-1.8";
 
-  /** LightJavaCodeInsightFixtureTestCase.JAVA_8 on the mock JDK 1.8 from testData. */
+  /** LightJavaCodeInsightFixtureTestCase.JAVA_8 on the mock JDK 1.8. */
   public static final LightProjectDescriptor JAVA_8 =
     new LightJavaCodeInsightFixtureTestCase.ProjectDescriptor(LanguageLevel.JDK_1_8) {
       @Override
