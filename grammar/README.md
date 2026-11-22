@@ -22,6 +22,10 @@ YouTrack.
 `tanvd.grazi` and `dev.phantom.grazie` stay as aliases and the content module names stay the IntelliJ ones, so plugins
 and bundled modules that depend on them (Kotlin, Python, TOML, Maven, YAML, Markdown, ...) keep working.
 
+**0.2.2**: the plugin jar carries the copyright notices of the English dictionaries (SCOWL and the other word lists
+of english-pos-dict) as `META-INF/NOTICE-grammar`. No longer depends on the unused gRPC library module, so grammar
+checking loads in a Phantom without gRPC (#32).
+
 **0.2.1**: other languages' LanguageTool bundles are downloaded from this repository's GitHub release
 `languagetool-6.8.27` instead of resources.jetbrains.com; the files and checksums are the same. Downloads work again:
 0.2.0 asked for upper-case file names (`DE-6.8.27.jar`), which the server refused. The plugin jar lists its

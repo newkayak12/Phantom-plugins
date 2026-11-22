@@ -10,5 +10,7 @@ keep working. Phantom bundles this build instead of the IntelliJ plugin.
 
 The engine tests run on the IDE's runtime, which has no javac, so their round trips compile with ECJ only.
 
+**0.1.2**: the plugin jar carries Fernflower's NOTICE (`META-INF/NOTICE-decompiler`).
+
 **0.1.1**: the notice shown before the first class file is decompiled is a plain warning, titled "Fernflower decompiler":
 decompiled code may be protected, so check the license of what you decompile.

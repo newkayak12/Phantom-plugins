@@ -19,6 +19,9 @@ Grazie 라이브러리(`ai.grazie.*`)는 쓰지 않습니다. IDE 부분이 거�
 `tanvd.grazi`와 `dev.phantom.grazie`는 별칭으로 남겨 두고 콘텐츠 모듈 이름도 IntelliJ 것을 그대로 써서, 이것에 의존하는
 플러그인과 번들 모듈(Kotlin, Python, TOML, Maven, YAML, Markdown 등)이 그대로 동작합니다.
 
+**0.2.2**: 플러그인 jar에 영어 사전(SCOWL 등 english-pos-dict의 단어 목록)의 저작권 고지가 `META-INF/NOTICE-grammar`로
+들어갑니다. 쓰지 않는 gRPC 라이브러리 모듈에 대한 의존을 빼서, gRPC가 없는 Phantom에서도 문법 검사가 로드됩니다 (#32).
+
 **0.2.1**: 다른 언어의 LanguageTool 번들을 resources.jetbrains.com 대신 이 저장소의 GitHub 릴리스 `languagetool-6.8.27`에서
 내려받습니다. 파일과 체크섬은 같습니다. 0.2.0은
 대문자 파일 이름(`DE-6.8.27.jar`)을 요청해 서버가 거절했는데, 이제 다시 내려받아집니다. 플러그인 jar의 `META-INF/THIRD-PARTY-NOTICES.txt`에 라이브러리와 라이선스 목록이

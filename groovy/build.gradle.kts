@@ -7,7 +7,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.1"
+version = "0.1.2"
 
 // The IntelliJ sources keep Java next to Kotlin. src/main is intellij.groovy, intellij.groovy.psi (with its generated lexers
 // and parser), intellij.groovy.structuralSearch and the three content modules (git, ant, copyright). The
@@ -213,8 +213,14 @@ tasks.test {
   //   sources; an installed IDE has none.
   // - DsldTest.testMeta: it reads standardDsls/metaDsl.gdsl as a class path resource, which it is only in IntelliJ's
   //   development layout; the plugin ships standardDsls next to its jar (lib/standardDsls), as IntelliJ's distribution does.
+  // - five ReferenceCompletionTest cases expect the exact completion list of the Sun JDK 5 copy upstream keeps in
+  //   testData/mockJDK, which is not in this repository (its sources are "SUN PROPRIETARY/CONFIDENTIAL"). On the JDK the
+  //   tests run on, the list has more classes and packages; the other cases of the test pass.
   exclude("org/jetbrains/plugins/groovy/*TestSuite*", "org/jetbrains/plugins/groovy/GroovySanityTest*")
   filter {
+    listOf("testType", "testGrvy959", "testGrvy1021a", "testGrvy1156", "testOnDemand").forEach {
+      excludeTestsMatching("org.jetbrains.plugins.groovy.completion.ReferenceCompletionTest.$it")
+    }
     excludeTestsMatching("org.jetbrains.plugins.groovy.compiler.*.testExtendGroovyClassesWithAdditionalDependencies")
     excludeTestsMatching("org.jetbrains.plugins.groovy.dsl.DsldTest.testMeta")
   }

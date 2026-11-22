@@ -54,6 +54,7 @@ public class ReferenceCompletionTest extends CompletionTestBase {
   @Override
   protected void tuneFixture(JavaModuleFixtureBuilder moduleBuilder) {
     moduleBuilder.addJdk(TestUtils.getMockJdkHome());
+    TestUtils.addGroovy10(moduleBuilder);
   }
 
 }

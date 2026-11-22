@@ -13,3 +13,7 @@ stays as an alias and the content module names stay the IntelliJ ones, so plugin
 Groovy Live Templates and others) keep working. The plugin folder keeps IntelliJ's layout (`lib/groovy-jps.jar`,
 `groovy-rt.jar`, `standardDsls/`, `agent/gragent.jar`, `modules/` and the rest). Phantom bundles this build instead of the
 IntelliJ plugin.
+
+**0.1.2**: the plugin jar carries the notice of ASM, which the bundled HotSwap agent (`lib/agent/gragent.jar`) contains
+(`META-INF/NOTICE-groovy`). The Sun JDK 5 copy in the test data, whose sources are marked "SUN PROPRIETARY/CONFIDENTIAL", is removed: the tests run
+on the JDK they run with, plus Groovy 1.0 (`testData/lib`); five completion cases tuned to that JDK copy are left out.

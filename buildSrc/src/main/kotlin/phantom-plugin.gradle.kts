@@ -96,13 +96,16 @@ val thirdPartyNotices = tasks.register<ThirdPartyNoticesTask>("thirdPartyNotices
 }
 
 // Every plugin zip carries the licenses with it: the repository's LICENSE and NOTICE, a plugin folder's own LICENSE
-// (TOML's MIT license, for one) as META-INF/LICENSE-<plugin>, and the notices of its third-party libraries
+// (TOML's MIT license, for one) as META-INF/LICENSE-<plugin>, its own NOTICE or NOTICE.txt (Fernflower's, for the
+// decompiler) as META-INF/NOTICE-<plugin>, and the notices of its third-party libraries
 tasks.named<Jar>("jar") {
   // Read here: the rename runs at execution time, where Task.project breaks the configuration cache
   val pluginLicense = "LICENSE-${project.name}"
+  val pluginNotice = "NOTICE-${project.name}"
   metaInf {
     from(rootDir.resolve("LICENSE"), rootDir.resolve("NOTICE"))
     from(projectDir.resolve("LICENSE").takeIf { it.isFile } ?: files()) { rename { pluginLicense } }
+    from(listOf("NOTICE", "NOTICE.txt").map(projectDir::resolve).firstOrNull { it.isFile } ?: files()) { rename { pluginNotice } }
     from(thirdPartyNotices)
   }
 }
