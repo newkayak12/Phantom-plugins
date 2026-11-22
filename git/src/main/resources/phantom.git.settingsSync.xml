@@ -1,0 +1,18 @@
+<!-- The Backup and Sync history (tool window and action), moved here from Phantom's settings-sync-core (com.intellij.settingsSync.core.git)
+     so the IDE core no longer compiles against Git. It shows the settings repository through the Git log, and switches off
+     with Backup and Sync. -->
+<idea-plugin package="com.intellij.vcs.git.settingsSync">
+  <dependencies>
+    <module name="intellij.settingsSync.core"/>
+    <module name="intellij.vcs.git.backend"/>
+  </dependencies>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <toolWindow id="Backup and Sync History" secondary="false" icon="AllIcons.Toolwindows.SettingSync" anchor="left"
+                factoryClass="com.intellij.vcs.git.settingsSync.SettingsHistoryToolWindowFactory"/>
+  </extensions>
+
+  <actions resource-bundle="messages.SettingsSyncBundle">
+    <action class="com.intellij.vcs.git.settingsSync.SettingsSyncHistoryAction" id="settingsSync.history" icon="AllIcons.Vcs.History"/>
+  </actions>
+</idea-plugin>

@@ -6,7 +6,18 @@ plugins {
   id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-version = "0.1.0"
+version = "0.2.0"
+
+// The Backup and Sync history (phantom.git.settingsSync) moved here from the IDE core: the IDE core of earlier Phantom builds still holds them, so an installed zip must not load there
+intellijPlatform {
+  pluginConfiguration {
+    ideaVersion {
+      sinceBuild = "262.261123"
+      untilBuild = "262.*"
+    }
+  }
+}
+
 
 // As the IntelliJ module is compiled: interfaces annotated @JvmDefaultWithCompatibility need this mode
 kotlin {
@@ -63,6 +74,8 @@ dependencies {
     // What intellij.vcs.git.coverage and intellij.vcs.git.terminal build on (each switches off without it)
     bundledModule("intellij.platform.coverage")
     bundledPlugin("org.jetbrains.plugins.terminal")
+    // What intellij.vcs.git.settingsSync (the Backup and Sync history) builds on
+    bundledModule("intellij.settingsSync.core")
     testFramework(TestFrameworkType.JUnit5, providers.gradleProperty("platformTestBuild"))
   }
   // VcsPlatformTest and the Executor the Git tests build on, and the snapshot assertions
