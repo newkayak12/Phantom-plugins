@@ -23,6 +23,10 @@ Phantom suggests this plugin when a project depends on `spring-context` or `spri
 
 Not yet: WebFlux functional routes, Spring Security filter chain views. Spring Data repositories are in [JPA Support](../jpa/README.md).
 
+**0.9.4**: less CPU while you type. Bean names and the beans that can fill an injection point are kept while you type
+inside a method body or a field initializer, and found again when a class, annotation, signature or supertype changes.
+Results are unchanged.
+
 **0.9.3**: less CPU while you type. The Kafka, RabbitMQ and JMS gutter icons look only at the line they are on; the
 project-wide search runs when you click one. The duplicate bean name check looks up only the name it checks, and reads
 all beans only when some bean name in the project is not a plain string. Results are unchanged.
