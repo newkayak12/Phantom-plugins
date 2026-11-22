@@ -277,7 +277,7 @@ object SpringBeanNameTypos {
       names += name
       beans.forEach { bean -> SpringBeans.qualifier(bean)?.let(names::add) }
     }
-    CachedValueProvider.Result.create<Set<String>>(names, PsiModificationTracker.MODIFICATION_COUNT)
+    CachedValueProvider.Result.create<Set<String>>(names, *SpringStructureTracker.deps(project))
   }
 
   /** The project bean [name] probably means, or null when it is a known name or not close to one. */

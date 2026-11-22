@@ -10,4 +10,7 @@
                      groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
                      implementationClass="dev.phantom.spring.kotlin.KotlinSpringOpenInspection"/>
   </extensions>
+  <extensions defaultExtensionNs="dev.phantom.spring">
+    <codeBodies language="kotlin" implementationClass="dev.phantom.spring.kotlin.KotlinSpringCodeBodies"/>
+  </extensions>
 </idea-plugin>
