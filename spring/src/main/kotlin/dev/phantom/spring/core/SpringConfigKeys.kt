@@ -10,16 +10,20 @@ import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.openapi.util.Key
+import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
+import org.jetbrains.annotations.TestOnly
 import java.io.StringReader
 import java.util.Properties
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * The property keys the project's Spring configuration files define, read as text from the root and `config/` folder of
  * every source and resource root (where Spring Boot looks on the classpath). Read when an inspection asks, cached until
- * the next PSI change.
+ * a config file, the file set or the roots change.
  */
 object SpringConfigKeys {
   class Keys(val files: List<VirtualFile>, val normalized: Set<String>, val external: Boolean) {
@@ -27,6 +31,17 @@ object SpringConfigKeys {
     fun contains(key: String): Boolean {
       val n = normalize(key)
       return n in normalized || normalized.any { it.startsWith("$n.") || it.startsWith("$n[") }
+    }
+
+    private val derived = ConcurrentHashMap<String, Any>()
+
+    /**
+     * Something else read from [files], kept as long as these keys are: their text cannot change without the keys
+     * being read again, so it is computed once per set of keys instead of once per PSI change.
+     */
+    fun <T : Any> derived(name: String, compute: (Keys) -> T): T {
+      @Suppress("UNCHECKED_CAST")
+      return derived.getOrPut(name) { compute(this) } as T
     }
   }
 
@@ -42,12 +57,31 @@ object SpringConfigKeys {
   /** An import from a server (configserver:, vault:, consul:, aws-...:): its keys cannot be known. */
   private val SERVER_IMPORT = Regex("""(?<![\w/])(configserver|vault|consul|zookeeper|aws-[\w-]+|kubernetes|k8s):""")
 
-  fun get(project: Project): Keys = CachedValuesManager.getManager(project).getCachedValue(project) {
-    CachedValueProvider.Result.create(compute(project), PsiModificationTracker.MODIFICATION_COUNT, ProjectRootManager.getInstance(project))
+  private val WITH_PROPERTY_SOURCE = Key.create<CachedValue<Keys>>("phantom.spring.configKeys.withPropertySource")
+  private val WITHOUT_PROPERTY_SOURCE = Key.create<CachedValue<Keys>>("phantom.spring.configKeys")
+
+  /**
+   * The files are read again only when a config file, the file set or the roots change. Whether `@PropertySource`
+   * exists is code (a stub or a library class), so it is looked up on code changes and picks one of two cached reads.
+   */
+  fun get(project: Project): Keys {
+    val manager = CachedValuesManager.getManager(project)
+    val withPropertySource = manager.getCachedValue(project) {
+      val found = JavaPsiFacade.getInstance(project).findClass(PROPERTY_SOURCE, GlobalSearchScope.allScope(project)) != null
+      CachedValueProvider.Result.create(found, SpringCacheDeps.jvm(project), ProjectRootManager.getInstance(project))
+    }
+    return manager.getCachedValue(project, if (withPropertySource) WITH_PROPERTY_SOURCE else WITHOUT_PROPERTY_SOURCE, {
+      computeCount.incrementAndGet()
+      val keys = compute(project, withPropertySource)
+      CachedValueProvider.Result.create(keys, *SpringCacheDeps.config(project, keys.files))
+    }, false)
   }
 
-  private fun compute(project: Project): Keys {
-    val withPropertySource = JavaPsiFacade.getInstance(project).findClass(PROPERTY_SOURCE, GlobalSearchScope.allScope(project)) != null
+  /** How often the files were read, for tests that check a cache survives unrelated edits. */
+  @TestOnly
+  val computeCount: AtomicInteger = AtomicInteger()
+
+  private fun compute(project: Project, withPropertySource: Boolean): Keys {
     val files = LinkedHashSet<VirtualFile>()
     for (module in ModuleManager.getInstance(project).modules) {
       for (root in ModuleRootManager.getInstance(module).contentEntries.flatMap { it.sourceFolders.mapNotNull { f -> f.file } }) {

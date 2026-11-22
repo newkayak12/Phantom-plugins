@@ -6,6 +6,7 @@ import com.intellij.codeInspection.LocalInspectionToolSession
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.java.library.JavaLibraryUtil
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiElementVisitor
@@ -17,6 +18,7 @@ import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.uast.UastHintedVisitorAdapter
 import dev.phantom.spring.core.PhantomSpringBundle
+import dev.phantom.spring.core.SpringCacheDeps
 import dev.phantom.spring.core.SpringConfigKeys
 import dev.phantom.spring.core.SpringMvcEndpoints
 import org.jetbrains.annotations.NonNls
@@ -56,16 +58,19 @@ object SpringApiVersioning {
   fun isSemantic(version: String): Boolean = SEMANTIC.matches(version.trim())
 
   /** Project code that configures versioning: uses a configurer, implements a strategy, or sets the Boot properties. */
-  fun isConfigured(project: Project): Boolean = CachedValuesManager.getManager(project).getCachedValue(project) {
+  fun isConfigured(project: Project): Boolean =
+    configuredInCode(project) || SpringConfigKeys.get(project).derived("apiVersion") { keys -> PROPERTIES.any(keys::contains) }
+
+  // searched on code and library changes only; the properties come from the config keys, read on config changes
+  private fun configuredInCode(project: Project): Boolean = CachedValuesManager.getManager(project).getCachedValue(project) {
     val facade = JavaPsiFacade.getInstance(project)
     val all = GlobalSearchScope.allScope(project)
     val scope = GlobalSearchScope.projectScope(project)
     // Spring's own sources (attached or, in tests, stubbed) mention the configurer everywhere; only the project's code counts
     fun own(element: com.intellij.psi.PsiElement) = (element.containingFile as? com.intellij.psi.PsiClassOwner)?.packageName?.startsWith("org.springframework") != true
     val configured = CONFIGURERS.any { fqn -> facade.findClass(fqn, all)?.let { c -> ReferencesSearch.search(c, scope).findAll().any { own(it.element) } } == true } ||
-                     facade.findClass(STRATEGY, all)?.let { c -> ClassInheritorsSearch.search(c, scope, true).findAll().any(::own) } == true ||
-                     SpringConfigKeys.get(project).let { keys -> PROPERTIES.any(keys::contains) }
-    CachedValueProvider.Result.create(configured, PsiModificationTracker.MODIFICATION_COUNT)
+                     facade.findClass(STRATEGY, all)?.let { c -> ClassInheritorsSearch.search(c, scope, true).findAll().any(::own) } == true
+    CachedValueProvider.Result.create(configured, SpringCacheDeps.jvm(project), ProjectRootManager.getInstance(project))
   }
 
   /** A project-defined parser may read any format. */
