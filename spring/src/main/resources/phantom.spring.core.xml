@@ -8,6 +8,14 @@
     <module name="intellij.platform.uast"/>
   </dependencies>
   <resource-bundle>messages.PhantomSpringBundle</resource-bundle>
+  <extensionPoints>
+    <extensionPoint qualifiedName="dev.phantom.spring.codeBodies" beanClass="com.intellij.lang.LanguageExtensionPoint" dynamic="true">
+      <with attribute="implementationClass" implements="dev.phantom.spring.core.SpringCodeBodies"/>
+    </extensionPoint>
+  </extensionPoints>
+  <extensions defaultExtensionNs="dev.phantom.spring">
+    <codeBodies language="JAVA" implementationClass="dev.phantom.spring.core.JavaSpringCodeBodies"/>
+  </extensions>
   <extensions defaultExtensionNs="com.intellij">
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringBeanLineMarkerProvider"/>
     <implicitUsageProvider implementation="dev.phantom.spring.core.ide.SpringImplicitUsageProvider"/>
