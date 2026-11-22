@@ -10,7 +10,6 @@ import com.intellij.json.psi.JsonValue
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
@@ -18,16 +17,17 @@ import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.annotations.PropertyKey
+import org.jetbrains.annotations.TestOnly
 import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLKeyValue
 import org.jetbrains.yaml.psi.YAMLMapping
 import org.jetbrains.yaml.psi.YAMLSequence
 import org.jetbrains.yaml.psi.YAMLValue
 import java.net.URLDecoder
+import java.util.concurrent.atomic.AtomicInteger
 
 @NonNls
 private const val BUNDLE = "messages.PhantomOpenApiBundle"
@@ -64,14 +64,19 @@ object OpenApiSpecs {
 
   /** The project's spec files. Only files whose text mentions `openapi`/`swagger` near the top are parsed. */
   fun specFiles(project: Project): List<PsiFile> = CachedValuesManager.getManager(project).getCachedValue(project) {
+    specFilesComputations.incrementAndGet()
     val scope = GlobalSearchScope.projectScope(project)
     val psiManager = PsiManager.getInstance(project)
-    val files = listOf("yaml", "yml", "json").flatMap { FilenameIndex.getAllFilesByExt(project, it, scope) }
+    val files = SPEC_EXTENSIONS.flatMap { FilenameIndex.getAllFilesByExt(project, it, scope) }
       .filter { it.length < 4 * 1024 * 1024 && looksLikeSpec(it) }
       .mapNotNull { psiManager.findFile(it) }
       .filter { isSpec(it) }
-    CachedValueProvider.Result.create(files, PsiModificationTracker.getInstance(project), VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS)
+    // not every PSI change: a Java or Kotlin edit used to rescan every yaml/json file of the project
+    CachedValueProvider.Result.create(files, *specFileDeps(project))
   }
+
+  @TestOnly
+  internal val specFilesComputations = AtomicInteger()
 
   private fun looksLikeSpec(file: VirtualFile): Boolean {
     val head = runCatching { VfsUtilCore.loadText(file, 4096) }.getOrNull() ?: return false
