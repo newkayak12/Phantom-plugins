@@ -7,10 +7,11 @@
 #     tools/languagetool-release.sh --dry-run   # list the files and where they come from
 #     tools/languagetool-release.sh             # download, check the MD5 checksums, create the release (needs gh)
 #
-# The bundles are LanguageTool (LGPL 2.1) with its language data, as JetBrains builds them from
+# The bundles are LanguageTool (LGPL 2.1) with its language data, which embeds components under other licenses
+# (tools/languagetool-release-notes.md), as JetBrains builds them from
 # https://github.com/JetBrains/languagetool for IntelliJ. They are taken once from JetBrains' download location so
 # that the files are byte for byte the ones whose MD5 checksums the plugin checks (LanguageToolDescriptor.kt); each is
-# checked before anything is uploaded. The release also carries the LGPL 2.1 text, and tools/attach-sources.sh adds
+# checked before anything is uploaded. The release also carries the license texts, and tools/attach-sources.sh adds
 # the corresponding sources jars of the language modules.
 set -euo pipefail
 
@@ -36,7 +37,7 @@ for iso in $isos; do
   lower=$(tr '[:upper:]' '[:lower:]' <<<"$iso")
   echo "  $lower-$version.jar  md5 $(checksum "$iso")  from $origin/$version/$lower-$version.jar"
 done
-echo "  LICENSE-LGPL-2.1.txt  from licenses/LGPL-2.1-only.txt"
+echo "  LICENSE-{LGPL-2.1,GPL-2.0,GPL-3.0,CC-BY-SA-4.0,Unicode-3.0,Apache-2.0}.txt  from licenses/ and LICENSE"
 if $dry_run; then
   bash "$root/tools/attach-sources.sh" "$tag" --dry-run
   exit 0
@@ -57,17 +58,19 @@ for iso in $isos; do
   fi
   files+=("$file")
 done
-cp "$root/licenses/LGPL-2.1-only.txt" "$work/LICENSE-LGPL-2.1.txt"
-files+=("$work/LICENSE-LGPL-2.1.txt")
+# The bundles embed components under other licenses (tools/languagetool-release-notes.md lists them); their texts
+for spdx in LGPL-2.1-only:LGPL-2.1 GPL-2.0-only:GPL-2.0 GPL-3.0-only:GPL-3.0 CC-BY-SA-4.0:CC-BY-SA-4.0 Unicode-3.0:Unicode-3.0; do
+  cp "$root/licenses/${spdx%%:*}.txt" "$work/LICENSE-${spdx##*:}.txt"
+  files+=("$work/LICENSE-${spdx##*:}.txt")
+done
+cp "$root/LICENSE" "$work/LICENSE-Apache-2.0.txt"
+files+=("$work/LICENSE-Apache-2.0.txt")
 bash "$root/tools/attach-sources.sh" "$tag" --download-dir "$work/sources"
 files+=("$work/sources/"*.jar)
 
-notes="LanguageTool $version language bundles that Phantom Grammar (grammar/) downloads when a language is enabled.
-
-They are LanguageTool (https://languagetool.org/) with its language data, under the GNU Lesser General Public License
-2.1 (LICENSE-LGPL-2.1.txt), as built by JetBrains from https://github.com/JetBrains/languagetool (version $version) for
-IntelliJ; the files are unchanged, so their MD5 checksums are those in LanguageToolDescriptor.kt. The corresponding
-sources are the *-sources.jar files of this release and that repository; see NOTICE for the written offer."
+# Written for 6.8.27 from the POMs and README files inside the bundles; check them again for another version
+notes_file="$root/tools/languagetool-release-notes.md"
+grep -q "LanguageTool $version " "$notes_file" || { echo "error: $notes_file is not about LanguageTool $version" >&2; exit 1; }
 
 gh release create "$tag" --repo "$repo" --target main --latest=false \
-  --title "LanguageTool $version language bundles" --notes "$notes" "${files[@]}"
+  --title "LanguageTool $version language bundles" --notes-file "$notes_file" "${files[@]}"

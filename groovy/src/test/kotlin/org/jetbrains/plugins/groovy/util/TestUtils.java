@@ -1,4 +1,5 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 
 package org.jetbrains.plugins.groovy.util;
 
@@ -58,9 +59,16 @@ public abstract class TestUtils {
   public static final String END_MARKER = "<end>";
   public static final String GROOVY_JAR = "groovy-all.jar";
 
+  // Phantom-plugins: the JDK the tests run on, not the Sun JDK 5 copy upstream keeps in testData/mockJDK, whose sources
+  // are marked "SUN PROPRIETARY/CONFIDENTIAL". That copy also held Groovy 1.0, now testData/lib/groovy-1.0.jar
+  // (BSD-style license, META-INF/LICENSE.txt in the jar), see addGroovy10.
   @NotNull
   public static String getMockJdkHome() {
-    return getAbsoluteTestDataPath() + "/mockJDK";
+    return System.getProperty("java.home");
+  }
+
+  public static void addGroovy10(@NotNull com.intellij.testFramework.builders.JavaModuleFixtureBuilder<?> moduleBuilder) {
+    moduleBuilder.addLibraryJars("groovy-1.0", getAbsoluteTestDataPath() + "/lib", "groovy-1.0.jar");
   }
 
   public static PsiFile createPseudoPhysicalGroovyFile(final Project project, final String text) throws IncorrectOperationException {

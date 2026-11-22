@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package com.jetbrains.jsonSchema;
 
 import com.intellij.openapi.editor.impl.DocumentImpl;
