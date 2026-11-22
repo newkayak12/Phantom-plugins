@@ -24,8 +24,13 @@ class RedisBrowser(private val connection: RedisConnection, private val limit: I
       (parts[1] as RedisReply.Array).items.forEach { names.add((it as RedisReply.Bulk).text) }
     } while (cursor != "0" && names.size < limit)
     val keys = names.take(limit).sorted()
-    // TYPE and TTL for each key, pipelined would be faster; one round trip each is fine for a local server
-    return keys.map { RedisKey(it, simple(connection.command("TYPE", it)), integer(connection.command("TTL", it))) } to (cursor != "0" || names.size > limit)
+    // TYPE and TTL of each key, pipelined in batches: a round trip per batch rather than two per key (4,000 for a
+    // full list), which made a remote server slow to list
+    val found = keys.chunked(PIPELINE_KEYS).flatMap { batch ->
+      val replies = connection.pipeline(batch.flatMap { listOf(listOf("TYPE", it), listOf("TTL", it)) })
+      batch.mapIndexed { i, key -> RedisKey(key, simple(replies[2 * i]), integer(replies[2 * i + 1])) }
+    }
+    return found to (cursor != "0" || names.size > limit)
   }
 
   fun value(key: String): RedisValue {
@@ -97,5 +102,6 @@ class RedisBrowser(private val connection: RedisConnection, private val limit: I
 
   companion object {
     const val ITEMS: Int = 500
+    private const val PIPELINE_KEYS = 500
   }
 }
