@@ -3,6 +3,7 @@ package dev.phantom.ai
 
 import dev.phantom.ai.terminal.Tmux
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TmuxTest {
@@ -15,6 +16,11 @@ class TmuxTest {
         "';' 'set-option' '-t' 'phantom-1' 'destroy-unattached' 'off' ';' 'set-option' '-s' 'escape-time' '0'",
       line,
     )
+  }
+
+  @Test fun aDetachedSessionStartsWithNoClientAndReturns() {
+    val line = Tmux.wrap("/opt/homebrew/bin/tmux", "phantom-1", "/r", emptyMap(), "claude", detached = true)
+    assertTrue(line, line.startsWith("'/opt/homebrew/bin/tmux' '-L' 'phantom' 'new-session' '-d' '-s' 'phantom-1' '-c' '/r' "))
   }
 
   @Test fun attachShowsTheRunningPhantomSession() =

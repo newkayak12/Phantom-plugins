@@ -59,6 +59,8 @@ class AiStateData : BaseState() {
   var dbTools by property(false)
   /** Ids of the data sources the user allowed agents to read (asked once per data source); cleared when [dbTools] goes off. */
   var dbAllowedSources by list<String>()
+  /** Id of the TerminalBackend agent terminals open in; absent = automatic (the IDE's tab with tmux, else the OS terminal). */
+  var terminalBackend by string()
 }
 
 /** The user's answer to changing the agents' own config files: not asked yet, allowed, or refused. */
