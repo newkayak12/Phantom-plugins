@@ -15,21 +15,29 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.searches.AnnotatedElementsSearch
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import org.jetbrains.uast.UClass
 import org.jetbrains.uast.UMethod
 import org.jetbrains.uast.getUParentForIdentifier
+import org.jetbrains.annotations.TestOnly
+import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.Icon
 
-/** The project's `@Value` placeholders and `@ConfigurationProperties` prefixes, recomputed after a PSI change. */
+/**
+ * The project's `@Value` placeholders and `@ConfigurationProperties` prefixes, recomputed after a Java, Kotlin or Groovy
+ * change: typing in `application.yml` asks for them on every key and must not rerun the search.
+ */
 object BootConfigUsages {
   class Usages(val values: Map<String, List<PsiElement>>, val prefixes: Set<String>)
 
+  @TestOnly
+  val computeCount: AtomicInteger = AtomicInteger()
+
   fun of(project: Project): Usages = CachedValuesManager.getManager(project).getCachedValue(project) {
-    CachedValueProvider.Result.create(compute(project), PsiModificationTracker.MODIFICATION_COUNT)
+    CachedValueProvider.Result.create(compute(project), *BootCacheDeps.jvm(project))
   }
 
   private fun compute(project: Project): Usages {
+    computeCount.incrementAndGet()
     val facade = JavaPsiFacade.getInstance(project)
     val all = GlobalSearchScope.allScope(project)
     val scope = GlobalSearchScope.projectScope(project)
@@ -97,14 +105,15 @@ class BootConfigPropertiesLineMarkerProvider : LineMarkerProviderDescriptor() {
     if (element.firstChild != null) return null
     val owner = element.parent as? PsiNameIdentifierOwner ?: return null
     if (owner.nameIdentifier != element) return null
+    // The gate is a cached lookup; the UAST conversion below is not, so it runs only in Spring Boot modules.
+    val module = ModuleUtilCore.findModuleForPsiElement(element) ?: return null
+    if (!SpringBootGate.isBootModule(module)) return null
     val declaration = when (val parent = getUParentForIdentifier(element)) {
       is UClass -> parent.javaPsi
       is UMethod -> parent.javaPsi
       else -> null
     } ?: return null
     val prefix = SourceConfigProperties.prefixOf(declaration)?.takeIf { it.isNotEmpty() } ?: return null
-    val module = ModuleUtilCore.findModuleForPsiElement(element) ?: return null
-    if (!SpringBootGate.isBootModule(module)) return null
     val project = element.project
     val locations = ProjectConfigKeys.keys(project).filterKeys { ConfigNames.normalize(it).let { k -> k == prefix || k.startsWith("$prefix.") } }
     if (locations.isEmpty()) return null

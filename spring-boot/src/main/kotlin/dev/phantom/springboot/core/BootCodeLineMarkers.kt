@@ -23,10 +23,11 @@ internal object BootAnnotations {
     if (element.firstChild != null) return null
     val owner = element.parent as? PsiNameIdentifierOwner ?: return null
     if (owner.nameIdentifier != element) return null
-    val declaration = getUParentForIdentifier(element) as? UDeclaration ?: return null
-    if (declaration !is UClass && declaration !is UMethod) return null
+    // The gate is a cached lookup; the UAST conversion is not, so it runs only in Spring Boot modules.
     val module = ModuleUtilCore.findModuleForPsiElement(element) ?: return null
     if (!SpringBootGate.isBootModule(module) || DumbService.isDumb(element.project)) return null
+    val declaration = getUParentForIdentifier(element) as? UDeclaration ?: return null
+    if (declaration !is UClass && declaration !is UMethod) return null
     return declaration to module
   }
 
@@ -168,6 +169,8 @@ class BootConfigPropertyFieldLineMarkerProvider : LineMarkerProviderDescriptor()
     if (element.firstChild != null) return null
     val owner = element.parent as? PsiNameIdentifierOwner ?: return null
     if (owner.nameIdentifier != element) return null
+    val module = ModuleUtilCore.findModuleForPsiElement(element) ?: return null
+    if (!SpringBootGate.isBootModule(module) || DumbService.isDumb(element.project)) return null
     val (name, psiClass) = when (val parent = getUParentForIdentifier(element)) {
       is UField -> if (parent.isStatic) return null else parent.name to (parent.javaPsi as? PsiField)?.containingClass
       is UParameter -> parent.name to ((parent.uastParent as? UMethod)?.takeIf { it.isConstructor })?.javaPsi?.containingClass
@@ -175,8 +178,6 @@ class BootConfigPropertyFieldLineMarkerProvider : LineMarkerProviderDescriptor()
     }
     psiClass ?: return null
     val prefix = SourceConfigProperties.prefixOf(psiClass)?.takeIf { it.isNotEmpty() } ?: return null
-    val module = ModuleUtilCore.findModuleForPsiElement(element) ?: return null
-    if (!SpringBootGate.isBootModule(module) || DumbService.isDumb(element.project)) return null
     val key = "$prefix.${ConfigNames.normalize(name)}"
     val project = element.project
     val locations = BootAnnotations.locationsUnder(project, key)
