@@ -1,0 +1,12 @@
+<!-- The Java section of the terminal settings, moved here from the IDE core (java/terminal) so the core no longer compiles against the Terminal plugin.
+     It switches off without the Java plugin. -->
+<idea-plugin package="com.intellij.java.terminal.frontend">
+  <dependencies>
+    <module name="intellij.java.terminal.shared"/>
+    <module name="intellij.terminal.frontend"/>
+  </dependencies>
+
+  <extensions defaultExtensionNs="org.jetbrains.plugins.terminal">
+    <terminalSettingsProvider implementation="com.intellij.java.terminal.frontend.JavaTerminalSettingsProvider"/>
+  </extensions>
+</idea-plugin>

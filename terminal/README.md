@@ -12,6 +12,11 @@ The backend, frontend, cloud and Shell Script modules keep their own class loade
 services are plain application services (Phantom runs frontend and backend in one process), not remote APIs. No usage
 statistics are collected, and there is no Agent Workbench promotion.
 
+The Java support (JDK on the terminal PATH, `java` and `javac` completion, the Java section of the terminal settings) is
+here too, as the optional `intellij.java.terminal.*` modules moved from the IDE core, so the core compiles without the
+Terminal plugin. They switch off without the Java plugin. Version 0.3.0 needs Phantom 262.261123 or later: earlier builds
+still have them in the core.
+
 Command completion comes from the [Fig autocomplete specs](https://github.com/withfig/autocomplete) (MIT, `terminal/LICENSE`):
 `tools/fig-specs` converts a pinned version of them into the JSON in `src/main/resources/completionSpecs` (720 commands,
 git, docker, npm, kubectl, aws, az and gcloud among them), which is committed, so the build needs no Node. JSON holds only
