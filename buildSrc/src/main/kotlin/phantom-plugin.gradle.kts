@@ -75,11 +75,19 @@ val packedLibraries = configurations.create("packedLibraries") {
 
 // After the Gradle plugin's own arguments, which carry Phantom's class data sharing options (see NoClassDataSharing)
 // (the Gradle plugin adds those after configuration, so the installed Phantom's product-info.json says which kind they are)
+// (the actions capture a local copy of the provider and use java.io.File: a reference to the script itself cannot be
+// stored in the configuration cache)
 val phantomAotCache: Provider<Boolean> = installedPhantom.map { path ->
-  file("$path/Contents/Resources/product-info.json").let { it.isFile && it.readText().contains("-XX:AOTCache=") }
+  File("$path/Contents/Resources/product-info.json").let { it.isFile && it.readText().contains("-XX:AOTCache=") }
 }.orElse(false)
-tasks.withType<Test>().configureEach { doFirst { (this as Test).jvmArgumentProviders.add(NoClassDataSharing(phantomAotCache.get())) } }
-tasks.withType<JavaExec>().configureEach { doFirst { (this as JavaExec).jvmArgumentProviders.add(NoClassDataSharing(phantomAotCache.get())) } }
+tasks.withType<Test>().configureEach {
+  val aotCache = phantomAotCache
+  doFirst { (this as Test).jvmArgumentProviders.add(NoClassDataSharing(aotCache.get())) }
+}
+tasks.withType<JavaExec>().configureEach {
+  val aotCache = phantomAotCache
+  doFirst { (this as JavaExec).jvmArgumentProviders.add(NoClassDataSharing(aotCache.get())) }
+}
 // The IDE test framework only lets tests read files under the user's home and a few other roots; a checkout elsewhere
 // (/tmp, a CI workspace) failed every test reading its testData. The real path: VfsRootAccess compares resolved paths.
 tasks.withType<Test>().configureEach { systemProperty("vfs.additional-allowed-roots", rootDir.canonicalPath) }
