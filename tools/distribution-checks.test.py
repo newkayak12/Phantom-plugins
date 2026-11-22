@@ -87,6 +87,17 @@ class NoticeTests(unittest.TestCase):
         self.assertEqual(CHECK.check_archive(self.archive), [])
 
 
+    def test_ported_main_jar_found_by_plugin_id(self):
+        # groovy-0.1.2.zip: the main JAR keeps its upstream name, groovy/lib/Groovy.jar
+        self.make_archive(extra={'META-INF/plugin.xml': '<idea-plugin><id>dev.phantom.groovy</id></idea-plugin>'})
+        ported = Path(self.temp.name) / 'groovy-0.1.2.zip'
+        with zipfile.ZipFile(self.archive) as source, zipfile.ZipFile(ported, 'w') as archive:
+            archive.writestr('groovy/lib/Groovy.jar', source.read('plugin/lib/plugin.jar'))
+        self.assertEqual(CHECK.check_archive(ported, 'dev.phantom.groovy'), [])
+        self.assertEqual(CHECK.plugin_id_for(ported), 'dev.phantom.groovy')
+        self.assertIn('no plugin JAR', '\n'.join(CHECK.check_archive(ported, 'dev.phantom.other')))
+
+
 class SourceTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
