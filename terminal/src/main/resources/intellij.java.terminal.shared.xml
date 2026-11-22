@@ -1,0 +1,12 @@
+<!-- Java settings for the terminal (shared), moved here from the IDE core (java/terminal) so the core no longer compiles against the Terminal plugin.
+     It switches off without the Java plugin. -->
+<idea-plugin package="com.intellij.java.terminal.shared">
+  <dependencies>
+    <module name="intellij.java.impl"/>
+  </dependencies>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <rdct.remoteSettingProvider implementation="com.intellij.java.terminal.shared.JavaTerminalRemoteSettingInfoProvider"/>
+    <applicationSettings service="com.intellij.java.terminal.shared.JavaTerminalSettings"/>
+  </extensions>
+</idea-plugin>
