@@ -35,7 +35,8 @@ class DbHistoryEntry {
 
 /**
  * The last [LIMIT] statements run from SQL consoles and files, newest first, kept in the workspace file. Grid edits
- * are not recorded: they are in Database Changes.
+ * are not recorded: they are in Database Changes. Neither are statements carrying a password ([sensitive]) nor those of a
+ * data source with [DbDataSource.queryHistory] off.
  */
 @Service(Service.Level.PROJECT)
 @State(name = "PhantomDbQueryHistory", storages = [Storage(StoragePathMacros.WORKSPACE_FILE)])
@@ -53,6 +54,7 @@ class DbQueryHistory : PersistentStateComponent<DbQueryHistory.State> {
   val entries: List<DbHistoryEntry> get() = synchronized(this) { state.entries.toList() }
 
   fun record(dataSource: DbDataSource, outcome: DbOutcome) {
+    if (!dataSource.queryHistory || sensitive(outcome.sql)) return
     val entry = DbHistoryEntry().apply {
       sql = outcome.sql.trim()
       dataSourceId = dataSource.id
@@ -76,10 +78,35 @@ class DbQueryHistory : PersistentStateComponent<DbQueryHistory.State> {
 
   fun clear() = synchronized(this) { state.entries.clear() }
 
+  /** Drops the statements of one data source (its history was turned off). */
+  fun forget(dataSourceId: String) = synchronized(this) { state.entries.removeIf { it.dataSourceId == dataSourceId } }
+
   companion object {
     const val LIMIT: Int = 500
 
+    private val SECRET = Regex("""\b(PASSWORD|IDENTIFIED\s+(BY|WITH)|SECRET)\b""", RegexOption.IGNORE_CASE)
+
+    /** A statement that sets or carries a password (ALTER USER … PASSWORD, CREATE USER … IDENTIFIED BY, SET PASSWORD …): never kept. */
+    fun sensitive(sql: String): Boolean = SqlSafety.firstKeyword(sql)?.uppercase() in setOf("ALTER", "CREATE", "SET", "GRANT") && SECRET.containsMatchIn(sql)
+
     fun getInstance(project: Project): DbQueryHistory = project.service()
+  }
+}
+
+/** Empties Query History, after asking. */
+class DbClearHistoryAction : DumbAwareAction() {
+  override fun getActionUpdateThread() = ActionUpdateThread.BGT
+
+  override fun update(e: AnActionEvent) {
+    e.presentation.isEnabledAndVisible = e.project != null
+  }
+
+  override fun actionPerformed(e: AnActionEvent) {
+    val project = e.project ?: return
+    val history = DbQueryHistory.getInstance(project)
+    if (com.intellij.openapi.ui.Messages.showYesNoDialog(project, PhantomDbBundle.message("db.history.clear.confirm", history.entries.size),
+                                                         PhantomDbBundle.message("action.PhantomDb.ClearHistory.text"), null)
+        == com.intellij.openapi.ui.Messages.YES) history.clear()
   }
 }
 
