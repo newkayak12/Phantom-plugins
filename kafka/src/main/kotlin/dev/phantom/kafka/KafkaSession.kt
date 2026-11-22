@@ -36,6 +36,10 @@ sealed interface KafkaStart {
  * Admin, consumer and producer clients for one cluster, created on first use and closed together. Consumers never
  * join a group and never commit: browsing a topic leaves no trace on the cluster. Blocking: call off the EDT.
  */
+/** The topic to create; with no [replication], the broker applies its default.replication.factor. */
+internal fun newTopic(name: String, partitions: Int, replication: Short?): NewTopic =
+  NewTopic(name, java.util.Optional.of(partitions), java.util.Optional.ofNullable(replication))
+
 class KafkaSession(private val bootstrap: String, private val extra: String?) : Closeable {
   private var adminClient: Admin? = null
   private var producerClient: KafkaProducer<ByteArray, ByteArray>? = null
@@ -161,8 +165,9 @@ class KafkaSession(private val bootstrap: String, private val extra: String?) : 
     return out
   }
 
-  fun createTopic(name: String, partitions: Int, replication: Short) {
-    admin.createTopics(listOf(NewTopic(name, partitions, replication))).all().get(30, TimeUnit.SECONDS)
+  /** [replication] null: the broker's default.replication.factor. */
+  fun createTopic(name: String, partitions: Int, replication: Short?) {
+    admin.createTopics(listOf(newTopic(name, partitions, replication))).all().get(30, TimeUnit.SECONDS)
   }
 
   fun deleteTopic(name: String) {

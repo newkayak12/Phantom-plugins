@@ -12,6 +12,13 @@ class KafkaSessionTest : TestCase() {
     assertEquals("{\n  \"a\": [\n    1,\n    2\n  ],\n  \"b\": \"x,y\"\n}", KafkaJson.pretty("{\"a\":[1,2],\"b\":\"x,y\"}"))
   }
 
+  fun testTopicLeavesReplicationToTheCluster() {
+    // NewTopic reports -1 when it carries no replication factor: the broker's default.replication.factor applies
+    assertEquals(-1, newTopic("orders", 3, null).replicationFactor().toInt())
+    assertEquals(3, newTopic("orders", 3, 3).replicationFactor().toInt())
+    assertEquals(3, newTopic("orders", 3, null).numPartitions())
+  }
+
   /** Read-only against a broker on localhost:9092, when one runs: no group joined, nothing produced. */
   fun testLocalBrokerReadOnly() {
     if (runCatching { Socket("localhost", 9092).close() }.isFailure) return
