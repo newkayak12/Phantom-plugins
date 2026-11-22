@@ -23,5 +23,8 @@ Phantom suggests this plugin when a project depends on `spring-context` or `spri
 
 Not yet: WebFlux functional routes, Spring Security filter chain views. Spring Data repositories are in [JPA Support](../jpa/README.md).
 
+**0.9.3**: less CPU while you type in messaging code. The Kafka, RabbitMQ and JMS gutter icons look only at the line they
+are on; the project-wide search runs when you click one. Results are unchanged.
+
 **0.9.2**: the plugin uses less CPU while you type. Config and build files are read again only when they change, not on
 every edit of Java or Kotlin code, and gutter icons skip non-Spring projects sooner. Results are unchanged.

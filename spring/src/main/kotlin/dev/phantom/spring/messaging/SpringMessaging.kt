@@ -230,9 +230,79 @@ internal object MessagingModel {
   private fun pointer(element: PsiElement) = SmartPointerManager.createPointer(element)
 
   /** The sites at [element], when it is the anchor of a sending call, a subscription or a listener. */
+  @TestOnly
   fun sitesAt(element: PsiElement): List<MessagingSite> {
     val project = element.project
-    return all(project).filter { site -> site.element.element.let { it == element || it != null && it == element.parent } }
+    return all(project).filter { site -> isAt(site, element) }
+  }
+
+  private fun isAt(site: MessagingSite, element: PsiElement) = site.element.element.let { it == element || it != null && it == element.parent }
+
+  /**
+   * The same sites as [sitesAt], worked out from [element] alone: [all] reruns the project-wide listener search and a
+   * reference search per sending method after every PSI change, too much for each identifier of a highlighting pass.
+   * Each step keeps a limit of those searches: project sources only, listener annotations that resolve, and calls the
+   * strict reference search would report.
+   */
+  fun localSitesAt(element: PsiElement): List<MessagingSite> {
+    val project = element.project
+    val file = com.intellij.psi.util.PsiUtilCore.getVirtualFile(element) ?: return emptyList()
+    if (!GlobalSearchScope.projectScope(project).contains(file)) return emptyList()
+    val facade = JavaPsiFacade.getInstance(project)
+    val libraries = GlobalSearchScope.allScope(project)
+    val declaration = getUParentForIdentifier(element)
+    val sites = if (declaration is UMethod || declaration is UClass) {
+      val resolvable = LISTENERS.filterKeys { facade.findClass(it, libraries) != null }.values.map { it.first }.toSet()
+      listenerSites(declaration).filter { it.broker in resolvable }
+    }
+    else {
+      val call = element.getUastParentOfType(UCallExpression::class.java) ?: return emptyList()
+      val anchor = anchorOf(call) ?: return emptyList()
+      val result = ArrayList<MessagingSite>()
+      for (sender in SENDERS) {
+        val owner = facade.findClass(sender.owner, libraries) ?: continue
+        if (sender.methods.contains(owner.name)) {
+          if (owner.constructors.any { refersToConstructor(call, it) }) senderSite(call, sender)?.let { result += it }
+        }
+        else if (sender.methods.flatMap { owner.findMethodsByName(it, false).toList() }.any { refersTo(anchor, call, it) }) {
+          senderSite(call, sender)?.let { result += it }
+        }
+      }
+      val subscribes = CONSUMERS.mapNotNull { facade.findClass(it, libraries) }.flatMap { it.findMethodsByName("subscribe", true).toList() }
+      if (subscribes.any { refersTo(anchor, call, it) }) result += subscribeSites(call)
+      result
+    }
+    return sites.filter { isAt(it, element) }
+  }
+
+  private fun refersToConstructor(call: UCallExpression, constructor: PsiMethod): Boolean =
+    call.resolve()?.let { constructor.manager.areElementsEquivalent(it, constructor) } == true
+
+  /**
+   * What `MethodReferencesSearch.search(method, scope, true)` checks at an occurrence of the method name: a reference to
+   * [method] itself, or one that resolves to an override in a subclass with the same signature (overloads do not count).
+   */
+  private fun refersTo(anchor: PsiElement, call: UCallExpression, method: PsiMethod): Boolean {
+    val methodClass = method.containingClass ?: return false
+    val offset = anchor.textRange.startOffset
+    val stop = call.sourcePsi
+    var current: PsiElement? = anchor
+    while (current != null) {
+      for (reference in current.references) {
+        if (!reference.absoluteRange.contains(offset)) continue
+        if (reference.isReferenceTo(method)) return true
+        // a Kotlin call resolves to the Kotlin function; the search also reports calls of Kotlin overrides
+        val resolved = reference.resolve()
+        val target = resolved as? PsiMethod ?: resolved?.toUElementOfType<UMethod>()?.javaPsi ?: continue
+        val targetClass = target.containingClass ?: continue
+        if (target.hasModifierProperty(com.intellij.psi.PsiModifier.STATIC)) continue
+        val substitutor = com.intellij.psi.util.TypeConversionUtil.getClassSubstitutor(methodClass, targetClass, com.intellij.psi.PsiSubstitutor.EMPTY) ?: continue
+        if (com.intellij.psi.util.MethodSignatureUtil.isSubsignature(method.getSignature(substitutor), target.getSignature(com.intellij.psi.PsiSubstitutor.EMPTY))) return true
+      }
+      if (current == stop || current is com.intellij.psi.PsiFile) break
+      current = current.parent
+    }
+    return false
   }
 }
 
@@ -243,22 +313,8 @@ class MessagingLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getIcon(): Icon = AllIcons.Gutter.ExtAnnotation
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
-    if (element.firstChild != null) return null
-    val text = element.text
-    val isDeclarationName = (element.parent as? PsiNameIdentifierOwner)?.nameIdentifier == element
-    if (!isDeclarationName && text !in MessagingModel.CALL_NAMES) return null
-    if (!MessagingModel.isMessagingProject(element.project)) return null
-    if (isDeclarationName) {
-      val declaration = getUParentForIdentifier(element) ?: return null
-      if (declaration !is UMethod && declaration !is UClass) return null
-      if (MessagingModel.listenerSites(declaration).isEmpty()) return null
-    }
-    else {
-      val call = element.getUastParentOfType(UCallExpression::class.java) ?: return null
-      val anchor = MessagingModel.anchorOf(call) ?: return null
-      if (anchor != element && anchor != element.parent) return null
-    }
-    val sites = MessagingModel.sitesAt(element).ifEmpty { return null }
+    // only the sites at this element; the project-wide list is read when the targets are shown
+    val sites = sites(element, MessagingModel::localSitesAt).ifEmpty { return null }
     val sends = sites.first().sends
     val channels = sites.map { it.channel }.distinct()
     return NavigationGutterIconBuilder.create(if (sends) AllIcons.Gutter.ImplementedMethod else AllIcons.Gutter.ImplementingMethod)
@@ -271,6 +327,26 @@ class MessagingLineMarkerProvider : LineMarkerProviderDescriptor() {
       .setPopupTitle(PhantomSpringBundle.message(if (sends) "messaging.gutter.receivers" else "messaging.gutter.senders", channels.joinToString(", ")))
       .setEmptyPopupText(PhantomSpringBundle.message(if (sends) "messaging.gutter.no.receivers" else "messaging.gutter.no.senders"))
       .createLineMarkerInfo(element)
+  }
+
+  /** The sites a marker on [element] stands for, found by [lookup] once the cheap checks pass; tests compare lookups. */
+  internal fun sites(element: PsiElement, lookup: (PsiElement) -> List<MessagingSite>): List<MessagingSite> {
+    if (element.firstChild != null) return emptyList()
+    val text = element.text
+    val isDeclarationName = (element.parent as? PsiNameIdentifierOwner)?.nameIdentifier == element
+    if (!isDeclarationName && text !in MessagingModel.CALL_NAMES) return emptyList()
+    if (!MessagingModel.isMessagingProject(element.project)) return emptyList()
+    if (isDeclarationName) {
+      val declaration = getUParentForIdentifier(element) ?: return emptyList()
+      if (declaration !is UMethod && declaration !is UClass) return emptyList()
+      if (MessagingModel.listenerSites(declaration).isEmpty()) return emptyList()
+    }
+    else {
+      val call = element.getUastParentOfType(UCallExpression::class.java) ?: return emptyList()
+      val anchor = MessagingModel.anchorOf(call) ?: return emptyList()
+      if (anchor != element && anchor != element.parent) return emptyList()
+    }
+    return lookup(element)
   }
 }
 
