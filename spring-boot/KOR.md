@@ -1,5 +1,4 @@
-# Spring Boot Support
-
+# Phantom for Spring Boot
 `dev.phantom.spring.boot` · [English](./README.md)
 
 Spring Boot 지원입니다. Spring Initializr로 새 프로젝트를 만들고, `application*.yml`과 `application*.properties` 설정을 돕습니다.

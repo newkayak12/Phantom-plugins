@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.spring</id>
-  <name>Spring Support</name>
+  <name>Phantom for Spring</name>
   <vendor>Phantom</vendor>
   <category>Frameworks</category>
   <description><![CDATA[

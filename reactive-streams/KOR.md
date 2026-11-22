@@ -1,5 +1,4 @@
-# Reactive Streams Support
-
+# Phantom for Reactive Streams
 `dev.phantom.reactive` · [English](./README.md)
 
 Java와 Kotlin을 위한 Reactor, RxJava 검사입니다.
