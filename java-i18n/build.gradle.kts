@@ -39,3 +39,6 @@ tasks.test {
 tasks.prepareTestSandbox {
   disabledPlugins.add("com.intellij.java-i18n")
 }
+
+// IntelliJ's mock JDKs for the light Java test projects (see MockJdks.kt)
+useMockJdks()
