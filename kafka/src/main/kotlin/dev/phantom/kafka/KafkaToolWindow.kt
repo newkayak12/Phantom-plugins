@@ -305,7 +305,12 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
   private fun createTopic() {
     val name = Messages.showInputDialog(project, "Topic name:", "Create Topic", null)?.trim()?.takeIf { it.isNotEmpty() } ?: return
     val partitions = Messages.showInputDialog(project, "Partitions:", "Create Topic", null, "3", null)?.trim()?.toIntOrNull() ?: return
-    val replication = Messages.showInputDialog(project, "Replication factor:", "Create Topic", null, "1", null)?.trim()?.toShortOrNull() ?: return
+    // empty (the default): the cluster's default.replication.factor, not a value that would override it
+    val typed = Messages.showInputDialog(project, "Replication factor (empty: the cluster's default):", "Create Topic", null, "", null)?.trim() ?: return
+    val replication = if (typed.isEmpty()) null else typed.toShortOrNull() ?: return
+    if (replication == 1.toShort() && Messages.showOkCancelDialog(project,
+        "'$name' will have a single replica: its data is lost if that broker fails. Create it anyway?",
+        "Create Topic", "Create", Messages.getCancelButton(), Messages.getWarningIcon()) != Messages.OK) return
     onSession("Creating $name", { it.createTopic(name, partitions, replication) }) { loadTopics() }
   }
 
