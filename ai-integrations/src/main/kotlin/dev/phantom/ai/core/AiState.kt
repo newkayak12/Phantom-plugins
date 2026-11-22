@@ -57,6 +57,8 @@ class AiStateData : BaseState() {
   var skipPermissions by property(false)
   /** The agents' database tools (Phantom Database Console data sources, their schemas and query results); off by default. */
   var dbTools by property(false)
+  /** Ids of the data sources the user allowed agents to read (asked once per data source); cleared when [dbTools] goes off. */
+  var dbAllowedSources by list<String>()
 }
 
 /** The user's answer to changing the agents' own config files: not asked yet, allowed, or refused. */

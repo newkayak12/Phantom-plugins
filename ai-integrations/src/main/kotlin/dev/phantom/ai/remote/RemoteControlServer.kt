@@ -156,6 +156,12 @@ class RemoteControlServer : Disposable {
     val hash = tokenHash()
     if (!s.enabled || hash == null) return stop()
     val address = s.address ?: "127.0.0.1"
+    // plain HTTP on a local-network or public address only after the user opted in: otherwise nothing listens there
+    if (!RemoteAddress.isProtected(address) && !s.allowUnencrypted) {
+      stop()
+      failure = dev.phantom.ai.core.PhantomAiBundle.message("remote.unencrypted.refused", address)
+      return
+    }
     val r = runtime
     if (r != null && r.address == address && (s.port == 0 || r.port == s.port)) return
     start(address, s.port)

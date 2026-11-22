@@ -42,6 +42,7 @@ class RemoteControlConfigurable(
   private var root: JPanel? = null
   private var enable: JBCheckBox? = null
   private var address: JComboBox<Choice>? = null
+  private var allowUnencrypted: JBCheckBox? = null
   private var custom: JBTextField? = null
   private var port: JBTextField? = null
   private var link: JBTextField? = null
@@ -71,6 +72,8 @@ class RemoteControlConfigurable(
     // Always shown: the server has no TLS, so what it carries is readable on any network it is reachable from.
     val n = JBLabel("<html><body style='width: 460px'>${PhantomAiBundle.message("remote.notice")}</body></html>").apply { name = "remote.notice" }
     val h = JBLabel(PhantomAiBundle.message("remote.hint.regenerate")).apply { name = "remote.hint"; isVisible = false }
+    val u = JBCheckBox(PhantomAiBundle.message("remote.unencrypted.allow")).apply { name = "remote.allowUnencrypted"; isVisible = false }
+    allowUnencrypted = u
     enable = e; address = a; custom = c; port = p; link = l; qr = q; statusLine = s; warning = w; hint = h
 
     a.addActionListener { c.isEnabled = (a.selectedItem as? Choice)?.address == null; refreshWarning() }
@@ -101,6 +104,7 @@ class RemoteControlConfigurable(
     panel.add(row(q))
     panel.add(row(s))
     panel.add(row(w))
+    panel.add(row(u))
     panel.add(row(h))
     panel.add(row(JBLabel(PhantomAiBundle.message("remote.clients"))))
     panel.add(clients)
@@ -117,7 +121,9 @@ class RemoteControlConfigurable(
 
   private fun refreshWarning() {
     val kind = RemoteAddress.classify(chosenAddress())
-    warning?.isVisible = chosenAddress().isNotEmpty() && kind != EndpointKind.LOOPBACK && kind != EndpointKind.TAILSCALE
+    val exposed = chosenAddress().isNotEmpty() && kind != EndpointKind.LOOPBACK && kind != EndpointKind.TAILSCALE
+    warning?.isVisible = exposed
+    allowUnencrypted?.isVisible = exposed
   }
 
   private fun refreshStatus() {
@@ -154,7 +160,8 @@ class RemoteControlConfigurable(
 
   override fun isModified(): Boolean {
     val s = settings.state
-    return enable?.isSelected != s.enabled || chosenAddress() != (s.address ?: "127.0.0.1") || port?.text?.trim() != s.port.toString()
+    return enable?.isSelected != s.enabled || chosenAddress() != (s.address ?: "127.0.0.1") || port?.text?.trim() != s.port.toString() ||
+           allowUnencrypted?.isSelected != s.allowUnencrypted
   }
 
   @Throws(ConfigurationException::class)
@@ -162,7 +169,12 @@ class RemoteControlConfigurable(
     val no = portValue() ?: throw ConfigurationException(PhantomAiBundle.message("remote.port.invalid"))
     val host = chosenAddress()
     if (host.isEmpty()) throw ConfigurationException(PhantomAiBundle.message("remote.address.invalid"))
+    val optedIn = allowUnencrypted?.isSelected == true
+    if (enable?.isSelected == true && !RemoteAddress.isProtected(host) && !optedIn) {
+      throw ConfigurationException(PhantomAiBundle.message("remote.unencrypted.required", host))
+    }
     val s = settings.state
+    s.allowUnencrypted = optedIn
     s.enabled = enable?.isSelected == true
     s.address = host
     s.port = no
@@ -187,6 +199,7 @@ class RemoteControlConfigurable(
       custom?.isEnabled = (a.selectedItem as? Choice)?.address == null
     }
     port?.text = s.port.toString()
+    allowUnencrypted?.isSelected = s.allowUnencrypted
     // a hash without a raw token means the IDE restarted since the link was made: the link cannot be shown again
     hint?.isVisible = s.tokenHash != null && rawToken == null
     refreshWarning()
@@ -197,6 +210,7 @@ class RemoteControlConfigurable(
     timer?.stop()
     timer = null
     rawToken = null
+    allowUnencrypted = null
     root = null; enable = null; address = null; custom = null; port = null; link = null; qr = null
     statusLine = null; warning = null; hint = null
   }
