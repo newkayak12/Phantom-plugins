@@ -67,6 +67,12 @@ object RemoteAddress {
     return if ('.' in n || ':' in n) EndpointKind.PUBLIC else EndpointKind.CUSTOM
   }
 
+  /**
+   * Whether traffic to [host] stays protected without TLS: loopback stays on this computer, Tailscale is WireGuard
+   * encrypted. Any other address needs the user's explicit opt-in ([RemoteControlState.allowUnencrypted]).
+   */
+  fun isProtected(host: String): Boolean = classify(host).let { it == EndpointKind.LOOPBACK || it == EndpointKind.TAILSCALE }
+
   /** False for an unspecified address (0.0.0.0, ::, ::ffff:0.0.0.0), an empty host, or a port outside 1..65535. */
   fun isConnectable(host: String, port: Int): Boolean {
     if (port !in 1..65535) return false
