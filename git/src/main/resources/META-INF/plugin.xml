@@ -22,7 +22,7 @@
   <!-- One jar. The shared and backend modules load embedded: they share the git4idea packages, so neither can have a class
        loader filtered to a package of its own, and Phantom always runs both (frontend and backend in one process).
        localHistory has no classes, only actions, so it has no package either and loads embedded too. The
-       frontend, terminal and coverage modules keep their own class loader on a package of their own, so each switches off
+       frontend, terminal, coverage and settingsSync (the Backup and Sync history, moved from the IDE core) modules keep their own class loader on a package of their own, so each switches off
        with what it depends on. The Git helper apps (askpass, rebase editor, pinentry) are in the same jar: the scripts Git
        runs put the jar of the app class on the class path. No performanceTesting module (Phantom ships no Performance
        Testing plugin), and no frontend.split, backend.split and model.generated (their sources are not in IntelliJ
@@ -34,6 +34,7 @@
     <module name="intellij.vcs.git.localHistory" loading="embedded"/>
     <module name="intellij.vcs.git.terminal"/>
     <module name="intellij.vcs.git.coverage"/>
+    <module name="phantom.git.settingsSync"/>
 
     <module name="intellij.vcs.git.frontend"/>
   </content>
