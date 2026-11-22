@@ -9,8 +9,11 @@ import com.intellij.microservices.endpoints.FrameworkPresentation
 import com.intellij.microservices.endpoints.HTTP_SERVER_TYPE
 import com.intellij.microservices.endpoints.presentation.HttpMethodPresentation
 import com.intellij.navigation.ItemPresentation
+import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.ModificationTracker
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiMethod
@@ -195,5 +198,47 @@ class OpenApiTest : LightJavaCodeInsightFixtureTestCase() {
     finally {
       com.intellij.testFramework.PsiTestUtil.removeSourceRoot(module, resources)
     }
+  }
+
+  private fun specNames(): List<String> = OpenApiSpecs.specFiles(project).map { it.name }.sorted()
+
+  private val tinySpec = "openapi: 3.0.3\ninfo:\n  title: t\n  version: '1'\npaths: {}\n"
+
+  /** A file changed on disk while not open has no PSI event; the VFS listener still drops the spec list. */
+  fun testSpecFilesSeeExternalChange() {
+    val file = myFixture.tempDirFixture.createFile("external.yaml", "name: not a spec\n")
+    assertDoesntContain(specNames(), "external.yaml")
+    WriteAction.run<Throwable> { VfsUtil.saveText(file, tinySpec) }
+    assertContainsElements(specNames(), "external.yaml")
+    WriteAction.run<Throwable> { VfsUtil.saveText(file, "name: not a spec again\n") }
+    assertDoesntContain(specNames(), "external.yaml")
+  }
+
+  fun testSpecFilesSeeUnsavedEdit() {
+    myFixture.configureByText("edited.yaml", "<caret>openapi: 3.0.3\ninfo:\n  title: t\n  version: '1'\npaths: {}\n")
+    assertContainsElements(specNames(), "edited.yaml")
+    myFixture.type("x-")
+    PsiDocumentManager.getInstance(project).commitAllDocuments()
+    assertDoesntContain(specNames(), "edited.yaml")
+  }
+
+  fun testSpecFilesSeeCreatedAndDeletedFiles() {
+    assertDoesntContain(specNames(), "created.json")
+    val file = myFixture.tempDirFixture.createFile("created.json", "{ \"openapi\": \"3.1.0\", \"paths\": {} }")
+    assertContainsElements(specNames(), "created.json")
+    WriteAction.run<Throwable> { file.delete(this) }
+    assertDoesntContain(specNames(), "created.json")
+  }
+
+  /** The point of the narrower dependencies: typing in Java does not rescan the yaml/json files. */
+  fun testJavaEditDoesNotRecomputeSpecFiles() {
+    myFixture.addFileToProject("api.yaml", tinySpec)
+    myFixture.configureByText("Foo.java", "class Foo { <caret> }")
+    assertContainsElements(specNames(), "api.yaml")
+    val before = OpenApiSpecs.specFilesComputations.get()
+    myFixture.type("int x;")
+    PsiDocumentManager.getInstance(project).commitAllDocuments()
+    assertContainsElements(specNames(), "api.yaml")
+    assertEquals(before, OpenApiSpecs.specFilesComputations.get())
   }
 }
