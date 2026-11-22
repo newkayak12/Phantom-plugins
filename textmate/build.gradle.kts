@@ -43,7 +43,7 @@ tasks.test {
 
 // The grammars the plugin ships (lib/bundles in the plugin folder, where TextMateServiceImpl reads them). The IDE reads
 // every shipped grammar when a project opens, so only these go in: languages Phantom has no plugin for that a Java or
-// Kotlin backend project still holds. bundles/ keeps the rest because the tests read some of them.
+// Kotlin backend project still holds. bundles/ holds only these.
 val shippedBundles = listOf(
   // Kotlin until the Kotlin plugin is installed; config, build and repository files
   "kotlin", "sql", "docker", "dotenv", "ini", "log", "make", "bat", "powershell", "diff", "git-base",

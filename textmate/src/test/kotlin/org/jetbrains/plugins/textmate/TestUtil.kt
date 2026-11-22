@@ -15,10 +15,8 @@ import org.jetbrains.plugins.textmate.plist.XmlPlistReaderForTests
 
 object TestUtil {
   const val BAT: @NonNls String = "bat"
-  const val GO: @NonNls String = "go"
   const val TERRAFORM: @NonNls String = "terraform"
   const val MAKE: @NonNls String = "make"
-  const val JAVA: @NonNls String = "java"
   const val LOG: @NonNls String = "log"
   const val JAVASCRIPT: @NonNls String = "javascript"
   const val CSS: @NonNls String = "css"
@@ -29,8 +27,6 @@ object TestUtil {
   const val DOCKER: @NonNls String = "docker"
   const val MARKDOWN_SUBLIME: @NonNls String = "markdown_sublime"
   const val MARKDOWN_TEXTMATE: @NonNls String = "markdown_textmate"
-  const val MARKDOWN_VSC: @NonNls String = "markdown-basics"
-  const val FSHARP: @NonNls String = "fsharp"
   const val LARAVEL_BLADE: @NonNls String = "laravel-blade"
   const val INVALID_BUNDLE: @NonNls String = "invalid_bundle"
   const val LATEX: @NonNls String = "latex"
@@ -40,14 +36,13 @@ object TestUtil {
   const val COLD_FUSION: @NonNls String = "coldfusion"
   const val PREFERENCES_TEST_BUNDLE: @NonNls String = "preferences_test"
   const val MARKDOWN_BLOGGING: @NonNls String = "markdown_blogging"
-  const val PYTHON: @NonNls String = "python"
   const val RUBY: @NonNls String = "ruby"
   const val PHP: @NonNls String = "php"
   const val PHP_VSC: @NonNls String = "php_vsc"
   const val SMARTY: @NonNls String = "smarty"
   const val TURTLE: @NonNls String = "turtle"
   const val GIT: @NonNls String = "git-base"
-  const val RESTRUCTURED_TEXT: @NonNls String = "restructuredtext"
+  const val SCSS: @NonNls String = "scss"
 
   fun readBundle(bundleName: String, xmlPlistReader: PlistReaderCore, yamlPlistReader: PlistReaderCore? = null): TextMateBundleReader {
     val resourceReader = TestUtilMultiplatform.getResourceReader(bundleName)
