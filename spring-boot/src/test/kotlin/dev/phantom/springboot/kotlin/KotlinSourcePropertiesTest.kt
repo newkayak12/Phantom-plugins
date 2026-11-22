@@ -2,6 +2,7 @@
 package dev.phantom.springboot.kotlin
 
 import dev.phantom.springboot.RealJdk
+import dev.phantom.springboot.assertLayeredKeysMatchFlat
 import com.intellij.psi.PsiNamedElement
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import dev.phantom.springboot.core.BootConfigNavigation
@@ -40,6 +41,15 @@ class KotlinSourcePropertiesTest : LightJavaCodeInsightFixtureTestCase() {
       @ConfigurationProperties(value = "security.jwt.properties")
       data class JwtProperties(val expireTime: Long, val secret: String)
     """.trimIndent())
+  }
+
+  override fun tearDown() {
+    try {
+      assertLayeredKeysMatchFlat(module)
+    }
+    finally {
+      super.tearDown()
+    }
   }
 
   fun testKeysTypesAndDefaults() {
