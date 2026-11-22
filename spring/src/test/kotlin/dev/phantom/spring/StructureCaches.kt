@@ -59,7 +59,8 @@ class StructureCaches(private val fixture: JavaCodeInsightTestFixture) {
     assertParity()
   }
 
-  private fun counts() = listOf(SpringStructureTracker.getInstance(project).modificationCount, SpringBeanNames.computeCount.get().toLong())
+  private fun counts() = listOf(SpringStructureTracker.getInstance(project).modificationCount, SpringBeanNames.computeCount.get().toLong(),
+                                SpringBeans.beanMethodSearches.get().toLong(), SpringBeans.inheritorSearches.get().toLong())
 
   private fun readAll() {
     SpringBeanNameTypos.knownNames(project)
@@ -69,7 +70,7 @@ class StructureCaches(private val fixture: JavaCodeInsightTestFixture) {
   private fun beans(): List<PsiModifierListOwner> =
     SpringBeanCatalog.collect(project).values.flatten().flatMap { listOf(it.element) + it.beanMethods.map { m -> m.element } }
 
-  /** Cached bean names and known names equal what a fresh search finds. */
+  /** Cached bean names, known names and autowiring candidates equal what a fresh search finds. */
   fun assertParity() {
     val fresh = LinkedHashMap<String, MutableList<String>>()
     val freshNames = HashSet<String>()
@@ -84,6 +85,14 @@ class StructureCaches(private val fixture: JavaCodeInsightTestFixture) {
     }
     assertEquals(fresh, SpringBeanNames.byName(project).mapValues { (_, list) -> list.map(::describe) })
     assertEquals(freshNames, SpringBeanNameTypos.knownNames(project))
+    for (bean in beans()) {
+      for (dependency in SpringBeanCatalog.dependencies(bean)) {
+        // as sets: the order of an annotation search is not stable across edits even without caching (Kotlin @Bean
+        // functions of one file come back in either order after a body edit), and nothing relies on it
+        assertEquals("candidates of ${describe(dependency.point.element)}", SpringBeans.findCandidates(dependency.point, true).map(::describe).sorted(),
+                     dependency.candidates.map(::describe).sorted())
+      }
+    }
   }
 
   /** How many injection points the beans have, so a test can tell the comparison covered something. */

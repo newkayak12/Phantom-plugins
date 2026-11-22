@@ -3,6 +3,7 @@ package dev.phantom.spring.core
 
 import com.intellij.codeInsight.AnnotationUtil
 import com.intellij.codeInsight.MetaAnnotationUtil
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.util.Key
 import com.intellij.psi.*
@@ -15,10 +16,12 @@ import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.InheritanceUtil
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.PsiUtilCore
+import org.jetbrains.annotations.TestOnly
 import org.jetbrains.uast.*
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * A place where Spring injects a bean: a constructor or `@Bean`/`@Autowired` method parameter, or an injected field.
@@ -181,10 +184,16 @@ object SpringBeans {
 
   private val PRODUCTION_BEAN_METHODS = Key.create<CachedValue<List<PsiMethod>>>("phantom.spring.beanMethods.production")
   private val ALL_BEAN_METHODS = Key.create<CachedValue<List<PsiMethod>>>("phantom.spring.beanMethods.all")
+  private val INHERITORS = Key.create<CachedValue<ConcurrentHashMap<Pair<PsiClass, Boolean>, List<PsiClass>>>>("phantom.spring.inheritors")
+
+  @TestOnly
+  val beanMethodSearches: AtomicInteger = AtomicInteger()
+  @TestOnly
+  val inheritorSearches: AtomicInteger = AtomicInteger()
 
   /**
    * All `@Bean` methods visible from [context]. The autowiring inspection asks for them once per injection point, so the
-   * annotation search runs once per PSI change instead.
+   * annotation search runs once per change of declarations instead (typing in a method body is not one).
    */
   private fun beanMethods(context: PsiElement): List<PsiMethod> {
     val project = context.project
@@ -193,29 +202,61 @@ object SpringBeans {
     return manager.getCachedValue(project, if (inTests) ALL_BEAN_METHODS else PRODUCTION_BEAN_METHODS, beanMethodsProvider(project, inTests), false)
   }
 
-  private fun beanMethodsProvider(project: com.intellij.openapi.project.Project, inTests: Boolean) = CachedValueProvider {
+  private fun beanMethodsProvider(project: Project, inTests: Boolean) = CachedValueProvider {
+    CachedValueProvider.Result.create(searchBeanMethods(project, inTests), *SpringStructureTracker.deps(project))
+  }
+
+  private fun searchBeanMethods(project: Project, inTests: Boolean): List<PsiMethod> {
+    beanMethodSearches.incrementAndGet()
     val scope = if (inTests) GlobalSearchScope.projectScope(project) else GlobalSearchScopesCore.projectProductionScope(project)
     val beanAnnotation = JavaPsiFacade.getInstance(project).findClass(SpringNames.BEAN, GlobalSearchScope.allScope(project))
-    val methods = if (beanAnnotation == null) emptyList() else AnnotatedElementsSearch.searchPsiMethods(beanAnnotation, scope).findAll().toList()
-    CachedValueProvider.Result.create(methods, PsiModificationTracker.MODIFICATION_COUNT)
+    return if (beanAnnotation == null) emptyList() else AnnotatedElementsSearch.searchPsiMethods(beanAnnotation, scope).findAll().toList()
+  }
+
+  /**
+   * Project classes that inherit [target], in production sources only or in all project sources. The autowiring
+   * inspection asks for the same bean types at every injection point of every file it highlights, so each search is
+   * kept until declarations change.
+   */
+  fun inheritors(target: PsiClass, production: Boolean): List<PsiClass> {
+    val project = target.project
+    val map = CachedValuesManager.getManager(project).getCachedValue(project, INHERITORS, {
+      CachedValueProvider.Result.create(ConcurrentHashMap<Pair<PsiClass, Boolean>, List<PsiClass>>(), *SpringStructureTracker.deps(project))
+    }, false)
+    val key = target to production
+    map[key]?.let { return it }
+    // searched outside the map's lock: the search may be cancelled, and other keys must not wait for it
+    val found = searchInheritors(target, production)
+    return map.putIfAbsent(key, found) ?: found
+  }
+
+  private fun searchInheritors(target: PsiClass, production: Boolean): List<PsiClass> {
+    inheritorSearches.incrementAndGet()
+    val scope = if (production) GlobalSearchScopesCore.projectProductionScope(target.project) else GlobalSearchScope.projectScope(target.project)
+    return ClassInheritorsSearch.search(target, scope, true).findAll().toList()
   }
 
   // ---- searches (run on click, in a read action with a progress indicator)
 
   /** Beans declared in project sources that Spring would consider for [point], best matches first. */
-  fun findCandidates(point: InjectionPoint): List<PsiModifierListOwner> {
+  fun findCandidates(point: InjectionPoint): List<PsiModifierListOwner> = findCandidates(point, fresh = false)
+
+  /** [fresh]: search again instead of reading the caches, to compare the two in tests. */
+  internal fun findCandidates(point: InjectionPoint, fresh: Boolean): List<PsiModifierListOwner> {
     val target = beanTypeOf(point.type) ?: return emptyList()
     val project = target.project
+    val inTests = isInTestSources(point.element)
     val scope = scopeFor(point.element)
     val candidates = LinkedHashSet<PsiModifierListOwner>()
 
     if (scope.contains(PsiUtilCore.getVirtualFile(target) ?: return emptyList()) && isBeanClass(target)) {
       candidates.add(target)
     }
-    ClassInheritorsSearch.search(target, scope, true).forEach { inheritor ->
+    val inheritors = if (fresh) searchInheritors(target, !inTests) else inheritors(target, !inTests)
+    inheritors.forEach { inheritor ->
       if (isBeanClass(inheritor)) candidates.add(inheritor)
     }
-    for (method in beanMethods(point.element)) {
+    for (method in if (fresh) searchBeanMethods(project, inTests) else beanMethods(point.element)) {
       val returned = PsiUtil.resolveClassInClassTypeOnly(method.returnType)
       if (returned != null && InheritanceUtil.isInheritorOrSelf(returned, target, true)) candidates.add(method)
     }
