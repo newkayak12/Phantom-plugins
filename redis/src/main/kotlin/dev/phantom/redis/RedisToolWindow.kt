@@ -224,15 +224,27 @@ class RedisPanel(private val project: Project, parent: Disposable) : JPanel(Bord
   }
 
   private fun runConsole() {
-    val line = consoleInput.text.trim()
-    if (line.isEmpty()) return
-    if (history.lastOrNull() != line) history.add(line)
+    val typed = consoleInput.text.trim()
+    if (typed.isEmpty()) return
+    val args = RedisText.split(typed)
+    // passwords never reach the output or the history (screen sharing, the up arrow)
+    val line = RedisConsole.shown(typed, args)
+    if (line == typed && history.lastOrNull() != typed) history.add(typed)
     historyIndex = history.size
     consoleInput.text = ""
-    val args = RedisText.split(line)
     if (args.firstOrNull()?.uppercase() in BLOCKING) {
       append("> $line\n(error) ${args[0]} would hold the connection; use redis-cli for it\n")
       return
+    }
+    // a key deleted from the list asks first; so does a typed command deleting all of them, naming the server
+    val server = servers.selectedItem as? RedisServer ?: return
+    RedisConsole.wipeScope(args, "$server (${server.host}:${server.port})")?.let { scope ->
+      val answer = Messages.showOkCancelDialog(project, "${args[0].uppercase()} deletes $scope. This cannot be undone.",
+                                               "Delete All Keys", "Delete", Messages.getCancelButton(), Messages.getWarningIcon())
+      if (answer != Messages.OK) {
+        append("> $line\n(cancelled, nothing was sent)\n")
+        return
+      }
     }
     onConnection({ it.command(*args.toTypedArray()) }, { append("> $line\n(error) $it\n") }) { reply ->
       append("> $line\n${reply.render()}\n")
