@@ -41,7 +41,7 @@
     {
       "id": "dev.phantom.spring",
       "name": "Spring Support",
-      "version": "0.9.1",
+      "version": "0.9.2",
       "source": "spring",
       "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, Spring MVC handlers for the Endpoints tool window, Spring Security path and expression support, and Kafka/RabbitMQ/JMS sender-receiver navigation. 0.4.0: proxy pitfalls (self-invocation of @Transactional/@Cacheable/@Async, private/final/static proxied methods, Kotlin classes not opened by kotlin-spring), @Scheduled/@Async/@EventListener contracts, field and static injection, duplicate bean names, @Scope values, @Sql paths, @DirtiesContext, publishEvent ↔ listener gutters, @Qualifier/@DependsOn bean name completion and Ctrl+B. Wave 6: @Value placeholders (follows spring.config.import), SpEL syntax, cache names, caching on interfaces, @Qualifier/@DependsOn near-miss names, MVC path variables, endpoint and AOP advice gutters, method security not enabled, pointcut syntax. Wave 7: @Cacheable+@CachePut, abstract beans, @Value literal types, @Bean method shape, scan packages, AspectJ autoproxy, @Autowired outside beans, resource locations, @TestBean factories, @Around/pointcut/argNames/@DeclareParents, Security debug/self-invocation/bean refs. Wave 8: @Bean init/destroy methods, @Lookup, Resource @Value, @Profile expressions and unknown profiles, bean name convention, argNames bindings; cache, @Scheduled and @Import gutters. Waves 9-10: @Transactional/@Async, component scan and advised-method gutters; Spring 7 API versioning checks; HTTP header and media type typos; broken @Value placeholders; JDK proxy injection. Wave 11: test transaction pitfalls, @Value with @Qualifier/@Resource, removed @Required, @Qualifier bean type, ROLE_ prefix misuse.",
       "vendor": "Phantom",
@@ -52,7 +52,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-0.9.1/spring-0.9.1.zip",
+      "download": "spring-0.9.2/spring-0.9.2.zip",
       "detect": [
         "org.springframework:spring-context",
         "org.springframework:spring-web",
