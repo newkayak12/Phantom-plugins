@@ -37,6 +37,38 @@ class RedisClientTest : TestCase() {
     assertEquals("{\"broken\"", RedisText.prettyJson("{\"broken\""))
   }
 
+  /** The key list pipelines TYPE and TTL: a fake server answers each command it reads, in order. */
+  fun testScanPipelinesTypeAndTtl() {
+    val received = java.util.Collections.synchronizedList(mutableListOf<List<String>>())
+    java.net.ServerSocket(0).use { server ->
+      val serving = Thread {
+        server.accept().use { s ->
+          val input = java.io.BufferedReader(java.io.InputStreamReader(s.getInputStream(), Charsets.ISO_8859_1))
+          val out = s.getOutputStream()
+          while (true) {
+            val head = input.readLine() ?: break
+            val args = List(head.removePrefix("*").toInt()) { input.readLine(); input.readLine() }
+            received.add(args)
+            out.write(when (args[0]) {
+              "SCAN" -> "*2\r\n$1\r\n0\r\n*2\r\n$1\r\nb\r\n$1\r\na\r\n"
+              "TYPE" -> if (args[1] == "a") "+string\r\n" else "+hash\r\n"
+              "TTL" -> if (args[1] == "a") ":-1\r\n" else ":10\r\n"
+              else -> "-ERR unexpected\r\n"
+            }.toByteArray())
+            out.flush()
+          }
+        }
+      }.apply { isDaemon = true; start() }
+      RedisConnection.open("localhost", server.localPort, null, null, 0, false).use { c ->
+        val (keys, more) = RedisBrowser(c).scan("*")
+        assertEquals(listOf(RedisKey("a", "string", -1), RedisKey("b", "hash", 10)), keys)
+        assertFalse(more)
+      }
+      serving.join(5_000)
+    }
+    assertEquals(listOf("SCAN", "TYPE", "TTL", "TYPE", "TTL"), received.map { it[0] })
+  }
+
   /** Read-only commands against a Redis on localhost:6379, when one runs. */
   fun testLocalServerReadOnly() {
     val up = runCatching { Socket("localhost", 6379).close() }.isSuccess

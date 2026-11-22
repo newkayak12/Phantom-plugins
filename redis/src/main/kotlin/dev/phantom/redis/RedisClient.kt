@@ -160,6 +160,21 @@ class RedisConnection private constructor(private val socket: Socket) : Closeabl
     return RespReader(input).read()
   }
 
+  /** Sends all [commands] before reading their replies: one round trip instead of one per command. */
+  fun pipeline(commands: List<List<String>>): List<RedisReply> {
+    for (args in commands) {
+      output.write("*${args.size}\r\n".toByteArray())
+      for (a in args.map { it.toByteArray(Charsets.UTF_8) }) {
+        output.write("$${a.size}\r\n".toByteArray())
+        output.write(a)
+        output.write(CRLF)
+      }
+    }
+    output.flush()
+    val reader = RespReader(input)
+    return commands.map { reader.read() }
+  }
+
   override fun close() {
     try { socket.close() } catch (_: IOException) {}
   }
