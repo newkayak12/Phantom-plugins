@@ -1,8 +1,18 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.spring
 
+import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiFileFactory
+import com.intellij.psi.PsiManager
+import com.intellij.psi.SyntaxTraverser
+import com.intellij.psi.search.FilenameIndex
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
+import dev.phantom.spring.messaging.MessagingLineMarkerProvider
 import dev.phantom.spring.messaging.MessagingModel
+import dev.phantom.spring.messaging.MessagingSite
+import junit.framework.TestCase
 
 /** Kafka senders and receivers by topic, in Java and in the user's Kotlin style (topic constants, ProducerRecord). */
 class SpringMessagingTest : LightJavaCodeInsightFixtureTestCase() {
@@ -118,6 +128,7 @@ class SpringMessagingTest : LightJavaCodeInsightFixtureTestCase() {
     myFixture.configureFromExistingVirtualFile(myFixture.findClass("app.RefundPublisher").containingFile.virtualFile)
     myFixture.doHighlighting()
     assertTrue("Receivers of order.refunded" in myFixture.findAllGutters().mapNotNull { it.tooltipText })
+    assertTrue(assertLocalSitesMatch(project) > 0)
   }
 
   fun testTopicCompletion() {
@@ -127,5 +138,73 @@ class SpringMessagingTest : LightJavaCodeInsightFixtureTestCase() {
     """.trimIndent())
     val items = myFixture.completeBasic()?.map { it.lookupString }.orEmpty()
     assertEquals(listOf("order.cancelled", "order.placed", "order.retry", "order.shipped"), items.sorted())
+  }
+
+  fun testLocalSitesMatchProjectSearch() {
+    // an override, a subclass without one, and an overload the strict search leaves out
+    myFixture.addClass("""
+      package app;
+      public class MyTemplate extends org.springframework.kafka.core.KafkaTemplate<String, String> {
+        @Override public Object send(String topic, String data) { return null; }
+        public Object send(String topic, String a, String b, String c) { return null; }
+      }
+    """.trimIndent())
+    myFixture.addClass("package app; public class PlainTemplate extends org.springframework.kafka.core.KafkaTemplate<String, String> {}")
+    myFixture.addClass("""
+      package app;
+      import org.springframework.kafka.annotation.KafkaListener;
+      @KafkaListener(topics = "order.class")
+      public class Senders {
+        MyTemplate mine; PlainTemplate plain;
+        public void a(String b) { mine.send("order.override", b); }
+        public void c(String b) { plain.send("order.plain", b); }
+        public void d() { mine.send("order.overload", "a", "b", "c"); }
+        public void e() { new org.apache.kafka.clients.producer.ProducerRecord<String, String>("order.record", "k", "v"); }
+        public void f() { new org.apache.kafka.clients.producer.ProducerRecord<String, String>("order.anonymous", "k", "v") {}; }
+        public Runnable g() {
+          return new Runnable() { @KafkaListener(topics = "order.anon") public void on(String s) {} public void run() {} };
+        }
+      }
+    """.trimIndent())
+    val markers = assertLocalSitesMatch(project)
+    assertTrue("markers: $markers", markers >= 8)
+  }
+
+  fun testNoLocalSitesOutsideProjectSources() {
+    val file = PsiFileFactory.getInstance(project).createFileFromText("Loose.java", com.intellij.lang.java.JavaLanguage.INSTANCE, """
+      package app;
+      public class Loose {
+        org.springframework.kafka.core.KafkaTemplate<String, String> t;
+        @org.springframework.kafka.annotation.KafkaListener(topics = "order.loose") public void on(String s) { t.send("order.loose", s); }
+      }
+    """.trimIndent())
+    val provider = MessagingLineMarkerProvider()
+    val local = SyntaxTraverser.psiTraverser(file).filter { it.firstChild == null }.flatMap { provider.sites(it, MessagingModel::localSitesAt) }.toList()
+    assertEmpty(local)
+  }
+
+  companion object {
+    /**
+     * The gutter sites found from each element alone equal the ones read off the project-wide list, on every leaf of
+     * every Java and Kotlin source. Returns how many leaves have a marker, so a test can check it compared something.
+     */
+    fun assertLocalSitesMatch(project: Project): Int {
+      val provider = MessagingLineMarkerProvider()
+      val scope = GlobalSearchScope.projectScope(project)
+      val files: List<PsiFile> = listOf("java", "kt").flatMap { FilenameIndex.getAllFilesByExt(project, it, scope) }
+        .mapNotNull { PsiManager.getInstance(project).findFile(it) }
+      var markers = 0
+      for (file in files) {
+        for (leaf in SyntaxTraverser.psiTraverser(file).filter { it.firstChild == null }) {
+          val expected = provider.sites(leaf, MessagingModel::sitesAt).map(::describe).toSet()
+          val actual = provider.sites(leaf, MessagingModel::localSitesAt).map(::describe).toSet()
+          TestCase.assertEquals("${file.name}:${leaf.textRange.startOffset} ${leaf.text}", expected, actual)
+          if (actual.isNotEmpty()) markers++
+        }
+      }
+      return markers
+    }
+
+    private fun describe(site: MessagingSite) = "${if (site.sends) "send" else "recv"} ${site.broker} ${site.channel} ${site.label}"
   }
 }
