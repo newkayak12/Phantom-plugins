@@ -130,26 +130,66 @@ class KeyNode(val segment: String, val fullName: String, val property: ConfigPro
 }
 
 /** All configuration keys visible from one module, sorted for prefix lookups. */
-class ConfigKeys(sources: List<ParsedMetadata>) {
-  private val byName: Map<String, ConfigProperty>
-  private val sortedNames: List<String>
-  private val hints: Map<String, List<HintValue>>
-  private val groups: Map<String, String?>
+class ConfigKeys private constructor(
+  private val byName: Map<String, ConfigProperty>,
+  private val sortedKeys: List<String>,
+  private val hints: Map<String, List<HintValue>>,
+  private val groups: Map<String, String?>,
+) {
+  constructor(sources: List<ParsedMetadata>) : this(FlatMerge(sources))
 
-  init {
+  private constructor(m: FlatMerge) : this(m.props, m.props.keys.sorted(), m.hints, m.groups)
+
+  private class FlatMerge(sources: List<ParsedMetadata>) {
     val props = LinkedHashMap<String, ConfigProperty>()
-    val allHints = HashMap<String, List<HintValue>>()
-    val allGroups = HashMap<String, String?>()
-    // Earlier sources win (project build output before libraries); later ones only fill gaps.
-    for (source in sources) {
-      for (p in source.properties) props.merge(p.name, p) { old, new -> old.merged(new) }
-      for ((k, v) in source.hints) allHints.putIfAbsent(k, v)
-      for ((k, v) in source.groups) if (allGroups[k] == null) allGroups[k] = v
+    val hints = HashMap<String, List<HintValue>>()
+    val groups = HashMap<String, String?>()
+
+    init {
+      // Earlier sources win (project build output before libraries); later ones only fill gaps.
+      for (source in sources) {
+        for (p in source.properties) props.merge(p.name, p) { old, new -> old.merged(new) }
+        for ((k, v) in source.hints) hints.putIfAbsent(k, v)
+        for ((k, v) in source.groups) if (groups[k] == null) groups[k] = v
+      }
     }
-    byName = props
-    sortedNames = props.keys.sorted()
-    hints = allHints
-    groups = allGroups
+  }
+
+  /**
+   * The same keys as `ConfigKeys(listOf(top) + sources of this)`, without merging and sorting this layer again: [top] wins
+   * the way an earlier source does, and its few new names are merged into the sorted list. Field-wise "first non-null wins"
+   * is associative, so the result equals the flat merge exactly.
+   */
+  fun overlaidBy(top: ParsedMetadata): ConfigKeys {
+    if (top.properties.isEmpty() && top.hints.isEmpty() && top.groups.isEmpty()) return this
+    val topProps = LinkedHashMap<String, ConfigProperty>()
+    for (p in top.properties) topProps.merge(p.name, p) { old, new -> old.merged(new) }
+    val props = LinkedHashMap<String, ConfigProperty>(byName.size + topProps.size)
+    props.putAll(byName)
+    val added = ArrayList<String>()
+    for ((name, p) in topProps) {
+      val below = byName[name]
+      if (below == null) added.add(name)
+      props[name] = if (below == null) p else p.merged(below)
+    }
+    val allHints = HashMap(hints)
+    allHints.putAll(top.hints)
+    val allGroups = HashMap(groups)
+    for ((k, v) in top.groups) if (v != null || !allGroups.containsKey(k)) allGroups[k] = v
+    return ConfigKeys(props, mergeSorted(sortedKeys, added.sorted()), allHints, allGroups)
+  }
+
+  /** Every property, hint and group in a stable textual form, for comparing two ways of building the same keys. */
+  @org.jetbrains.annotations.TestOnly
+  fun describe(): String = buildString {
+    for (name in sortedKeys) {
+      val p = byName.getValue(name)
+      append(name).append('|').append(p.type).append('|').append(p.description).append('|').append(p.defaultValue)
+        .append('|').append(p.sourceType).append('|')
+        .append(p.deprecation?.let { "${it.level}/${it.reason}/${it.replacement}" }).append('\n')
+    }
+    for (k in hints.keys.sorted()) append("hint ").append(k).append('=').append(hints.getValue(k).joinToString { "${it.value}:${it.description}" }).append('\n')
+    for (k in groups.keys.sorted()) append("group ").append(k).append('=').append(groups[k]).append('\n')
   }
 
   val size: Int get() = byName.size
@@ -184,9 +224,9 @@ class ConfigKeys(sources: List<ParsedMetadata>) {
 
   private fun namesUnder(path: String): Sequence<String> {
     val prefix = if (path.isEmpty()) "" else "$path."
-    var i = sortedNames.binarySearch(prefix).let { if (it < 0) -it - 1 else it }
+    var i = sortedKeys.binarySearch(prefix).let { if (it < 0) -it - 1 else it }
     return generateSequence {
-      if (i < sortedNames.size && sortedNames[i].startsWith(prefix)) sortedNames[i++] else null
+      if (i < sortedKeys.size && sortedKeys[i].startsWith(prefix)) sortedKeys[i++] else null
     }
   }
 
@@ -217,4 +257,15 @@ class ConfigKeys(sources: List<ParsedMetadata>) {
 
   fun leavesUnder(path: String, limit: Int): List<ConfigProperty> =
     namesUnder(ConfigNames.normalize(path)).take(limit).mapNotNull { byName[it] }.toList()
+}
+
+private fun mergeSorted(a: List<String>, b: List<String>): List<String> {
+  if (b.isEmpty()) return a
+  val out = ArrayList<String>(a.size + b.size)
+  var i = 0
+  var j = 0
+  while (i < a.size && j < b.size) out.add(if (a[i] <= b[j]) a[i++] else b[j++])
+  while (i < a.size) out.add(a[i++])
+  while (j < b.size) out.add(b[j++])
+  return out
 }
