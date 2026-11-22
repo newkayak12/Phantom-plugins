@@ -249,7 +249,7 @@
     {
       "id": "dev.phantom.kafka",
       "name": "Kafka Support",
-      "version": "0.1.3",
+      "version": "0.1.5",
       "source": "kafka",
       "description": "An Apache Kafka browser: topics with partitions and offsets, latest/earliest/since-time messages read without joining a group, sending with key, headers and partition, consumer group lag, create and delete topics. SASL/SSL via client properties in the password safe.",
       "vendor": "Phantom",
@@ -259,7 +259,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "kafka-0.1.3/kafka-0.1.3.zip",
+      "download": "kafka-0.1.5/kafka-0.1.5.zip",
       "detect": [
         "org.apache.kafka:kafka-clients",
         "org.springframework.kafka:spring-kafka",
