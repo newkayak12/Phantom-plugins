@@ -7,11 +7,11 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
-import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.util.io.HttpRequests
 import com.intellij.util.xmlb.annotations.XCollection
+import dev.phantom.db.core.PhantomDbBundle
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
@@ -36,7 +36,6 @@ class DbDriverSettings : PersistentStateComponent<DbDriverSettings> {
 
 /** Downloads a driver's jars with their dependencies. The only part of driver lookup that touches the network. */
 object DbDriverDownloader {
-  private val LOG = logger<DbDriverDownloader>()
   const val MAVEN_CENTRAL: String = "https://repo1.maven.org/maven2/"
 
   /**
@@ -89,7 +88,10 @@ object DbDriverDownloader {
   private fun fetchJar(artifact: ResolvedArtifact, fetcher: ArtifactFetcher, indicator: ProgressIndicator, target: Path): Path {
     val dir = target.resolve(artifact.group).resolve(artifact.artifact).resolve(artifact.version)
     val file = dir.resolve("${artifact.artifact}-${artifact.version}.jar")
-    if (Files.isRegularFile(file)) return file  // only ever moved into place after a checksum match
+    // reused only while it still has the digest it was installed with (<jar>.sha1, written after the repository's matched)
+    val recorded = file.resolveSibling(file.fileName.toString() + ".sha1")
+    if (Files.isRegularFile(file) && Files.isRegularFile(recorded) && sha1(Files.readAllBytes(file)) == Files.readString(recorded).trim()) return file
+    Files.deleteIfExists(file)
     Files.createDirectories(dir)
     // a file per download: two downloads of the same jar never write into each other's file
     val part = Files.createTempFile(dir, "${artifact.artifact}-", ".part")
@@ -98,16 +100,18 @@ object DbDriverDownloader {
       Files.write(part, bytes)
       indicator.checkCanceled()
       val expected = fetcher.fetch(artifact.sha1Url)?.toString(Charsets.US_ASCII)?.trim()?.split(Regex("\\s+"))?.first()?.lowercase()
-      if (expected == null) LOG.warn("No SHA-1 for ${artifact.group}:${artifact.artifact}:${artifact.version} at ${artifact.sha1Url}; accepted unchecked")
-      else {
-        val actual = MessageDigest.getInstance("SHA-1").digest(bytes).joinToString("") { "%02x".format(it) }
-        check(actual == expected) { "Checksum mismatch for ${artifact.jarUrl}: expected $expected, got $actual" }
-      }
+      // a jar the repository gives no checksum for is not installed: nothing would tell a corrupted or swapped file
+      checkNotNull(expected) { PhantomDbBundle.message("db.driver.download.no.checksum", artifact.jarUrl) }
+      val actual = sha1(bytes)
+      check(actual == expected) { "Checksum mismatch for ${artifact.jarUrl}: expected $expected, got $actual" }
       Files.move(part, file, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+      Files.writeString(recorded, actual)
       return file
     }
     finally {
       Files.deleteIfExists(part)
     }
   }
+
+  private fun sha1(bytes: ByteArray): String = MessageDigest.getInstance("SHA-1").digest(bytes).joinToString("") { "%02x".format(it) }
 }

@@ -89,6 +89,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
   private val awsRegionField = JBTextField(source.awsRegion)
   private val properties = DbPropertiesTable().apply { values = source.properties }
   private val readOnlyBox = JBCheckBox(PhantomDbBundle.message("db.dialog.read.only"), source.readOnly)
+  private val queryHistoryBox = JBCheckBox(PhantomDbBundle.message("db.dialog.query.history"), source.queryHistory)
   private val manualCommitBox = JBCheckBox(PhantomDbBundle.message("db.dialog.manual.commit"), source.manualCommit)
   internal val singleSessionBox = JBCheckBox(PhantomDbBundle.message("db.dialog.single.session"), source.singleSession)
   private val driverLabel = JBLabel(" ")
@@ -343,6 +344,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     awsProfileRow = row(PhantomDbBundle.message("db.dialog.aws.profile")) { cell(awsProfileField).align(AlignX.FILL).comment(PhantomDbBundle.message("db.dialog.aws.profile.hint")) }
     awsRegionRow = row(PhantomDbBundle.message("db.dialog.aws.region")) { cell(awsRegionField).align(AlignX.FILL) }
     row { cell(readOnlyBox) }
+    row { cell(queryHistoryBox).comment(PhantomDbBundle.message("db.dialog.query.history.hint")) }
     row { cell(manualCommitBox).comment(PhantomDbBundle.message("db.dialog.manual.commit.hint")) }
     row { cell(singleSessionBox).comment(PhantomDbBundle.message("db.dialog.single.session.hint")) }
     collapsibleGroup(PhantomDbBundle.message("db.dialog.options")) {
@@ -397,6 +399,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     awsRegion = awsRegionField.text.trim()
     properties = LinkedHashMap(this@DbDataSourceDialog.properties.values)
     readOnly = readOnlyBox.isSelected
+    queryHistory = queryHistoryBox.isSelected
     manualCommit = manualCommitBox.isSelected
     singleSession = singleSessionBox.isSelected
     credentialStorage = credentialStorageCombo.selectedItem as DbPasswordStorage
@@ -614,6 +617,8 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     DbConnectionService.getInstance(project).disconnect(saved.id)
     if (saved.manualCommit && !saved.readOnly) DbChangesToolWindowFactory.ensureRegistered(project)
     DbMetadataCache.getInstanceIfCreated(project)?.invalidate(saved.id)
+    // turning history off also drops what it kept for this data source
+    if (!saved.queryHistory) dev.phantom.db.core.exec.DbQueryHistory.getInstance(project).forget(saved.id)
     result = saved
     super.doOKAction()
   }
