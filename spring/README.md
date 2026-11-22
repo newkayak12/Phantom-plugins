@@ -23,6 +23,10 @@ Phantom suggests this plugin when a project depends on `spring-context` or `spri
 
 Not yet: WebFlux functional routes, Spring Security filter chain views. Spring Data repositories are in [JPA Support](../jpa/README.md).
 
+**0.9.5**: fixes pauses of a few hundred milliseconds while typing in large projects, which came with 0.9.3. The
+check whether every bean name is a plain string read all annotated files again after each edit; it now runs again
+only when a class, annotation or type alias changes. Results are unchanged.
+
 **0.9.4**: less CPU while you type. Bean names and the beans that can fill an injection point are kept while you type
 inside a method body or a field initializer, and found again when a class, annotation, signature or supertype changes.
 Results are unchanged.

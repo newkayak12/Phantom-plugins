@@ -83,18 +83,21 @@ class StructureCaches(private val fixture: JavaCodeInsightTestFixture) {
   }
 
   private fun counts() = listOf(SpringStructureTracker.getInstance(project).modificationCount, SpringBeanNames.computeCount.get().toLong(),
-                                SpringBeans.beanMethodSearches.get().toLong(), SpringBeans.inheritorSearches.get().toLong())
+                                SpringBeans.beanMethodSearches.get().toLong(), SpringBeans.inheritorSearches.get().toLong(),
+                                SpringBeanCatalog.unsearchableNameScans.get().toLong())
 
   private fun readAll() {
     SpringBeanNameTypos.knownNames(project)
+    SpringBeanCatalog.hasUnsearchableNames(project)
     beans().forEach { SpringBeanCatalog.dependencies(it) }
   }
 
   private fun beans(): List<PsiModifierListOwner> =
     SpringBeanCatalog.collect(project).values.flatten().flatMap { listOf(it.element) + it.beanMethods.map { m -> m.element } }
 
-  /** Cached bean names, known names and autowiring candidates equal what a fresh search finds. */
+  /** Cached bean names, known names, autowiring candidates and the unsearchable-name check equal what a fresh search finds. */
   fun assertParity() {
+    assertEquals("names not found by words", SpringBeanCatalog.findUnsearchableNames(project), SpringBeanCatalog.hasUnsearchableNames(project))
     val fresh = LinkedHashMap<String, MutableList<String>>()
     val freshNames = HashSet<String>()
     for (beans in SpringBeanCatalog.collect(project).values) {
