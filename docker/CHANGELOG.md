@@ -1,6 +1,10 @@
-# Docker Support 변경 이력
+# Phantom for Docker 변경 이력
 
 ## 미배포
+
+## 0.6.2 (2026-11-22)
+
+- 이름을 바꿨다: Docker Support → Phantom for Docker. Phantom으로 시작하고, 지원하는 프로젝트 이름은 뒤에 둔다. 플러그인 id와 기능은 그대로다.
 
 ## 0.6.1 (2026-11-20)
 

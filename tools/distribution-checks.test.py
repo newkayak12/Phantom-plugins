@@ -124,7 +124,10 @@ class SourceTests(unittest.TestCase):
             f'private const val {iso}_CHECKSUM = "{checksum}"' for iso in ('EN', 'DE')))
         (descriptor.parent.parent / 'GraziePlugin.kt').write_text('const val version = "6.8.27"')
         (self.root / 'licenses').mkdir()
-        (self.root / 'licenses/LGPL-2.1-only.txt').write_text('LGPL 2.1')
+        for spdx in ('LGPL-2.1-only', 'GPL-2.0-only', 'GPL-3.0-only', 'CC-BY-SA-4.0', 'Unicode-3.0'):
+            (self.root / f'licenses/{spdx}.txt').write_text(spdx)
+        (self.root / 'LICENSE').write_text('Apache 2.0')
+        shutil.copyfile(TOOLS / 'languagetool-release-notes.md', self.root / 'tools/languagetool-release-notes.md')
         self.bin = self.root / 'bin'
         self.bin.mkdir()
         curl = self.bin / 'curl'

@@ -1,5 +1,4 @@
-# Groovy Scripting Support
-
+# Phantom for Groovy Scripting
 `dev.phantom.groovy-scripting` · [English](./README.md)
 
 IDE Scripting Console에서 쓰는 Groovy JSR223 스크립팅 엔진과, Groovy·Groovy Live Templates 등 다른 플러그인이
@@ -9,6 +8,8 @@ IntelliJ Community의 Groovy Scripting 플러그인(`plugins/groovy-scripting`�
 `libraries/ivy`, Apache 2.0)을 바탕으로 Phantom의 id로 만든 플러그인입니다. `com.intellij.groovy.scripting`은 별칭으로 남겨
 두고 라이브러리 모듈 이름도 IntelliJ 것을 그대로 써서, 이것에 의존하는 플러그인이 그대로 동작합니다. Phantom은 IntelliJ
 플러그인 대신 이 빌드를 번들합니다.
+
+**0.1.2**: 이름을 바꿨습니다: Groovy Scripting Support → Phantom for Groovy Scripting. Phantom으로 시작하고 지원하는 프로젝트 이름을 뒤에 둡니다. 플러그인 id와 기능은 그대로입니다.
 
 **0.1.1**: 플러그인 jar의 `META-INF/THIRD-PARTY-NOTICES.txt`에 포함된 라이브러리(Apache Groovy, Apache Ivy)와 그 라이선스, NOTICE
 파일이 나옵니다.

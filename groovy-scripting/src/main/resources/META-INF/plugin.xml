@@ -4,7 +4,7 @@
        Templates and other plugins depend on intellij.libraries.groovy by name. The bundled IntelliJ Groovy Scripting plugin
        has to be gone, or both claim the same id and modules. -->
   <id>dev.phantom.groovy-scripting</id>
-  <name>Groovy Scripting Support</name>
+  <name>Phantom for Groovy Scripting</name>
   <module value="com.intellij.groovy.scripting"/>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Languages</category>

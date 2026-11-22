@@ -1,6 +1,10 @@
-# Kafka Support 변경 이력
+# Phantom for Kafka 변경 이력
 
 ## 미배포
+
+## 0.1.6 (2026-11-22)
+
+- 이름을 바꿨다: Kafka Support → Phantom for Kafka. Phantom으로 시작하고, 지원하는 프로젝트 이름은 뒤에 둔다. 플러그인 id와 기능은 그대로다.
 
 ## 0.1.5 (2026-11-22)
 

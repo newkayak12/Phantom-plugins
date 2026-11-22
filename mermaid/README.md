@@ -1,12 +1,11 @@
-# Mermaid Support
-
-`com.phantom.mermaid` · [한국어](./KOR.md)
+# Phantom for Mermaid
+`dev.phantom.mermaid` · [한국어](./KOR.md)
 
 Editing support and diagram preview for [Mermaid](https://mermaid.js.org/) in `.mmd` and `.mermaid` files and in
 Markdown ` ```mermaid ` fences: highlighting, completion, formatting, folding, rename and Find Usages of node ids,
 inspections, and a preview next to the editor.
 
-Built from the IntelliJ Community Mermaid plugin (`plugins/mermaid`, Apache 2.0) under its own id and packages
+Built from the IntelliJ Community Mermaid plugin (`plugins/mermaid`, Apache 2.0) under its own id (`dev.phantom.mermaid`) and packages
 (`com.phantom.mermaid`), so it updates without a new Phantom build and Phantom can stop bundling the JetBrains copy.
 Both register the Mermaid language and file type, so they cannot run together: with the JetBrains copy (`com.intellij.mermaid`)
 enabled, this plugin is not loaded and the IDE says so. Disable Mermaid (JetBrains) in Settings → Plugins, then restart.
@@ -42,6 +41,8 @@ Awesome Free and others) with their licenses.
 The upstream tests (421, minus `OfficialExamplesParsingTest`, which needs the extracted documentation examples) and
 `PreviewRenderingTest`, which counts the diagrams the two previews draw. The preview tests use JCEF and are skipped
 where `CI` is set.
+
+**0.1.4**: renamed from Mermaid Support to Phantom for Mermaid, so the name starts with Phantom and names the project it supports. Its id is now `dev.phantom.mermaid` (was `com.phantom.mermaid`, a domain Phantom does not own): uninstall the old one; the two cannot be enabled together.
 
 **0.1.3**: the plugin carries `mermaid.js.LICENSE.txt`, the licenses of the npm packages bundled in mermaid.js, which
 the bundle's first line points to.

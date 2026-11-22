@@ -7,7 +7,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.2"
+version = "0.1.3"
 
 // The IntelliJ sources keep Java next to Kotlin. src/main is intellij.groovy, intellij.groovy.psi (with its generated lexers
 // and parser), intellij.groovy.structuralSearch and the three content modules (git, ant, copyright). The

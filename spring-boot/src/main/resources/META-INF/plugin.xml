@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.spring.boot</id>
-  <name>Spring Boot Support</name>
+  <name>Phantom for Spring Boot</name>
   <vendor>Phantom</vendor>
   <category>Frameworks</category>
   <description><![CDATA[
