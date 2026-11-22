@@ -22,3 +22,6 @@ Phantom suggests this plugin when a project depends on `spring-context` or `spri
 - **Spring Beans** tool window: every bean of the project by module and stereotype (controllers, services, repositories, components, configurations with their `@Bean` methods). Each bean expands into what it depends on, with the bean that fills each injection point, and where it is injected. Double-click opens the source. Computed when the window opens or on Refresh, never in the background.
 
 Not yet: WebFlux functional routes, Spring Security filter chain views. Spring Data repositories are in [JPA Support](../jpa/README.md).
+
+**0.9.2**: the plugin uses less CPU while you type. Config and build files are read again only when they change, not on
+every edit of Java or Kotlin code, and gutter icons skip non-Spring projects sooner. Results are unchanged.
