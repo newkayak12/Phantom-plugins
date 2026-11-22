@@ -36,7 +36,15 @@
 
   <extensionPoints>
     <extensionPoint qualifiedName="dev.phantom.ai.agentTools" interface="dev.phantom.ai.mcp.AgentTools" dynamic="true"/>
+    <!-- where agent terminals show; another plugin can add an external terminal app (see TerminalBackend) -->
+    <extensionPoint qualifiedName="dev.phantom.ai.terminalBackend" interface="dev.phantom.ai.terminal.TerminalBackend" dynamic="true"/>
   </extensionPoints>
+
+  <extensions defaultExtensionNs="dev.phantom.ai">
+    <terminalBackend implementation="dev.phantom.ai.terminal.IdeTerminalBackend"/>
+    <terminalBackend implementation="dev.phantom.ai.terminal.ITermBackend"/>
+    <terminalBackend implementation="dev.phantom.ai.terminal.OsTerminalBackend"/>
+  </extensions>
 
   <!-- with Phantom Database Console: the agents' read-only database tools -->
   <content namespace="jetbrains">
@@ -52,6 +60,8 @@
                              id="dev.phantom.ai.accounts" displayName="Phantom AI Integration"/>
     <applicationConfigurable parentId="dev.phantom.ai.accounts" instance="dev.phantom.ai.remote.RemoteControlConfigurable"
                              id="dev.phantom.ai.remote" displayName="Remote Control"/>
+    <applicationConfigurable parentId="dev.phantom.ai.accounts" instance="dev.phantom.ai.terminal.TerminalConfigurable"
+                             id="dev.phantom.ai.terminal" displayName="Terminal"/>
     <!-- ===== U7 usage: statusBarWidgetFactory (append here) ===== -->
     <statusBarWidgetFactory id="dev.phantom.ai.usage" implementation="dev.phantom.ai.usage.UsageStatusBarWidgetFactory"/>
     <fileEditorProvider implementation="dev.phantom.ai.board.BoardFileEditorProvider"/>
