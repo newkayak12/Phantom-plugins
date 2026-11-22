@@ -17,6 +17,15 @@ class BootWave11Test : LightJavaCodeInsightFixtureTestCase() {
     myFixture.enableInspections(BootBootstrapConfigInspection::class.java, BootCloudStreamBindingInspection::class.java)
   }
 
+  override fun tearDown() {
+    try {
+      assertLayeredKeysMatchFlat(module)
+    }
+    finally {
+      super.tearDown()
+    }
+  }
+
   private fun problems(): List<String> = myFixture.doHighlighting(HighlightSeverity.WEAK_WARNING)
     .filter { it.inspectionToolId?.startsWith("Phantom") == true }
     .map { "${myFixture.file.text.substring(it.startOffset, it.endOffset)}: ${it.description}" }.sorted()

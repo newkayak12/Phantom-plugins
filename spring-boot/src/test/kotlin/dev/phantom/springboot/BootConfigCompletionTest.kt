@@ -47,15 +47,20 @@ class BootConfigCompletionTest : LightJavaCodeInsightFixtureTestCase() {
 
   override fun tearDown() {
     try {
-      ModuleRootModificationUtil.updateModel(module) { model ->
-        model.moduleLibraryTable.libraries.toList().forEach { model.moduleLibraryTable.removeLibrary(it) }
-      }
-    }
-    catch (e: Throwable) {
-      addSuppressedException(e)
+      assertLayeredKeysMatchFlat(module)
     }
     finally {
-      super.tearDown()
+      try {
+        ModuleRootModificationUtil.updateModel(module) { model ->
+          model.moduleLibraryTable.libraries.toList().forEach { model.moduleLibraryTable.removeLibrary(it) }
+        }
+      }
+      catch (e: Throwable) {
+        addSuppressedException(e)
+      }
+      finally {
+        super.tearDown()
+      }
     }
   }
 
