@@ -2,6 +2,8 @@
 
 ## 미배포
 
+## 0.5.0 (2026-11-22)
+
 - 에이전트 터미널을 IDE 탭 대신 iTerm이나 시스템 터미널에서 열 수 있다(Settings | Tools | Phantom AI Integration | Terminal). 기본값 Automatic은 tmux가 있으면 IDE 탭, 없으면 시스템 터미널이다. tmux가 있으면 바깥 터미널은 분리된 tmux 세션에 붙기만 해서, 창을 닫아도 에이전트가 남고 IDE 탭에서 다시 연다. 다른 플러그인이 터미널을 더하는 확장 지점 `dev.phantom.ai.terminalBackend`를 열었다.
 
 ## 0.4.1 (2026-11-22)
