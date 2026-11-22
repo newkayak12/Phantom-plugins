@@ -3,12 +3,14 @@ package dev.phantom.sync.core
 
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.settingsSync.core.InvalidVersionIdException
+import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.net.InetAddress
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 import kotlin.io.path.createDirectories
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.exists
@@ -147,6 +149,7 @@ class GitSettingsRepository(val url: String, private val workDir: Path, private 
   companion object {
     const val DEFAULT_BRANCH: String = "main"
     private val TIMEOUT: Duration = 120.seconds
+    private val OUTPUT_GRACE: Duration = 2.seconds
 
     // the userinfo of a URL ("user:token@", "token@"); git prints the URL in its own messages too
     private val URL_CREDENTIALS = Regex("""\b([A-Za-z][A-Za-z0-9+.-]*)://([^\s/?#]+)@""")
@@ -177,8 +180,8 @@ class GitSettingsRepository(val url: String, private val workDir: Path, private 
       process.outputStream.close()
       // read both streams while waiting: a hanging git or ssh keeps them open, so reading to the end first would
       // never reach the timeout
-      val stderr = CompletableFuture.supplyAsync { process.errorStream.readBytes() }
-      val stdout = CompletableFuture.supplyAsync { process.inputStream.readBytes() }
+      val stderr = OutputReader(process.errorStream)
+      val stdout = OutputReader(process.inputStream)
       if (!process.waitFor(timeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)) {
         // git runs ssh and helpers as children, which hold the streams open too; list them before the parent dies
         val children = process.descendants().toList()
@@ -187,12 +190,38 @@ class GitSettingsRepository(val url: String, private val workDir: Path, private 
         throw IOException(maskCredentials("${command.drop(1).take(2).joinToString(" ")} timed out after $timeout"))
       }
       // the stderr of git can quote the URL with its credentials; mask it before it reaches a log or a message
-      val result = Result(process.exitValue(), stdout.get(), maskCredentials(stderr.get().toString(Charsets.UTF_8)))
+      val outputDeadline = System.nanoTime() + OUTPUT_GRACE.inWholeNanoseconds
+      val result = Result(process.exitValue(), stdout.bytes(outputDeadline), maskCredentials(stderr.bytes(outputDeadline).toString(Charsets.UTF_8)))
       if (failOnError && result.exitCode != 0) {
         LOG.info("${maskCredentials(command.joinToString(" "))} failed: ${result.stderrText.trim()}")
         throw IOException(result.stderrText.trim().ifEmpty { "git ${command.getOrNull(1)} exited with ${result.exitCode}" })
       }
       return result
+    }
+
+    /**
+     * Collects a process stream on its own thread. A child left running after the process ends (a backgrounded helper)
+     * can keep the stream open, so [bytes] waits only a short while after the exit, then closes it and returns what came.
+     */
+    private class OutputReader(private val stream: InputStream) {
+      private val buffer = ByteArrayOutputStream()
+      private val reader = thread(isDaemon = true, name = "Phantom sync git output") {
+        runCatching {
+          val chunk = ByteArray(8192)
+          while (true) {
+            val n = stream.read(chunk)
+            if (n < 0) break
+            synchronized(buffer) { buffer.write(chunk, 0, n) }
+          }
+        }
+      }
+
+      /** What the stream gave until it ended or [deadline] (a [System.nanoTime]) passed. */
+      fun bytes(deadline: Long): ByteArray {
+        reader.join(maxOf(1, (deadline - System.nanoTime()) / 1_000_000))
+        if (reader.isAlive) runCatching { stream.close() }
+        return synchronized(buffer) { buffer.toByteArray() }
+      }
     }
 
     internal fun deleteQuietly(path: Path) {

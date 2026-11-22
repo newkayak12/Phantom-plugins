@@ -10,6 +10,7 @@ import com.intellij.settingsSync.core.SettingsSyncPushResult
 import com.intellij.settingsSync.core.UpdateResult
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import kotlin.io.path.createDirectories
+import dev.phantom.sync.core.GitRepoAuthService
 import dev.phantom.sync.core.GitRepoCommunicator
 import dev.phantom.sync.core.GitRepoSyncAccounts
 import dev.phantom.sync.core.GitSettingsRepository
@@ -194,5 +195,36 @@ class GitRepoCommunicatorTest : BasePlatformTestCase() {
     Thread.sleep(500)
     val left = ProcessHandle.allProcesses().filter { it.info().commandLine().orElse("").contains(marker) }.toList()
     assertTrue("still running: $left", left.isEmpty())
+  }
+
+  fun testAccountNameHidesCredentials() {
+    val url = "https://x-access-token:ghp_FAKE0123456789token@github.com/me/ide-settings.git"
+    GitRepoSyncAccounts.getInstance().add(url)
+    try {
+      val user = GitRepoAuthService().getUserData(url)!!
+      assertEquals(url, user.id)
+      assertEquals("https://x-access-token:***@github.com/me/ide-settings.git", user.printableName)
+    }
+    finally {
+      GitRepoSyncAccounts.getInstance().remove(url)
+    }
+  }
+
+  fun testChildHoldingTheOutputDoesNotBlockAfterExit() {
+    val marker = "phantom-sync-output-" + UUID.randomUUID()
+    try {
+      // the shell exits at once, but its backgrounded child inherited stdout and keeps it open
+      val (result, elapsed) = measureTimedValue {
+        GitSettingsRepository.run(listOf("sh", "-c", "sh -c 'sleep 60; :' $marker & echo done"), workDir = null)
+      }
+      assertEquals("done", result.text())
+      assertTrue("took $elapsed", elapsed < 10.seconds)
+    }
+    finally {
+      ProcessHandle.allProcesses().filter { it.info().commandLine().orElse("").contains(marker) }.forEach { shell ->
+        shell.descendants().forEach { it.destroyForcibly() }
+        shell.destroyForcibly()
+      }
+    }
   }
 }
