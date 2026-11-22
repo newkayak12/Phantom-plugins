@@ -2,6 +2,6 @@
 
 ## 0.1.4
 
-- 토픽 A를 읽는 중에 토픽 B를 고르면, 늦게 끝난 A의 메시지가 B의 메시지처럼 표에 뜨던 문제를 고쳤다. 토픽 선택, 새로고침, 클러스터 전환, 창 닫기는 진행 중인 읽기를 취소하고 그 결과를 버린다.
+- 토픽 A를 읽는 중에 토픽 B를 고르면, 늦게 끝난 A의 메시지나 파티션 정보가 B의 것처럼 표에 뜨던 문제를 고쳤다. 토픽 선택, 새로고침, 클러스터 전환, 창 닫기는 진행 중인 읽기를 취소하고 그 결과를 버린다.
 - 8초 안에 끝까지 읽지 못한 파티션이 있으면 "No messages" / "N messages" 대신 부분 결과임을 표시한다. 예: `N messages (partial: 3 partitions not finished within 8 s)`, `No messages read yet: 3 partitions not finished within 8 s`.
 - 토픽 생성창의 복제 계수 기본값을 1에서 빈칸(클러스터의 default.replication.factor 사용)으로 바꿨다. 1을 직접 입력하면 단일 복제본이라 브로커 장애 시 데이터를 잃는다고 확인받는다. (#66)

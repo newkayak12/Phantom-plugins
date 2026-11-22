@@ -86,7 +86,7 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
     listOf(it.group, it.state, it.members, it.topic, it.lag)
   }
   private val tabs = JBTabbedPane()
-  private val reads = KafkaReads()
+  private val reads = KafkaTopicLoads()
 
   // touched only on the executor thread
   private var session: KafkaSession? = null
@@ -262,9 +262,9 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
       else -> KafkaStart.Since(System.currentTimeMillis() - minutes.number * 60_000L, n)
     }
     messages.emptyText.text = "Reading…"
-    val request = reads.start(topic)
+    val request = reads.messages.start(topic)
     onSession("Reading $topic", { it.consume(topic, start, cancelled = { request.cancelled }) },
-              { reads.isCurrent(request, topics.selectedValue?.name) }) { result ->
+              { reads.messages.isCurrent(request, topics.selectedValue?.name) }) { result ->
       messagesModel.rows = result.messages
       val (empty, summary) = KafkaReads.describe(result)
       messages.emptyText.text = empty
@@ -303,7 +303,10 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
 
   private fun loadPartitions() {
     val topic = topics.selectedValue?.name ?: return
-    onSession("Describing $topic", { it.partitions(topic) }) { partitionsModel.rows = it }
+    val request = reads.partitions.start(topic)
+    onSession("Describing $topic", { it.partitions(topic) }, { reads.partitions.isCurrent(request, topics.selectedValue?.name) }) {
+      partitionsModel.rows = it
+    }
   }
 
   private fun loadGroups() {
@@ -382,6 +385,17 @@ internal class KafkaReads {
       val empty = "No messages read yet: $unfinished"
       return empty to if (n == 0) empty else "$n messages (partial: $unfinished)"
     }
+  }
+}
+
+/** One guard per tab that loads per topic; whatever changes the topic or the cluster invalidates them all. */
+internal class KafkaTopicLoads {
+  val messages = KafkaReads()
+  val partitions = KafkaReads()
+
+  fun invalidate() {
+    messages.invalidate()
+    partitions.invalidate()
   }
 }
 

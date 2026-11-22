@@ -97,4 +97,19 @@ class KafkaSessionTest : TestCase() {
     reads.invalidate()
     assertFalse(reads.isCurrent(b2, "B"))
   }
+
+  fun testTopicChangeDropsStalePartitions() {
+    val loads = KafkaTopicLoads()
+    val a = loads.partitions.start("A")
+    // the user picks B while A's partitions are still being described
+    loads.invalidate()
+    assertFalse(loads.partitions.isCurrent(a, "B"))
+    assertFalse(loads.partitions.isCurrent(a, "A"))
+    val b = loads.partitions.start("B")
+    assertTrue(loads.partitions.isCurrent(b, "B"))
+    // the two tabs do not cancel each other
+    val m = loads.messages.start("B")
+    assertTrue(loads.partitions.isCurrent(b, "B"))
+    assertTrue(loads.messages.isCurrent(m, "B"))
+  }
 }
