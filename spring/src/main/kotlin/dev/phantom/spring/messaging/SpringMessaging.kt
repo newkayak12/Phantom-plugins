@@ -15,6 +15,7 @@ import com.intellij.java.library.JavaLibraryUtil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NotNullLazyValue
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
@@ -31,7 +32,9 @@ import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.util.ProcessingContext
 import dev.phantom.spring.core.PhantomSpringBundle
+import dev.phantom.spring.core.SpringCacheDeps
 import dev.phantom.spring.core.SpringProjectGate
+import org.jetbrains.annotations.TestOnly
 import org.jetbrains.uast.UAnnotated
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UClass
@@ -45,6 +48,7 @@ import org.jetbrains.uast.getUParentForIdentifier
 import org.jetbrains.uast.getUastParentOfType
 import org.jetbrains.uast.toUElement
 import org.jetbrains.uast.toUElementOfType
+import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.Icon
 
 /** Kafka, RabbitMQ and JMS: which strings name a destination, on the sending and on the receiving side. */
@@ -324,11 +328,18 @@ internal object ConfigPlaceholders {
     return if (unresolved) value else resolved
   }
 
+  // the files are read from disk, so their contents on disk, the file set and the roots are all the value depends on
   fun properties(project: Project): Map<String, String> = CachedValuesManager.getManager(project).getCachedValue(project) {
-    CachedValueProvider.Result.create(read(project), PsiModificationTracker.getInstance(project))
+    readCount.incrementAndGet()
+    val files = files(project)
+    CachedValueProvider.Result.create(read(files), *SpringCacheDeps.config(project, files))
   }
 
-  private fun read(project: Project): Map<String, String> {
+  /** How often the files were read, for tests that check the cache survives unrelated edits. */
+  @TestOnly
+  val readCount: AtomicInteger = AtomicInteger()
+
+  private fun files(project: Project): List<VirtualFile> {
     val scope = GlobalSearchScope.projectScope(project)
     val extensions = listOf("properties", "yml", "yaml")
     val base = listOf("application", "bootstrap").flatMap { name -> extensions.map { "$name.$it" } }
@@ -337,7 +348,10 @@ internal object ConfigPlaceholders {
     val profiles = base.mapNotNull { it.parent }.distinct().flatMap { dir ->
       dir.children.filter { it.name.startsWith("application-") && it.extension in extensions }.sortedBy { it.name }
     }
-    val files = base + profiles
+    return base + profiles
+  }
+
+  private fun read(files: List<VirtualFile>): Map<String, String> {
     val result = LinkedHashMap<String, String>()
     for (file in files) {
       val text = runCatching { com.intellij.openapi.vfs.VfsUtilCore.loadText(file) }.getOrNull() ?: continue

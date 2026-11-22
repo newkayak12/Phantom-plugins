@@ -30,11 +30,9 @@ private fun declaredAttributes(annotation: UAnnotation): String =
     if (attribute.name == null || attribute.name == "value") text else "${attribute.name} = $text"
   }.joinToString(", ")
 
-private fun nameIdentifierOwner(element: PsiElement): UElement? {
-  if (element.firstChild != null) return null
-  if ((element.parent as? PsiNameIdentifierOwner)?.nameIdentifier != element) return null
-  return getUParentForIdentifier(element)
-}
+/** Whether [element] is the name of a declaration; plain PSI, cheap enough to run on every leaf before anything else. */
+private fun isNameIdentifier(element: PsiElement): Boolean =
+  element.firstChild == null && (element.parent as? PsiNameIdentifierOwner)?.nameIdentifier == element
 
 /**
  * `@Transactional` and `@Async` where they are declared, on a method or a class, with their settings as the tooltip:
@@ -46,12 +44,13 @@ class SpringTransactionalLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getIcon(): Icon = AllIcons.Actions.Commit
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
-    val owner = nameIdentifierOwner(element) as? UAnnotated ?: return null
+    // the project gate before the UAST conversion: outside Spring projects no leaf pays for it
+    if (!isNameIdentifier(element) || !SpringProjectGate.isSpringProject(element.project)) return null
+    val owner = getUParentForIdentifier(element) as? UAnnotated ?: return null
     if (owner !is UMethod && owner !is UClass) return null
     val transactional = SpringProxies.TRANSACTION_ANNOTATIONS.firstNotNullOfOrNull { owner.findAnnotation(it) }
     val async = owner.findAnnotation(SpringProxies.ASYNC)
     if (transactional == null && async == null) return null
-    if (!SpringProjectGate.isSpringProject(element.project)) return null
     val lines = listOfNotNull(
       transactional?.let { PhantomSpringBundle.message("proxy.gutter.transactional", declaredAttributes(it).ifEmpty { PhantomSpringBundle.message("proxy.gutter.defaults") }) },
       async?.let { PhantomSpringBundle.message("proxy.gutter.async", declaredAttributes(it).ifEmpty { PhantomSpringBundle.message("proxy.gutter.default.executor") }) },
@@ -72,11 +71,11 @@ class SpringComponentScanLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getIcon(): Icon = AllIcons.Nodes.Package
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
-    val uClass = nameIdentifierOwner(element) as? UClass ?: return null
+    if (!isNameIdentifier(element) || !SpringProjectGate.isSpringProject(element.project)) return null
+    val uClass = getUParentForIdentifier(element) as? UClass ?: return null
     val scan = uClass.findAnnotation(componentScan)
     val boot = uClass.findAnnotation(bootApplication)
     if (scan == null && boot == null) return null
-    if (!SpringProjectGate.isSpringProject(element.project)) return null
     val psiClass = uClass.javaPsi
     val packages = LinkedHashSet<String>()
     for ((annotation, names, classes) in listOfNotNull(scan?.let { Triple(it, listOf("value", "basePackages"), "basePackageClasses") },
@@ -114,7 +113,14 @@ class SpringComponentScanLineMarkerProvider : LineMarkerProviderDescriptor() {
 object AopAdviceMatching {
   enum class Match { YES, NO, UNKNOWN }
 
-  class Advice(val method: PsiMethod, val kind: String, val expression: String)
+  class Advice(val method: PsiMethod, val kind: String, val expression: String) {
+    /**
+     * The regexes of this advice's `execution`/`within` patterns (named pointcuts included), by kind and pattern text,
+     * compiled on first use: the gutter matches every advice against every bean method, and compiling them per method
+     * was most of its cost. Dropped with the advice list on the next PSI change.
+     */
+    internal val patterns = java.util.concurrent.ConcurrentHashMap<String, java.util.Optional<Regex>>()
+  }
 
   /** Advice methods in project sources, cached until the next PSI change. */
   fun advices(project: Project): List<Advice> = CachedValuesManager.getManager(project).getCachedValue(project) {
@@ -134,9 +140,12 @@ object AopAdviceMatching {
     CachedValueProvider.Result.create(result, PsiModificationTracker.MODIFICATION_COUNT)
   }
 
-  fun matches(advice: Advice, target: PsiMethod): Match = Evaluator(advice.method, target, 0).evaluate(advice.expression)
+  fun matches(advice: Advice, target: PsiMethod): Match = Evaluator(advice, advice.method, target, 0).evaluate(advice.expression)
 
-  private class Evaluator(private val owner: PsiMethod, private val target: PsiMethod, private val depth: Int) {
+  private val EXECUTION_PATTERN = Regex("""^((?:(?:public|protected|private|static|final)\s+)*)(\S+)\s+([^\s(]+)\s*\(([^)]*)\)$""")
+  private val WHITESPACE = Regex("\\s+")
+
+  private class Evaluator(private val advice: Advice, private val owner: PsiMethod, private val target: PsiMethod, private val depth: Int) {
     private var text = ""
     private var i = 0
 
@@ -217,7 +226,7 @@ object AopAdviceMatching {
     private fun designator(word: String, args: String): Match = when (word) {
       "@annotation" -> typeOf(args)?.let { if (target.hasAnnotation(it)) Match.YES else Match.NO } ?: Match.UNKNOWN
       "@within" -> typeOf(args)?.let { fqn -> if (target.containingClass?.hasAnnotation(fqn) == true) Match.YES else Match.NO } ?: Match.UNKNOWN
-      "within" -> typePattern(args)?.let { pattern -> if (target.containingClass?.qualifiedName?.matches(pattern) == true) Match.YES else Match.NO } ?: Match.UNKNOWN
+      "within" -> cachedTypePattern(advice, args)?.let { pattern -> if (target.containingClass?.qualifiedName?.matches(pattern) == true) Match.YES else Match.NO } ?: Match.UNKNOWN
       "this", "target" -> typeOf(args)?.let { fqn -> if (InheritanceUtil.isInheritor(target.containingClass, false, fqn) || target.containingClass?.qualifiedName == fqn) Match.YES else Match.NO } ?: Match.UNKNOWN
       "args" -> if (args == "..") Match.YES else Match.UNKNOWN
       "execution" -> execution(args)
@@ -239,16 +248,14 @@ object AopAdviceMatching {
       val pointcut = AopPointcutInspection.resolvePointcut(ownerClass, reference) as? PsiMethod ?: return Match.UNKNOWN
       val annotation = (pointcut.toUElement() as? UMethod)?.findAnnotation(AopModel.POINTCUT) ?: return Match.UNKNOWN
       val expression = AopModel.expressionOf(annotation)?.evaluateString()?.takeIf { it.isNotBlank() } ?: return Match.UNKNOWN
-      return Evaluator(pointcut, target, depth + 1).evaluate(expression)
+      return Evaluator(advice, pointcut, target, depth + 1).evaluate(expression)
     }
 
-    private val executionPattern = Regex("""^((?:(?:public|protected|private|static|final)\s+)*)(\S+)\s+([^\s(]+)\s*\(([^)]*)\)$""")
-
     private fun execution(args: String): Match {
-      val m = executionPattern.matchEntire(args) ?: return Match.UNKNOWN
+      val m = EXECUTION_PATTERN.matchEntire(args) ?: return Match.UNKNOWN
       val (modifiers, returnType, declaration, parameters) = m.destructured
       val results = ArrayList<Match>()
-      if ("public" in modifiers.split(Regex("\\s+"))) results += if (target.hasModifierProperty(PsiModifier.PUBLIC)) Match.YES else Match.NO
+      if ("public" in modifiers.split(WHITESPACE)) results += if (target.hasModifierProperty(PsiModifier.PUBLIC)) Match.YES else Match.NO
       results += when (returnType) {
         "*" -> Match.YES
         "void" -> if (target.returnType == PsiTypes.voidType()) Match.YES else Match.NO
@@ -262,9 +269,9 @@ object AopAdviceMatching {
         split > 0 && declaration[split - 1] == '.' -> declaration.substring(0, split + 1) + "*"
         else -> declaration.substring(0, split)
       }
-      results += if (glob(methodPattern).matches(target.name)) Match.YES else Match.NO
+      results += if (cachedGlob(advice, methodPattern).matches(target.name)) Match.YES else Match.NO
       if (typeText != null) {
-        val pattern = typePattern(typeText)
+        val pattern = cachedTypePattern(advice, typeText)
         results += if (pattern == null) Match.UNKNOWN
                    else if (target.containingClass?.qualifiedName?.matches(pattern) == true) Match.YES else Match.NO
       }
@@ -289,6 +296,12 @@ object AopAdviceMatching {
     else -> Match.UNKNOWN
   }
 
+  private fun cachedGlob(advice: Advice, pattern: String): Regex =
+    advice.patterns.getOrPut("glob:$pattern") { java.util.Optional.of(glob(pattern)) }.get()
+
+  private fun cachedTypePattern(advice: Advice, pattern: String): Regex? =
+    advice.patterns.getOrPut("type:$pattern") { java.util.Optional.ofNullable(typePattern(pattern)) }.orElse(null)
+
   private fun glob(pattern: String): Regex = Regex(pattern.split('*').joinToString("[\\w$]*") { Regex.escape(it) })
 
   /** An AspectJ type pattern as a regex over qualified names: `*` is one name part, `..` any number of packages. */
@@ -310,9 +323,9 @@ class AopAdvisedMethodLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getIcon(): Icon = AllIcons.Nodes.Aspect
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
-    val uMethod = nameIdentifierOwner(element) as? UMethod ?: return null
+    if (!isNameIdentifier(element) || !AopModel.isAopProject(element.project)) return null
+    val uMethod = getUParentForIdentifier(element) as? UMethod ?: return null
     if (uMethod.isConstructor) return null
-    if (!AopModel.isAopProject(element.project)) return null
     val advices = AopAdviceMatching.advices(element.project).ifEmpty { return null }
     val method = uMethod.javaPsi
     // Spring AOP proxies public and protected methods of beans; aspects themselves are not advised
