@@ -7,23 +7,35 @@ import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
 import com.intellij.codeInsight.navigation.NavigationGutterIconBuilder
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.module.ModuleUtilCore
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.DumbService
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.NotNullLazyValue
 import com.intellij.psi.*
+import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.search.searches.ClassInheritorsSearch
+import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.InheritanceUtil
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.xml.util.XmlStringUtil
+import org.jetbrains.annotations.TestOnly
 import org.jetbrains.uast.UClass
 import org.jetbrains.uast.UField
 import org.jetbrains.uast.UMethod
 import org.jetbrains.uast.UParameter
 import org.jetbrains.uast.getUParentForIdentifier
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.Icon
 
 /** The JPQL a Spring Data derived query method stands for, written out for a tooltip. */
 object DerivedJpql {
+  private val ALL_IGNORE_CASE = Regex("All(IgnoreCase|IgnoringCase)(OrderBy|$)")
+  private val IGNORE_CASE = Regex("(IgnoreCase|IgnoringCase)$")
+  private val LIMIT = Regex("(First|Top)(\\d*)")
+
   /** `select u from User u where u.lastname = ?1 order by u.age desc`; null when a part has no JPQL form or does not resolve. */
   fun of(entity: PsiClass, methodName: String): String? {
     val parsed = DerivedQuery.parse(methodName) ?: return null
@@ -38,7 +50,7 @@ object DerivedJpql {
       "delete", "remove" -> "delete from $entityName $alias"
       else -> "select ${if (distinct) "distinct " else ""}$alias from $entityName $alias"
     }
-    val allIgnoreCase = Regex("All(IgnoreCase|IgnoringCase)(OrderBy|$)").containsMatchIn(methodName)
+    val allIgnoreCase = ALL_IGNORE_CASE.containsMatchIn(methodName)
     val where = StringBuilder()
     var parameter = 1
     for ((i, part) in parsed.parts.withIndex()) {
@@ -49,7 +61,7 @@ object DerivedJpql {
       }
       val members = DerivedQuery.resolvePath(entity, part.propertySource) ?: return null
       val path = pathOf(alias, members) ?: return null
-      val ignoreCase = allIgnoreCase || Regex("(IgnoreCase|IgnoringCase)$").containsMatchIn(part.source)
+      val ignoreCase = allIgnoreCase || IGNORE_CASE.containsMatchIn(part.source)
       where.append(condition(path, part.operator, parameter, ignoreCase) ?: return null)
       parameter += part.arguments
     }
@@ -57,7 +69,7 @@ object DerivedJpql {
       val members = DerivedQuery.resolvePath(entity, part.propertySource) ?: return null
       (pathOf(alias, members) ?: return null) + if (part.operator == "Desc") " desc" else " asc"
     }
-    val limit = Regex("(First|Top)(\\d*)").find(subject)?.let { m -> " (first ${m.groupValues[2].ifEmpty { "1" }})" }.orEmpty()
+    val limit = LIMIT.find(subject)?.let { m -> " (first ${m.groupValues[2].ifEmpty { "1" }})" }.orEmpty()
     return buildString {
       append(head)
       if (where.isNotEmpty()) append(" where ").append(where)
@@ -172,14 +184,25 @@ class EntityGraphLineMarkerProvider : LineMarkerProviderDescriptor() {
 
 /**
  * On an entity attribute: the repository methods that query it, by derived name or in `@Query` JPQL (`alias.attribute`).
- * Computed per entity on first need and kept until the next PSI change.
+ * The repositories are scanned once per change of Java, Kotlin or Groovy code and shared by all entities; each entity's
+ * usages are then resolved from that scan on first need. Collected in the slow pass, so the scan never holds up the
+ * first highlighting of the file.
  */
 class EntityAttributeUsagesLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getName(): String = PhantomJpaBundle.message("gutter.attribute.name")
 
   override fun getIcon(): Icon = AllIcons.Gutter.ImplementingMethod
 
-  override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+  override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? = null
+
+  override fun collectSlowLineMarkers(elements: MutableList<out PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
+    for (element in elements) {
+      ProgressManager.checkCanceled()
+      marker(element)?.let(result::add)
+    }
+  }
+
+  private fun marker(element: PsiElement): LineMarkerInfo<*>? {
     if (element.firstChild != null) return null
     val owner = element.parent as? PsiNameIdentifierOwner ?: return null
     if (owner.nameIdentifier != element) return null
@@ -202,35 +225,81 @@ class EntityAttributeUsagesLineMarkerProvider : LineMarkerProviderDescriptor() {
       .createLineMarkerInfo(element)
   }
 
+  /** A repository interface with its entity, and its methods that can query attributes. */
+  private class ScannedRepository(val entity: PsiClass, val methods: List<ScannedMethod>)
+
+  /** A derived query method with its property paths ([derived]), or a JPQL `@Query` method with its text ([jpql]). */
+  private class ScannedMethod(val method: PsiMethod, val derived: List<String>?, val jpql: String?)
+
   companion object {
     private val QUERY = listOf("org.springframework.data.jpa.repository.Query", "org.springframework.data.jpa.repository.NativeQuery")
+    private val REPOSITORIES = Key.create<CachedValue<Map<String, List<ScannedRepository>>>>("phantom.jpa.repositoriesByEntity")
+    private val KEYWORDS = setOf("where", "join", "left", "inner", "order", "group", "on", "fetch", "having")
+    // Built from entity names and aliases, which repeat across queries and scans: compiled once per name.
+    private val ALIAS_PATTERNS = ConcurrentHashMap<String, Regex>()
+    private val ATTRIBUTE_PATTERNS = ConcurrentHashMap<String, Regex>()
+
+    @TestOnly
+    val repositoryScans: AtomicInteger = AtomicInteger()
 
     /** Attribute name of [entity] → repository methods that query it. */
     fun usages(entity: PsiClass): Map<String, List<PsiMethod>> = CachedValuesManager.getCachedValue(entity) {
-      CachedValueProvider.Result.create(compute(entity), PsiModificationTracker.MODIFICATION_COUNT)
+      CachedValueProvider.Result.create(compute(entity), *JpaCacheDeps.code(entity.project))
+    }
+
+    /**
+     * Repository interfaces in the project by the qualified name of their entity, with their methods already split:
+     * one inheritor search for all entities instead of one per entity.
+     */
+    private fun repositoriesByEntity(project: Project): Map<String, List<ScannedRepository>> =
+      CachedValuesManager.getManager(project).getCachedValue(project, REPOSITORIES, {
+        CachedValueProvider.Result.create(scan(project), *JpaCacheDeps.code(project))
+      }, false)
+
+    private fun scan(project: Project): Map<String, List<ScannedRepository>> {
+      repositoryScans.incrementAndGet()
+      val base = JavaPsiFacade.getInstance(project).findClass(DerivedQuery.REPOSITORY, GlobalSearchScope.allScope(project)) ?: return emptyMap()
+      val result = LinkedHashMap<String, MutableList<ScannedRepository>>()
+      for (repository in ClassInheritorsSearch.search(base, GlobalSearchScope.projectScope(project), true).findAll().sortedBy { it.name }) {
+        ProgressManager.checkCanceled()
+        if (!repository.isInterface) continue
+        val entity = DerivedQuery.entityOf(repository) ?: continue
+        val key = entity.qualifiedName ?: entity.name ?: continue
+        val methods = repository.methods.mapNotNull { method ->
+          if (DerivedQuery.isDerivedQueryMethod(method)) {
+            val parsed = DerivedQuery.parse(method.name)
+            return@mapNotNull ScannedMethod(method, parsed?.let { (it.parts + it.orderBy).map { part -> part.propertySource } }.orEmpty(), null)
+          }
+          val query = QUERY.firstNotNullOfOrNull { method.getAnnotation(it) } ?: return@mapNotNull null
+          if (AnnotationUtil.getBooleanAttributeValue(query, "nativeQuery") == true) return@mapNotNull null
+          val text = AnnotationUtil.getStringAttributeValue(query, "value") ?: return@mapNotNull null
+          ScannedMethod(method, null, text)
+        }
+        result.getOrPut(key) { ArrayList() }.add(ScannedRepository(entity, methods))
+      }
+      return result
     }
 
     private fun compute(entity: PsiClass): Map<String, List<PsiMethod>> {
       val result = LinkedHashMap<String, MutableSet<PsiMethod>>()
       val entityName = JpaModel.entityName(entity) ?: entity.name ?: return emptyMap()
-      for (repository in JpaRepositoryLineMarkerProvider.repositoriesOf(entity)) {
-        for (method in repository.methods) {
-          if (DerivedQuery.isDerivedQueryMethod(method)) {
-            val parsed = DerivedQuery.parse(method.name) ?: continue
-            for (part in parsed.parts + parsed.orderBy) {
-              val head = DerivedQuery.resolvePath(entity, part.propertySource)?.firstOrNull()?.name ?: continue
+      val key = entity.qualifiedName ?: entity.name ?: return emptyMap()
+      for (repository in repositoriesByEntity(entity.project)[key].orEmpty()) {
+        if (!repository.entity.isEquivalentTo(entity)) continue
+        for (scanned in repository.methods) {
+          val method = scanned.method
+          if (scanned.derived != null) {
+            for (source in scanned.derived) {
+              val head = DerivedQuery.resolvePath(entity, source)?.firstOrNull()?.name ?: continue
               result.getOrPut(head) { LinkedHashSet() }.add(method)
             }
             continue
           }
-          val query = QUERY.firstNotNullOfOrNull { method.getAnnotation(it) } ?: continue
-          if (AnnotationUtil.getBooleanAttributeValue(query, "nativeQuery") == true) continue
-          val text = AnnotationUtil.getStringAttributeValue(query, "value") ?: continue
+          val text = scanned.jpql ?: continue
           // `from User u` / `join u.orders o`: only aliases of this entity count
-          val aliases = Regex("(?i)\\b(?:from|join)\\s+(?:\\w+\\.)*${Regex.escape(entityName)}\\s+(?:as\\s+)?(\\w+)").findAll(text)
-            .map { it.groupValues[1] }.filter { it.lowercase() !in KEYWORDS }.toSet()
+          val aliases = aliasPattern(entityName).findAll(text).map { it.groupValues[1] }.filter { it.lowercase() !in KEYWORDS }.toSet()
           for (alias in aliases) {
-            for (m in Regex("(?<![\\w.])${Regex.escape(alias)}\\.(\\w+)").findAll(text)) {
+            for (m in attributePattern(alias).findAll(text)) {
               val attribute = m.groupValues[1]
               if (JpaModel.attribute(entity, attribute) != null) result.getOrPut(attribute) { LinkedHashSet() }.add(method)
             }
@@ -240,6 +309,12 @@ class EntityAttributeUsagesLineMarkerProvider : LineMarkerProviderDescriptor() {
       return result.mapValues { it.value.sortedBy { m -> m.name } }
     }
 
-    private val KEYWORDS = setOf("where", "join", "left", "inner", "order", "group", "on", "fetch", "having")
+    private fun aliasPattern(entityName: String): Regex = ALIAS_PATTERNS.computeIfAbsent(entityName) {
+      Regex("(?i)\\b(?:from|join)\\s+(?:\\w+\\.)*${Regex.escape(it)}\\s+(?:as\\s+)?(\\w+)")
+    }
+
+    private fun attributePattern(alias: String): Regex = ATTRIBUTE_PATTERNS.computeIfAbsent(alias) {
+      Regex("(?<![\\w.])${Regex.escape(it)}\\.(\\w+)")
+    }
   }
 }
