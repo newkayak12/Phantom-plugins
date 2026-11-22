@@ -89,6 +89,8 @@ class DbDataSource {
   var url: String = ""
   var user: String = ""
   var readOnly: Boolean = false
+  /** Statements run on it go into Query History (kept in the project's workspace file); off, they are not kept. */
+  var queryHistory: Boolean = true
   /** Changes stay in an open transaction until committed from the Database Changes tool window. */
   var manualCommit: Boolean = false
   /** All consoles share one connection (the default); off, each console gets its own, as in DataGrip. Manual commit always shares. */
@@ -139,7 +141,7 @@ class DbDataSource {
   var global: Boolean = false
 
   fun copy(): DbDataSource = DbDataSource().also {
-    it.id = id; it.name = name; it.dbms = dbms; it.url = url; it.user = user; it.readOnly = readOnly; it.manualCommit = manualCommit; it.singleSession = singleSession; it.schemas = schemas; it.introspection = introspection
+    it.id = id; it.name = name; it.dbms = dbms; it.url = url; it.user = user; it.readOnly = readOnly; it.queryHistory = queryHistory; it.manualCommit = manualCommit; it.singleSession = singleSession; it.schemas = schemas; it.introspection = introspection
     it.driverJars = ArrayList(driverJars); it.maxRows = maxRows; it.queryTimeoutSeconds = queryTimeoutSeconds
     it.driverId = driverId; it.properties = LinkedHashMap(properties); it.authKind = authKind
     it.awsProfile = awsProfile; it.awsRegion = awsRegion; it.color = color

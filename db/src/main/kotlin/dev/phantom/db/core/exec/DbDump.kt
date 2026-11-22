@@ -20,7 +20,10 @@ import com.intellij.execution.configurations.PathEnvironmentVariableUtil
 import dev.phantom.db.core.*
 import dev.phantom.db.core.ui.DbPasswordPrompt
 import java.io.File
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 
 /**
  * Dump to File… and Restore from File… of the Database tree, with the database's own client tools: `mysqldump` / `mysql`
@@ -133,6 +136,36 @@ object DbDump {
     }
   }
 
+  /** Where a restore runs, for its confirmation: host, port and the database the tool connects to (the URL's, or MySQL's schema). */
+  fun restoreTarget(ds: DbDataSource, schema: String?): String {
+    val end = endpoint(ds.url) ?: return ds.name
+    val database = if (isMysql(ds)) schema ?: end.database else end.database
+    return end.host + (end.port?.let { ":$it" } ?: "") + "/" + (database ?: PhantomDbBundle.message("db.restore.no.database"))
+  }
+
+  /** A MySQL or MariaDB dump with no database (none in the URL, no schema node): `--all-databases`, asked for first. */
+  fun dumpsAllDatabases(ds: DbDataSource, schema: String?): Boolean = isMysql(ds) && (schema ?: endpoint(ds.url)?.database) == null
+
+  /** The file a dump writes first, next to [file]; it replaces [file] only when the tool succeeded. */
+  fun partFile(file: File): File = File(file.absoluteFile.parentFile, ".${file.name}.part")
+
+  /**
+   * After the dump into [part]: on [success] it replaces [file], otherwise it is deleted and [file] (an earlier dump the
+   * user chose to overwrite) is left as it was.
+   */
+  fun finishDump(part: File, file: File, success: Boolean) {
+    if (!success) {
+      part.delete()
+      return
+    }
+    try {
+      Files.move(part.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+    }
+    catch (_: AtomicMoveNotSupportedException) {
+      Files.move(part.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
+    }
+  }
+
   private fun tool(ds: DbDataSource, restore: Boolean): Tool = when {
     isMysql(ds) -> if (restore) Tool.MYSQL else Tool.MYSQLDUMP
     else -> if (restore) Tool.PSQL else Tool.PG_DUMP
@@ -159,6 +192,12 @@ object DbDump {
       }
       return
     }
+    if (!restore && dumpsAllDatabases(ds, schema)) {
+      val server = restoreTarget(ds, schema).substringBeforeLast('/')
+      val answer = Messages.showYesNoDialog(project, PhantomDbBundle.message("db.dump.all.confirm", server),
+                                            PhantomDbBundle.message("db.dump.all.title"), Messages.getWarningIcon())
+      if (answer != Messages.YES) return
+    }
     val file: File = if (restore) {
       val descriptor = FileChooserDescriptorFactory.createSingleFileDescriptor("sql")
         .withTitle(PhantomDbBundle.message("db.restore.choose.title"))
@@ -170,8 +209,8 @@ object DbDump {
       FileChooserFactory.getInstance().createSaveFileDialog(descriptor, project).save(null as com.intellij.openapi.vfs.VirtualFile?, name)?.file ?: return
     }
     if (restore) {
-      val target = schema ?: endpoint(ds.url)?.database ?: ds.name
-      val answer = Messages.showYesNoDialog(project, PhantomDbBundle.message("db.restore.confirm", file.name, target),
+      // the file runs as a whole: a selected schema is not a limit (psql gets none, MySQL only a default database)
+      val answer = Messages.showYesNoDialog(project, PhantomDbBundle.message("db.restore.confirm", file.name, restoreTarget(ds, schema)),
                                             PhantomDbBundle.message("db.restore.confirm.title"), Messages.getWarningIcon())
       if (answer != Messages.YES) return
     }
@@ -203,8 +242,10 @@ object DbDump {
         password = typed.password.takeIf { it.isNotEmpty() }
       }
     }
+    // a dump goes to a part file first, so a failed or cancelled one never leaves a broken file in place of a good one
+    val part = partFile(file)
     val cmd = try {
-      if (restore) restoreCommand(ds, schema, file.toPath(), exe, password) else dumpCommand(ds, schema, file.toPath(), exe, password)
+      if (restore) restoreCommand(ds, schema, file.toPath(), exe, password) else dumpCommand(ds, schema, part.toPath(), exe, password)
     }
     catch (e: DbException) {
       notify(project, NotificationType.ERROR, e.message ?: "")
@@ -214,8 +255,18 @@ object DbDump {
       CapturingProcessHandler(cmd).runProcessWithProgressIndicator(indicator)
     }
     catch (e: Exception) {
+      if (!restore) finishDump(part, file, false)
       notify(project, NotificationType.ERROR, PhantomDbBundle.message("db.dump.failed.start", e.message ?: e.javaClass.simpleName))
       return
+    }
+    if (!restore) {
+      try {
+        finishDump(part, file, !output.isCancelled && output.exitCode == 0)
+      }
+      catch (e: java.io.IOException) {
+        notify(project, NotificationType.ERROR, PhantomDbBundle.message("db.dump.failed.start", e.message ?: e.javaClass.simpleName))
+        return
+      }
     }
     when {
       output.isCancelled -> notify(project, NotificationType.WARNING, PhantomDbBundle.message("db.dump.cancelled"))

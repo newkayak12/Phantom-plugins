@@ -117,6 +117,28 @@ class DbDriverFilesTest : BasePlatformTestCase() {
     assertTrue(filesUnder(target).none { it.name.endsWith(".jar") || it.name.endsWith(".part") })
   }
 
+  fun testJarWithoutChecksumIsNotInstalled() = withTempDir { target ->
+    val error = runCatching { DbDriverDownloader.download(definition("nosum", "t:nosum:1.0"), EmptyProgressIndicator(), resolver(), target) }
+      .exceptionOrNull()
+    assertTrue(error.toString(), error?.message.orEmpty().contains("no SHA-1 checksum"))
+    assertTrue(filesUnder(target).none { it.name.endsWith(".jar") || it.name.endsWith(".part") })
+  }
+
+  fun testChangedCachedJarIsDownloadedAgain() = withTempDir { target ->
+    DbDriverDownloader.download(definition("fake-a", "t:a"), EmptyProgressIndicator(), resolver(), target)
+    val jar = filesUnder(target).first { it.name == "a-1.0.jar" }
+    val original = Files.readAllBytes(jar)
+    Files.write(jar, byteArrayOf(1, 2, 3))
+    val fetched = ArrayList<String>()
+    DbDriverDownloader.download(definition("fake-a", "t:a"), EmptyProgressIndicator(), resolver { fetched += it }, target)
+    assertTrue(fetched.toString(), fetched.any { it.endsWith("a-1.0.jar") })
+    assertTrue(original.contentEquals(Files.readAllBytes(jar)))
+    // unchanged: reused without fetching the jar again
+    fetched.clear()
+    DbDriverDownloader.download(definition("fake-a", "t:a"), EmptyProgressIndicator(), resolver { fetched += it }, target)
+    assertTrue(fetched.toString(), fetched.none { it.endsWith("a-1.0.jar") })
+  }
+
   fun testCancelLeavesNoPartFile() = withTempDir { target ->
     val indicator = EmptyProgressIndicator()
     val r = resolver { url -> if (url.endsWith(".jar")) indicator.cancel() }
