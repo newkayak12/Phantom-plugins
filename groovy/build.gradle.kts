@@ -224,7 +224,7 @@ tasks.test {
     excludeTestsMatching("org.jetbrains.plugins.groovy.compiler.*.testExtendGroovyClassesWithAdditionalDependencies")
     excludeTestsMatching("org.jetbrains.plugins.groovy.dsl.DsldTest.testMeta")
   }
-  // The mock JDKs 1.7 and 1.8 the light test projects use, in testData/ideaHome (see PhantomTestExecutionPolicy)
+  // The mock JDKs 1.7 and 1.8 the light test projects use (see PhantomTestExecutionPolicy and MockJdks.kt)
   systemProperty("idea.test.execution.policy", "org.jetbrains.plugins.groovy.util.PhantomTestExecutionPolicy")
   // The tests read testData through the VFS, outside the roots a fresh checkout allows
   systemProperty("NO_FS_ROOTS_ACCESS_CHECK", "true")
@@ -238,3 +238,6 @@ tasks.prepareTestSandbox {
 
 // GreclipseBuilder runs in the JPS build process with the user's groovy-eclipse batch compiler (org.eclipse.jdt)
 intellijPlatform.pluginVerification.externalPrefixes.add("org.eclipse.jdt")
+
+// IntelliJ's mock JDKs for the light Java test projects (see MockJdks.kt)
+useMockJdks()

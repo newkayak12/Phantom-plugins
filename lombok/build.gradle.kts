@@ -19,3 +19,6 @@ dependencies {
 tasks.prepareTestSandbox {
   disabledPlugins.add("Lombook Plugin")
 }
+
+// IntelliJ's mock JDKs for the light Java test projects (see MockJdks.kt)
+useMockJdks()

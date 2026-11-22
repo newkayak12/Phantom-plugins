@@ -8,8 +8,8 @@ import java.io.File;
 /**
  * Phantom-plugins: the test framework takes the mock JDKs 1.7 and 1.8 (IdeaTestUtil.getMockJdk17/18, the default SDK of
  * light test projects) from java/ under the IntelliJ monorepo's community root, which it finds through the test home
- * (PlatformTestUtil.getCommunityPath). The tests run against an installed IDE, so the home they see is testData/ideaHome,
- * where copies of community/java/mockJDK-1.7 and mockJDK-1.8 sit. Set by build.gradle.kts (idea.test.execution.policy).
+ * (PlatformTestUtil.getCommunityPath). The tests run against an installed IDE, so the home they see is the one Gradle
+ * downloads the mock JDKs into (MockJdks.kt, phantom.mockjdk.home). Set by build.gradle.kts (idea.test.execution.policy).
  */
 public final class PhantomTestExecutionPolicy extends IdeaTestExecutionPolicy {
   @Override
@@ -19,7 +19,7 @@ public final class PhantomTestExecutionPolicy extends IdeaTestExecutionPolicy {
 
   @Override
   public String getHomePath() {
-    return new File("testData/ideaHome").getAbsolutePath();
+    return new File(System.getProperty("phantom.mockjdk.home")).getAbsolutePath();
   }
 
   // The fixtures call this only with a policy set, sometimes without a file (GroovyCopyClassTest); nothing to do here

@@ -84,3 +84,6 @@ tasks.test {
 tasks.prepareTestSandbox {
   disabledPlugins.add("TestNG-J")
 }
+
+// IntelliJ's mock JDKs for the light Java test projects (see MockJdks.kt)
+useMockJdks()

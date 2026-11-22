@@ -36,3 +36,6 @@ tasks.test {
 tasks.prepareTestSandbox {
   disabledPlugins.add("org.jetbrains.java.decompiler")
 }
+
+// IntelliJ's mock JDKs for the light Java test projects (see MockJdks.kt)
+useMockJdks()
