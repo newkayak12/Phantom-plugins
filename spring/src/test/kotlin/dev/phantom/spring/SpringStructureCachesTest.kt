@@ -5,6 +5,7 @@ import com.intellij.openapi.application.WriteAction
 import com.intellij.psi.*
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
+import dev.phantom.spring.core.SpringBeanCatalog
 import dev.phantom.spring.core.SpringStructureTracker
 import dev.phantom.spring.core.ide.SpringBeanNames
 
@@ -71,6 +72,12 @@ class SpringStructureCachesTest : LightJavaCodeInsightFixtureTestCase() {
     caches.assertRecomputed(plain, "public class Plain", "@org.springframework.stereotype.Component public class Plain")
     caches.assertRecomputed(config, "repoBean()", "repoBean2()")
     assertNotNull(SpringBeanNames.byName(project)["repoBean2"])
+    assertTrue(SpringBeanCatalog.hasUnsearchableNames(project))
+    caches.assertRecomputed(config, "@Bean(NAME)", "@Bean(\"literal\")")
+    assertFalse(SpringBeanCatalog.hasUnsearchableNames(project))
+    caches.assertKept(impl, "int a = 2;", "int a = 3;")
+    caches.assertRecomputed(config, "@Bean(\"literal\")", "@Bean(NAME)")
+    assertTrue(SpringBeanCatalog.hasUnsearchableNames(project))
     caches.assertRecomputed(plain, "public class Plain", "public class Plain implements Repo")
     caches.assertRecomputed(config, "@Bean Repo repoBean2()", "Repo repoBean2()")
 

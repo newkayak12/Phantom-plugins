@@ -8,7 +8,6 @@ import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.*
 import com.intellij.psi.search.GlobalSearchScope
@@ -21,6 +20,8 @@ import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.PsiUtilCore
+import java.util.concurrent.atomic.AtomicInteger
+import org.jetbrains.annotations.TestOnly
 import org.jetbrains.uast.UAnnotation
 import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UClass
@@ -166,14 +167,19 @@ object SpringBeanCatalog {
   /**
    * Whether some bean name cannot be found by its words: a stereotype or `@Bean` given a name that is not a plain
    * string literal, a stereotype whose `value` has a default, or a Kotlin type alias of a stereotype. Annotation
-   * files are found by the annotation's name in code (an import alias still imports the real name).
+   * files are found by the annotation's name in code (an import alias still imports the real name). Only class and
+   * method annotations and type aliases matter, so typing in a body keeps the result: the scan reads every annotated
+   * file, and their per-file results go when the garbage collector drops the PSI of files not open in an editor.
    */
-  private fun hasUnsearchableNames(project: Project): Boolean = CachedValuesManager.getManager(project).getCachedValue(project) {
-    CachedValueProvider.Result.create(findUnsearchableNames(project), SpringCacheDeps.jvm(project), ProjectRootManager.getInstance(project),
-                                      com.intellij.openapi.vfs.VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS)
+  internal fun hasUnsearchableNames(project: Project): Boolean = CachedValuesManager.getManager(project).getCachedValue(project) {
+    CachedValueProvider.Result.create(findUnsearchableNames(project), *SpringStructureTracker.deps(project))
   }
 
-  private fun findUnsearchableNames(project: Project): Boolean {
+  @TestOnly
+  val unsearchableNameScans: AtomicInteger = AtomicInteger()
+
+  internal fun findUnsearchableNames(project: Project): Boolean {
+    unsearchableNameScans.incrementAndGet()
     val component = JavaPsiFacade.getInstance(project).findClass(SpringNames.COMPONENT, GlobalSearchScope.allScope(project)) ?: return false
     val stereotypes = (listOf(component) + ModuleManager.getInstance(project).modules.flatMap {
       MetaAnnotationUtil.getAnnotationTypesWithChildren(it, SpringNames.COMPONENT, false)
