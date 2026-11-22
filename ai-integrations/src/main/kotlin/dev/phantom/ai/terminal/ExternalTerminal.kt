@@ -132,12 +132,9 @@ class OsTerminalBackend : TerminalBackend {
   override fun isAvailable() = SystemInfo.isMac || (SystemInfo.isLinux && linuxTerminal() != null)
   override fun starter(project: Project): TerminalStarter = ExternalTerminalStarter(displayName, TerminalOpener { script ->
     if (SystemInfo.isMac) {
-      ExternalTerminalStarter.osascript(
-        "tell application \"Terminal\"",
-        "activate",
-        "do script " + ExternalTerminalStarter.appleString(script.toString()),
-        "end tell",
-      )
+      // Launch Services runs the script in a new Terminal window: no Apple event, so no Automation permission to ask for
+      ProcessBuilder("open", "-a", "Terminal", script.toString()).redirectErrorStream(true)
+        .redirectOutput(ProcessBuilder.Redirect.DISCARD).start().outputStream.close()
     }
     else {
       val terminal = linuxTerminal() ?: error("no terminal found")
