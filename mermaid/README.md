@@ -1,4 +1,4 @@
-# Mermaid Support
+# Phantom for Mermaid
 
 `com.phantom.mermaid` · [한국어](./KOR.md)
 
@@ -42,6 +42,8 @@ Awesome Free and others) with their licenses.
 The upstream tests (421, minus `OfficialExamplesParsingTest`, which needs the extracted documentation examples) and
 `PreviewRenderingTest`, which counts the diagrams the two previews draw. The preview tests use JCEF and are skipped
 where `CI` is set.
+
+**0.1.4**: renamed from Mermaid Support to Phantom for Mermaid, so the name starts with Phantom and names the project it supports.
 
 **0.1.3**: the plugin carries `mermaid.js.LICENSE.txt`, the licenses of the npm packages bundled in mermaid.js, which
 the bundle's first line points to.

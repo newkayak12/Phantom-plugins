@@ -1,5 +1,4 @@
-# Ktor Support
-
+# Phantom for Ktor
 `dev.phantom.ktor` · [한국어](./KOR.md)
 
 Ktor server support.

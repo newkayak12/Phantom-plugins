@@ -1,5 +1,4 @@
-# MyBatis Support
-
+# Phantom for MyBatis
 `dev.phantom.mybatis` · [한국어](./KOR.md)
 
 MyBatis mapper support for Java, covering what MyBatisX does day to day.

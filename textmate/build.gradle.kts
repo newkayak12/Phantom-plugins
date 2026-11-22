@@ -5,7 +5,7 @@ plugins {
   id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-version = "0.1.3"
+version = "0.1.4"
 
 // The IntelliJ sources keep Java next to Kotlin
 sourceSets {

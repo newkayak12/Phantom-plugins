@@ -1,5 +1,4 @@
-# Spring Support
-
+# Phantom for Spring
 `dev.phantom.spring` · [English](./README.md)
 
 Java와 Kotlin 프로젝트를 위한 Spring 지원입니다.
@@ -21,7 +20,9 @@ Java와 Kotlin 프로젝트를 위한 Spring 지원입니다.
 
 - **Spring Beans** 툴 윈도우: 프로젝트의 모든 빈을 모듈과 종류(컨트롤러, 서비스, 리포지터리, 컴포넌트, 설정 클래스와 그 `@Bean` 메서드)별로 보여 줍니다. 빈을 펼치면 주입받는 빈과 각 주입 지점을 채우는 빈, 그리고 이 빈을 주입받는 곳이 나옵니다. 두 번 클릭하면 소스로 이동합니다. 창을 열 때나 Refresh를 누를 때만 계산합니다.
 
-아직 없는 것: WebFlux 함수형 라우트, Spring Security 필터 체인 보기. Spring Data 리포지토리는 [JPA Support](../jpa/KOR.md)에 있습니다.
+아직 없는 것: WebFlux 함수형 라우트, Spring Security 필터 체인 보기. Spring Data 리포지토리는 [Phantom for JPA](../jpa/KOR.md)에 있습니다.
+
+**0.9.6**: 이름을 바꿨습니다: Spring Support → Phantom for Spring. Phantom으로 시작하고 지원하는 프로젝트 이름을 뒤에 둡니다. 플러그인 id와 기능은 그대로입니다.
 
 **0.9.5**: 큰 프로젝트에서 입력하는 동안 수백 밀리초씩 멈추던 문제를 고쳤습니다. 0.9.3에서 생긴 문제입니다. 모든 빈 이름이
 평범한 문자열인지 보는 검사가 편집할 때마다 애너테이션이 붙은 파일을 전부 다시 읽었는데, 이제 클래스, 애너테이션, 타입 별칭이

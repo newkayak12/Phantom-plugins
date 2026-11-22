@@ -1,5 +1,4 @@
-# QueryDSL Support
-
+# Phantom for QueryDSL
 `dev.phantom.querydsl` · [English](./README.md)
 
 QueryDSL이 생성한 Q클래스에서 원래 엔티티로 이어 줍니다.

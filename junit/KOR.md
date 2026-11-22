@@ -1,5 +1,4 @@
-# JUnit Support
-
+# Phantom for JUnit
 `dev.phantom.junit` · [English](./README.md)
 
 Java용 JUnit 3, 4, 5, 6: 클래스, 메서드, 패키지, 디렉터리, 패턴, 태그, 카테고리, unique id 단위 실행 구성(거터나 컨텍스트에서

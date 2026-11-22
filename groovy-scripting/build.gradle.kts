@@ -2,7 +2,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.1"
+version = "0.1.2"
 
 // No sources: plugin.xml and the descriptors of its three library modules. The libraries are the versions the IntelliJ
 // plugin ships (libraries/groovy, libraries/groovy/jsr223 and libraries/ivy in IntelliJ, without transitive dependencies

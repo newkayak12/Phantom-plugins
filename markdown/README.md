@@ -1,5 +1,4 @@
-# Markdown Support
-
+# Phantom for Markdown
 `dev.phantom.markdown` · [한국어](./KOR.md)
 
 Markdown files: highlighting, completion, navigation, inspections, table and list editing, image drag and drop, language injection in code fences, front matter, and the JCEF preview. Shell Script, Kotlin and others build on its `intellij.markdown` module.

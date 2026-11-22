@@ -1,5 +1,4 @@
-# Spring Boot Support
-
+# Phantom for Spring Boot
 `dev.phantom.spring.boot` · [한국어](./KOR.md)
 
 Spring Boot support: new projects from Spring Initializr, and configuration support for `application*.yml` and `application*.properties`.

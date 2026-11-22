@@ -3,7 +3,7 @@
        configurations, Code Coverage) resolve to this one. The content module name stays the IntelliJ one. The bundled
        IntelliJ TestNG plugin has to be gone, or both claim the same id and module. -->
   <id>dev.phantom.testng</id>
-  <name>TestNG Support</name>
+  <name>Phantom for TestNG</name>
   <module value="TestNG-J"/>
   <description><![CDATA[
     Supports <a href="https://testng.org/">TestNG</a>, a Java unit testing framework: TestNG run configurations and

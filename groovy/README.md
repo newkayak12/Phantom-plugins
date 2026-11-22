@@ -1,5 +1,4 @@
-# Groovy Support
-
+# Phantom for Groovy
 `dev.phantom.groovy` · [한국어](./KOR.md)
 
 Groovy: highlighting, completion, inspections and quick fixes, intentions, refactorings, quick documentation, formatting,
@@ -13,6 +12,8 @@ stays as an alias and the content module names stay the IntelliJ ones, so plugin
 Groovy Live Templates and others) keep working. The plugin folder keeps IntelliJ's layout (`lib/groovy-jps.jar`,
 `groovy-rt.jar`, `standardDsls/`, `agent/gragent.jar`, `modules/` and the rest). Phantom bundles this build instead of the
 IntelliJ plugin.
+
+**0.1.3**: renamed from Groovy Support to Phantom for Groovy, so the name starts with Phantom and names the project it supports. The plugin id and features are unchanged.
 
 **0.1.2**: the plugin jar carries the notice of ASM, which the bundled HotSwap agent (`lib/agent/gragent.jar`) contains
 (`META-INF/NOTICE-groovy`). The Sun JDK 5 copy in the test data, whose sources are marked "SUN PROPRIETARY/CONFIDENTIAL", is removed: the tests run

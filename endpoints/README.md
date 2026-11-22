@@ -3,7 +3,7 @@
 `dev.phantom.endpoints` · [한국어](./KOR.md)
 
 The Endpoints tool window: every HTTP endpoint that installed plugins report through `com.intellij.microservices.endpointsProvider`
-(Spring Support, Ktor Support, …), grouped by module, with a filter by method, path or handler.
+(Phantom for Spring, Phantom for Ktor, …), grouped by module, with a filter by method, path or handler.
 
 - Enter or double-click opens the handler; the context menu has Go to Handler and Copy URL.
 - Generate HTTP Request appends a request for the endpoint to the scratch file `generated-requests.http` and opens it there.
