@@ -12,7 +12,7 @@ class GitRepoCommunicator(private val repository: GitSettingsRepository) : Abstr
     get() = repository.url
 
   override fun handleRemoteError(e: Throwable): String =
-    PhantomSyncBundle.message("error.remote", repository.url, e.message ?: e.javaClass.simpleName)
+    PhantomSyncBundle.message("error.remote", GitSettingsRepository.maskCredentials(repository.url), e.message ?: e.javaClass.simpleName)
 
   override fun readFileInternal(filePath: String): Pair<InputStream?, String?> {
     val (content, version) = repository.read(filePath)
