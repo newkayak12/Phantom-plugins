@@ -1,5 +1,4 @@
-# MyBatis Support
-
+# Phantom for MyBatis
 `dev.phantom.mybatis` · [English](./README.md)
 
 Java용 MyBatis 매퍼 지원입니다. MyBatisX로 매일 쓰는 기능을 다룹니다.

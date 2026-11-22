@@ -1,5 +1,4 @@
-# Gradle DSL Support
-
+# Phantom for Gradle DSL
 `dev.phantom.gradle-dsl` · [English](./README.md)
 
 화면 없이 동작하는 기술 플러그인입니다. Gradle 빌드 파일을 모델로 읽고 그 자리에서 고치는 API를 제공합니다. 의존성, 플러그인,

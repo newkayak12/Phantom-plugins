@@ -3,7 +3,7 @@
        content module names stay the IntelliJ ones, as bundled modules depend on them by name. The bundled IntelliJ
        Markdown plugin has to be gone, or both claim the same id and modules. -->
   <id>dev.phantom.markdown</id>
-  <name>Markdown Support</name>
+  <name>Phantom for Markdown</name>
   <module value="org.intellij.plugins.markdown"/>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Languages</category>

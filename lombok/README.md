@@ -1,5 +1,4 @@
-# Lombok Support
-
+# Phantom for Lombok
 `dev.phantom.lombok` · [한국어](./KOR.md)
 
 Project Lombok in the editor: the members Lombok generates (getters, setters, constructors, builders, `@Data`, `@Value`, loggers, `val`/`var` and more) resolve, complete and navigate; lombok.config is read; inspections, quick fixes, Delombok and refactorings know Lombok.

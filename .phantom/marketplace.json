@@ -40,7 +40,7 @@
     },
     {
       "id": "dev.phantom.spring",
-      "name": "Spring Support",
+      "name": "Phantom for Spring",
       "version": "0.9.5",
       "source": "spring",
       "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, Spring MVC handlers for the Endpoints tool window, Spring Security path and expression support, and Kafka/RabbitMQ/JMS sender-receiver navigation. 0.4.0: proxy pitfalls (self-invocation of @Transactional/@Cacheable/@Async, private/final/static proxied methods, Kotlin classes not opened by kotlin-spring), @Scheduled/@Async/@EventListener contracts, field and static injection, duplicate bean names, @Scope values, @Sql paths, @DirtiesContext, publishEvent ↔ listener gutters, @Qualifier/@DependsOn bean name completion and Ctrl+B. Wave 6: @Value placeholders (follows spring.config.import), SpEL syntax, cache names, caching on interfaces, @Qualifier/@DependsOn near-miss names, MVC path variables, endpoint and AOP advice gutters, method security not enabled, pointcut syntax. Wave 7: @Cacheable+@CachePut, abstract beans, @Value literal types, @Bean method shape, scan packages, AspectJ autoproxy, @Autowired outside beans, resource locations, @TestBean factories, @Around/pointcut/argNames/@DeclareParents, Security debug/self-invocation/bean refs. Wave 8: @Bean init/destroy methods, @Lookup, Resource @Value, @Profile expressions and unknown profiles, bean name convention, argNames bindings; cache, @Scheduled and @Import gutters. Waves 9-10: @Transactional/@Async, component scan and advised-method gutters; Spring 7 API versioning checks; HTTP header and media type typos; broken @Value placeholders; JDK proxy injection. Wave 11: test transaction pitfalls, @Value with @Qualifier/@Resource, removed @Required, @Qualifier bean type, ROLE_ prefix misuse.",
@@ -61,7 +61,7 @@
     },
     {
       "id": "dev.phantom.spring.boot",
-      "name": "Spring Boot Support",
+      "name": "Phantom for Spring Boot",
       "version": "0.8.3",
       "source": "spring-boot",
       "description": "Spring Boot support: File → New → Project → Spring Boot generates projects with Spring Initializr, and application*.yml / application*.properties get completion and quick documentation for keys and values, from library metadata and the project's own @ConfigurationProperties, in Java and Kotlin. An Actuator tab beside the console of a running app (health, beans, mappings, environment, polled only while shown; only for modules with spring-boot-starter-actuator), and completion and Ctrl+B for ${...} placeholders in @Value from the project's application.yml/properties and Spring Boot metadata. Wave 7: datasource driver missing, config key <-> @Value/@ConfigurationProperties gutters, spring.config.import files count as config. Wave 8: profile override gutters between application-<profile> and base config, @SpringBootApplication -> config files. Wave 9: @ConditionalOnProperty, @EnableConfigurationProperties, test property, @ConfigurationProperties field and profile value gutters. Wave 11: unread bootstrap.yml, Spring Cloud Stream bindings without a function bean.",
@@ -81,7 +81,7 @@
     },
     {
       "id": "dev.phantom.jpa",
-      "name": "JPA Support",
+      "name": "Phantom for JPA",
       "version": "0.7.2",
       "source": "jpa",
       "description": "JPA, Hibernate and Spring Data JPA for Java and Kotlin: JPQL in @Query with completion and errors, derived query method checks, a @Modifying check, entity mapping checks, and repository/entity gutter navigation. An Entity Diagram tool window: entities, columns and relations drawn from the code, copyable as a Mermaid erDiagram. 0.3.0: entity checks (several @Id, no-arg constructor, mappedBy, raw collections, converters), attribute checks (@Column on associations, LAZY on the inverse @OneToOne, @ManyToMany cascade REMOVE, unmapped entity fields, @Enumerated), Kotlin entity checks (kotlin-jpa/all-open, data class, val attributes, read-only collections), Lombok on entities, repository return and parameter types and Pageable. Wave 6: JPQL undeclared aliases and function arity, entity graph attributes, entity listener callback signatures. Wave 7: entity listener usage, named queries, JPQL in createQuery, Kotlin non-null vs nullable columns, Lombok @AllArgsConstructor without no-arg. Wave 9: derived query JPQL gutter, attribute <-> repository methods, @EntityGraph navigation. Wave 11: SQL injection through string-built JDBC/JPA queries, Criteria attribute names (check, completion, Ctrl+B), Jakarta Data repositories, Hibernate @Find, Spring Data JDBC aggregates and mappings.",
@@ -104,7 +104,7 @@
     },
     {
       "id": "dev.phantom.mybatis",
-      "name": "MyBatis Support",
+      "name": "Phantom for MyBatis",
       "version": "0.3.2",
       "source": "mybatis",
       "description": "MyBatis mapper support (what MyBatisX does): interface ↔ XML statement gutters, statement id / resultMap / refid / resultType / property references with completion, rename and errors, mapper methods without a statement with a quick fix that writes it, #{...} parameter completion, and SQL highlighting and completion in mapper XML and @Select/@Insert/@Update/@Delete with Phantom Database Console. 0.1.1: Go to Implementation from mapper method calls opens the XML statement; Cmd+click on #{a.b}, <if test>, <foreach collection> and @Select placeholders goes to the parameter, property or foreach item. 0.2.0 (with Phantom Database Console 0.25.2): dynamic tags read as MyBatis builds them (<where> AND/OR, <set> commas, <trim>, <include>), syntax errors in whole statements, a run icon on each statement that runs it in the console asking for #{} values, and Reformat Code formats the SQL of plain statements. 0.3.0 (with Phantom Database Console 0.25.3): syntax errors in each <choose> branch and with ${}, Run asks which <if> parts and <choose> branches to take and builds <where>/<set>/<trim> by MyBatis rules, and Reformat Code formats statements with dynamic tags. 0.3.1: loads in Phantom again (Java classes come from the Java plugin modules), so mapper SQL highlights and the inspections run.",
@@ -126,7 +126,7 @@
     },
     {
       "id": "dev.phantom.reactive",
-      "name": "Reactive Streams Support",
+      "name": "Phantom for Reactive Streams",
       "version": "0.1.2",
       "source": "reactive-streams",
       "description": "Reactor and RxJava checks for Java and Kotlin: a Mono, Flux or RxJava source created and dropped without being subscribed, and blocking calls inside reactive operators.",
@@ -148,7 +148,7 @@
     },
     {
       "id": "dev.phantom.ktor",
-      "name": "Ktor Support",
+      "name": "Phantom for Ktor",
       "version": "0.1.2",
       "source": "ktor",
       "description": "Ktor server routes from the routing DSL, including routes in Route extension functions with the prefixes of their callers, in the Endpoints tool window.",
@@ -169,7 +169,7 @@
     },
     {
       "id": "dev.phantom.kubernetes",
-      "name": "Kubernetes Support",
+      "name": "Phantom for Kubernetes",
       "version": "0.6.1",
       "source": "kubernetes",
       "description": "Helm chart templates: .Values completion and navigation from values.yaml, .Release/.Chart fields, include/define navigation, and a warning for values that values.yaml does not define. 0.2.0: manifest checks for built-in kinds (removed API versions, unknown and missing keys with key completion, duplicate env vars, selector/template label mismatch); YAML in Markdown fences is skipped. Wave 7: unknown kinds, enum values, deprecated keys/resources, server-set fields, Chart.yaml. Wave 8: gutters Service <-> workloads, ConfigMap/Secret/ServiceAccount references, Ingress backends. Wave 10: kinds that are not stored (reviews, Binding, Eviction). Wave 11: deprecated labels/annotations, required list-item keys, unknown Helm templates, risky whitespace trimming, define to include markers.",
@@ -204,7 +204,7 @@
     },
     {
       "id": "dev.phantom.docker",
-      "name": "Docker Support",
+      "name": "Phantom for Docker",
       "version": "0.6.1",
       "source": "docker",
       "description": "Docker Compose through the docker CLI: run icons on compose services, a Docker Compose run configuration shown in Services, and a Docker tool window listing containers by compose project with start, stop, restart, remove, logs and compose down. Polls only while open. 0.2.0: Compose checks (unknown keys and values, undefined services/networks/volumes with Ctrl+B and completion, missing image, unquoted base-60 ports, duplicate container names) and Dockerfile checks (continuations, argument counts, exec form, heredocs, stages, COPY/ADD paths). Wave 7: Compose pull_policy and network_mode values. Wave 8: Compose build -> Dockerfile and depends_on gutters, Dockerfile stage Ctrl+B. Wave 10: COPY/ADD here-documents BuildKit rejects. Wave 11: FROM ... AS stage to its usages marker.",
@@ -248,7 +248,7 @@
     },
     {
       "id": "dev.phantom.kafka",
-      "name": "Kafka Support",
+      "name": "Phantom for Kafka",
       "version": "0.1.5",
       "source": "kafka",
       "description": "An Apache Kafka browser: topics with partitions and offsets, latest/earliest/since-time messages read without joining a group, sending with key, headers and partition, consumer group lag, create and delete topics. SASL/SSL via client properties in the password safe.",
@@ -268,7 +268,7 @@
     },
     {
       "id": "dev.phantom.validation",
-      "name": "Bean Validation Support",
+      "name": "Phantom for Bean Validation",
       "version": "0.2.1",
       "source": "validation",
       "description": "Bean Validation checks for Java and Kotlin: contradictory bounds (@Min above @Max, @Size min above max), constraints on types they cannot validate, Kotlin constructor properties whose constraint lands on the parameter (quick fix: @field:), nested objects with constraints but no @Valid, and Spring beans with method constraints but no @Validated. Wave 7: custom @Constraint definitions.",
@@ -310,7 +310,7 @@
     },
     {
       "id": "dev.phantom.openapi",
-      "name": "OpenAPI Support",
+      "name": "Phantom for OpenAPI",
       "version": "0.2.2",
       "source": "openapi",
       "description": "OpenAPI and Swagger specs in YAML and JSON: $ref navigation to local pointers and other files, #/components/... completion, unresolved $ref errors, and gutter links between a spec operation and its handler (Spring MVC and any framework in the Endpoints view). Wave 10: specs not recognized because of a misspelled version key, unsupported versions, unknown top-level keys.",
@@ -504,7 +504,7 @@
     },
     {
       "id": "dev.phantom.webp",
-      "name": "WebP Support",
+      "name": "Phantom for WebP",
       "version": "0.1.2",
       "source": "webp",
       "description": "WebP images (lossy, lossless, alpha) open in the image editor and as thumbnails, decoded in Java by the TwelveMonkeys ImageIO reader (BSD) with no native library. Reading only. Replaces the bundled WebP plugin; turn that one off if your Phantom still bundles it. 0.1.1: the WebP decoder loads when a WebP image is first opened, not at startup.",
@@ -567,7 +567,7 @@
     },
     {
       "id": "dev.phantom.querydsl",
-      "name": "QueryDSL Support",
+      "name": "Phantom for QueryDSL",
       "version": "0.1.1",
       "source": "querydsl",
       "description": "QueryDSL Q classes followed back to their entities: Go to Declaration on a Q class path (order.customer.name, QOrder.order) goes to the entity property or entity, in Java and Kotlin code; Find Usages of a Java entity field also finds its QueryDSL paths; Java entities whose Q class is out of date (a field added or removed since the last build) are reported.",
@@ -590,7 +590,7 @@
     },
     {
       "id": "dev.phantom.testcontainers",
-      "name": "Testcontainers Support",
+      "name": "Phantom for Testcontainers",
       "version": "0.1.1",
       "source": "testcontainers",
       "description": "Testcontainers checks for Java and Kotlin tests: a @Container that never starts (no @Testcontainers on its class, or not a container), one started again for every test (an instance field), an image without a version tag or with :latest, and Spring's @DynamicPropertySource methods and @ServiceConnection fields that are not static and so are not found. Java fixes make them static.",
@@ -611,7 +611,7 @@
     },
     {
       "id": "com.phantom.mermaid",
-      "name": "Mermaid Support",
+      "name": "Phantom for Mermaid",
       "version": "0.1.3",
       "source": "mermaid",
       "description": "Editing support and diagram preview for Mermaid in .mmd and .mermaid files and in Markdown code fences: highlighting, completion, formatting, folding, rename and Find Usages of node ids, inspections, and a preview next to the editor. The IntelliJ Community Mermaid plugin (Apache 2.0) under its own id, so Phantom can stop bundling the JetBrains copy (com.intellij.mermaid), which has to be disabled for this one to load. Faster: the preview draws only the latest text after typing pauses and skips text that did not change, Markdown diagrams that did not change are not drawn again (and replaced blocks no longer stay in memory), and mermaid.js is read once and no longer kept stale in the browser after an update.",
@@ -675,7 +675,7 @@
     },
     {
       "id": "dev.phantom.lombok",
-      "name": "Lombok Support",
+      "name": "Phantom for Lombok",
       "version": "0.1.0",
       "source": "lombok",
       "description": "Project Lombok in the editor: generated getters, setters, constructors, builders, loggers and more resolve and complete; lombok.config, inspections, quick fixes and Delombok. Based on the IntelliJ Community Lombok plugin (Apache 2.0); Lombook Plugin stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -723,7 +723,7 @@
     },
     {
       "id": "dev.phantom.textmate",
-      "name": "TextMate Bundles Support",
+      "name": "Phantom for TextMate Bundles",
       "version": "0.1.3",
       "source": "textmate",
       "description": "Highlighting, brace matching, commenting and snippets from TextMate and VS Code grammars for file types no other plugin covers: 22 bundled grammars and any you add. Based on the IntelliJ Community TextMate Bundles plugin (Apache 2.0); org.jetbrains.plugins.textmate stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -739,7 +739,7 @@
     },
     {
       "id": "dev.phantom.markdown",
-      "name": "Markdown Support",
+      "name": "Phantom for Markdown",
       "version": "0.1.0",
       "source": "markdown",
       "description": "Markdown files: highlighting, completion, navigation, inspections, table and list editing, images, language injection in code fences, front matter, and the JCEF preview; Shell Script, Kotlin and others build on it. Based on the IntelliJ Community Markdown plugin (Apache 2.0); org.intellij.plugins.markdown stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -755,7 +755,7 @@
     },
     {
       "id": "dev.phantom.github",
-      "name": "GitHub Support",
+      "name": "Phantom for GitHub",
       "version": "0.1.3",
       "source": "github",
       "description": "GitHub in the IDE: GitHub and GitHub Enterprise accounts (OAuth or token), cloning, Share Project on GitHub, pull requests (list, review with comments in the diff and editor, create, merge), gists, Open on GitHub, and GitHub Actions workflow schemas. Based on the IntelliJ Community GitHub plugin (Apache 2.0); org.jetbrains.plugins.github stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -771,7 +771,7 @@
     },
     {
       "id": "dev.phantom.editorconfig",
-      "name": "EditorConfig Support",
+      "name": "Phantom for EditorConfig",
       "version": "0.1.1",
       "source": "editorconfig",
       "description": "EditorConfig files: properties from .editorconfig applied to the code style, indentation, encoding and trailing spaces of every supported language, plus editing support for the files themselves (highlighting, completion, inspections and quick fixes, navigation, rename, a preview of affected files, and code style scheme export). Based on the IntelliJ Community EditorConfig plugin (Apache 2.0); org.editorconfig.editorconfigjetbrains stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -820,7 +820,7 @@
     },
     {
       "id": "dev.phantom.testng",
-      "name": "TestNG Support",
+      "name": "Phantom for TestNG",
       "version": "0.1.2",
       "source": "testng",
       "description": "TestNG for Java: run configurations for classes, methods, packages, groups, patterns and suite files with the test tree, forked runs and debugging; test generation; references from dataProvider, dependsOnMethods, groups and testng.xml; inspections and quick fixes such as converting JUnit tests to TestNG. Based on the IntelliJ Community TestNG plugin (Apache 2.0); TestNG-J stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -901,7 +901,7 @@
     },
     {
       "id": "dev.phantom.junit",
-      "name": "JUnit Support",
+      "name": "Phantom for JUnit",
       "version": "0.1.0",
       "source": "junit",
       "description": "JUnit 3, 4, 5 and 6 for Java: run configurations for a class, method, package, directory, pattern, tags or unique id, run from the gutter with the test tree, rerun of failed tests, forked runs and debugging; test generation and navigation between a test and its subject; references from @MethodSource, @FieldSource and @EnumSource to their targets; and inspections and quick fixes such as malformed test declarations and JUnit 4 to 5 migration. Based on the IntelliJ Community JUnit plugin (Apache 2.0); JUnit stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -949,7 +949,7 @@
     },
     {
       "id": "dev.phantom.gradle-dsl",
-      "name": "Gradle DSL Support",
+      "name": "Phantom for Gradle DSL",
       "version": "0.1.1",
       "source": "gradle-dsl",
       "description": "A technical plugin with no UI of its own: an API that reads Gradle build files (Groovy, Kotlin script, version catalog TOML) as a model and edits them in place — dependencies, plugins, repositories, ext properties, Android blocks; Gradle-Java's dependency updater and build analysis use it. The Kotlin script parser switches on only with the Kotlin plugin installed. Based on the IntelliJ Community Gradle DSL API plugin (Apache 2.0); org.jetbrains.idea.gradle.dsl stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -966,7 +966,7 @@
     },
     {
       "id": "dev.phantom.groovy-scripting",
-      "name": "Groovy Scripting Support",
+      "name": "Phantom for Groovy Scripting",
       "version": "0.1.1",
       "source": "groovy-scripting",
       "description": "The Apache Groovy JSR223 engine for the IDE Scripting Console, and the Groovy 3 library (with Ivy for Grape) that Groovy, Groovy Live Templates and others load through intellij.libraries.groovy. Based on the IntelliJ Community Groovy Scripting plugin (Apache 2.0); com.intellij.groovy.scripting stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -982,7 +982,7 @@
     },
     {
       "id": "dev.phantom.groovy",
-      "name": "Groovy Support",
+      "name": "Phantom for Groovy",
       "version": "0.1.2",
       "source": "groovy",
       "description": "Apache Groovy: highlighting, completion, inspections and quick fixes, intentions, refactorings, formatting, structural search, GDSL scripts, Groovy and Gant run configurations with debugger hot swap, the Groovy console, Grape, compilation in the IDE build (Groovy or Eclipse compiler, stub generation), Spock and Geb support, and the Ant, Git and Copyright integrations; Gradle, Maven and others build on it. Based on the IntelliJ Community Groovy plugin (Apache 2.0); org.intellij.groovy stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
@@ -1000,7 +1000,7 @@
     },
     {
       "id": "dev.phantom.groovy-live-templates",
-      "name": "Groovy Live Templates Support",
+      "name": "Phantom for Groovy Live Templates",
       "version": "0.1.0",
       "source": "groovy-live-templates",
       "description": "The groovyScript() live template macro: a template variable computed by an Apache Groovy script, inline or from a file, with the macro's arguments and the editor at hand. Based on the IntelliJ Community Groovy Live Templates plugin (Apache 2.0); org.intellij.groovy.live.templates stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",

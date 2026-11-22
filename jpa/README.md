@@ -1,5 +1,4 @@
-# JPA Support
-
+# Phantom for JPA
 `dev.phantom.jpa` · [한국어](./KOR.md)
 
 JPA, Hibernate and Spring Data JPA support for Java and Kotlin.

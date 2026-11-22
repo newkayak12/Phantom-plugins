@@ -1,5 +1,4 @@
-# JUnit Support
-
+# Phantom for JUnit
 `dev.phantom.junit` · [한국어](./KOR.md)
 
 JUnit 3, 4, 5 and 6 for Java: run configurations for a class, method, package, directory, pattern, tags, category or

@@ -4,12 +4,12 @@
        content module names stay the IntelliJ ones, as bundled modules depend on them by name. The bundled IntelliJ
        Lombok plugin has to be gone, or both claim the same id and modules. -->
   <id>dev.phantom.lombok</id>
-  <name>Lombok Support</name>
+  <name>Phantom for Lombok</name>
   <module value="Lombook Plugin"/>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <resource-bundle>messages.LombokBundle</resource-bundle>
   <description><![CDATA[
-<h1>Lombok Support</h1>
+<h1>Phantom for Lombok</h1>
 <br/>
 <b>A plugin that adds first-class support for Project Lombok</b>
 <br/>

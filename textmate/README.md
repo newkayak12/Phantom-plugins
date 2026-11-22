@@ -1,5 +1,4 @@
-# TextMate Bundles Support
-
+# Phantom for TextMate Bundles
 `dev.phantom.textmate` · [한국어](./KOR.md)
 
 Highlighting, brace matching, commenting and snippets for file types no other plugin covers, from TextMate and VS Code grammars: the 22 bundled ones (`lib/bundles`) and any you add in Settings | Editor | TextMate Bundles. Markdown highlights code fences with it.
@@ -9,6 +8,8 @@ as an alias and the content module names stay the IntelliJ ones, so plugins and 
 keep working. Phantom bundles this build instead of the IntelliJ plugin.
 
 The grammars are read from this plugin's own folder wherever it is installed, not only from the IDE's `plugins/textmate-plugin`.
+
+**0.1.4**: renamed from TextMate Bundles Support to Phantom for TextMate Bundles, so the name starts with Phantom and names the project it supports. The plugin id and features are unchanged.
 
 **0.1.1**: the plugin jar carries the licenses of the bundled grammars (`META-INF/LICENSE-textmate`: VS Code's MIT
 license, and which bundles keep their own, MPL 2.0 for HashiCorp's HCL and Terraform) and lists the packaged libraries
