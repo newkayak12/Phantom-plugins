@@ -6,13 +6,12 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ModuleRootManager
-import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
+import org.jetbrains.annotations.TestOnly
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * The production source and resource roots of a module. `ModuleRootManager.getSourceRoots` leaves out resource roots,
@@ -46,14 +45,19 @@ object BootConfigImports {
   private const val IMPORT_KEY = "spring.config.import"
   private val FILE_IMPORT = Regex("""(?:optional:)?(classpath|file):([^\s,'"\]]+\.(?:properties|ya?ml))""")
 
+  @TestOnly
+  val computeCount: AtomicInteger = AtomicInteger()
+
   fun importedFiles(project: Project): Set<VirtualFile> = CachedValuesManager.getManager(project).getCachedValue(project) {
-    CachedValueProvider.Result.create(compute(project), PsiModificationTracker.MODIFICATION_COUNT,
-                                      VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS, ProjectRootManager.getInstance(project))
+    val base = BootRoots.baseConfigFiles(project)
+    val imported = compute(project, base)
+    // The imports are read from configuration text only: a Java keystroke must not re-read the files.
+    CachedValueProvider.Result.create(imported, *BootCacheDeps.config(project, base + imported))
   }
 
-  private fun compute(project: Project): Set<VirtualFile> {
+  private fun compute(project: Project, base: List<VirtualFile>): Set<VirtualFile> {
+    computeCount.incrementAndGet()
     val roots = ModuleManager.getInstance(project).modules.flatMap { BootRoots.production(it) }
-    val base = BootRoots.baseConfigFiles(project)
     val seen = HashSet<VirtualFile>(base)
     val imported = LinkedHashSet<VirtualFile>()
     val queue = ArrayDeque(base)

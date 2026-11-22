@@ -121,10 +121,10 @@ class BootApplicationConfigLineMarkerProvider : LineMarkerProviderDescriptor() {
     if (element.firstChild != null) return null
     val owner = element.parent as? PsiNameIdentifierOwner ?: return null
     if (owner.nameIdentifier != element) return null
-    val uClass = getUParentForIdentifier(element) as? UClass ?: return null
-    if (uClass.javaPsi.getAnnotation(SPRING_BOOT_APPLICATION) == null) return null
     val module = ModuleUtilCore.findModuleForPsiElement(element) ?: return null
     if (!SpringBootGate.isBootModule(module)) return null
+    val uClass = getUParentForIdentifier(element) as? UClass ?: return null
+    if (uClass.javaPsi.getAnnotation(SPRING_BOOT_APPLICATION) == null) return null
     val project = element.project
     val files = (BootRoots.baseConfigFiles(project) + BootConfigImports.importedFiles(project)).distinct()
       .filter { ModuleUtilCore.findModuleForFile(it, project) == module }
