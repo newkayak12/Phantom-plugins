@@ -4,6 +4,7 @@ package dev.phantom.springboot.kotlin
 import com.intellij.psi.PsiPolyVariantReference
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import dev.phantom.springboot.RealJdk
+import dev.phantom.springboot.assertLayeredKeysMatchFlat
 import dev.phantom.springboot.core.ConfigText
 import dev.phantom.springboot.core.ValuePlaceholders
 
@@ -34,6 +35,15 @@ class ValuePlaceholderTest : LightJavaCodeInsightFixtureTestCase() {
         expiry: 60
     """.trimIndent())
     myFixture.addFileToProject("application-local.properties", "redis.host=localhost\nredis.port: 6379\n")
+  }
+
+  override fun tearDown() {
+    try {
+      assertLayeredKeysMatchFlat(module)
+    }
+    finally {
+      super.tearDown()
+    }
   }
 
   fun testFlattensYamlAndProperties() {

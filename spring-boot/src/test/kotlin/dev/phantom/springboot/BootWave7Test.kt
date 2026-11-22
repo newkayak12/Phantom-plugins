@@ -25,6 +25,15 @@ class BootWave7Test : LightJavaCodeInsightFixtureTestCase() {
     myFixture.enableInspections(BootDatasourceDriverInspection::class.java)
   }
 
+  override fun tearDown() {
+    try {
+      assertLayeredKeysMatchFlat(module)
+    }
+    finally {
+      super.tearDown()
+    }
+  }
+
   private fun problems(): List<String> = myFixture.doHighlighting(HighlightSeverity.WEAK_WARNING)
     .filter { it.inspectionToolId == "PhantomBootDatasourceDriver" }
     .map { "${myFixture.file.text.substring(it.startOffset, it.endOffset)}: ${it.description}" }
