@@ -27,7 +27,7 @@ class RemoteControlConfigurableInIdeTest : BasePlatformTestCase() {
     try {
       RemoteControlServer.getInstance().stop()
       val s = RemoteControlSettings.getInstance().state
-      s.enabled = false; s.address = "127.0.0.1"; s.port = 47860; s.tokenHash = null
+      s.enabled = false; s.address = "127.0.0.1"; s.port = 47860; s.tokenHash = null; s.allowUnencrypted = false
     } finally {
       super.tearDown()
     }
@@ -126,6 +126,36 @@ class RemoteControlConfigurableInIdeTest : BasePlatformTestCase() {
       assertEquals(addr, expected, warn.isVisible)
     }
     c.disposeUIResources()
+  }
+
+  fun testLanAddressNeedsExplicitOptIn() {
+    val s = RemoteControlSettings.getInstance().state
+    s.tokenHash = RemoteToken.hash("seed")
+    val c = make()
+    val ui = c.createComponent()
+    val combo = find<JComboBox<*>>(ui, "remote.address")
+    val optIn = find<JBCheckBox>(ui, "remote.allowUnencrypted")
+    find<JBCheckBox>(ui, "remote.enable").isSelected = true
+    find<JBTextField>(ui, "remote.port").text = "0"
+    combo.selectedIndex = (0 until combo.itemCount).first { combo.getItemAt(it).toString().endsWith("192.168.1.5") }
+    assertTrue(optIn.isVisible)
+    assertThrows(com.intellij.openapi.options.ConfigurationException::class.java) { c.apply() }
+    assertFalse(s.enabled)
+    // Tailscale is encrypted: no opt-in needed, and the box is hidden
+    combo.selectedIndex = (0 until combo.itemCount).first { combo.getItemAt(it).toString().endsWith("100.100.1.2") }
+    assertFalse(optIn.isVisible)
+    c.disposeUIResources()
+  }
+
+  fun testServerRefusesUnencryptedAddressWithoutOptIn() {
+    val s = RemoteControlSettings.getInstance().state
+    s.tokenHash = RemoteToken.hash("seed")
+    s.enabled = true; s.address = "192.168.1.5"; s.port = 0; s.allowUnencrypted = false
+    RemoteControlServer.getInstance().applySettings()
+    val st = RemoteControlServer.getInstance().status()
+    assertTrue(st.toString(), st is RemoteStatus.Failed && st.message.contains("192.168.1.5"))
+    assertTrue(RemoteAddress.isProtected("127.0.0.1") && RemoteAddress.isProtected("100.100.1.2"))
+    assertFalse(RemoteAddress.isProtected("192.168.1.5"))
   }
 
   fun testHintShownWhenHashExistsButNoRawToken() {

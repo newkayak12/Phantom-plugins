@@ -11,6 +11,8 @@ class RemoteControlState : BaseState() {
   var enabled by property(false)
   var address by string("127.0.0.1")
   var port by property(47860)
+  /** Serve on an address other than loopback or Tailscale (plain HTTP readable on that network); off unless the user ticks it. */
+  var allowUnencrypted by property(false)
   /** SHA-256 hex of the pairing token; the token itself is never stored. */
   var tokenHash by string()
 }

@@ -148,6 +148,8 @@ class AccountsConfigurable(
     val s = stateProvider().state
     skipBox?.let { s.skipPermissions = it.isSelected }
     dbBox?.let { s.dbTools = it.isSelected }
+    // turning the tools off also forgets which data sources were allowed: turned on again, each is asked for again
+    if (!s.dbTools) s.dbAllowedSources = mutableListOf()
     hooksBox?.let { box ->
       // Unticking an earlier allow takes the hooks out; an unanswered prompt stays unanswered until the box is ticked.
       val allowed = hooks.consent() == HookConsent.ALLOWED
