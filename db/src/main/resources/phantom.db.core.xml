@@ -208,6 +208,8 @@
       <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt E"/>
       <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.SelectDataSource"/>
     </action>
+    <!-- Find Action only -->
+    <action id="PhantomDb.ClearHistory" class="dev.phantom.db.core.exec.DbClearHistoryAction"/>
     <action id="PhantomDb.ExplainPlan" class="dev.phantom.db.core.exec.DbExplainPlanAction">
       <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomDb.RunStatement"/>
     </action>

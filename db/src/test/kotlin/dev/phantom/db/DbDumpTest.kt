@@ -88,6 +88,40 @@ class DbDumpTest : BasePlatformTestCase() {
     assertTrue(pg.none { it.startsWith("--dbname") })
   }
 
+  fun testRestoreConfirmationNamesTheRealTarget() {
+    // PostgreSQL: psql gets no schema, so the confirmation names the database, not the selected schema
+    assertEquals("pg:5433/app", DbDump.restoreTarget(source(Dbms.POSTGRESQL, "jdbc:postgresql://pg:5433/app"), "staging"))
+    assertEquals("db.example:3307/shop", DbDump.restoreTarget(mysql(), null))
+    assertEquals("db.example:3306/sales", DbDump.restoreTarget(mysql("jdbc:mysql://db.example:3306/"), "sales"))
+  }
+
+  fun testAllDatabasesDumpIsAskedFor() {
+    assertTrue(DbDump.dumpsAllDatabases(mysql("jdbc:mysql://db.example:3306/"), null))
+    assertFalse(DbDump.dumpsAllDatabases(mysql("jdbc:mysql://db.example:3306/"), "shop"))
+    assertFalse(DbDump.dumpsAllDatabases(mysql(), null))
+    assertFalse(DbDump.dumpsAllDatabases(source(Dbms.POSTGRESQL, "jdbc:postgresql://pg:5432/"), null))
+  }
+
+  fun testFailedDumpKeepsTheEarlierFile() {
+    val dir = java.nio.file.Files.createTempDirectory("phantom-dump").toFile()
+    try {
+      val file = File(dir, "shop.sql").apply { writeText("good dump") }
+      val part = DbDump.partFile(file)
+      assertEquals(dir.canonicalFile, part.parentFile.canonicalFile)
+      part.writeText("half a dump")
+      DbDump.finishDump(part, file, success = false)
+      assertEquals("good dump", file.readText())
+      assertFalse(part.exists())
+      part.writeText("new dump")
+      DbDump.finishDump(part, file, success = true)
+      assertEquals("new dump", file.readText())
+      assertFalse(part.exists())
+    }
+    finally {
+      dir.deleteRecursively()
+    }
+  }
+
   fun testMysqlSchemaNodeDumpsThatSchema() {
     val dump = DbDump.dumpCommand(mysql("jdbc:mysql://db.example:3306/"), "shop", out, "mysqldump", null).parametersList.list
     assertEquals("shop", dump.last())
