@@ -57,6 +57,7 @@ class JpaQueryMarkersTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals("select distinct u from User u where u.lastname like ?1 (%…%)", DerivedJpql.of(user, "findDistinctByLastnameContaining"))
     assertNull("unknown property", DerivedJpql.of(user, "findByNickname"))
     assertNull("no JPQL form", DerivedJpql.of(user, "findByLastnameRegex"))
+    LegacyAttributeUsages.assertSame(myFixture, "app.User", "app.Address")
   }
 
   fun testRepositoryMethodGutters() {
@@ -79,6 +80,7 @@ class JpaQueryMarkersTest : LightJavaCodeInsightFixtureTestCase() {
       "Derived query: select u from User u where u.lastname = ?1 and u.age &gt; ?2 -> age, lastname",
       "Entity graph fetches: address, address.city -> address, city",
     ), gutters(::ours))
+    LegacyAttributeUsages.assertSame(myFixture, "app.User", "app.Address")
   }
 
   fun testAttributeUsages() {
@@ -102,6 +104,7 @@ class JpaQueryMarkersTest : LightJavaCodeInsightFixtureTestCase() {
       "1 repository method uses firstname -> byFirstAndCity",
       "2 repository methods use lastname -> countByLastname, findByLastnameOrderByAgeAsc",
     ), gutters(::ours))
+    LegacyAttributeUsages.assertSame(myFixture, "app.User", "app.Address")
   }
 
   fun testKotlin() {
@@ -129,5 +132,6 @@ class JpaQueryMarkersTest : LightJavaCodeInsightFixtureTestCase() {
       "1 repository method uses owner -> findByOwnerAndSeatLessThan",
       "1 repository method uses seat -> findByOwnerAndSeatLessThan",
     ), gutters(::ours))
+    LegacyAttributeUsages.assertSame(myFixture, "app.User", "app.Address", "app.Ticket")
   }
 }
