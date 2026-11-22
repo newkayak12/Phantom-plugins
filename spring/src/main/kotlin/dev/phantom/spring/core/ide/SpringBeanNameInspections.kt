@@ -37,6 +37,13 @@ object SpringBeanNames {
     CachedValueProvider.Result.create<Map<String, List<PsiModifierListOwner>>>(map, PsiModificationTracker.MODIFICATION_COUNT)
   }
 
+  /**
+   * The beans [byName] lists under [name], found from the name alone when that finds them all: the catalog behind
+   * [byName] is rebuilt after every PSI change, and the duplicate check asks for one name per bean it highlights.
+   */
+  fun named(project: Project, name: String): List<PsiModifierListOwner> =
+    SpringBeanCatalog.named(project, name) ?: byName(project)[name].orEmpty()
+
   private const val CONDITIONAL = "org.springframework.context.annotation.Conditional"
 
   /** Beans behind a profile or condition may never meet; same-named overloads of a `@Bean` method are one bean. */
@@ -80,7 +87,7 @@ class SpringDuplicateBeanNameInspection : AbstractBaseUastLocalInspectionTool() 
 
       private fun check(node: UDeclaration, bean: PsiModifierListOwner) {
         val name = SpringBeans.beanName(bean) ?: return
-        val others = SpringBeanNames.byName(holder.project)[name].orEmpty().filter { SpringBeanNames.clash(bean, it) }
+        val others = SpringBeanNames.named(holder.project, name).filter { SpringBeanNames.clash(bean, it) }
         if (others.isEmpty()) return
         val where = others.joinToString(", ") { other -> (other as? PsiClass)?.qualifiedName ?: (other as? PsiMethod)?.let { "${it.containingClass?.name}.${it.name}()" } ?: "?" }
         val anchor = node.uastAnchor?.sourcePsi ?: return
