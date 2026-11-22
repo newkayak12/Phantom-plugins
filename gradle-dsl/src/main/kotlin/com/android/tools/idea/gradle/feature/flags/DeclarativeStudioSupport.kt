@@ -1,5 +1,6 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
 // this package should remain different from the one in AOSP to avoid issues with class loading.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package com.android.tools.idea.gradle.feature.flags
 
 import com.intellij.openapi.util.registry.Registry

@@ -11,3 +11,7 @@ IntelliJ Community의 Groovy 플러그인(`plugins/groovy`, Apache 2.0)을 바�
 `org.intellij.groovy`는 별칭으로 남겨 두고 콘텐츠 모듈 이름도 IntelliJ 것을 그대로 써서, 이것에 의존하는 플러그인(Gradle,
 Maven, Groovy Live Templates 등)이 그대로 동작합니다. 플러그인 폴더 구성도 IntelliJ와 같습니다(`lib/groovy-jps.jar`,
 `groovy-rt.jar`, `standardDsls/`, `agent/gragent.jar`, `modules/` 등). Phantom은 IntelliJ 플러그인 대신 이 빌드를 번들합니다.
+
+**0.1.2**: 플러그인 jar에 번들된 HotSwap 에이전트(`lib/agent/gragent.jar`)가 포함한 ASM의 고지가
+`META-INF/NOTICE-groovy`로 들어갑니다. 테스트 데이터에 있던 Sun JDK 5 사본("SUN PROPRIETARY/CONFIDENTIAL" 표시)을 지웠습니다. 테스트는
+실행 중인 JDK와 Groovy 1.0(`testData/lib`)을 쓰고, 그 JDK 사본에 맞춘 자동완성 케이스 5개는 제외했습니다.

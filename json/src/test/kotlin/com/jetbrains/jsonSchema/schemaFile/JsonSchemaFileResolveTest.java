@@ -1,6 +1,7 @@
 /*
  * Copyright 2000-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
  */
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package com.jetbrains.jsonSchema.schemaFile;
 
 import com.intellij.psi.PsiElement;
