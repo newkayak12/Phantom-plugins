@@ -3,13 +3,12 @@ package dev.phantom.springboot.core
 
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
+import org.jetbrains.annotations.TestOnly
+import java.util.concurrent.atomic.AtomicInteger
 
 /** Where a key is set: [offset] is where its name (its last segment in `.properties`) starts in [file]. */
 class ConfigKeyLocation(val file: VirtualFile, val offset: Int, val value: String)
@@ -17,19 +16,24 @@ class ConfigKeyLocation(val file: VirtualFile, val offset: Int, val value: Strin
 /**
  * The keys the project's own `application*.yml` / `application*.properties` set, including custom ones no metadata
  * describes (`jwt.secret`), for `@Value("${...}")`. Read from the resource roots of every module and the files they import, as Spring Boot
- * merges them on the runtime classpath; recomputed after a PSI or VFS change, nothing is indexed.
+ * merges them on the runtime classpath; recomputed after a configuration file or root changes, nothing is indexed.
  */
 object ProjectConfigKeys {
+  @TestOnly
+  val computeCount: AtomicInteger = AtomicInteger()
+
   fun keys(project: Project): Map<String, List<ConfigKeyLocation>> = CachedValuesManager.getManager(project).getCachedValue(project) {
+    computeCount.incrementAndGet()
     val result = LinkedHashMap<String, MutableList<ConfigKeyLocation>>()
-    for (file in configFiles(project)) {
+    val files = configFiles(project)
+    for (file in files) {
       val text = FileDocumentManager.getInstance().getCachedDocument(file)?.charsSequence?.toString()
                  ?: runCatching { VfsUtilCore.loadText(file) }.getOrNull() ?: continue
       val entries = if (file.name.endsWith(".properties")) ConfigText.properties(text) else ConfigText.yaml(text)
       for ((key, offset, value) in entries) result.getOrPut(key) { ArrayList() }.add(ConfigKeyLocation(file, offset, value))
     }
-    CachedValueProvider.Result.create(result as Map<String, List<ConfigKeyLocation>>, PsiModificationTracker.MODIFICATION_COUNT,
-                                      VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS, ProjectRootManager.getInstance(project))
+    // Only configuration text and the files' places matter: a Java keystroke must not re-read and re-parse them.
+    CachedValueProvider.Result.create(result as Map<String, List<ConfigKeyLocation>>, *BootCacheDeps.config(project, files))
   }
 
   /** The locations of [key], matched with relaxed binding (`jwt.secretKey` finds `jwt.secret-key`). */
