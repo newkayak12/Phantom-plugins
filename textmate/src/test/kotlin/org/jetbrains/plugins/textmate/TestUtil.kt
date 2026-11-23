@@ -1,3 +1,4 @@
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package org.jetbrains.plugins.textmate
 
 import org.jetbrains.annotations.NonNls

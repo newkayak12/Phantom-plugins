@@ -1,3 +1,4 @@
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package com.intellij.terminal.frontend.toolwindow.impl
 
 import com.intellij.ide.trustedProjects.TrustedProjects

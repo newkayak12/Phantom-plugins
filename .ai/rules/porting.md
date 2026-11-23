@@ -17,5 +17,9 @@ grid, git.
   find the full delta with `git diff <copy commit> HEAD -- <folder>`, not by searching markers.
 - Code taken from IntelliJ keeps its JetBrains copyright header. Never copy decompiled or closed-source code; a jar
   without published sources is a dependency to remove, not to copy.
+- A file changed from upstream (main, test or test data) also carries the line
+  `// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.`
+  below its header, or first when it has none. `tools/check-modification-marks.py --upstream <IntelliJ checkout>`
+  lists the files missing it and fails; `--fix` adds them.
 - The matching Phantom change (bundling from this repository, removing `plugins/<name>`) is a separate PR in the
   Phantom repository; each PR links the other.

@@ -1,3 +1,4 @@
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 class VariableJson {
   int <TYPO descr="Typo: In word 'broetchen'">broetchen</TYPO>, <TYPO descr="Typo: In word 'Koenigsberg'">Koenigsberg</TYPO>, <TYPO descr="Typo: In word 'koenigsberg'">koenigsberg</TYPO>, <TYPO descr="Typo: In word 'koenigsberger'">koenigsberger</TYPO>;
   String notificacao;

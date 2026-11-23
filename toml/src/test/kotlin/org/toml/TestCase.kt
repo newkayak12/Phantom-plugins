@@ -1,3 +1,4 @@
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 /*
  * Use of this source code is governed by the MIT license that can be
  * found in the LICENSE file.
