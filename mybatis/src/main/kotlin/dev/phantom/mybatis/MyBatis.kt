@@ -17,8 +17,11 @@ import com.intellij.psi.PsiParameter
 import com.intellij.psi.PsiPrimitiveType
 import com.intellij.psi.PsiType
 import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.InheritanceUtil
 import com.intellij.psi.util.PropertyUtilBase
+import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.xml.XmlFile
@@ -88,7 +91,14 @@ object MyBatis {
       .filter { namespace(it) == namespace }
   }
 
-  fun mapperFiles(mapper: PsiClass): List<XmlFile> = mapper.qualifiedName?.let { mapperFiles(mapper.project, it) }.orEmpty()
+  /**
+   * Kept until the next PSI change: the line markers and inspections ask for each method of every interface, which
+   * otherwise queried the index and loaded the XML once per method on every highlighting pass, also without MyBatis.
+   */
+  fun mapperFiles(mapper: PsiClass): List<XmlFile> = CachedValuesManager.getCachedValue(mapper) {
+    val files = mapper.qualifiedName?.let { mapperFiles(mapper.project, it) }.orEmpty()
+    CachedValueProvider.Result.create(files, PsiModificationTracker.MODIFICATION_COUNT)
+  }
 
   /** The interface named by the mapper's namespace. */
   fun mapperClass(file: PsiFile): PsiClass? {
