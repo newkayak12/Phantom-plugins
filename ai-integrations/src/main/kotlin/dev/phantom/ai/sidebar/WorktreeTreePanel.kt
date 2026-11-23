@@ -70,6 +70,10 @@ class WorktreeTreePanel(
   private val background: (Runnable) -> Unit = { ApplicationManager.getApplication().executeOnPooledThread(it) },
   private val creator: WorktreeCreator = WorktreeCreator(),
   private val repos: ProjectRepos = GitProjectRepos(project),
+  /** Name, base and agent of a new worktree in the named repository, its default base given; null = cancelled. */
+  private val askNewWorktree: (String, String?) -> NewWorktreeRequest? = { name, base ->
+    NewWorktreeDialog(project, name, base).let { if (it.showAndGet()) it.request() else null }
+  },
 ) : JPanel(BorderLayout()), Disposable {
   private val root = DefaultMutableTreeNode()
   private val model = DefaultTreeModel(root)
@@ -87,12 +91,14 @@ class WorktreeTreePanel(
   private var nestedOf: Map<String, NestedWorktree> = emptyMap()
   private val known = HashSet<String>() // rows seen before: a new row opens, an old one keeps what the user chose
   private var shown: SidebarModel? = null
+  /** The row under the mouse: a repository or worktree row there shows its + (new worktree) at its end. */
+  private var hoveredRow = -1
   private val whenShown = dev.phantom.ai.core.WhenShown(this, ::refresh)
 
   init {
     tree.isRootVisible = false
     tree.showsRootHandles = true
-    tree.cellRenderer = Renderer()
+    tree.cellRenderer = Renderer { hoveredRow }
     add(center, BorderLayout.CENTER)
     center.add(scroll, BorderLayout.CENTER)
     tree.addMouseListener(object : PopupHandler() {
@@ -104,8 +110,14 @@ class WorktreeTreePanel(
     })
     tree.addMouseListener(object : MouseAdapter() {
       override fun mouseClicked(e: MouseEvent) {
-        if (e.clickCount == 2) activateSelected()
+        if (e.clickCount == 1 && plusAt(e.x, e.y)) newWorktreeAt(tree.getClosestRowForLocation(e.x, e.y))
+        else if (e.clickCount == 2) activateSelected()
       }
+
+      override fun mouseExited(e: MouseEvent) = hover(-1)
+    })
+    tree.addMouseMotionListener(object : java.awt.event.MouseMotionAdapter() {
+      override fun mouseMoved(e: MouseEvent) = hover(tree.getRowForLocation(e.x, e.y))
     })
     tree.addKeyListener(object : KeyAdapter() {
       override fun keyPressed(e: KeyEvent) {
@@ -147,6 +159,44 @@ class WorktreeTreePanel(
     }
     val all = allWorktrees()
     return (all.firstOrNull { it.isMain } ?: all.firstOrNull())?.path
+  }
+
+  private fun hover(row: Int) {
+    if (row == hoveredRow) return
+    hoveredRow = row
+    tree.repaint()
+  }
+
+  /** Whether [x], [y] is on the + at the end of a hovered repository or worktree row. */
+  @TestOnly internal fun plusAt(x: Int, y: Int): Boolean {
+    val row = tree.getRowForLocation(x, y)
+    if (row < 0 || row != hoveredRow) return false
+    val o = nodeObject(tree.getPathForRow(row))
+    if (o !is RepoNode && o !is WorktreeNode) return false
+    val bounds = tree.getRowBounds(row) ?: return false
+    return x >= bounds.x + bounds.width - PLUS_HIT
+  }
+
+  @TestOnly internal fun hoverForTest(row: Int) = hover(row)
+
+  private fun newWorktreeAt(row: Int) {
+    when (val o = nodeObject(tree.getPathForRow(row))) {
+      is RepoNode -> newWorktree(o)
+      is WorktreeNode -> repoOfWorktree[o.path]?.let { newWorktree(it, o.path.takeIf { _ -> !o.isMain }) }
+    }
+  }
+
+  /**
+   * New worktree from the title bar's +: in the repository of the selected row (below a selected worktree, as its
+   * menu does), else in the first repository.
+   */
+  fun newWorktreeForSelection() {
+    when (val o = (tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject) {
+      is RepoNode -> return newWorktree(o)
+      is WorktreeNode -> repoOfWorktree[o.path]?.let { return newWorktree(it, o.path.takeIf { _ -> !o.isMain }) }
+      is SessionRow -> repoOfWorktree[o.session.worktree]?.let { return newWorktree(it) }
+    }
+    shown?.repos?.firstOrNull()?.let { newWorktree(it) }
   }
 
   private fun allWorktrees(): List<WorktreeNode> =
@@ -309,9 +359,7 @@ class WorktreeTreePanel(
     background(Runnable {
       val base = creator.defaultBase(repo)
       later {
-        val dialog = NewWorktreeDialog(project, r.name, base)
-        if (!dialog.showAndGet()) return@later
-        val request = dialog.request()
+        val request = askNewWorktree(r.name, base) ?: return@later
         background(Runnable {
           val created = creator.create(repo, request.name, request.base)
           later {
@@ -353,8 +401,8 @@ class WorktreeTreePanel(
     }
   }
 
-  /** One row: [dot] title [branch] [#N pill] [agent mark] [elapsed]. */
-  private class Renderer : JPanel(FlowLayout(FlowLayout.LEFT, 4, 1)), TreeCellRenderer {
+  /** One row: [dot] title [branch] [#N pill] [agent mark] [elapsed], and + on a hovered repository or worktree row. */
+  private class Renderer(private val hovered: () -> Int) : JPanel(FlowLayout(FlowLayout.LEFT, 4, 1)), TreeCellRenderer {
     private val icon = JBLabel()
     private val title = JBLabel()
     private val hint = JBLabel()
@@ -366,9 +414,10 @@ class WorktreeTreePanel(
     }
     private val chip = JBLabel().apply { border = JBUI.Borders.empty(0, 4) }
     private val elapsed = JBLabel()
+    private val plus = JBLabel(com.intellij.icons.AllIcons.General.Add).apply { toolTipText = PhantomAiBundle.message("worktree.new") }
 
     init {
-      listOf(icon, title, hint, pill, chip, elapsed).forEach(::add)
+      listOf(icon, title, hint, pill, chip, elapsed, plus).forEach(::add)
     }
 
     override fun getTreeCellRendererComponent(
@@ -383,6 +432,8 @@ class WorktreeTreePanel(
       chip.foreground = dim
       elapsed.foreground = dim
       listOf(hint, pill, chip, elapsed).forEach { it.text = ""; it.isVisible = false }
+      val o0 = (value as? DefaultMutableTreeNode)?.userObject
+      plus.isVisible = row == hovered() && (o0 is RepoNode || o0 is WorktreeNode)
       when (val o = (value as? DefaultMutableTreeNode)?.userObject) {
         is RepoNode -> {
           title.text = o.name
@@ -409,6 +460,11 @@ class WorktreeTreePanel(
       }
       return this
     }
+  }
+
+  private companion object {
+    /** Width at the end of a row that is its + (icon and gap). */
+    const val PLUS_HIT = 22
   }
 
   private object UIManagerColors {
