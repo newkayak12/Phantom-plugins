@@ -10,6 +10,9 @@ IntelliJ Community의 GitHub 플러그인(`plugins/github`, Apache 2.0)을 바�
 남겨 두고 콘텐츠 모듈 이름도 IntelliJ 것을 그대로 써서, 이것에 의존하는 플러그인과 번들 모듈이 그대로 동작합니다. Phantom은
 IntelliJ 플러그인 대신 이 빌드를 번들합니다.
 
+**0.1.5**: 플러그인 아이콘을 GitHub 로고 대신 Phantom이 그린 풀 리퀘스트 그림으로 바꿨습니다. 플러그인 안에서 GitHub를 가리키는 GitHub
+표시는 그대로입니다.
+
 **0.1.4**: 이름을 바꿨습니다: GitHub Support → Phantom for GitHub. Phantom으로 시작하고 지원하는 프로젝트 이름을 뒤에 둡니다. 플러그인 id와 기능은 그대로입니다.
 
 **0.1.3**: 조직의 OAuth App 접근 제한 때문에 저장소가 보이지 않을 때, 오류 메시지가 JetBrains 지원 문서 대신 그 제한에 관한
