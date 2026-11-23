@@ -3,6 +3,7 @@ package dev.phantom.ai.accounts
 
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.ui.MessageDialogBuilder
 import com.intellij.openapi.ui.Messages
 import com.intellij.ui.components.JBCheckBox
@@ -42,6 +43,10 @@ class AccountsConfigurable(
 
   override fun createComponent(): JComponent {
     AgentKind.entries.forEach { chosen[it] = service.active(it)?.id }
+    // Which accounts are still logged in: each CLI is asked, so not on the EDT without progress
+    ProgressManager.getInstance().runProcessWithProgressSynchronously(
+      { service.refreshLogins() }, PhantomAiBundle.message("accounts.checking"), false, null,
+    )
     val panel = JPanel().apply { layout = BoxLayout(this, BoxLayout.Y_AXIS) }
     root = panel
     rebuild()

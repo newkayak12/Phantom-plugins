@@ -96,8 +96,9 @@ class AgentTerminalInIdeTest : BasePlatformTestCase() {
 
   fun testAddedAccountSetsAccountVariableOnlyForIt() {
     val acc = AccountsService.getInstance().let { svc ->
+      svc.replaceProbe(FakeLoginProbe)
       val dir = Files.createTempDirectory("acc")
-      Files.writeString(dir.resolve("auth.json"), """{"OPENAI_API_KEY":"k"}""")
+      FakeLoginProbe.signIn(dir)
       val state = AiState.getInstance()
       state.state.accounts.add(
         dev.phantom.ai.core.AccountEntry().also { it.provider = "CODEX"; it.id = "t1"; it.label = "T"; it.dir = dir.toString() },
@@ -113,6 +114,7 @@ class AgentTerminalInIdeTest : BasePlatformTestCase() {
       assertFalse(started.last().env.containsKey("CLAUDE_CONFIG_DIR"))
     } finally {
       AccountsService.getInstance().remove(AgentKind.CODEX, "t1")
+      AccountsService.getInstance().replaceProbe(dev.phantom.ai.accounts.CliLoginProbe())
     }
   }
 

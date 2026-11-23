@@ -1,7 +1,9 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.ai
 
-import dev.phantom.ai.accounts.AccountLogin
+import com.google.gson.JsonParser
+import dev.phantom.ai.accounts.CliLoginProbe
+import dev.phantom.ai.accounts.Login
 import dev.phantom.ai.accounts.AccountsService
 import dev.phantom.ai.accounts.LoginFailed
 import dev.phantom.ai.accounts.LoginRunner
@@ -19,7 +21,6 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.Base64
 
 class AccountsServiceTest {
   @get:Rule val tmp = TemporaryFolder()
@@ -34,12 +35,11 @@ class AccountsServiceTest {
     val service = AccountsService(
       base, { k, d -> installs.add(k to d); install(k, d) },
       LoginRunner { c, e, t -> logins.add(Triple(c, e, t)); email?.let { signIn(e, it) } }, { state },
-      { m, e -> notices.add(m to e) },
+      { m, e -> notices.add(m to e) }, probe = FakeLoginProbe,
     )
 
     private fun signIn(env: Map<String, String>, email: String) {
-      env["CLAUDE_CONFIG_DIR"]?.let { Files.writeString(Path.of(it, ".claude.json"), """{"oauthAccount":{"emailAddress":"$email"}}""") }
-      env["CODEX_HOME"]?.let { Files.writeString(Path.of(it, "auth.json"), """{"OPENAI_API_KEY":"k"}""") }
+      FakeLoginProbe.signIn(env["CLAUDE_CONFIG_DIR"] ?: env.getValue("CODEX_HOME"), email)
     }
   }
 
@@ -127,7 +127,7 @@ class AccountsServiceTest {
     val base = tmp.newFolder("base").toPath()
     val service = AccountsService(
       base, { _, d -> Files.createSymbolicLink(d.resolve("skills"), shared); true },
-      LoginRunner { _, _, _ -> throw LoginFailed("denied") }, { AiState() }, { _, _ -> },
+      LoginRunner { _, _, _ -> throw LoginFailed("denied") }, { AiState() }, { _, _ -> }, probe = FakeLoginProbe,
     )
     assertEquals("denied", assertThrows(LoginFailed::class.java) { service.add(AgentKind.CLAUDE) }.message)
     assertEquals(emptyList<Any>(), Files.list(base.resolve("claude")).use { it.toList() })
@@ -149,7 +149,9 @@ class AccountsServiceTest {
     val f = fixture()
     val a = f.service.add(AgentKind.CLAUDE)
     assertEquals("Account 1", a.label)
-    Files.delete(Path.of(a.dir, ".claude.json"))
+    Files.delete(Path.of(a.dir, FakeLoginProbe.FILE))
+    assertTrue(f.service.signedIn(a))
+    f.service.refreshLogins()
     assertFalse(f.service.signedIn(a))
     f.service.setActive(AgentKind.CLAUDE, a.id)
     assertNull(f.service.active(AgentKind.CLAUDE))
@@ -166,7 +168,7 @@ class AccountsServiceTest {
   @Test fun aFailedSignInAgainKeepsTheAccount() {
     val f = fixture()
     val a = f.service.add(AgentKind.CLAUDE)
-    Files.delete(Path.of(a.dir, ".claude.json"))
+    Files.delete(Path.of(a.dir, FakeLoginProbe.FILE))
     f.email = null
     assertThrows(LoginFailed::class.java) { f.service.signInAgain(AgentKind.CLAUDE, a.id) }
     assertEquals(listOf(a), f.service.accounts(AgentKind.CLAUDE))
@@ -201,23 +203,53 @@ class AccountsServiceTest {
     assertEquals(emptyList<Any>(), Files.list(f.base.resolve("claude")).use { it.toList() })
   }
 
-  @Test fun aFileTheCliCreatesWithoutALoginIsNotALogin() {
-    val dir = tmp.newFolder("cfg").toPath()
-    Files.writeString(dir.resolve(".claude.json"), """{"numStartups":1}""")
-    assertNull(AccountLogin.name(AgentKind.CLAUDE, dir))
-    Files.writeString(dir.resolve(".claude.json"), """{"oauthAcc""")
-    assertNull(AccountLogin.name(AgentKind.CLAUDE, dir))
+  @Test fun claudeLoginComesFromAuthStatus() {
+    fun parse(json: String) = CliLoginProbe.parseClaude(JsonParser.parseString(json))
+    assertEquals(Login("Me@example.com", "me@example.com|org-1"), parse("""{"loggedIn":true,"email":"Me@example.com","orgId":"org-1"}"""))
+    assertEquals(Login("", null), parse("""{"loggedIn":true,"authMethod":"apiKey"}"""))
+    assertNull(parse("""{"loggedIn":false,"authMethod":"none"}"""))
+    assertNull(parse("""[]"""))
   }
 
-  @Test fun codexEmailComesFromTheIdToken() {
+  @Test fun codexLoginComesFromAccountRead() {
+    fun parse(json: String) = CliLoginProbe.parseCodex(JsonParser.parseString(json))
+    assertEquals(Login("C@example.com", "c@example.com"), parse("""{"account":{"type":"chatgpt","email":"C@example.com","planType":"plus"},"requiresOpenaiAuth":true}"""))
+    assertEquals(Login("", null), parse("""{"account":{"type":"apiKey"},"requiresOpenaiAuth":true}"""))
+    assertNull(parse("""{"account":null,"requiresOpenaiAuth":true}"""))
+  }
+
+  @Test fun codexProbeAsksTheAppServerAndReadsNoFile() {
     val dir = tmp.newFolder("codex").toPath()
-    val payload = Base64.getUrlEncoder().withoutPadding().encodeToString("""{"email":"c@example.com"}""".toByteArray())
-    Files.writeString(dir.resolve("auth.json"), """{"OPENAI_API_KEY":null,"tokens":{"id_token":"h.$payload.s"}}""")
-    assertEquals("c@example.com", AccountLogin.name(AgentKind.CODEX, dir))
-    Files.writeString(dir.resolve("auth.json"), """{"OPENAI_API_KEY":null,"tokens":{}}""")
-    assertEquals("", AccountLogin.name(AgentKind.CODEX, dir))
-    Files.writeString(dir.resolve("auth.json"), """{"OPENAI_API_KEY":null}""")
-    assertNull(AccountLogin.name(AgentKind.CODEX, dir))
+    val sent = mutableListOf<String>()
+    val homes = mutableListOf<String?>()
+    val launcher = dev.phantom.ai.usage.CodexLauncher { home ->
+      homes.add(home)
+      object : dev.phantom.ai.usage.RpcChannel {
+        val replies = java.util.ArrayDeque<String>()
+        override fun send(line: String) {
+          sent.add(line)
+          val id = JsonParser.parseString(line).asJsonObject.get("id")?.asInt ?: return
+          replies.add(if (id == 1) """{"id":1,"result":{}}""" else """{"id":2,"result":{"account":{"type":"chatgpt","email":"c@example.com","planType":"pro"}}}""")
+        }
+        override fun readLine(timeoutMs: Long): String? = replies.poll()
+        override fun close() {}
+      }
+    }
+    val probe = CliLoginProbe(codex = launcher, claude = { error("not Claude") })
+    assertEquals(Login("c@example.com", "c@example.com"), probe.read(AgentKind.CODEX, dir))
+    assertEquals(listOf(dir.toString()), homes)
+    assertEquals("account/read", JsonParser.parseString(sent.last()).asJsonObject.get("method").asString)
+    assertEquals(emptyList<Any>(), Files.list(dir).use { it.toList() })
+  }
+
+  @Test fun claudeProbeUsesTheCliAnswer() {
+    val dir = tmp.newFolder("claude").toPath()
+    val asked = mutableListOf<Path>()
+    val probe = CliLoginProbe(claude = { asked.add(it); """{"loggedIn":true,"email":"a@example.com","orgId":"o"}""" })
+    assertEquals(Login("a@example.com", "a@example.com|o"), probe.read(AgentKind.CLAUDE, dir))
+    assertEquals(listOf(dir), asked)
+    assertNull(CliLoginProbe(claude = { null }).read(AgentKind.CLAUDE, dir))
+    assertNull(CliLoginProbe(claude = { "not json" }).read(AgentKind.CLAUDE, dir))
   }
 
   @Test fun numberedNamesDoNotRepeatAfterARemoval() {
