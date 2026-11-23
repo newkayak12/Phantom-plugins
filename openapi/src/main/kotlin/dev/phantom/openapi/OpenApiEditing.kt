@@ -13,8 +13,12 @@ import com.intellij.json.psi.JsonStringLiteral
 import com.intellij.microservices.endpoints.EndpointsFilter
 import com.intellij.microservices.endpoints.EndpointsProvider
 import com.intellij.microservices.endpoints.presentation.EndpointMethodPresentation
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectRootManager
+import com.intellij.openapi.util.ModificationTracker
 import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.ElementManipulators
 import com.intellij.psi.PsiElement
@@ -26,9 +30,10 @@ import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.PsiReferenceContributor
 import com.intellij.psi.PsiReferenceProvider
 import com.intellij.psi.PsiReferenceRegistrar
+import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.ProcessingContext
 import org.jetbrains.yaml.psi.YAMLKeyValue
@@ -99,9 +104,18 @@ class OpenApiRefInspection : LocalInspectionTool() {
 
 /** The endpoints Phantom's Endpoints view knows (Spring MVC and others), with the element that serves them. */
 internal object CodeEndpoints {
-  class Endpoint(val path: String, val methods: List<String>, val element: PsiElement)
+  // A pointer, not the element: the list outlives reparses of the handler's file, which only moves a narrower tracker.
+  class Endpoint(val path: String, val methods: List<String>, private val pointer: SmartPsiElementPointer<PsiElement>) {
+    val element: PsiElement? get() = pointer.element
+  }
 
   private object Everything : EndpointsFilter
+
+  // Providers come and go with dynamic plugins without moving any tracker; the cached values compare counts only for
+  // equality, so the identities of the registered providers serve as the count.
+  private val registeredProviders = ModificationTracker {
+    EndpointsProvider.EP_NAME.extensionList.fold(0L) { sum, provider -> sum * 31 + System.identityHashCode(provider) }
+  }
 
   fun all(project: Project): List<Endpoint> = CachedValuesManager.getManager(project).getCachedValue(project) {
     val result = ArrayList<Endpoint>()
@@ -114,16 +128,22 @@ internal object CodeEndpoints {
           val presentation = typed.getEndpointPresentation(group, endpoint)
           val path = presentation.presentableText ?: continue
           val element = typed.getNavigationElement(group, endpoint) ?: continue
-          result += Endpoint(path, (presentation as? EndpointMethodPresentation)?.endpointMethods.orEmpty().map { it.uppercase() }, element)
+          result += Endpoint(path, (presentation as? EndpointMethodPresentation)?.endpointMethods.orEmpty().map { it.uppercase() },
+                             SmartPointerManager.createPointer(element))
         }
       }
     }
-    CachedValueProvider.Result.create(result.toList(), PsiModificationTracker.getInstance(project))
+    // Each provider's own tracker says when its endpoints change, so a keystroke the providers ignore (YAML, JSON, a
+    // method body) does not rerun every provider's project-wide search as PsiModificationTracker did. The provider list
+    // depends on libraries (getStatus), dumb mode and the registered providers.
+    val providerTrackers = EndpointsProvider.getAvailableProviders(project).map { it.getModificationTracker(project) }.toList()
+    CachedValueProvider.Result.create(result.toList(), *providerTrackers.toTypedArray(), registeredProviders,
+                                      ProjectRootManager.getInstance(project), DumbService.getInstance(project).modificationTracker)
   }
 
   /** An empty method list accepts every method (`@RequestMapping` without `method`). */
   fun serving(project: Project, operation: SpecOperation): List<PsiElement> =
-    all(project).filter { OpenApiSpecs.pathsMatch(operation.path, it.path) && (it.methods.isEmpty() || operation.method in it.methods) }.map { it.element }
+    all(project).filter { OpenApiSpecs.pathsMatch(operation.path, it.path) && (it.methods.isEmpty() || operation.method in it.methods) }.mapNotNull { it.element }
 
   fun same(a: PsiElement, b: PsiElement): Boolean = a == b || a.navigationElement == b || a == b.navigationElement || a.navigationElement == b.navigationElement
 }
@@ -155,15 +175,14 @@ class EndpointSpecLineMarkerProvider : LineMarkerProvider {
 
   override fun collectSlowLineMarkers(elements: MutableList<out PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
     val project = elements.firstOrNull()?.project ?: return
+    val owners = elements.mapNotNull { element -> handlerCandidate(element)?.let { element to it } }
+    if (owners.isEmpty()) return
     val specs = OpenApiSpecs.specFiles(project)
     if (specs.isEmpty()) return
     val endpoints = CodeEndpoints.all(project)
     if (endpoints.isEmpty()) return
-    for (element in elements) {
-      if (element.firstChild != null) continue
-      val owner = element.parent as? PsiNameIdentifierOwner ?: continue
-      if (owner.nameIdentifier != element) continue
-      val mine = endpoints.filter { CodeEndpoints.same(it.element, owner) }
+    for ((element, owner) in owners) {
+      val mine = endpoints.filter { endpoint -> endpoint.element?.let { CodeEndpoints.same(it, owner) } == true }
       if (mine.isEmpty()) continue
       val operations = specs.flatMap { OpenApiSpecs.operations(it) }.filter { op ->
         mine.any { OpenApiSpecs.pathsMatch(op.path, it.path) && (it.methods.isEmpty() || op.method in it.methods) }
@@ -176,5 +195,20 @@ class EndpointSpecLineMarkerProvider : LineMarkerProvider {
         .setPopupTitle(PhantomOpenApiBundle.message("marker.to.spec.title"))
         .createLineMarkerInfo(element)
     }
+  }
+
+  /**
+   * The declaration whose name [element] is, when an annotation precedes the name: handlers are found by their mapping
+   * annotations, so a file without one never asks the endpoint providers. Checked on the text because this plugin does
+   * not depend on the Java or Kotlin PSI; a `@` in a doc comment only makes the check pass.
+   */
+  private fun handlerCandidate(element: PsiElement): PsiNameIdentifierOwner? {
+    if (element.firstChild != null) return null
+    val owner = element.parent as? PsiNameIdentifierOwner ?: return null
+    if (owner.nameIdentifier != element) return null
+    val text = element.containingFile?.viewProvider?.contents ?: return null
+    val start = owner.textRange.startOffset
+    val end = element.textRange.startOffset
+    return owner.takeIf { start < end && StringUtil.contains(text.subSequence(start, end), "@") }
   }
 }
