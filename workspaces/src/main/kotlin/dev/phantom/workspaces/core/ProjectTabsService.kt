@@ -54,13 +54,15 @@ class ProjectTabsService : Disposable {
   // projects taken out of the stack into a window of their own, until attached again or closed (not kept on restart)
   private val detached = ArrayList<Project>()
 
-  // Window.show() makes the frame displayable (addNotify) and only then shows it; the event comes in between
+  // Window.show() makes the frame displayable (addNotify) and only then shows it; the event comes in between.
+  // Registered only while the setting is on: a toolkit listener for HIERARCHY_EVENT_MASK makes AWT create a HierarchyEvent
+  // for every subtree change of every IDE window (Component.createHierarchyEvents checks Toolkit.enabledOnToolkit).
   private val newFrameListener = AWTEventListener { e ->
     if (e is HierarchyEvent && e.changeFlags and HierarchyEvent.DISPLAYABILITY_CHANGED.toLong() != 0L) placeNewFrame(e.component)
   }
 
   init {
-    Toolkit.getDefaultToolkit().addAWTEventListener(newFrameListener, AWTEvent.HIERARCHY_EVENT_MASK)
+    listenForNewFrames(isEnabled)
     stack.single = isEnabled
   }
 
@@ -71,6 +73,11 @@ class ProjectTabsService : Disposable {
   }
 
   val isEnabled: Boolean get() = AdvancedSettings.getBoolean(ProjectTabs.SETTING_ID)
+
+  private fun listenForNewFrames(on: Boolean) {
+    val toolkit = Toolkit.getDefaultToolkit()
+    if (on) toolkit.addAWTEventListener(newFrameListener, AWTEvent.HIERARCHY_EVENT_MASK) else toolkit.removeAWTEventListener(newFrameListener)
+  }
 
   private fun placeNewFrame(component: Component) {
     // a project frame, not a detached editor window; not shown yet
@@ -130,6 +137,7 @@ class ProjectTabsService : Disposable {
 
   @RequiresEdt
   internal fun settingChanged() {
+    listenForNewFrames(isEnabled)
     if (!isEnabled) stack.unsplit()
     stack.single = isEnabled
     if (isEnabled) {
