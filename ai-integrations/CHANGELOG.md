@@ -2,6 +2,7 @@
 
 ## 미배포
 
+- 새 worktree(New worktree나 보드의 In progress)를 새 창의 프로젝트로 연다. New Worktree 대화 상자의 체크박스로 끌 수 있고 선택은 기억된다. 에이전트 세션은 원래 창에 남는다.
 - 새 worktree를 도구 창 제목 표시줄의 +와 마우스를 올린 저장소/worktree 행 끝의 +로 만든다. 전에는 행의 오른쪽 클릭 메뉴에만 있었다.
 - worktree와 세션의 이름을 F2, 도구 창 제목 표시줄의 Rename, 행 메뉴의 Rename으로 바꾼다. 세션 이름은 저장돼 다시 열어도 남는다. 행 메뉴는 Shift+F10이나 메뉴 키로도 열린다.
 - 보드의 열이 작업 단계가 됐다. New Card로 작업을 계획하고, In progress로 옮기면 worktree를 만들고 카드의 프롬프트로 에이전트를 시작한다. 에이전트가 끝나면 카드가 In review로 가고, 되돌리면 후속 프롬프트를 같은 세션에 보낸다(바쁘면 대기). Done은 확인 후 worktree를 지울 수 있고 병합이나 푸시는 하지 않는다. 카드에 세션 상태 배지, diff(Changes), PR 링크가 붙는다.

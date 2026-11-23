@@ -39,6 +39,7 @@ class BoardFlowInIdeTest : BasePlatformTestCase() {
   private val wt = "/r/repo-feature"
   private val commands = mutableListOf<String>()
   private val git = mutableListOf<String>()
+  private val openedProjects = mutableListOf<String>()
   private lateinit var root: java.io.File
 
   private class FakeIo : TerminalIo {
@@ -91,7 +92,7 @@ class BoardFlowInIdeTest : BasePlatformTestCase() {
   }
 
   private fun panel(): WorkspaceBoardPanel {
-    val work = BoardWork(fakeGit, WorktreeCreator(fakeGit, root.path)) { it.run() }
+    val work = BoardWork(fakeGit, WorktreeCreator(fakeGit, root.path), { it.run() }) { _, path -> openedProjects += path }
     val p = WorkspaceBoardPanel(
       project, { r -> if (r == repo) listOf(Worktree(repo, "main", true), Worktree(wt, "feature", false)) else emptyList() },
       PrTitles { _, _ -> null }, ProjectRepos { listOf(repo) }, dialogs = dialogs, work = work,
@@ -151,6 +152,7 @@ class BoardFlowInIdeTest : BasePlatformTestCase() {
     assertEquals("In progress", AiState.getInstance().findWorktree(made)?.column)
     assertEquals(made, SessionStore.getInstance().all().single().worktree)
     assertTrue(commands.single().contains("add a login page"))
+    assertEquals(listOf(made), openedProjects)
   }
 
   fun testSessionDoneMovesTheCardToInReview() {
@@ -257,7 +259,7 @@ class BoardFlowInIdeTest : BasePlatformTestCase() {
         "diff" -> GitOut(true, listOf("diff --git a/x b/x", "+hello"))
         else -> GitOut(false, emptyList())
       }
-    }) { it.run() }
+    }, background = { it.run() })
     val card = BoardCard(wt, "feature", "feature", null)
     assertEquals("origin/main", work.baseOf(card))
     assertEquals("diff --git a/x b/x\n+hello", work.diff(wt, "origin/main"))

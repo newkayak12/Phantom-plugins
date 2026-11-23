@@ -27,6 +27,7 @@ import dev.phantom.ai.sidebar.Git4IdeaRun
 import dev.phantom.ai.sidebar.GitRun
 import dev.phantom.ai.sidebar.SidebarActions
 import dev.phantom.ai.sidebar.WorktreeCreator
+import dev.phantom.ai.sidebar.WorktreeOpening
 import dev.phantom.ai.sidebar.WorktreeRemoval
 import dev.phantom.ai.terminal.submit
 import git4idea.commands.GitCommand
@@ -83,6 +84,8 @@ class BoardWork(
   private val git: GitRun = Git4IdeaRun(),
   private val creator: WorktreeCreator = WorktreeCreator(git),
   private val background: (Runnable) -> Unit = { ApplicationManager.getApplication().executeOnPooledThread(it) },
+  /** Opens a worktree the board just made as its own project window, unless the user turned that off in New Worktree. */
+  private val openProject: (Project, String) -> Unit = { p, path -> if (WorktreeOpening.asProject) SidebarActions(p).openInPhantom(path) },
 ) {
   /** In progress: a planned card gets its worktree first; then the agent starts there, or a live one gets [prompt]. */
   @RequiresEdt
@@ -103,7 +106,9 @@ class BoardWork(
         created.onSuccess { w ->
           state.rekey(card.path, w.path)
           state.changed()
+          // the agent starts in this window first, so its session stays here while the worktree opens as a project
           SidebarActions(project).newSession(w.path, card.agent, prompt)
+          openProject(project, w.path)
         }.onFailure {
           state.findWorktree(card.path)?.column = BoardFlow.TODO
           state.changed()

@@ -369,7 +369,9 @@ class WorktreeTreePanel(
                 AiState.getInstance().changed()
               }
               refresh()
+              // the agent starts in this window first, so its session stays here while the worktree opens as a project
               request.agent?.let { actions.newSession(w.path, it) }
+              if (request.openAsProject) actions.openInPhantom(w.path)
             }.onFailure { Messages.showErrorDialog(project, it.message, PhantomAiBundle.message("worktree.new.failed")) }
           }
         })

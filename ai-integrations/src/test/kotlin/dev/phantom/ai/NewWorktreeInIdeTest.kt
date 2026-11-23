@@ -33,6 +33,9 @@ class NewWorktreeInIdeTest : BasePlatformTestCase() {
   override fun setUp() {
     super.setUp()
     AiState.getInstance().loadState(AiStateData())
+    dev.phantom.ai.terminal.AgentTerminalService.getInstance(project).replaceStarter(
+      dev.phantom.ai.terminal.TerminalStarter { _: com.intellij.openapi.Disposable, _, _, _ -> dev.phantom.ai.terminal.StartedTerminal(javax.swing.JPanel()) },
+    )
     base = Files.createTempDirectory("wtplus").toRealPath().toFile()
     val seed = File(base, "seed").also { it.mkdirs() }
     git(seed, "init", "-b", "main")
@@ -47,6 +50,8 @@ class NewWorktreeInIdeTest : BasePlatformTestCase() {
 
   override fun tearDown() {
     try {
+      dev.phantom.ai.terminal.AgentTabsHost.getInstance(project).let { h -> h.tabs().forEach { h.close(it.id) } }
+      dev.phantom.ai.core.SessionStore.getInstance().all().forEach { dev.phantom.ai.core.SessionStore.getInstance().remove(it.tabId) }
       AiState.getInstance().loadState(AiStateData())
       base.deleteRecursively()
     } finally {
@@ -62,14 +67,14 @@ class NewWorktreeInIdeTest : BasePlatformTestCase() {
     return out
   }
 
-  private fun panel(name: String): WorktreeTreePanel {
+  private fun panel(name: String, openAsProject: Boolean = true): WorktreeTreePanel {
     // the panel's own defaults for git: Git4IdeaRun on the default project, as in the tool window
     val p = WorktreeTreePanel(
       project, GitWorktreeSource(), PrTitles { _, _ -> null },
       SidebarActions(project, ProjectSwitcher { false }, ProjectOpener { opened += it }),
       creator = WorktreeCreator(Git4IdeaRun(), File(base, "workspaces").path),
       repos = ProjectRepos { listOf(repo.path) },
-      askNewWorktree = { n, b -> asked += n to b; NewWorktreeRequest(name, null, null) },
+      askNewWorktree = { n, b -> asked += n to b; NewWorktreeRequest(name, null, dev.phantom.ai.core.AgentKind.CLAUDE, openAsProject) },
     )
     Disposer.register(testRootDisposable, p)
     waitFor { p.treeForTest().rowCount > 0 }
@@ -94,6 +99,32 @@ class NewWorktreeInIdeTest : BasePlatformTestCase() {
     assertEquals(listOf("app" to "origin/main"), asked)
     assertTrue(git(repo, "worktree", "list").contains(created("task-a").path))
     assertTrue(git(repo, "branch", "--list").contains("Tester/task-a"))
+    // the agent starts in this window, then the worktree opens as its own project
+    assertEquals(created("task-a").path, dev.phantom.ai.core.SessionStore.getInstance().all().single().worktree)
+    assertEquals(listOf(created("task-a").path), opened)
+  }
+
+  fun testOpenAsProjectOffKeepsTheWorktreeInThisWindow() {
+    val p = panel("task-c", openAsProject = false)
+    p.newWorktreeForSelection()
+    waitFor { created("task-c").isDirectory && dev.phantom.ai.core.SessionStore.getInstance().all().isNotEmpty() }
+    assertTrue(opened.isEmpty())
+  }
+
+  fun testTheDialogRemembersOpenAsProject() {
+    val before = dev.phantom.ai.sidebar.WorktreeOpening.asProject
+    try {
+      dev.phantom.ai.sidebar.WorktreeOpening.asProject = true
+      val on = dev.phantom.ai.sidebar.NewWorktreeDialog(project, "app", null)
+      assertTrue(on.request().openAsProject)
+      Disposer.dispose(on.disposable)
+      dev.phantom.ai.sidebar.WorktreeOpening.asProject = false
+      val off = dev.phantom.ai.sidebar.NewWorktreeDialog(project, "app", null)
+      assertFalse(off.request().openAsProject)
+      Disposer.dispose(off.disposable)
+    } finally {
+      dev.phantom.ai.sidebar.WorktreeOpening.asProject = before
+    }
   }
 
   fun testThePlusOnAHoveredRowCreatesAWorktreeBelowIt() {
