@@ -92,6 +92,11 @@ tasks.withType<JavaExec>().configureEach {
 // (/tmp, a CI workspace) failed every test reading its testData. The real path: VfsRootAccess compares resolved paths.
 tasks.withType<Test>().configureEach { systemProperty("vfs.additional-allowed-roots", rootDir.canonicalPath) }
 
+// JUnit 5 tests share one test IDE that the IntelliJ test framework disposes when the Jupiter engine finishes; the JUnit 4 tests
+// (vintage engine) run after it in the same JVM and could not start it again: every one of them failed with "Already shutdown"
+// (FSRecords). Keep the IDE until the JVM exits.
+tasks.withType<Test>().configureEach { systemProperty("intellij.testFramework.junit5.skip.test.application.dispose", "true") }
+
 // META-INF/THIRD-PARTY-NOTICES.txt and META-INF/licenses/: every library packed into the plugin's lib/, with its license
 // and the license texts. Computed from the resolved POMs when the task's input is read.
 val thirdPartyNotices = tasks.register<ThirdPartyNoticesTask>("thirdPartyNotices") {
