@@ -2,6 +2,10 @@
 
 ## 미배포
 
+## 0.2.2 (2026-11-23)
+
+- Backup and Sync 기록 동작의 id를 `phantom.settingsSync.history`로 바꿨다. IntelliJ의 `settingsSync.history`와 겹쳐 테스트용 IDE에서 Git 테스트 대부분이 실패했다.
+
 ## 0.2.1 (2026-11-23)
 
 - 이름을 바꿨다: Git Support → Phantom for Git. Phantom으로 시작하고, 지원하는 프로젝트 이름은 뒤에 둔다. 플러그인 id와 기능은 그대로다.

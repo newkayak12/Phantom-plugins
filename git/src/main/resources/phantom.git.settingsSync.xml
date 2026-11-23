@@ -13,6 +13,8 @@
   </extensions>
 
   <actions resource-bundle="messages.SettingsSyncBundle">
-    <action class="com.intellij.vcs.git.settingsSync.SettingsSyncHistoryAction" id="settingsSync.history" icon="AllIcons.Vcs.History"/>
+    <!-- not IntelliJ's settingsSync.history id: IntelliJ's settings-sync-core, in the IDE the plugin tests run in, still registers it -->
+    <action class="com.intellij.vcs.git.settingsSync.SettingsSyncHistoryAction" id="phantom.settingsSync.history" icon="AllIcons.Vcs.History"
+            text="Backup and Sync History"/>
   </actions>
 </idea-plugin>

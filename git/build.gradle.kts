@@ -6,9 +6,10 @@ plugins {
   id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-version = "0.2.1"
+version = "0.2.2"
 
-// The Backup and Sync history (phantom.git.settingsSync) moved here from the IDE core: the IDE core of earlier Phantom builds still holds them, so an installed zip must not load there
+// The Backup and Sync history (phantom.git.settingsSync) moved here from the IDE core. The core of earlier Phantom builds
+// still has it, so an installed zip must not load there
 intellijPlatform {
   pluginConfiguration {
     ideaVersion {
@@ -17,7 +18,6 @@ intellijPlatform {
     }
   }
 }
-
 
 // As the IntelliJ module is compiled: interfaces annotated @JvmDefaultWithCompatibility need this mode
 kotlin {
