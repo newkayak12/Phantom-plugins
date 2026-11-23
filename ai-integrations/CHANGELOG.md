@@ -2,6 +2,8 @@
 
 ## 미배포
 
+- 도구 창 스트라이프 아이콘을 말풍선 목록 대신 반짝임이 붙은 터미널 그림으로 바꿨다. 16px와 20px용을 따로 그렸다.
+
 ## 0.5.2
 
 - 계정의 로그인과 이메일을 CLI에 묻는다. Claude Code는 `claude auth status --json`, Codex는 `codex app-server`의 `account/read`다. Codex의 `auth.json`(토큰이 든 파일)과 Claude의 `.claude.json` 로그인 정보를 더는 읽지 않는다.
