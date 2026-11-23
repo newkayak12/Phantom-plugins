@@ -12,30 +12,42 @@ import kotlinx.coroutines.withContext
 /**
  * Brings back the saved groups when a project opens. Editor events alone are not enough: the editors can all come back
  * before the plugin sees their panes, and then nothing happens until the user clicks a tab. The editor manager tells
- * nothing public when its panes are back, so they are looked for every [STEP_MS] until every saved pane with groups is
- * listed. Restoring takes seconds; past [LIMIT_MS] (a slow start, or a saved pane that did not come back) the panes still
- * missing are left to editor events, and that is logged.
+ * nothing public when its panes are back, so they are looked for after each of [RETRY_DELAYS] (from [FIRST_STEP_MS],
+ * doubling up to [MAX_STEP_MS]) until every saved pane with groups is listed. Restoring takes seconds; past [LIMIT_MS]
+ * (a slow start, or a saved pane that did not come back) the panes still missing are left to editor events, and that is
+ * logged. Each look runs on the EDT, so they get rarer instead of running four times a second for minutes.
  */
 internal class TabGroupsStartup : ProjectActivity {
   override suspend fun execute(project: Project) {
     val service = TabGroupsService.getInstance(project)
     // nothing saved, nothing to bring back: no trip to the EDT
     if (!service.hasSavedGroups) return
-    var waited = 0L
-    while (!withContext(Dispatchers.EDT) { service.restorePanes() }) {
-      if (waited >= LIMIT_MS) {
-        LOG.warn("Saved tab groups: not every saved editor pane was listed ${LIMIT_MS / 1000} s after ${project.name} opened; " +
-                 "the groups of the missing panes come back with their next editor event")
-        return
-      }
-      delay(STEP_MS)
-      waited += STEP_MS
+    for (wait in RETRY_DELAYS) {
+      if (withContext(Dispatchers.EDT) { service.restorePanes() }) return
+      delay(wait)
     }
+    if (withContext(Dispatchers.EDT) { service.restorePanes() }) return
+    LOG.warn("Saved tab groups: not every saved editor pane was listed ${LIMIT_MS / 1000} s after ${project.name} opened; " +
+             "the groups of the missing panes come back with their next editor event")
   }
 
-  private companion object {
-    const val STEP_MS = 250L
-    const val LIMIT_MS = 300_000L
-    val LOG = logger<TabGroupsStartup>()
+  internal companion object {
+    const val FIRST_STEP_MS = 250L
+    const val MAX_STEP_MS = 2_000L
+    const val LIMIT_MS = 15_000L
+
+    /** The waits between looks: doubling from [FIRST_STEP_MS], at most [MAX_STEP_MS] each, [LIMIT_MS] in all. */
+    val RETRY_DELAYS: List<Long> = buildList {
+      var step = FIRST_STEP_MS
+      var total = 0L
+      while (total < LIMIT_MS) {
+        val wait = minOf(step, LIMIT_MS - total)
+        add(wait)
+        total += wait
+        step = minOf(step * 2, MAX_STEP_MS)
+      }
+    }
+
+    private val LOG = logger<TabGroupsStartup>()
   }
 }
