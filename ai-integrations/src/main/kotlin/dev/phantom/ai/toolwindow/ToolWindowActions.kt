@@ -61,6 +61,18 @@ class RefreshTreeAction(private val panel: AgentToolWindowPanel) : AnAction(), D
   }
 }
 
+/** Renames the selected worktree or session of the tree (also F2 and the row's menu). */
+class RenameSelectedAction(private val panel: AgentToolWindowPanel) : AnAction(), DumbAware {
+  override fun getActionUpdateThread() = ActionUpdateThread.EDT
+
+  override fun update(e: AnActionEvent) {
+    e.presentation.text = PhantomAiBundle.message("sidebar.rename")
+    e.presentation.icon = AllIcons.Actions.Edit
+  }
+
+  override fun actionPerformed(e: AnActionEvent) = panel.tree.renameSelected()
+}
+
 /** Opens the settings page of the plugin (accounts). */
 class SettingsAction(private val project: Project) : AnAction(), DumbAware {
   override fun getActionUpdateThread() = ActionUpdateThread.EDT
@@ -76,8 +88,8 @@ class SettingsAction(private val project: Project) : AnAction(), DumbAware {
 }
 
 object ToolWindowActions {
-  /** Title actions in the order: Refresh, tree toggle, Float/Dock, Settings. */
+  /** Title actions in the order: Refresh, Rename, tree toggle, Float/Dock, Settings. */
   fun install(toolWindow: ToolWindow, project: Project, panel: AgentToolWindowPanel) {
-    toolWindow.setTitleActions(listOf(RefreshTreeAction(panel), ToggleTreeAction(panel), FloatDockAction(toolWindow), SettingsAction(project)))
+    toolWindow.setTitleActions(listOf(RefreshTreeAction(panel), RenameSelectedAction(panel), ToggleTreeAction(panel), FloatDockAction(toolWindow), SettingsAction(project)))
   }
 }

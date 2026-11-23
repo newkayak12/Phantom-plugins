@@ -109,7 +109,12 @@ class WorktreeTreePanel(
     })
     tree.addKeyListener(object : KeyAdapter() {
       override fun keyPressed(e: KeyEvent) {
-        if (e.keyCode == KeyEvent.VK_ENTER) activateSelected()
+        when {
+          e.keyCode == KeyEvent.VK_ENTER -> activateSelected()
+          e.keyCode == KeyEvent.VK_F2 -> renameSelected()
+          // the menu from the keyboard too: the context-menu key or Shift+F10, at the selected row
+          e.keyCode == KeyEvent.VK_CONTEXT_MENU || (e.keyCode == KeyEvent.VK_F10 && e.isShiftDown) -> showMenuForSelection()
+        }
       }
     })
     ApplicationManager.getApplication().messageBus.connect(this)
@@ -240,6 +245,7 @@ class WorktreeTreePanel(
     is RepoNode -> menu(PhantomAiBundle.message("worktree.new") to { newWorktree(o) })
     is SessionRow -> menu(
       PhantomAiBundle.message("action.resume") to (if (actions.canActivate(o.session)) ({ actions.activate(o.session); Unit }) else null),
+      PhantomAiBundle.message("sidebar.rename") to { renameSession(o) },
     )
     else -> null
   }
@@ -265,6 +271,26 @@ class WorktreeTreePanel(
       is PromptTarget.Type -> actions.terminalOf(t.tabId)?.submit(prompt)
       is PromptTarget.Start -> actions.newSession(t.worktree, AgentKind.CLAUDE, prompt)
     }
+  }
+
+  /** Renames the selected worktree or session row (F2, the title bar's Rename); nothing for a repository row. */
+  fun renameSelected() {
+    when (val o = (tree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject) {
+      is WorktreeNode -> renameWorktree(o)
+      is SessionRow -> renameSession(o)
+    }
+  }
+
+  private fun showMenuForSelection() {
+    val path = tree.selectionPath ?: return
+    val bounds = tree.getPathBounds(path) ?: return
+    menuFor(nodeObject(path))?.show(tree, bounds.x, bounds.y + bounds.height)
+  }
+
+  private fun renameSession(row: SessionRow) {
+    val name = Messages.showInputDialog(project, PhantomAiBundle.message("sidebar.session.name"), PhantomAiBundle.message("sidebar.rename"), null, row.title, null) ?: return
+    SessionNames.rename(row.session, name)
+    refresh()
   }
 
   private fun renameWorktree(w: WorktreeNode) {
