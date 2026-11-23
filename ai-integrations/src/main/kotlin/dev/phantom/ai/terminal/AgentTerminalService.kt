@@ -97,23 +97,16 @@ class AgentTerminalService(private val project: Project) {
    * can bring the conversation back).
    */
   @RequiresEdt
-  fun reattach(tabId: String, activate: Boolean = true): String? {
+  fun reattach(tabId: String, activate: Boolean = true): String? = reattach(tabId, activate, probed = false)
+
+  /** [probed]: [probe] said true just before, off the EDT, so tmux is not asked again here. */
+  private fun reattach(tabId: String, activate: Boolean, probed: Boolean): String? {
     val store = SessionStore.getInstance()
     val session = store.get(tabId)?.takeIf { it.detached } ?: return null
     // a closing window would dispose the tab at once, killing the agent: leave it for the next window
     if (project.isDisposed || host.isClosed) return null
+    if (!probed && probe(session) != true) return null
     val name = session.tmuxSession
-    val exists = if (name == null) false else Tmux.sessions.exists(name) ?: return null
-    if (!exists) {
-      // tmux said it is gone; ended anyway, in case its name was reused
-      name?.let {
-        Tmux.sessions.kill(it)
-        DetachedSessions.disown(it)
-      }
-      store.remove(tabId)
-      McpConfigFiles.delete(tabId)
-      return null
-    }
     // claimed before the terminal starts: one window at most attaches a session
     var claimed = false
     store.update(tabId) { s -> if (s.detached) s.copy(detached = false, detachedFrom = null).also { claimed = true } else s }
@@ -132,12 +125,37 @@ class AgentTerminalService(private val project: Project) {
   }
 
   /**
-   * Reattaches, without activating the tool window, every session that detached from a window of the project at
-   * [basePath]: reopening a window brings back the agents it had.
+   * Whether the tmux session of the detached [session] still runs; null when tmux could not tell (it stays detached).
+   * One that has ended is dropped here, its name killed anyway in case it was reused. Runs tmux: may block for seconds.
+   */
+  private fun probe(session: AgentSession): Boolean? {
+    val name = session.tmuxSession
+    val exists = if (name == null) false else Tmux.sessions.exists(name) ?: return null
+    if (!exists) {
+      name?.let {
+        Tmux.sessions.kill(it)
+        DetachedSessions.disown(it)
+      }
+      SessionStore.getInstance().remove(session.tabId)
+      McpConfigFiles.delete(session.tabId)
+    }
+    return exists
+  }
+
+  /**
+   * Off the EDT: the tab ids of the sessions that detached from a window of the project at [basePath] and still run in
+   * tmux, for [reattachDetached]. Ended ones are dropped; ones tmux could not tell about stay detached.
+   */
+  fun liveDetached(basePath: String): List<String> =
+    DetachedSessions.detachedFrom(SessionStore.getInstance().all(), basePath).filter { probe(it) == true }.map { it.tabId }
+
+  /**
+   * Reattaches, without activating the tool window, the detached sessions [tabIds] that [liveDetached] found running:
+   * reopening a window brings back the agents it had, and tmux is not asked on the EDT.
    */
   @RequiresEdt
-  fun reattachDetached(basePath: String) {
-    DetachedSessions.detachedFrom(SessionStore.getInstance().all(), basePath).forEach { reattach(it.tabId, activate = false) }
+  fun reattachDetached(tabIds: Collection<String>) {
+    tabIds.forEach { reattach(it, activate = false, probed = true) }
   }
 
   /** Resume target of [session]: its hook id, else Claude's earliest-created .jsonl that no other session of the worktree owns. */

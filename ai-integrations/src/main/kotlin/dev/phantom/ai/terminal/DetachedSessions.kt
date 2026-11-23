@@ -149,13 +149,17 @@ class DetachedSessionsUnload : DynamicPluginListener {
 /**
  * A project window opens: the agents that detached from a window of this project come back as tabs, without taking the
  * focus. Only the session store is looked at until there is one: the terminal service and the EDT are left alone at startup.
+ * tmux is asked which still run before the EDT: it runs a process per session, waiting up to seconds.
  */
 class DetachedSessionsStartup : ProjectActivity {
   override suspend fun execute(project: Project) {
     val base = project.basePath ?: return
     if (DetachedSessions.detachedFrom(SessionStore.getInstance().all(), base).isEmpty()) return
+    val service = AgentTerminalService.getInstance(project)
+    val live = withContext(Dispatchers.IO) { service.liveDetached(base) }
+    if (live.isEmpty()) return
     withContext(Dispatchers.EDT) {
-      if (!project.isDisposed) AgentTerminalService.getInstance(project).reattachDetached(base)
+      if (!project.isDisposed) service.reattachDetached(live)
     }
   }
 }
