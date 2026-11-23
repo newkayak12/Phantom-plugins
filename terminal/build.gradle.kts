@@ -8,7 +8,8 @@ plugins {
 
 version = "0.3.0"
 
-// The Java support modules (intellij.java.terminal.*) moved here from the IDE core: the IDE core of earlier Phantom builds still holds them, so an installed zip must not load there
+// The Java support modules (phantom.terminal.java.*) moved here from the IDE core. The core of earlier Phantom builds still
+// has them, so an installed zip must not load there
 intellijPlatform {
   pluginConfiguration {
     ideaVersion {
@@ -17,7 +18,6 @@ intellijPlatform {
     }
   }
 }
-
 
 // The IntelliJ sources keep Java next to Kotlin
 sourceSets {
