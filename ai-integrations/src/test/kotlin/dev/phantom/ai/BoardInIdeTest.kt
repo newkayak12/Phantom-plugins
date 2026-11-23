@@ -60,14 +60,14 @@ class BoardInIdeTest : BasePlatformTestCase() {
 
   fun testProgrammaticMovePersistsToAiState() {
     val p = panel()
-    p.moveCard(wt, "Done", 0)
-    assertEquals("Done", AiState.getInstance().findWorktree(wt)?.column)
-    assertEquals(listOf(wt), p.currentLayout().cardsOf("Done"))
+    p.moveCard(wt, "In review", 0)
+    assertEquals("In review", AiState.getInstance().findWorktree(wt)?.column)
+    assertEquals(listOf(wt), p.currentLayout().cardsOf("In review"))
     // a fresh panel reads the stored placement back
     val again = WorkspaceBoardPanel(project, { listOf(Worktree(repo, "main", true), Worktree(wt, "feature", false)) }, PrTitles { _, _ -> null }, ProjectRepos { listOf(repo) })
     Disposer.register(testRootDisposable, again)
     again.showCards(again.buildCards())
-    assertEquals(listOf(wt), again.currentLayout().cardsOf("Done"))
+    assertEquals(listOf(wt), again.currentLayout().cardsOf("In review"))
   }
 
   fun testBoardFileIsOneReadOnlyFilePerProjectAndProviderAcceptsOnlyIt() {

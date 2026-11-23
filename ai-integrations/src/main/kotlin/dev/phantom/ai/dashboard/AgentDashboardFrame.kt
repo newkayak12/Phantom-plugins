@@ -7,11 +7,16 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.ui.FrameWrapper
+import com.intellij.openapi.project.ProjectManager
+import dev.phantom.ai.board.WorkspaceBoardPanel
 import dev.phantom.ai.core.PhantomAiBundle
 import java.awt.Dimension
 
-/** The Agent Dashboard as its own window (a [FrameWrapper], not a tool window). One per project; reopening raises it. */
-class AgentDashboardFrame(val project: Project, val panel: AgentDashboardPanel) {
+/**
+ * The Agent Dashboard as its own window (a [FrameWrapper], not a tool window): the Board across every open project, with a
+ * project filter. One per project; reopening raises it.
+ */
+class AgentDashboardFrame(val project: Project, val panel: WorkspaceBoardPanel) {
   private var wrapper: FrameWrapper? = null
 
   fun show() {
@@ -32,7 +37,7 @@ class AgentDashboardFrame(val project: Project, val panel: AgentDashboardPanel) 
     fun open(project: Project): AgentDashboardFrame {
       val f = synchronized(frames) {
         frames.getOrPut(project) {
-          val panel = AgentDashboardPanel(project)
+          val panel = WorkspaceBoardPanel(project, allProjects = { ProjectManager.getInstance().openProjects.toList() })
           Disposer.register(project, panel)
           Disposer.register(panel) { synchronized(frames) { frames.remove(project) } }
           AgentDashboardFrame(project, panel)
