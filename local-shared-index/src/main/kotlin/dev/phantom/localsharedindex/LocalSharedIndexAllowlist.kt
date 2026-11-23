@@ -63,7 +63,9 @@ object LocalSharedIndexAllowlist {
    * Indexes whose files are skipped during scanning when a donor with the same content key is indexed, and queried
    * through the donor (prototype for #109; registry key [ALIAS_KEY]).
    */
-  private val ALIASED = setOf("IdIndex", "Trigram.Index")
+  // Every audited content-only index except stubs: StubIndex keeps its own key-to-file-id maps, which a redirect of
+  // the stub tree does not reach, so stubs need a platform hook (#109).
+  private val ALIASED = CONTENT_ONLY
   const val ALIAS_KEY = "phantom.localsharedindex.alias"
 
   /** Whether the index takes part at all; [aliases] also asks the registry, at each use. */

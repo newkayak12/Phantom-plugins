@@ -32,7 +32,7 @@ internal class LocalSharedIndexStatusProcessor(private val project: Project) : F
     // A file clean in its git work tree is matched by blob id, which costs no read of the file: reading and hashing every
     // file of a fresh checkout made scanning slower than the indexing it saved. Such a file without a blob donor is not
     // read either; only files git cannot vouch for fall back to the content key.
-    val blobKey = if (aliases.hasBlobDonors) GitBlobs.blobOf(vFile)?.let { CacheKeys.blobKeyFor(file, it, extension.indexer) } else null
+    val blobKey = if (aliases.hasBlobDonors) blobHashOf(file)?.let { CacheKeys.blobKeyFor(it, file, extension.indexer) } else null
     val donor = if (blobKey != null) {
       aliases.donorForBlob(blobKey) ?: return false
     }
@@ -48,6 +48,17 @@ internal class LocalSharedIndexStatusProcessor(private val project: Project) : F
 
   override fun hasIndexForFile(file: VirtualFile, inputId: Int, extension: FileBasedIndexExtension<*, *>): Boolean =
     LocalSharedIndexAllowlist.aliases(extension.name.name) && AliasRegistry.of(extension.name.name).donorOf(inputId) != null
+
+  // Scanning asks every index of one file in a row on one thread: the blob id is looked up and the indexed hash over it
+  // computed once per file, not once per index.
+  private val lastBlobHash = ThreadLocal<Pair<VirtualFile, ByteArray?>?>()
+
+  private fun blobHashOf(file: IndexedFile): ByteArray? {
+    lastBlobHash.get()?.takeIf { it.first == file.file }?.let { return it.second }
+    val hash = GitBlobs.blobOf(file.file)?.let { CacheKeys.blobHash(file, it) }
+    lastBlobHash.set(file.file to hash)
+    return hash
+  }
 
   private fun keyOf(file: VirtualFile, extension: FileBasedIndexExtension<*, *>): ByteArray? = try {
     CacheKeys.keyFor(contentOf(file), extension.indexer)

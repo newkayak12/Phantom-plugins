@@ -16,7 +16,13 @@ internal object CacheKeys {
    * indexer picks its sub-indexer from the file, not its bytes.
    */
   fun blobKeyFor(file: IndexedFile, blob: ByteArray, indexer: DataIndexer<*, *, FileContent>): ByteArray =
-    withSubIndexerVersion(IndexedHashesSupport.calculateIndexedHash(file, blob), file, indexer)
+    blobKeyFor(blobHash(file, blob), file, indexer)
+
+  /** The part of [blobKeyFor] that is the same for every index of the file. */
+  fun blobHash(file: IndexedFile, blob: ByteArray): ByteArray = IndexedHashesSupport.calculateIndexedHash(file, blob)
+
+  fun blobKeyFor(blobHash: ByteArray, file: IndexedFile, indexer: DataIndexer<*, *, FileContent>): ByteArray =
+    withSubIndexerVersion(blobHash, file, indexer)
 
   /**
    * The platform's indexed-file hash (content, charset, file name, file type, indexing flavor), mixed with the

@@ -17,6 +17,7 @@ import com.intellij.testFramework.RunsInEdt
 import com.intellij.testFramework.rules.TempDirectory
 import com.intellij.util.indexing.FileBasedIndex
 import com.intellij.util.indexing.FileBasedIndexImpl
+import com.intellij.util.indexing.ID
 import com.intellij.util.indexing.IndexedFileImpl
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -84,6 +85,11 @@ class LocalSharedIndexAliasTest {
     assertTrue(containing(a, "greet", mainA))
     val index = FileBasedIndex.getInstance()
     assertEquals(index.getFileData(IdIndex.NAME, mainA, a), index.getFileData(IdIndex.NAME, mainB, b))
+    // A Java index is aliased the same way: Main passes null to greet.
+    val nullArgs = ID.findByName<Any, Any>("java.null.method.argument")!!
+    assertEquals(id(mainA), AliasRegistry.of(nullArgs.name).donorOf(id(mainB)))
+    assertTrue(index.getFileData(nullArgs, mainB, b).isNotEmpty())
+    assertEquals(index.getFileData(nullArgs, mainA, a), index.getFileData(nullArgs, mainB, b))
   }
 
   @Test
