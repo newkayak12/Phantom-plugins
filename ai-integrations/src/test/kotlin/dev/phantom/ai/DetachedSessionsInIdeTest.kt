@@ -251,6 +251,24 @@ class DetachedSessionsInIdeTest : BasePlatformTestCase() {
     assertTrue(late.isCancelled)
   }
 
+  // one poller for all hook-less Claude tabs, none for Codex, gone once every session is bound
+  fun testOneBindingPollerOnlyWhileAClaudeSessionIsUnbound() {
+    AgentTerminalService.stopBindingPoller()
+    service.launch("/w/keep/a", AgentKind.CODEX)!!
+    assertFalse("Codex has no .jsonl to look for", AgentTerminalService.bindingPollerRunning())
+    val a = service.launch("/w/keep/a", AgentKind.CLAUDE)!!
+    val b = service.launch("/w/keep/b", AgentKind.CLAUDE)!!
+    assertTrue(AgentTerminalService.bindingPollerRunning())
+    assertEquals("one poller, not one per tab", 1, DetachedSessions.liveTasks())
+    store.update(a) { it.copy(sessionId = "sess-a") }
+    AgentTerminalService.bindTickForTest()
+    assertTrue("b still unbound", AgentTerminalService.bindingPollerRunning())
+    store.update(b) { it.copy(sessionId = "sess-b") }
+    AgentTerminalService.bindTickForTest()
+    assertFalse(AgentTerminalService.bindingPollerRunning())
+    assertEquals(0, DetachedSessions.liveTasks())
+  }
+
   fun testReattachKeepsTheTabIdAndClearsDetached() {
     val tab = detachedTab()
     val before = store.get(tab)!!
