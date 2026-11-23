@@ -463,7 +463,7 @@
     <ID>CyclomaticComplexMethod:LanguageToolChecker.kt:private fun isKnownLTBug: Boolean</ID>
     <ID>CyclomaticComplexMethod:LightGitPresentation.kt:@Nls private fun LightFileStatus.StatusRecord.getPresentation: String</ID>
     <ID>CyclomaticComplexMethod:LightOverlay.kt:LightOverlay$fun apply</ID>
-    <ID>CyclomaticComplexMethod:LiquibaseProperties.kt:LiquibaseProperties.Companion$fun of: LiquibaseProperties</ID>
+    <ID>CyclomaticComplexMethod:LiquibaseProperties.kt:LiquibaseProperties.Companion$private fun fromFiles: LiquibaseProperties</ID>
     <ID>CyclomaticComplexMethod:LogConsole.kt:LogInputFilter$override fun applyFilter: List&lt;Pair&lt;String, ConsoleViewContentType>>?</ID>
     <ID>CyclomaticComplexMethod:LogbackDelegateMemberContributor.kt:LogbackDelegateMemberContributor.ComponentProcessor$override fun execute: Boolean</ID>
     <ID>CyclomaticComplexMethod:MapConstructorAttributesFix.kt:MapConstructorAttributesFix.Companion$private fun processLabel: Unit</ID>
