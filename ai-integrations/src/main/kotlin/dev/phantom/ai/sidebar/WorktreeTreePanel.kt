@@ -306,24 +306,7 @@ class WorktreeTreePanel(
   /** Removes a worktree and its branch if merged; changed files need a second, forced confirmation, as in Orca. */
   private fun removeWorktree(w: WorktreeNode) {
     val repo = repoOfWorktree[w.path]?.path ?: return
-    if (SessionStore.getInstance().forWorktree(w.path).isNotEmpty()) {
-      Messages.showInfoMessage(project, PhantomAiBundle.message("worktree.remove.busy"), PhantomAiBundle.message("worktree.remove"))
-      return
-    }
-    if (Messages.showYesNoDialog(project, PhantomAiBundle.message("worktree.remove.confirm", w.path, w.branch ?: "-"),
-        PhantomAiBundle.message("worktree.remove"), null) != Messages.YES) return
-    fun run(force: Boolean): Unit = background(Runnable {
-      val error = creator.remove(repo, w.path, w.branch, force)
-      later {
-        when {
-          error == null -> refresh()
-          !force && Messages.showYesNoDialog(project, PhantomAiBundle.message("worktree.remove.force", error),
-            PhantomAiBundle.message("worktree.remove"), null) == Messages.YES -> run(true)
-          force -> Messages.showErrorDialog(project, error, PhantomAiBundle.message("worktree.remove"))
-        }
-      }
-    })
-    run(false)
+    WorktreeRemoval(project, creator, background).remove(repo, w.path, w.branch) { refresh() }
   }
 
   private fun later(run: () -> Unit) = ApplicationManager.getApplication().invokeLater(run, project.disposed)
