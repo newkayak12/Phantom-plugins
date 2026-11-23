@@ -75,8 +75,10 @@ class ProjectTabsService : Disposable {
   val isEnabled: Boolean get() = AdvancedSettings.getBoolean(ProjectTabs.SETTING_ID)
 
   private fun listenForNewFrames(on: Boolean) {
+    // Removed first: the toolkit keeps one entry per add, and settingChanged may run while the setting stays on.
     val toolkit = Toolkit.getDefaultToolkit()
-    if (on) toolkit.addAWTEventListener(newFrameListener, AWTEvent.HIERARCHY_EVENT_MASK) else toolkit.removeAWTEventListener(newFrameListener)
+    toolkit.removeAWTEventListener(newFrameListener)
+    if (on) toolkit.addAWTEventListener(newFrameListener, AWTEvent.HIERARCHY_EVENT_MASK)
   }
 
   private fun placeNewFrame(component: Component) {
