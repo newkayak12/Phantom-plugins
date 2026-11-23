@@ -16,7 +16,6 @@
     <ID>ComplexCondition:CommonDriver.kt:CommonDriver.Companion$type == null || type == PsiTypes.nullType() || (type is PsiWildcardType &amp;&amp; !type.isBounded)</ID>
     <ID>ComplexCondition:ComposeLineMarkers.kt:ComposeLineMarkerProvider$context.contains("://") || context.startsWith("git@") || context.contains('$') || dockerfile?.contains('$') == true</ID>
     <ID>ComplexCondition:ConfigMetadata.kt:ConfigNames$previous != null &amp;&amp; previous != '.' &amp;&amp; previous != '-' &amp;&amp; !name[i - 1].isUpperCase()</ID>
-    <ID>ComplexCondition:ConfigMetadataService.kt:ConfigMetadataService$cached != null &amp;&amp; cached.rootsStamp == rootsStamp &amp;&amp; cached.localStamp == localStamp &amp;&amp; cached.fromSource === fromSource</ID>
     <ID>ComplexCondition:ConfigSyntax.kt:length >= 2 &amp;&amp; (startsWith('"') &amp;&amp; endsWith('"') || startsWith('\'') &amp;&amp; endsWith('\''))</ID>
     <ID>ComplexCondition:CpuWidget.kt:CpuComponent$w == null || !w.isActive || (w is Frame &amp;&amp; w.extendedState and Frame.ICONIFIED != 0)</ID>
     <ID>ComplexCondition:DbAlter.kt:DbAlter$!typeChanged &amp;&amp; !nullChanged &amp;&amp; !defaultChanged &amp;&amp; !commentChanged</ID>
@@ -134,7 +133,6 @@
     <ID>ComplexCondition:ShellCommandTreeSuggestionsProvider.kt:ShellCommandTreeSuggestionsProvider$(!node.getMergedParserOptions().optionsMustPrecedeArguments || node.children.filterIsInstance&lt;ShellArgumentNode>().isEmpty()) &amp;&amp; (lastArg?.isVariadic != true || lastArg.optionsCanBreakVariadicArg)</ID>
     <ID>ComplexCondition:ShellExecOptionsCustomizerTest.kt:path1 != null &amp;&amp; path2 != null &amp;&amp; path1.isNotEmpty() &amp;&amp; !path1.endsWith(descriptor.osFamily.pathSeparator) &amp;&amp; path2.isNotEmpty() &amp;&amp; !path2.startsWith(descriptor.osFamily.pathSeparator)</ID>
     <ID>ComplexCondition:SourceConfigProperties.kt:SourceConfigProperties$psiClass.isEnum || psiClass.isInterface || psiClass.isAnnotationType || psiClass is PsiTypeParameter</ID>
-    <ID>ComplexCondition:SpringBeanContractInspections.kt:KnownProfiles$blockIndent >= 0 &amp;&amp; (indent > blockIndent || indent == blockIndent &amp;&amp; trimmed.startsWith("-"))</ID>
     <ID>ComplexCondition:SpringBeanContractInspections.kt:SpringBeanLifecycleMethodInspection.&lt;no name provided>$name.isEmpty() || name == SpringContractNames.INFERRED || name.contains("\${") || name.contains("#{")</ID>
     <ID>ComplexCondition:SpringBeanDefinitionInspections.kt:SpringAutowiredOutsideBeanInspection$depth++ &lt; 6 &amp;&amp; (kind == "KtClassLiteralExpression" || kind == "KtCallableReferenceExpression" || kind == "KtDoubleColonExpression")</ID>
     <ID>ComplexCondition:SpringBeanDefinitionInspections.kt:SpringAutowiredOutsideBeanInspection.&lt;no name provided>$psiClass.isInterface || psiClass.isEnum || psiClass.isAnnotationType || psiClass is PsiAnonymousClass</ID>
@@ -149,6 +147,8 @@
     <ID>ComplexCondition:SpringMvcEndpoints.kt:SpringMvcEndpoints$expression is UCallExpression &amp;&amp; (expression.kind == UastCallKind.NESTED_ARRAY_INITIALIZER || expression.kind == UastCallKind.NEW_ARRAY_WITH_INITIALIZER || expression.methodName == "arrayOf")</ID>
     <ID>ComplexCondition:SpringProxyLineMarkers.kt:AopAdviceMatching$text.isEmpty() || text.any { it == '+' || it == '(' || it == '!' || it == '&amp;' || it == '|' || it.isWhitespace() }</ID>
     <ID>ComplexCondition:SpringProxyLineMarkers.kt:AopAdviceMatching.Evaluator$arg.isEmpty() || arg.any { it == '*' || it == '+' || it.isWhitespace() || it == '(' }</ID>
+    <ID>ComplexCondition:SpringStructureTracker.kt:JavaSpringCodeBodies$current is PsiCodeBlock &amp;&amp; (parent is PsiMethod || parent is PsiClassInitializer) || current is PsiExpression &amp;&amp; parent is PsiField &amp;&amp; parent.initializer == current &amp;&amp; !parent.hasModifierProperty(PsiModifier.FINAL)</ID>
+    <ID>ComplexCondition:SpringStructureTracker.kt:SpringStructureTracker.Companion$parent == null || child == null || child is PsiDirectory || child is PsiFile</ID>
     <ID>ComplexCondition:SpringValueStyleAndProxyInspections.kt:SpringJdkProxyInjectionInspection.&lt;no name provided>$type.isInterface || type.isAnnotationType || !SpringBeans.isProjectSourceClass(type) || !SpringBeans.isBeanClass(type)</ID>
     <ID>ComplexCondition:SqlDdlInspections.kt:SqlDeprecatedTypeInspection$item.type != SqlTokens.KEYWORD &amp;&amp; item.type != SqlTokens.IDENTIFIER || word !in INTEGERS &amp;&amp; word !in FLOATS</ID>
     <ID>ComplexCondition:SqlEditorAssists.kt:SqlSignatures$leaf != null &amp;&amp; (leaf is PsiWhiteSpace || leaf is PsiComment || leaf.node.elementType == TokenType.WHITE_SPACE)</ID>
@@ -252,8 +252,8 @@
     <ID>CyclomaticComplexMethod:ClosureInferenceUtil.kt:fun analyzeClosureUsages</ID>
     <ID>CyclomaticComplexMethod:CodeDetector.kt:CodeDetector$private fun looksLikeCodeToken: Boolean</ID>
     <ID>CyclomaticComplexMethod:CodeIndex.kt:CodeQueries$private fun signature: String?</ID>
-    <ID>CyclomaticComplexMethod:CodexUsageClient.kt:CodexUsageClient$private fun viaRpc: CodexUsage?</ID>
     <ID>CyclomaticComplexMethod:CodexUsageClient.kt:CodexUsageClient.Companion$private fun classify: CodexUsage?</ID>
+    <ID>CyclomaticComplexMethod:CodexUsageClient.kt:fun codexRequest: JsonElement?</ID>
     <ID>CyclomaticComplexMethod:ComposeInspections.kt:ComposeValuesInspection$override fun check</ID>
     <ID>CyclomaticComplexMethod:ComposeLineMarkers.kt:ComposeLineMarkerProvider$private fun dockerfileOf: VirtualFile?</ID>
     <ID>CyclomaticComplexMethod:ConfigMetadata.kt:MetadataParser$fun parse: ParsedMetadata</ID>
@@ -268,6 +268,8 @@
     <ID>CyclomaticComplexMethod:DbCsvImport.kt:DbCsvReader$fun next: List&lt;String?>?</ID>
     <ID>CyclomaticComplexMethod:DbDdl.kt:DbDdl$fun createTable: String</ID>
     <ID>CyclomaticComplexMethod:DbDdl.kt:DbDdl$private fun reported: String?</ID>
+    <ID>CyclomaticComplexMethod:DbDump.kt:DbDump$fun run</ID>
+    <ID>CyclomaticComplexMethod:DbDump.kt:DbDump$private fun execute</ID>
     <ID>CyclomaticComplexMethod:DbEntityGenerator.kt:DbEntityGenerator$fun javaType: Pair&lt;String, String?></ID>
     <ID>CyclomaticComplexMethod:DbEntityGenerator.kt:DbEntityGenerator$fun source: String</ID>
     <ID>CyclomaticComplexMethod:DbExport.kt:DbExportWriter$fun row</ID>
@@ -396,6 +398,7 @@
     <ID>CyclomaticComplexMethod:JUnitMalformedDeclarationInspection.kt:JUnitMalformedSignatureVisitor.AnnotatedSignatureProblem$private fun ProblemsHolder.methodParameterTypeProblem</ID>
     <ID>CyclomaticComplexMethod:JUnitRunConfigurationImporter.kt:JUnitRunConfigurationImporter$override fun process</ID>
     <ID>CyclomaticComplexMethod:JfrProfile.kt:JfrProfile.Companion$fun read: JfrProfile</ID>
+    <ID>CyclomaticComplexMethod:JpaAttributeUsagesCacheTest.kt:LegacyAttributeUsages$fun compute: Map&lt;String, List&lt;PsiMethod>></ID>
     <ID>CyclomaticComplexMethod:JpaCallbackInspections.kt:JpaEntityGraphInspection.Visitor$override fun visitMethod: Boolean</ID>
     <ID>CyclomaticComplexMethod:JpaDbNameUsages.kt:JpaDbNameSearcher$private fun reference: PsiReference?</ID>
     <ID>CyclomaticComplexMethod:JpaEntityInspection.kt:JpaEntityInspection.Visitor$override fun visitClass: Boolean</ID>
@@ -403,6 +406,7 @@
     <ID>CyclomaticComplexMethod:JpaQueryLineMarkers.kt:DerivedJpql$fun of: String?</ID>
     <ID>CyclomaticComplexMethod:JpaQueryLineMarkers.kt:DerivedJpql$private fun condition: String?</ID>
     <ID>CyclomaticComplexMethod:JpaQueryLineMarkers.kt:EntityAttributeUsagesLineMarkerProvider.Companion$private fun compute: Map&lt;String, List&lt;PsiMethod>></ID>
+    <ID>CyclomaticComplexMethod:JpaQueryLineMarkers.kt:EntityAttributeUsagesLineMarkerProvider.Companion$private fun scan: Map&lt;String, List&lt;ScannedRepository>></ID>
     <ID>CyclomaticComplexMethod:JpaSchemaCompletion.kt:JpaSchemaCompletionContributor$override fun fillCompletionVariants</ID>
     <ID>CyclomaticComplexMethod:JpaSchemaInspections.kt:JpaColumnNullabilityInspection$override fun check</ID>
     <ID>CyclomaticComplexMethod:JpaSchemaModel.kt:JpaSchemaModel$private fun collect: Boolean</ID>
@@ -437,7 +441,7 @@
     <ID>CyclomaticComplexMethod:K8sSchema.kt:K8sSchema$fun keysAt: Set&lt;String>?</ID>
     <ID>CyclomaticComplexMethod:K8sValueInspections.kt:HelmChartInspection$override fun checkFile: Array&lt;ProblemDescriptor>?</ID>
     <ID>CyclomaticComplexMethod:K8sValueInspections.kt:K8sUnknownValuesInspection$override fun check</ID>
-    <ID>CyclomaticComplexMethod:KafkaSession.kt:KafkaSession$fun consume: List&lt;KafkaMessage></ID>
+    <ID>CyclomaticComplexMethod:KafkaSession.kt:KafkaSession.Companion$internal fun read: KafkaReadResult</ID>
     <ID>CyclomaticComplexMethod:KafkaToolWindow.kt:KafkaJson$fun pretty: String</ID>
     <ID>CyclomaticComplexMethod:KotlinDslParser.kt:KotlinDslParser$override fun extractValue: Any?</ID>
     <ID>CyclomaticComplexMethod:KotlinDslParser.kt:KotlinDslParser$override fun visitCallExpression</ID>
@@ -491,6 +495,7 @@
     <ID>CyclomaticComplexMethod:NetworkntErrorMapper.kt:NetworkntErrorMapper$private fun synthesiseMissingCompositionMerges: Map&lt;PsiElement, JsonValidationError></ID>
     <ID>CyclomaticComplexMethod:NetworkntValidationService.kt:NetworkntValidationService$fun validateForAnnotation: Map&lt;PsiElement, JsonValidationError></ID>
     <ID>CyclomaticComplexMethod:NetworkntValidationService.kt:NetworkntValidationService$private fun extendWithBranchValidation: Map&lt;PsiElement, JsonValidationError></ID>
+    <ID>CyclomaticComplexMethod:NoJavaExecutableFilter.kt:NoJavaExecutableFilter$private fun isCommandNotFound: Boolean</ID>
     <ID>CyclomaticComplexMethod:OfficeLayout.kt:OfficeLayout$fun layout: Scene</ID>
     <ID>CyclomaticComplexMethod:OfficeLayout.kt:OfficeLayout$private fun placeHelpers</ID>
     <ID>CyclomaticComplexMethod:OfficeRenderer.kt:OfficeRenderer$private fun drawTags: Tags</ID>
@@ -507,6 +512,7 @@
     <ID>CyclomaticComplexMethod:RedisClient.kt:RedisText$fun prettyJson: String</ID>
     <ID>CyclomaticComplexMethod:RedisClient.kt:RedisText$fun split: List&lt;String></ID>
     <ID>CyclomaticComplexMethod:RedisClient.kt:RespReader$fun read: RedisReply</ID>
+    <ID>CyclomaticComplexMethod:RedisConsole.kt:RedisConsole$fun masked: List&lt;String></ID>
     <ID>CyclomaticComplexMethod:RememberingLastMatchRegexFactory.kt:TextMateRegexFacadeRememberLastMatch$override fun match: MatchData</ID>
     <ID>CyclomaticComplexMethod:RemoteControlConfigurable.kt:RemoteControlConfigurable$override fun createComponent: JComponent</ID>
     <ID>CyclomaticComplexMethod:RemoteControlServer.kt:RemoteControlServer.Router$private fun http</ID>
@@ -520,11 +526,13 @@
     <ID>CyclomaticComplexMethod:SpellingTextChecker.kt:SpellingTextChecker$private fun wordAround: TextRange</ID>
     <ID>CyclomaticComplexMethod:SpringAopInspections.kt:PointcutReader$private fun expression</ID>
     <ID>CyclomaticComplexMethod:SpringAutowiringInspection.kt:SpringAutowiringInspection.Visitor$private fun check</ID>
+    <ID>CyclomaticComplexMethod:SpringBeanCatalog.kt:SpringBeanCatalog$fun named: List&lt;PsiModifierListOwner>?</ID>
     <ID>CyclomaticComplexMethod:SpringBeanCatalog.kt:SpringBeanCatalog$private fun beansOf: List&lt;BeanInfo></ID>
-    <ID>CyclomaticComplexMethod:SpringBeanContractInspections.kt:KnownProfiles$private fun computeKnown: Set&lt;String>?</ID>
+    <ID>CyclomaticComplexMethod:SpringBeanCatalog.kt:SpringBeanCatalog$private fun isPlainStrings: Boolean</ID>
     <ID>CyclomaticComplexMethod:SpringBeanContractInspections.kt:SpringProfileExpressions$fun problem: String?</ID>
     <ID>CyclomaticComplexMethod:SpringBeanDefinitionInspections.kt:SpringAutowiredOutsideBeanInspection$private fun createsOrNames: Boolean</ID>
     <ID>CyclomaticComplexMethod:SpringBeanDefinitionInspections.kt:internal fun resourceExists: Boolean</ID>
+    <ID>CyclomaticComplexMethod:SpringBeans.kt:SpringBeans$internal fun findCandidates: List&lt;PsiModifierListOwner></ID>
     <ID>CyclomaticComplexMethod:SpringBeans.kt:SpringBeans$private fun beanTypeOf: PsiClass?</ID>
     <ID>CyclomaticComplexMethod:SpringBeansToolWindow.kt:SpringBeansPanel.Renderer$override fun customizeCellRenderer</ID>
     <ID>CyclomaticComplexMethod:SpringConfigKeys.kt:SpringConfigKeys$fun yamlKeys: Set&lt;String></ID>
@@ -533,8 +541,9 @@
     <ID>CyclomaticComplexMethod:SpringDataJdbcInspections.kt:JdbcAggregates$private fun entityClass: PsiClass?</ID>
     <ID>CyclomaticComplexMethod:SpringHttpLiteralInspections.kt:HttpLiterals$fun mediaTypeProblem: String?</ID>
     <ID>CyclomaticComplexMethod:SpringMessaging.kt:ConfigPlaceholders$fun readYaml: Map&lt;String, String></ID>
-    <ID>CyclomaticComplexMethod:SpringMessaging.kt:MessagingLineMarkerProvider$override fun getLineMarkerInfo: LineMarkerInfo&lt;*>?</ID>
+    <ID>CyclomaticComplexMethod:SpringMessaging.kt:MessagingModel$fun localSitesAt: List&lt;MessagingSite></ID>
     <ID>CyclomaticComplexMethod:SpringMessaging.kt:MessagingModel$private fun find: List&lt;MessagingSite></ID>
+    <ID>CyclomaticComplexMethod:SpringMessaging.kt:MessagingModel$private fun refersTo: Boolean</ID>
     <ID>CyclomaticComplexMethod:SpringProxyLineMarkers.kt:AopAdviceMatching.Evaluator$private fun designator: Match</ID>
     <ID>CyclomaticComplexMethod:SpringProxyLineMarkers.kt:AopAdviceMatching.Evaluator$private fun execution: Match</ID>
     <ID>CyclomaticComplexMethod:SpringValueAndCacheInspections.kt:SpringElSyntaxInspection.Companion$fun expressionError: String?</ID>
@@ -691,8 +700,10 @@
     <ID>EmptyElseBlock:SpringAopInspections.kt:PointcutReader$if (stopAtClose) return</ID>
     <ID>EmptyElseBlock:SpringConfigKeys.kt:SpringConfigKeys$if (trimmed == "---") stack.clear()</ID>
     <ID>EmptyElseBlock:SpringMessaging.kt:ConfigPlaceholders$if (line.startsWith("---")) path.clear()</ID>
+    <ID>EmptyElseBlock:Tmux.kt:Tmux$if (detached) add("-d")</ID>
     <ID>EmptyElseBlock:WorkspacesScenario.kt:WorkspacesRun$if (isMax(geomOf(f))) f.extendedState = 0</ID>
     <ID>EmptyFinallyBlock:GitStashCache.kt:GitStashCache${ }</ID>
+    <ID>EmptyFunctionBlock:AccountsServiceTest.kt:AccountsServiceTest.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:ActuatorTab.kt:ActuatorTab${}</ID>
     <ID>EmptyFunctionBlock:ActuatorTest.kt:ActuatorTest.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:AggregateView.kt:AggregateView${ }</ID>
@@ -732,6 +743,7 @@
     <ID>EmptyFunctionBlock:GitPushUpToCommitAction.kt:GitPushUpToCommitAction${ }</ID>
     <ID>EmptyFunctionBlock:GitRemoteBranchSelectionPopup.kt:GitBranchesTreeMinimalRenderer${ }</ID>
     <ID>EmptyFunctionBlock:GitRemoteTest.kt:GitRemoteTest.TestAuthenticator${}</ID>
+    <ID>EmptyFunctionBlock:GitRepoCommunicatorTest.kt:GitRepoCommunicatorTest.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:GitRevertProcess.kt:GitRevertProcess${ }</ID>
     <ID>EmptyFunctionBlock:GitUpdateSession.kt:GitUpdateSession${}</ID>
     <ID>EmptyFunctionBlock:GpgAgentConfigurator.kt:GpgAgentConfigurator${}</ID>
@@ -787,8 +799,11 @@
     <ID>EmptyFunctionBlock:ReportingTest.kt:ReportingTest.MockIntention${}</ID>
     <ID>EmptyFunctionBlock:ReportingTest.kt:ReportingTest.MockIntentionAndFix${}</ID>
     <ID>EmptyFunctionBlock:ReworkedTerminalFeedbackSurvey.kt:ReworkedTerminalSurveyConfig${ }</ID>
+    <ID>EmptyFunctionBlock:SettingsHistoryTableModel.kt:SettingsHistoryTableModel${ }</ID>
     <ID>EmptyFunctionBlock:SimpleTerminalController.kt:SimpleTerminalController${}</ID>
+    <ID>EmptyFunctionBlock:SpecCacheDeps.kt:SpecFileContentChanges${}</ID>
     <ID>EmptyFunctionBlock:SpringBeansToolWindow.kt:SpringBeansPanel.&lt;no name provided>${}</ID>
+    <ID>EmptyFunctionBlock:SpringStructureTracker.kt:SpringStructureTracker${}</ID>
     <ID>EmptyFunctionBlock:SqlRefactoring.kt:SqlDbRenameProcessor${}</ID>
     <ID>EmptyFunctionBlock:StatisticsTableHeader.kt:StatisticsTableHeader.StatisticsColumnsControllerPanel.StatisticsPanel${}</ID>
     <ID>EmptyFunctionBlock:Switcher.kt:Switcher.SwitcherPanel.&lt;no name provided>${}</ID>
@@ -887,6 +902,7 @@
     <ID>ForbiddenComment:NetworkntErrorMapper.kt:NetworkntErrorMapper$// TODO: Add typo detection in Phase 1 when we have the enriched Error API</ID>
     <ID>ForbiddenComment:PropertyDependencyTest.kt:PropertyDependencyTest$// TODO: Move to PropertyOrderTest once the file strings are extracted to a common place.</ID>
     <ID>ForbiddenComment:PsiToJsonNodeConverter.kt:// TODO: workaround for YamlJsonPsiWalker.createValueAdapter(YAMLDocument) bug:</ID>
+    <ID>ForbiddenComment:SettingsHistoryTitleCellRenderer.kt:SettingsHistoryTitleCellRenderer$// FIXME: Is there a better way to create a gap?</ID>
     <ID>ForbiddenComment:ShellJsonBasedArgumentSpec.kt:ShellJsonBasedArgumentSpec$// TODO: there should be a way to localize the json-based descriptions</ID>
     <ID>ForbiddenComment:ShellPromptRenderer.kt:ShellPromptRenderer$// TODO: Add tests</ID>
     <ID>ForbiddenComment:ShellPromptRenderer.kt:ShellPromptRenderer$// TODO: Add tests. Consider using it in TerminalCaretModel, because it is not taking into account the line wraps now.</ID>
@@ -1055,6 +1071,7 @@
     <ID>LongMethod:JavaJUnitMalformedDeclarationInspectionTest.kt:JavaJUnitMalformedDeclarationInspectionTest.Latest$fun `test malformed parameterized @MethodSource no highlighting`</ID>
     <ID>LongMethod:JavaJUnitMalformedDeclarationInspectionTest.kt:JavaJUnitMalformedDeclarationInspectionTest.Latest$fun `test malformed parameterized class no highlighting`</ID>
     <ID>LongMethod:JfrProfile.kt:JfrProfile.Companion$fun read: JfrProfile</ID>
+    <ID>LongMethod:JpaAttributeUsagesCacheTest.kt:JpaAttributeUsagesCacheTest$fun testMatchesFormerComputationOnMixedRepositories</ID>
     <ID>LongMethod:JpaSchemaTest.kt:JpaSchemaTest$fun testSpringBootNamingInJava</ID>
     <ID>LongMethod:JpqlLexer.kt:JpqlLexer$override fun advance</ID>
     <ID>LongMethod:JsInterpreter.kt:Builtins$fun install</ID>
@@ -1072,6 +1089,7 @@
     <ID>LongMethod:KotlinDslUtil.kt:internal fun maybeUpdateName</ID>
     <ID>LongMethod:KotlinDslWriter.kt:KotlinDslWriter$override fun createDslElement: PsiElement?</ID>
     <ID>LongMethod:KotlinDslWriter.kt:KotlinDslWriter$override fun createDslMethodCall: PsiElement?</ID>
+    <ID>LongMethod:KotlinSpringStructureCachesTest.kt:KotlinSpringStructureCachesTest$fun testKotlinEdits</ID>
     <ID>LongMethod:MarkdownCodeStyleSettingsProvider.kt:MarkdownCodeStyleSettingsProvider$override fun customizeSettings</ID>
     <ID>LongMethod:MarkdownSmartKeysConfigurable.kt:MarkdownSmartKeysConfigurable$override fun Panel.createContent</ID>
     <ID>LongMethod:MergeDirectionComponentFactory.kt:MergeDirectionComponentFactory$fun create: JComponent</ID>
@@ -1096,6 +1114,7 @@
     <ID>LongMethod:RepositoryAndAccountSelectorComponentFactory.kt:RepositoryAndAccountSelectorComponentFactory$fun create: JComponent</ID>
     <ID>LongMethod:RequirementTest.kt:RequirementTest$fun `test full complex requirement diagram`</ID>
     <ID>LongMethod:SmokeScenario.kt:SmokeScenario$override suspend fun run</ID>
+    <ID>LongMethod:SpringStructureCachesTest.kt:SpringStructureCachesTest$fun testJavaEdits</ID>
     <ID>LongMethod:SqlRoutineInspections.kt:SqlRoutine.Companion$fun of: SqlRoutine?</ID>
     <ID>LongMethod:TabsScenario.kt:TabsScenario$override suspend fun run</ID>
     <ID>LongMethod:TerminalAbsolutePathLinkFinder.kt:TerminalAbsolutePathLinkFinder$fun find</ID>
@@ -1150,6 +1169,7 @@
     <ID>MatchingDeclarationName:JsonLazyParsing.kt:JsonLazyParsingVetoer</ID>
     <ID>MatchingDeclarationName:MermaidPsiElements.kt:MermaidDiagramBlock : MermaidPsiElement</ID>
     <ID>MatchingDeclarationName:MethodRequestBuilder.kt:MethodRequestsBuilder</ID>
+    <ID>MatchingDeclarationName:MockJdks.kt:DownloadMockJdks : DefaultTask</ID>
     <ID>MatchingDeclarationName:MonolithNavBarServiceDelegate.kt:MonolithNavbarServiceDelegate : NavBarServiceDelegate</ID>
     <ID>MatchingDeclarationName:NestedTablesAwareGridLoader.kt:NestedTablesGridLoader : NestedTablesAware</ID>
     <ID>MatchingDeclarationName:OpenApiShape.kt:OpenApiSpecShapeInspection : LocalInspectionTool</ID>
@@ -1158,7 +1178,6 @@
     <ID>MatchingDeclarationName:SecurityRoles.kt:SecurityRolePrefixInspection : AbstractBaseUastLocalInspectionTool</ID>
     <ID>MatchingDeclarationName:ServiceViewDescriptorIdSerializer.kt:ServiceViewDescriptorIdsSerializer : CustomDataContextSerializer</ID>
     <ID>MatchingDeclarationName:SqlDocumentation.kt:SqlDocumentationProvider : AbstractDocumentationProvider</ID>
-    <ID>MatchingDeclarationName:SqlEntityLineMarker.kt:SqlEntityLineMarkerProvider : LineMarkerProviderDescriptor</ID>
     <ID>MatchingDeclarationName:TerminalAgentsSupport.kt:TerminalAvailableAgentEntry</ID>
     <ID>MatchingDeclarationName:TerminalCommandCompletionActionOld.kt:TerminalCommandCompletionAction</ID>
     <ID>MatchingDeclarationName:TomlColors.kt:TomlColor</ID>
@@ -1199,6 +1218,7 @@
     <ID>NestedBlockDepth:JUnitMalformedDeclarationInspection.kt:JUnitMalformedSignatureVisitor$private fun checkMethodSource</ID>
     <ID>NestedBlockDepth:JUnitMalformedDeclarationInspection.kt:JUnitMalformedSignatureVisitor$private fun checkSourceTypeAndParameterTypeAgree</ID>
     <ID>NestedBlockDepth:JfrProfile.kt:JfrProfile.Companion$fun read: JfrProfile</ID>
+    <ID>NestedBlockDepth:JpaAttributeUsagesCacheTest.kt:LegacyAttributeUsages$fun compute: Map&lt;String, List&lt;PsiMethod>></ID>
     <ID>NestedBlockDepth:JpaQueryLineMarkers.kt:EntityAttributeUsagesLineMarkerProvider.Companion$private fun compute: Map&lt;String, List&lt;PsiMethod>></ID>
     <ID>NestedBlockDepth:JsParser.kt:JsParser$private fun arrowAhead: Boolean</ID>
     <ID>NestedBlockDepth:KotlinDslParser.kt:KotlinDslParser$override fun extractValue: Any?</ID>
@@ -1207,8 +1227,8 @@
     <ID>NestedBlockDepth:PeopleSpotsTest.kt:PeopleSpotsTest$@Test fun tagsKeepOffNamePlatesBubblesAndEachOther</ID>
     <ID>NestedBlockDepth:PinentryService.kt:PinentryService$private suspend fun handleClient</ID>
     <ID>NestedBlockDepth:RedisClient.kt:RedisText$fun split: List&lt;String></ID>
-    <ID>NestedBlockDepth:SpringBeanContractInspections.kt:KnownProfiles$private fun computeKnown: Set&lt;String>?</ID>
     <ID>NestedBlockDepth:SpringConfigKeys.kt:SpringConfigKeys$private fun compute: Keys</ID>
+    <ID>NestedBlockDepth:SpringMessaging.kt:MessagingModel$fun localSitesAt: List&lt;MessagingSite></ID>
     <ID>NestedBlockDepth:SpringMvcEndpoints.kt:SpringMvcEndpoints$fun readablePath: String</ID>
     <ID>NestedBlockDepth:SqlEditing.kt:SqlCompletionContributor$private fun addCompletions</ID>
     <ID>NestedBlockDepth:StrategyUtils.kt:StrategyUtils$fun indentIndexes: LinkedSet&lt;IntRange></ID>
@@ -1943,7 +1963,7 @@
     <ID>SwallowedException:BrowserLogin.kt:BrowserLogin$e: IOException</ID>
     <ID>SwallowedException:CodeIndex.kt:IdeCodeIndex$e: TimeoutException</ID>
     <ID>SwallowedException:CodexProbeLaunchTest.kt:CodexProbeLaunchTest$e: IOException</ID>
-    <ID>SwallowedException:CodexUsageClient.kt:CodexUsageClient$e: IOException</ID>
+    <ID>SwallowedException:CodexUsageClient.kt:e: IOException</ID>
     <ID>SwallowedException:CommonDriver.kt:CommonDriver.Companion$e: IncorrectOperationException</ID>
     <ID>SwallowedException:ConfigureImageLineMarkerProviderBase.kt:ConfigureImageLineMarkerProviderBase$exception: IllegalArgumentException</ID>
     <ID>SwallowedException:ConfigureImageLineMarkerProviderBase.kt:ConfigureImageLineMarkerProviderBase$exception: InvalidPathException</ID>
@@ -2076,6 +2096,7 @@
     <ID>ThrowsCount:NetworkntValidationService.kt:NetworkntValidationService$private fun extendWithBranchValidation: Map&lt;PsiElement, JsonValidationError></ID>
     <ID>ThrowsCount:ProcessInfoUtil.kt:ProcessInfoUtil$@Suppress("HardCodedStringLiteral") @Throws(ExecutionException::class) private fun getCwdOnUnix: String</ID>
     <ID>ThrowsCount:RedisClient.kt:RedisConnection.Companion$fun open: RedisConnection</ID>
+    <ID>ThrowsCount:RemoteControlConfigurable.kt:RemoteControlConfigurable$@Throws(ConfigurationException::class) override fun apply</ID>
     <ID>ThrowsCount:TerminalSessionHasRunningCommandsTest.kt:private suspend fun sendEchoCommandAndAwaitItsCompletion</ID>
     <ID>ThrowsCount:TextWithReplacement.kt:internal fun parseTextWithReplacement: TextWithReplacement</ID>
     <ID>ThrowsCount:_Json5Lexer.kt:_Json5Lexer$internal fun CharSequence.offsetByCodePoints: Int</ID>
@@ -2098,7 +2119,7 @@
     <ID>TooGenericExceptionCaught:ClassicTerminalTestShellSession.kt:ClassicTerminalTestShellSession.Companion$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:CloneDialogLoginPanel.kt:CloneDialogLoginPanel$e: Exception</ID>
     <ID>TooGenericExceptionCaught:CodeIndex.kt:IdeCodeIndex$e: Throwable</ID>
-    <ID>TooGenericExceptionCaught:CodexUsageClient.kt:CodexUsageClient$e: RuntimeException</ID>
+    <ID>TooGenericExceptionCaught:CodexUsageClient.kt:e: RuntimeException</ID>
     <ID>TooGenericExceptionCaught:CommandRunnerExtension.kt:CommandRunnerExtension$e: Exception</ID>
     <ID>TooGenericExceptionCaught:CopyOnSelectionHandler.kt:CopyOnSelectionHandler$e: Exception</ID>
     <ID>TooGenericExceptionCaught:CpuSampler.kt:CpuSampler$e: Throwable</ID>
@@ -2321,6 +2342,7 @@
     <ID>TooGenericExceptionThrown:_Json5Lexer.kt:_Json5Lexer$throw Error(message)</ID>
     <ID>TooGenericExceptionThrown:_JsonLexer.kt:_JsonLexer$throw Error(message)</ID>
     <ID>TooManyFunctions:AbstractSortPropertiesSession.kt:AbstractSortPropertiesSession&lt;TObj : PsiElement, TProp : PsiElement></ID>
+    <ID>TooManyFunctions:AccountsService.kt:AccountsService</ID>
     <ID>TooManyFunctions:ActuatorTab.kt:ActuatorTab : AdditionalTabComponent</ID>
     <ID>TooManyFunctions:AgentDashboardPanel.kt:AgentDashboardPanel : JPanelDisposable</ID>
     <ID>TooManyFunctions:AgentTerminalService.kt:AgentTerminalService</ID>
@@ -2441,6 +2463,7 @@
     <ID>TooManyFunctions:GitRepositoryImpl.kt:GitRepositoryImpl : RepositoryImplGitRepository</ID>
     <ID>TooManyFunctions:GitRepositoryReader.kt:GitRepositoryReader</ID>
     <ID>TooManyFunctions:GitSearchEverywhereContributor.kt:GitSearchEverywhereContributor : WeightedSearchEverywhereContributorDumbAware</ID>
+    <ID>TooManyFunctions:GitSettingsRepository.kt:GitSettingsRepository</ID>
     <ID>TooManyFunctions:GitShowExternalLogAction.kt:git4idea.log.GitShowExternalLogAction.kt</ID>
     <ID>TooManyFunctions:GitStageDiffUtil.kt:git4idea.index.GitStageDiffUtil.kt</ID>
     <ID>TooManyFunctions:GitStageLineStatusTracker.kt:GitStageLineStatusTracker : LocalLineStatusTracker</ID>
@@ -2562,6 +2585,8 @@
     <ID>TooManyFunctions:RunDashboardServiceRpc.kt:RunDashboardServiceRpc : RemoteApi</ID>
     <ID>TooManyFunctions:RunDashboardServiceRpcImpl.kt:RunDashboardServiceRpcImpl : RunDashboardServiceRpc</ID>
     <ID>TooManyFunctions:SLRUTextMateCache.kt:SLRUTextMateCache&lt;K : Any, V : Any?> : TextMateCache</ID>
+    <ID>TooManyFunctions:SettingsHistoryCellRenderer.kt:SettingsHistoryCellRenderer : ColoredTableCellRenderer</ID>
+    <ID>TooManyFunctions:SettingsHistoryTableModel.kt:SettingsHistoryTableModel : AbstractTableModelVcsLogCommitListModel</ID>
     <ID>TooManyFunctions:ShellCommandExecutionManagerImpl.kt:ShellCommandExecutionManagerImpl : ShellCommandExecutionManager</ID>
     <ID>TooManyFunctions:ShellCommandManager.kt:ShellCommandManager</ID>
     <ID>TooManyFunctions:ShellCommandSpecsManagerImpl.kt:ShellCommandSpecsManagerImpl : ShellCommandSpecsManager</ID>
@@ -2570,10 +2595,12 @@
     <ID>TooManyFunctions:ShellStartupOptions.kt:ShellStartupOptions$Builder</ID>
     <ID>TooManyFunctions:SimpleTerminalEventsHandler.kt:SimpleTerminalEventsHandler : TerminalEventsHandler</ID>
     <ID>TooManyFunctions:SpellingTextChecker.kt:SpellingTextChecker : ExternalTextChecker</ID>
+    <ID>TooManyFunctions:SpringBeanCatalog.kt:SpringBeanCatalog</ID>
     <ID>TooManyFunctions:SpringBeans.kt:SpringBeans</ID>
     <ID>TooManyFunctions:SpringInitializrModuleBuilder.kt:SpringInitializrModuleBuilder : WebStarterModuleBuilder</ID>
     <ID>TooManyFunctions:SpringMessaging.kt:MessagingModel</ID>
     <ID>TooManyFunctions:SpringMvcEndpoints.kt:SpringMvcEndpoints</ID>
+    <ID>TooManyFunctions:SpringStructureTracker.kt:SpringStructureTracker$Listener : PsiTreeChangeAdapter</ID>
     <ID>TooManyFunctions:SqlEditing.kt:SqlCommenter : CodeDocumentationAwareCommenter</ID>
     <ID>TooManyFunctions:SqlEditing.kt:SqlCompletionContributor : CompletionContributor</ID>
     <ID>TooManyFunctions:SqlInspections.kt:SqlQueries</ID>
