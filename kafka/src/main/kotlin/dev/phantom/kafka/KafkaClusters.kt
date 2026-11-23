@@ -45,15 +45,20 @@ class KafkaClusters : PersistentStateComponent<KafkaClusters.State> {
 
   val clusters: List<KafkaCluster> get() = state.clusters.toList().ifEmpty { listOf(KafkaCluster().apply { id = LOCAL_ID }) }
 
-  fun save(cluster: KafkaCluster, properties: String) {
+  /** The cluster only; its client properties go through [storeProperties], off the EDT. */
+  fun save(cluster: KafkaCluster) {
     val i = state.clusters.indexOfFirst { it.id == cluster.id }
     if (i >= 0) state.clusters[i] = cluster else state.clusters.add(cluster)
-    PasswordSafe.instance.setPassword(credentials(cluster.id), properties.ifBlank { null })
   }
 
+  /** The cluster only; its client properties are dropped with [storeProperties] and null, off the EDT. */
   fun remove(id: String) {
     state.clusters.removeIf { it.id == id }
-    PasswordSafe.instance.setPassword(credentials(id), null)
+  }
+
+  /** Blocking: may ask the OS keychain. Blank or null [properties] removes the entry. */
+  fun storeProperties(id: String, properties: String?) {
+    PasswordSafe.instance.setPassword(credentials(id), properties?.ifBlank { null })
   }
 
   /** Blocking: may ask the OS keychain. */
