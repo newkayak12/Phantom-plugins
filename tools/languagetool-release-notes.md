@@ -3,7 +3,7 @@ LanguageTool 6.8.27 language bundles that Phantom Grammar (grammar/) downloads w
 They are built by JetBrains from https://github.com/JetBrains/languagetool (version 6.8.27) for IntelliJ, and the
 files are unchanged, so their MD5 checksums are those in LanguageToolDescriptor.kt. LanguageTool itself (the
 `language-<iso>` modules) is under the GNU Lesser General Public License 2.1 (LICENSE-LGPL-2.1.txt). Its sources are
-the *-sources.jar files of this release and that repository; see NOTICE for the written offer.
+the language-*-sources.jar and languagetool-core-*-sources.jar files of this release and that repository.
 
 Not everything in a bundle is LGPL. Several bundles embed other libraries and language data under their own licenses,
 listed below from the POM files inside each jar. The spelling dictionaries keep their README and license files inside
@@ -34,10 +34,37 @@ the jar, under `org/languagetool/resource/<iso>/`; those files name the authors 
 | tl | Tagalog spelling dictionary (myspell-tl 0.02, Ramil Sagum and Kevin P. Scannell) | GPL 2.0 or later | https://github.com/languagetool-org/languagetool/tree/v6.8/languagetool-language-modules/tl/src/main/resources/org/languagetool/resource/tl/hunspell |
 | zh | com.hankcs:hanlp | Apache 2.0 | https://github.com/hankcs/HanLP |
 
-The other spelling dictionaries (da, de, el, eo, gl, km, nl, pl, ru, sk, sl, sv, uk, ...) are free licenses named in
-their README files inside the jar, mostly GPL, LGPL or MPL. Dictionaries in morfologik `.dict` form (it, tl and
-others) are distributed by LanguageTool in that form only. A `.dict` file can be dumped back to its word list with
-morfologik-tools (`fsa_dump`), and the upstream projects above publish the original word lists.
+The other spelling dictionaries (da, de, el, eo, gl, km, nl, pl, ru, sk, sl, sv, uk, ...) are under the free licenses
+named in their README files inside the jar, mostly GPL, LGPL or MPL.
 
-License texts attached: LICENSE-LGPL-2.1.txt, LICENSE-GPL-2.0.txt, LICENSE-GPL-3.0.txt, LICENSE-CC-BY-SA-4.0.txt,
-LICENSE-Unicode-3.0.txt, LICENSE-Apache-2.0.txt.
+## Sources of the embedded components
+
+Besides the sources jars of LanguageTool, this release carries the sources of the copyleft components the bundles
+embed (tools/attach-sources.sh):
+
+| File | Source of |
+|---|---|
+| openregex-1.1.1-sources.jar | openregex (de, ru) |
+| lucene-gosen-6.2.1-sources.jar | lucene-gosen (ja) |
+| english-pos-dict-2c68994244.tar.gz | english-pos-dict 0.6 (en): https://github.com/languagetool-org/english-pos-dict at the commit that made 0.6 |
+| asturian-pos-dict-c587ea3843.tar.gz | asturian-pos-dict 0.1 (ast): https://github.com/esbardu/asturian-pos-dict at the commit that made 0.1 |
+| catalan-dict-tools-753d62b18d.tar.gz | catalan-pos-dict 3.3 (ca): https://github.com/Softcatala/catalan-dict-tools at the commit that made 3.3 |
+| spanish-dict-tools-3d1f700c82.tar.gz | spanish-pos-dict 2.5 (es): https://github.com/jaumeortola/spanish-dict-tools at the commit that made 2.5 |
+| languagetool-ga-dicts-2a127b3d07.tar.gz | languagetool-ga-dicts 0.02 (ga): https://github.com/jimregan/languagetool-ga-dicts at the commit that made 0.02 |
+| dict_uk-v6.8.0.tar.gz | morfologik-ukrainian-lt 6.8.0 (uk): https://github.com/brown-uk/dict_uk, tag v6.8.0 |
+| dictionaries-libreoffice-7.0.0.1-it_IT.tar.gz | Italian spelling dictionary dict-it 3.3.1 (it) |
+| dictionaries-libreoffice-7.0.0.1-da_DK.tar.gz | Danish spelling dictionary (da) |
+| dictionaries-libreoffice-7.0.0.1-sl_SI.tar.gz | Slovenian spelling dictionary (sl) |
+| dictionaries-libreoffice-6.0.0.1-gl.tar.gz | Galician spelling dictionary 12.10 (gl) |
+
+The `dictionaries-*` files are the Hunspell files of that language in the LibreOffice dictionaries
+(https://git.libreoffice.org/dictionaries) at the LibreOffice release whose README is the one inside the bundle; the
+bundle's `.dict` file was converted from them. For the other dictionary data (the Dutch and Portuguese part-of-speech
+dictionaries, whose upstream repositories are not public, and spelling dictionaries whose exact upstream version is
+not recorded, such as the ar, ast, br, de, el, eo, fr, ga, km, pl, ro, ru, sk, sv, ta and tl spelling data) NOTICE's
+written offer applies: Phantom contributors provide the complete corresponding source on request through
+https://github.com/newkayak12/Phantom/issues. A `.dict` file can also be dumped back to its word list with
+morfologik-tools (`fsa_dump`).
+
+License texts attached: LICENSE-LGPL-2.1.txt, LICENSE-LGPL-3.0.txt, LICENSE-GPL-2.0.txt, LICENSE-GPL-3.0.txt,
+LICENSE-MPL-2.0.txt, LICENSE-CC-BY-SA-4.0.txt, LICENSE-Unicode-3.0.txt, LICENSE-Apache-2.0.txt.

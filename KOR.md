@@ -84,7 +84,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Services View | [serviceview](./serviceview/KOR.md) · [English](./serviceview/README.md) | 서비스 도구 창과 실행 대시보드 (Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Endpoints | [endpoints](./endpoints/KOR.md) · [English](./endpoints/README.md) | Endpoints 도구 창: Spring, Ktor 등 플러그인이 알려 주는 HTTP 엔드포인트와 Generate HTTP Request (Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Grid | [grid](./grid/KOR.md) · [English](./grid/README.md) | 다른 플러그인이 표를 보여 주는 데이터 그리드(정렬, 필터, 셀 편집, 내보내기)와 CSV/TSV 파일의 표 보기 (Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
-| Git Support | [git](./git/KOR.md) · [English](./git/README.md) | IDE 안의 Git: 클론, 커밋, 푸시, 풀, 병합과 리베이스, 브랜치, Git 로그, 스태시, 스테이징 영역, 워크트리. Phantom for GitHub 등이 이것을 바탕으로 동작 (Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Phantom for Git | [git](./git/KOR.md) · [English](./git/README.md) | IDE 안의 Git: 클론, 커밋, 푸시, 풀, 병합과 리베이스, 브랜치, Git 로그, 스태시, 스테이징 영역, 워크트리. Phantom for GitHub 등이 이것을 바탕으로 동작 (Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom CPU Indicator | [cpu](./cpu/KOR.md) · [English](./cpu/README.md) | 상태바에 IDE·시스템 CPU, 호버하면 IDE가 CPU를 어디에 썼는지(인덱싱, 분석, GC, JIT) |
 | Phantom Log Console | [logs](./logs/KOR.md) · [English](./logs/README.md) | JSON 로그를 읽기 쉬운 줄과 스택트레이스로, 레벨 색, traceId를 누르면 그 요청의 줄 목록 |
 | Phantom Key-Value Console | [redis](./redis/KOR.md) · [English](./redis/README.md) | Redis 호환 서버(Redis, Valkey, KeyDB…)용 키 브라우저와 콘솔: 패턴으로 SCAN, 모든 타입의 값, redis-cli 형식 명령줄 |

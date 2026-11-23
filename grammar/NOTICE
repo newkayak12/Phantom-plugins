@@ -1,8 +1,9 @@
 Phantom Grammar (grammar/) packages lib/english-pos-dict-0.6.jar (org.languagetool:english-pos-dict, LGPL 2.1 per its POM).
 Its English spelling and part-of-speech dictionaries are built from word lists with their own copyright notices and
 terms, which follow: the README files of the dictionaries and the part-of-speech database, copied unchanged from
-https://github.com/languagetool-org/english-pos-dict (commit 52b8b63859850f27e63584036fbe857607ede6a3). en_US, en_GB, en_CA and en_AU come from
-spell-data/hunspell/, en_NZ and en_ZA from original-files-december-2023/hunspell/.
+https://github.com/languagetool-org/english-pos-dict (commit 2c68994244eba9f54a0b561b9213c60c6cbf9c6c, which made
+version 0.6; a snapshot of that commit, the source of the dictionaries, is attached to each release of the plugin).
+en_US, en_GB, en_CA and en_AU come from spell-data/hunspell/, en_NZ and en_ZA from original-files-december-2023/hunspell/.
 
 
 ==================== spell-data/hunspell/README_en_US.txt ====================

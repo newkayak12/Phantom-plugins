@@ -22,6 +22,12 @@ YouTrack.
 `tanvd.grazi` and `dev.phantom.grazie` stay as aliases and the content module names stay the IntelliJ ones, so plugins
 and bundled modules that depend on them (Kotlin, Python, TOML, Maven, YAML, Markdown, ...) keep working.
 
+**0.2.3**: where the plugin is installed from the marketplace, the settings page, notifications, inspections and
+dictionary use neutral names (Grammar and Style, Proofreader, Extended Dictionary) instead of "Grazie", and the
+plugin's own icons replace the Grazie logo. The NOTICE names the GPL, LGPL and MPL dictionaries of the language bundles
+and covers them in the written offer; english-pos-dict's source (its word lists and build scripts) is attached to the
+release instead of the compiled jar.
+
 **0.2.2**: the plugin jar carries the copyright notices of the English dictionaries (SCOWL and the other word lists
 of english-pos-dict) as `META-INF/NOTICE-grammar`. No longer depends on the unused gRPC library module, so grammar
 checking loads in a Phantom without gRPC (#32).
