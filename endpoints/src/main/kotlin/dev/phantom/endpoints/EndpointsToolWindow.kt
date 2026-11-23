@@ -16,6 +16,7 @@ import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
@@ -51,8 +52,8 @@ import javax.swing.tree.TreeSelectionModel
 /**
  * The Endpoints tool window: every HTTP endpoint the [EndpointsProvider]s report (Spring MVC, Ktor, … from
  * phantom-plugins), grouped by module, with a filter field. Enter or double-click opens the handler. Lists are built
- * in the background when the window is visible and rebuilt after code changes; nothing is computed while the window
- * stays closed. Projects without any endpoints provider don't get the window.
+ * in the background when the window is visible and rebuilt after code changes that the providers' modification trackers
+ * report; nothing is computed while the window stays closed. Projects without any endpoints provider don't get the window.
  */
 internal class EndpointsToolWindowFactory : ToolWindowFactory {
   override suspend fun isApplicableAsync(project: Project): Boolean =
@@ -74,6 +75,15 @@ internal class EndpointsToolWindowFactory : ToolWindowFactory {
 /** No filtering: the whole project. */
 private object AllEndpoints : EndpointsFilter
 
+/**
+ * What the endpoint lists depend on: each provider's [EndpointsProvider.getModificationTracker] (Spring and Ktor count only
+ * changes in their languages' code, not every PSI change in any file) and the project roots, which decide whether a provider
+ * is available at all.
+ */
+internal fun endpointsStamp(project: Project): List<Long> =
+  EndpointsProvider.getAllProviders().map { it.getModificationTracker(project).modificationCount } +
+  ProjectRootManager.getInstance(project).modificationCount
+
 /** One row: what the provider says about an endpoint, plus how to open it. */
 internal class EndpointRow(val url: String, val methods: List<String>, val location: String,
                            val module: com.intellij.openapi.module.Module? = null, val target: () -> PsiElement?) {
@@ -85,14 +95,18 @@ internal class EndpointRow(val url: String, val methods: List<String>, val locat
   }
 }
 
-internal class EndpointsPanel(private val project: Project, parent: Disposable) : JPanel(BorderLayout()), Disposable {
+internal class EndpointsPanel(
+  private val project: Project,
+  parent: Disposable,
+  private val stamp: () -> List<Long> = { endpointsStamp(project) },
+) : JPanel(BorderLayout()), Disposable {
   private val root = DefaultMutableTreeNode()
   private val model = DefaultTreeModel(root)
   private val tree = Tree(model)
   private val search = SearchTextField(false)
   private val alarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, this)
   private var groups: List<Pair<String, List<EndpointRow>>> = emptyList()
-  private var lastStamp = -1L
+  private var lastStamp: List<Long>? = null
 
   init {
     Disposer.register(parent, this)
@@ -131,17 +145,24 @@ internal class EndpointsPanel(private val project: Project, parent: Disposable) 
   private fun scheduleRefresh() {
     if (!isShowing) return
     alarm.cancelAllRequests()
-    alarm.addRequest(::refresh, 1500)
+    alarm.addRequest({ refreshIfChanged() }, 1500)
+  }
+
+  /** Collects again only when a provider's tracker or the project roots moved since the last collect; true when it did. */
+  internal fun refreshIfChanged(): Boolean {
+    if (stamp() == lastStamp) return false
+    refresh()
+    return true
   }
 
   override fun addNotify() {
     super.addNotify()
     // Changes made while the window was hidden
-    if (PsiModificationTracker.getInstance(project).modificationCount != lastStamp) refresh()
+    refreshIfChanged()
   }
 
   fun refresh() {
-    val stamp = PsiModificationTracker.getInstance(project).modificationCount
+    val stamp = stamp()
     ReadAction.nonBlocking<List<Pair<String, List<EndpointRow>>>> { collect() }
       .inSmartMode(project)
       .expireWith(this)
