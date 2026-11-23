@@ -12,6 +12,14 @@ import dev.phantom.ai.visualization.editor.AiOfficeFile
 import dev.phantom.ai.visualization.settings.VizConfigurable
 import dev.phantom.ai.visualization.settings.VizSettings
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.project.Project
+import dev.phantom.ai.api.AiAgent
+import dev.phantom.ai.api.AiChangeListener
+import dev.phantom.ai.api.AiSession
+import dev.phantom.ai.api.AiWorktree
+import dev.phantom.ai.api.PhantomAiApi
+import java.util.concurrent.atomic.AtomicInteger
 import com.intellij.testFramework.PlatformTestUtil
 import java.awt.Container
 import javax.swing.JComboBox
@@ -89,6 +97,46 @@ class AiOfficeInIdeTest : BasePlatformTestCase() {
     } finally {
       configurable.disposeUIResources()
       settings.themeId = before
+      Disposer.dispose(editor)
+    }
+  }
+
+  fun testHiddenTabIgnoresChangesAndListsWorktreesOncePerProject() {
+    val loads = AtomicInteger()
+    val worktreeReads = AtomicInteger()
+    val projectSessionReads = AtomicInteger()
+    class FakeApi : PhantomAiApi {
+      var listener: AiChangeListener? = null
+      override fun sessions(): List<AiSession> = emptyList<AiSession>().also { loads.incrementAndGet() }
+      override fun sessions(project: Project): List<AiSession> = emptyList<AiSession>().also { projectSessionReads.incrementAndGet() }
+      override fun worktrees(project: Project): List<AiWorktree> = emptyList<AiWorktree>().also { worktreeReads.incrementAndGet() }
+      override fun addChangeListener(parent: Disposable, listener: AiChangeListener) {
+        this.listener = listener
+      }
+      override fun focusSession(project: Project, tabId: String) = false
+      override fun startSession(project: Project, worktreePath: String, agent: AiAgent): String? = null
+    }
+    val fake = FakeApi()
+    val editor = AiOfficeEditor(project, AiOfficeFile.of(project), { fake })
+    try {
+      val deadline = System.currentTimeMillis() + 10_000
+      while (loads.get() == 0 && System.currentTimeMillis() < deadline) {
+        Thread.sleep(20)
+        PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+      }
+      assertEquals("the editor reads once when it is created", 1, loads.get())
+      val worktreesPerLoad = worktreeReads.get()
+      val open = com.intellij.openapi.project.ProjectManager.getInstance().openProjects.count { !it.isDefault && !it.isDisposed }
+      assertEquals("one worktree listing per open project", open, worktreesPerLoad)
+      val listener = fake.listener
+      assertNotNull(listener)
+      repeat(5) { listener!!.changed() }
+      Thread.sleep(AiOfficeEditor.DEBOUNCE_MS * 4L)
+      PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+      assertEquals("a tab that is not showing ignores change events", 1, loads.get())
+      assertEquals(worktreesPerLoad, worktreeReads.get())
+      assertEquals("sessions are filtered from the IDE-wide list, not listed per project through git again", 0, projectSessionReads.get())
+    } finally {
       Disposer.dispose(editor)
     }
   }

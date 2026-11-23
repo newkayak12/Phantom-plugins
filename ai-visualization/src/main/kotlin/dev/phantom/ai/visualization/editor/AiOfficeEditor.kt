@@ -16,6 +16,7 @@ import com.intellij.util.Alarm
 import dev.phantom.ai.api.AiAgent
 import dev.phantom.ai.api.PhantomAiApi
 import dev.phantom.ai.visualization.model.OfficeModel
+import dev.phantom.ai.visualization.model.PathKey
 import dev.phantom.ai.visualization.model.ProjectData
 import dev.phantom.ai.visualization.settings.VizSettings
 import dev.phantom.ai.visualization.settings.VizThemeListener
@@ -27,7 +28,8 @@ import javax.swing.JComponent
 
 /**
  * The AI Visualization editor tab. Reads everything through [PhantomAiApi]: a change listener (disposed with the editor) debounces,
- * worktrees and sessions of the open projects are read on a pooled thread, the result is painted on the EDT.
+ * worktrees and sessions of the open projects are read on a pooled thread, the result is painted on the EDT. Session events arrive
+ * several times a second while agents work; a hidden tab ignores them and reloads when it is shown again.
  */
 class AiOfficeEditor(
   private val project: Project,
@@ -49,7 +51,7 @@ class AiOfficeEditor(
   @Volatile private var disposed = false
 
   init {
-    api().addChangeListener(this) { request() }
+    api().addChangeListener(this) { if (panel.isShowing) request() }
     // Settings | Tools | Phantom AI Visualization: a new theme re-renders this tab
     ApplicationManager.getApplication().messageBus.connect(this).subscribe(VizSettings.TOPIC, VizThemeListener { t ->
       ApplicationManager.getApplication().invokeLater({ if (!disposed) panel.setTheme(t) }, ModalityState.any())
@@ -80,9 +82,13 @@ class AiOfficeEditor(
 
   private fun load(): List<ProjectData> {
     val a = api()
+    val all = a.sessions()
     return ProjectManager.getInstance().openProjects.filter { !it.isDefault && !it.isDisposed }.map { p ->
       try {
-        ProjectData(keyOf(p), p.name, a.worktrees(p), a.sessions(p))
+        // sessions(p) would list the worktrees through git a second time; filter the IDE-wide list by the ones read here
+        val worktrees = a.worktrees(p)
+        val keys = worktrees.mapTo(HashSet()) { PathKey.of(it.path) }
+        ProjectData(keyOf(p), p.name, worktrees, all.filter { PathKey.of(it.worktreePath) in keys })
       } catch (e: ProcessCanceledException) {
         throw e
       } catch (e: Exception) {
