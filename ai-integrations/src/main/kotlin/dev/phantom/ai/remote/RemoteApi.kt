@@ -2,6 +2,7 @@
 package dev.phantom.ai.remote
 
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import dev.phantom.ai.core.AgentKind
@@ -15,7 +16,12 @@ import dev.phantom.ai.sidebar.SidebarModel
 import dev.phantom.ai.terminal.AgentTabsHost
 import dev.phantom.ai.terminal.AgentTerminalService
 import dev.phantom.ai.terminal.TerminalIo
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
+import java.util.concurrent.atomic.AtomicBoolean
 
 /** What the remote server needs of the IDE. Fakeable; the real one is [IdeRemoteApi]. Every call may block (call off the EDT). */
 interface RemoteApi {
@@ -56,7 +62,7 @@ class IdeRemoteApi : RemoteApi {
         GitProjectRepos(project).roots(), SharedWorktrees, live, saved, noPr,
         { p -> aiState.state.worktrees.firstOrNull { it.path == p }?.userName }, now,
       )
-      val tabs = onEdt { AgentTabsHost.getInstance(project).tabs().map { it.id }.toSet() }
+      val tabs = EdtCalls.read { AgentTabsHost.getInstance(project).tabs().map { it.id }.toSet() }
       ProjectInfo(
         project.name, project.basePath,
         model.repos.map { r ->
@@ -89,22 +95,54 @@ class IdeRemoteApi : RemoteApi {
 
   override fun launch(worktree: String, kind: AgentKind): String? {
     val project = worktrees[worktree] ?: return null
-    return onEdt { AgentTerminalService.getInstance(project).launch(worktree, kind) }
+    return EdtCalls.act { AgentTerminalService.getInstance(project).launch(worktree, kind) }
   }
 
   override fun resume(tabId: String): String? {
     val (project, session) = sessions[tabId] ?: run { state(); sessions[tabId] } ?: return null
-    return onEdt { AgentTerminalService.getInstance(project).resume(session) }
+    return EdtCalls.act { AgentTerminalService.getInstance(project).resume(session) }
   }
 
   override fun terminal(tabId: String): TerminalIo? =
-    onEdt { projects().firstNotNullOfOrNull { AgentTabsHost.getInstance(it).get(tabId)?.io } }
+    EdtCalls.read { projects().firstNotNullOfOrNull { AgentTabsHost.getInstance(it).get(tabId)?.io } }
+}
 
-  private fun <T> onEdt(block: () -> T): T {
+/**
+ * The remote server's calls onto the EDT. invokeAndWait with the default modality waits for every modal dialog to close,
+ * so a dialog left open in the IDE hung the remote client and the server thread with it.
+ */
+internal object EdtCalls {
+  private const val ACT_TIMEOUT_MS = 30_000L
+
+  /** Reads UI state (no change) on the EDT, also while a modal dialog is open. */
+  fun <T> read(block: () -> T): T {
     val app = ApplicationManager.getApplication()
     if (app.isDispatchThread) return block()
     var result: Result<T>? = null
-    app.invokeAndWait { result = runCatching(block) }
+    app.invokeAndWait({ result = runCatching(block) }, ModalityState.any())
     return result!!.getOrThrow()
+  }
+
+  /**
+   * Changes the IDE (starts a terminal) on the EDT, outside modal dialogs. Null when it could not start within
+   * [timeoutMs]; it then never runs late, so the remote client is not answered null for an agent that starts after all.
+   */
+  fun <T> act(timeoutMs: Long = ACT_TIMEOUT_MS, block: () -> T?): T? {
+    val app = ApplicationManager.getApplication()
+    if (app.isDispatchThread) return block()
+    val claimed = AtomicBoolean()
+    val future = CompletableFuture<T?>()
+    app.invokeLater {
+      if (claimed.compareAndSet(false, true)) runCatching(block).fold(future::complete, future::completeExceptionally)
+    }
+    try {
+      return future.get(timeoutMs, TimeUnit.MILLISECONDS)
+    } catch (ignored: TimeoutException) {
+      // not started yet: it never will; started meanwhile: its answer is waited for
+      if (claimed.compareAndSet(false, true)) return null
+      return future.join()
+    } catch (e: ExecutionException) {
+      throw e.cause ?: e
+    }
   }
 }

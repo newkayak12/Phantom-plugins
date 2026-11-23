@@ -2,13 +2,20 @@
 package dev.phantom.ai
 
 import com.intellij.openapi.progress.ProcessCanceledException
+import dev.phantom.ai.core.AgentKind
+import dev.phantom.ai.core.AgentSession
 import dev.phantom.ai.usage.CodexUsage
+import dev.phantom.ai.usage.ProcessCodexLauncher
+import dev.phantom.ai.usage.UsageStarter
 import dev.phantom.ai.usage.UsagePoller
 import dev.phantom.ai.usage.UsageSources
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
+import java.nio.file.Files
 
 class UsagePollerTest {
   private class Fake(val onCodex: () -> CodexUsage?) : UsageSources {
@@ -35,12 +42,54 @@ class UsagePollerTest {
   @Test fun tickSkipsWhileInactive() {
     val f = Fake { null }
     var active = false
-    val p = UsagePoller(f, { null }, { 0L }, 300, { active })
+    val p = UsagePoller(f, { null }, { 0L }, 300, { active }, { true }, { true })
+    p.listeners.add {}
     p.tick()
     assertEquals(0, f.codexPolled)
     active = true
     repeat(2) { p.tick() }
     assertEquals(2, f.codexPolled)
+  }
+
+  // each look starts a codex process: none without a widget, a Codex session or the codex binary
+  @Test fun tickSkipsWithoutWidgetCodexSessionOrBinary() {
+    val f = Fake { null }
+    var inUse = false
+    var installed = true
+    val p = UsagePoller(f, { null }, { 0L }, 300, { true }, { inUse }, { installed })
+    inUse = true
+    p.tick()
+    assertEquals("no widget listens", 0, f.codexPolled)
+    p.listeners.add {}
+    inUse = false
+    p.tick()
+    assertEquals("no Codex session", 0, f.codexPolled)
+    inUse = true
+    installed = false
+    p.tick()
+    assertEquals("codex not installed", 0, f.codexPolled)
+    installed = true
+    p.tick()
+    assertEquals(1, f.codexPolled)
+  }
+
+  @Test fun onlyACodexSessionStartsTheCodexTimer() {
+    assertFalse(UsageStarter.needed(null))
+    assertFalse(UsageStarter.needed(AgentSession("t", "/w", AgentKind.CLAUDE)))
+    assertTrue(UsageStarter.needed(AgentSession("t", "/w", AgentKind.CODEX)))
+  }
+
+  @Test fun codexInstalledLooksOnThePath() {
+    val dir = Files.createTempDirectory("codex-bin")
+    try {
+      assertFalse(ProcessCodexLauncher.installed("codex-phantom-test", dir.toString()))
+      val exe = Files.createFile(dir.resolve("codex-phantom-test")).toFile().apply { setExecutable(true) }
+      assertTrue(ProcessCodexLauncher.installed("codex-phantom-test", dir.toString()))
+      assertTrue(ProcessCodexLauncher.installed(exe.absolutePath, null))
+      assertFalse(ProcessCodexLauncher.installed(dir.resolve("absent").toString(), null))
+    } finally {
+      dir.toFile().deleteRecursively()
+    }
   }
 
   // Claude usage has no poll at all: it stays unknown until a running Claude session sends a statusLine payload.
