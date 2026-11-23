@@ -13,7 +13,7 @@ backend, frontend, cloud, Shell Script 모듈은 번들 플러그인처럼 각�
 홍보도 없습니다.
 
 Java 지원(터미널 PATH의 JDK, `java`·`javac` 자동완성, 터미널 설정의 Java 항목)도 IDE 본체에서 옮겨 온 선택 모듈
-`intellij.java.terminal.*`로 여기에 있습니다. 그래서 본체는 Terminal 플러그인 없이 컴파일됩니다. Java 플러그인이 없으면 꺼집니다.
+`phantom.terminal.java.*`로 여기에 있습니다. 그래서 본체는 Terminal 플러그인 없이 컴파일됩니다. Java 플러그인이 없으면 꺼집니다.
 0.3.0은 Phantom 262.261123 이상이 필요합니다. 그보다 이전 빌드는 본체에 이 모듈이 아직 있습니다.
 
 명령 자동완성은 [Fig 자동완성 스펙](https://github.com/withfig/autocomplete)(MIT, `terminal/LICENSE`)에서 옵니다.

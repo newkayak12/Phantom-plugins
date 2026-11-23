@@ -1,5 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.java.terminal.shared
+package dev.phantom.terminal.java.shared
 
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
@@ -19,7 +19,8 @@ class JavaTerminalSettings : PersistentStateComponent<JavaTerminalSettings.State
     val instance: JavaTerminalSettings
       get() = service<JavaTerminalSettings>()
 
-    const val COMPONENT_NAME: String = "JavaTerminalSettings"
+    // Phantom: not IntelliJ's "JavaTerminalSettings", which IntelliJ's Java plugin (the IDE the plugin tests run in) still declares
+    const val COMPONENT_NAME: String = "PhantomJavaTerminalSettings"
   }
 
   fun addListener(listener: JavaTerminalSettingsListener) {

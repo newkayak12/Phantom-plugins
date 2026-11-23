@@ -1,5 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.java.terminal.backend
+package dev.phantom.terminal.java.backend
 
 import com.intellij.codeInsight.hints.presentation.InlayButtonPresentationFactory
 import com.intellij.codeInsight.hints.presentation.PresentationFactory
@@ -7,8 +7,8 @@ import com.intellij.codeInsight.hints.presentation.PresentationRenderer
 import com.intellij.execution.filters.ConsoleFilterProviderEx
 import com.intellij.execution.filters.Filter
 import com.intellij.execution.impl.InlayProvider
-import com.intellij.java.terminal.shared.JavaTerminalBundle
-import com.intellij.java.terminal.shared.JavaTerminalSettings
+import dev.phantom.terminal.java.shared.JavaTerminalBundle
+import dev.phantom.terminal.java.shared.JavaTerminalSettings
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer

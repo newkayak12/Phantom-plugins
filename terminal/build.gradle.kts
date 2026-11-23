@@ -93,5 +93,4 @@ tasks.withType<PrepareSandboxTask>().configureEach {
 
 // The IDE the tests run in still bundles IntelliJ's Terminal, which claims the id this plugin keeps as an alias
 tasks.prepareTestSandbox {
-  disabledPlugins.add("org.jetbrains.plugins.terminal")
-}
+  disabledPlugins.add("org.jetbrains.plugins.terminal")}
