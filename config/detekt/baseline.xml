@@ -2348,6 +2348,7 @@
     <ID>TooManyFunctions:AgentTerminalService.kt:AgentTerminalService</ID>
     <ID>TooManyFunctions:AgentToolWindowPanel.kt:AgentToolWindowPanel : JPanel</ID>
     <ID>TooManyFunctions:AiOfficeEditor.kt:AiOfficeEditor : UserDataHolderBaseFileEditor</ID>
+    <ID>TooManyFunctions:AliasRegistry.kt:IndexAliases</ID>
     <ID>TooManyFunctions:BackendLuxedRunDashboardContentManager.kt:BackendLuxedRunDashboardContentManager</ID>
     <ID>TooManyFunctions:BackendRecentFileEventsModel.kt:BackendRecentFileEventsModel</ID>
     <ID>TooManyFunctions:BackendRunDashboardManagerState.kt:BackendRunDashboardManagerState</ID>
@@ -2357,6 +2358,7 @@
     <ID>TooManyFunctions:BlockTerminalSearchSession.kt:BlockTerminalSearchSession : SearchSessionSearchResultsListenerListener</ID>
     <ID>TooManyFunctions:BlockTerminalView.kt:BlockTerminalView : TerminalContentViewTerminalCommandExecutor</ID>
     <ID>TooManyFunctions:BoardFileEditor.kt:BoardFileEditor : UserDataHolderBaseFileEditor</ID>
+    <ID>TooManyFunctions:CachingIndex.kt:CachingIndex&lt;K, V, D> : FileBasedIndexInfrastructureExtensionUpdatableIndexUpdatableIndex</ID>
     <ID>TooManyFunctions:CallReferenceHighlighter.kt:CallReferenceHighlighter</ID>
     <ID>TooManyFunctions:CheckerRunner.kt:CheckerRunner$Companion</ID>
     <ID>TooManyFunctions:CleanupBranchesDialog.kt:CleanupBranchesDialog : DialogWrapper</ID>
@@ -2532,6 +2534,7 @@
     <ID>TooManyFunctions:KotlinDslUtil.kt:com.android.tools.idea.gradle.dsl.kotlin.KotlinDslUtil.kt</ID>
     <ID>TooManyFunctions:KotlinDslWriter.kt:KotlinDslWriter : KotlinDslNameConverterGradleDslWriter</ID>
     <ID>TooManyFunctions:LangTool.kt:LangTool : GrazieStateLifecycle</ID>
+    <ID>TooManyFunctions:LocalSharedIndexExtension.kt:LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension</ID>
     <ID>TooManyFunctions:LogExtensions.kt:com.intellij.repository.search.completion.util.LogExtensions.kt</ID>
     <ID>TooManyFunctions:LogExtensions.kt:org.jetbrains.idea.reposearch.LogExtensions.kt</ID>
     <ID>TooManyFunctions:MacExecutableProblemHandler.kt:MacExecutableProblemHandler : GitExecutableProblemHandler</ID>
