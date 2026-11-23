@@ -67,6 +67,10 @@ object BatchLangDetector {
       .filter { NaturalTextDetector.seemsNatural(it) }
 
   private data class ResultHolder(val psiFile: PsiFile, val texts: List<String>, val languages: List<LanguageDetector.Result>) {
+    // phantom-idea: the map is built once per detection, not on every lookup; getLanguage looks up each checked text of the
+    // file, so building it there cost a map of all N texts for each of them, N * N entries per highlighting pass
+    private val results: DetectionResults = texts.zip(languages).toMap()
+
     override fun toString(): String {
       return "[fileType = ${psiFile.viewProvider.virtualFile.fileType}, " +
              "fileLanguage = ${psiFile.language}, " +
@@ -76,6 +80,6 @@ object BatchLangDetector {
              "contentLengths = ${texts.map { it.length }}]"
     }
 
-    fun get(): DetectionResults = texts.zip(languages).toMap()
+    fun get(): DetectionResults = results
   }
 }

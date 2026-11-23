@@ -133,6 +133,24 @@ class GitRepoCommunicatorTest : BasePlatformTestCase() {
     assertEquals("<a/>" to third, b.read("settings.zip").let { String(it.first!!) to it.second })
   }
 
+  fun testUnchangedRemoteIsNotFetchedAgain() {
+    val a = GitSettingsRepository(remote, root.resolve("a"))
+    val b = GitSettingsRepository(remote, root.resolve("b"))
+    val first = a.write("settings.zip", null, "<one/>".toByteArray())
+    var fetches = 0
+    b.beforeFetch = { fetches++ }
+
+    // a check followed by a read, as the sync engine does: one fetch, the read only asks the remote for its branch head
+    assertEquals(first, b.latestVersion("settings.zip"))
+    assertEquals("<one/>" to first, b.read("settings.zip").let { String(it.first!!) to it.second })
+    assertEquals(1, fetches)
+
+    // another machine pushes: the next check fetches its commit
+    val second = a.write("settings.zip", first, "<two/>".toByteArray())
+    assertEquals("<two/>" to second, b.read("settings.zip").let { String(it.first!!) to it.second })
+    assertEquals(2, fetches)
+  }
+
   fun testCredentialsAreMasked() {
     assertEquals("https://user:***@github.com/me/s.git", GitSettingsRepository.maskCredentials("https://user:ghp_secret@github.com/me/s.git"))
     assertEquals("https://***@github.com/me/s.git", GitSettingsRepository.maskCredentials("https://ghp_secret@github.com/me/s.git"))
