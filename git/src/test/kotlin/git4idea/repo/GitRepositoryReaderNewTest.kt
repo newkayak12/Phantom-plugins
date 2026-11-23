@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package git4idea.repo
 
 import com.intellij.dvcs.repo.Repository.State
@@ -173,7 +174,9 @@ abstract class GitRepositoryReaderNewTest(val usingReftable: Boolean) : GitPlatf
 
   // IDEA-143791
   fun `test branches are case-insensitive on case-insensitive systems`() {
-    assumeTrue("case-insensitive FS only", !SystemInfo.isFileSystemCaseSensitive)
+    // phantom-idea: return instead of assumeTrue. On the case-sensitive Linux CI runners the JUnit Vintage engine reported
+    // the AssumptionViolatedException thrown from this JUnit 3 style test body as a failure, not as a skipped test
+    if (SystemInfo.isFileSystemCaseSensitive) return
 
     makeCommit("file.txt")
     git("branch UpperCase")
@@ -186,7 +189,8 @@ abstract class GitRepositoryReaderNewTest(val usingReftable: Boolean) : GitPlatf
   }
 
   fun `test branches are case-sensitive on case-sensitive systems`() {
-    assumeTrue("Not tested: this test is for case sensitive FS only", SystemInfo.isFileSystemCaseSensitive)
+    // phantom-idea: return instead of assumeTrue, as in the case-insensitive test above
+    if (!SystemInfo.isFileSystemCaseSensitive) return
 
     makeCommit("file.txt")
     git("branch uppercase")
