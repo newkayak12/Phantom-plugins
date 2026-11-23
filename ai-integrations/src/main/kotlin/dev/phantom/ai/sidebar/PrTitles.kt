@@ -37,7 +37,6 @@ class CachedPrTitles(
   }
 }
 
-
 /**
  * [delegate] without the wait: answers at once from what is known, a stale answer too, and looks a missing or stale one
  * up on [background], once however often it is asked, calling [loaded] when it arrives. A view's refresh then no longer

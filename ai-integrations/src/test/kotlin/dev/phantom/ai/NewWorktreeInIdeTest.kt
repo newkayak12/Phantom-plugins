@@ -139,7 +139,8 @@ class NewWorktreeInIdeTest : BasePlatformTestCase() {
     assertTrue(p.plusAt(x, y))
     assertFalse(p.plusAt(bounds.x + 2, y))
     tree.mouseListeners.forEach { it.mouseClicked(MouseEvent(tree, MouseEvent.MOUSE_CLICKED, System.currentTimeMillis(), 0, x, y, 1, false)) }
-    waitFor { created("task-b").isDirectory }
+    // the agent starts once the worktree is there: wait for it, so no session outlives the test
+    waitFor { created("task-b").isDirectory && dev.phantom.ai.core.SessionStore.getInstance().all().isNotEmpty() }
     assertEquals(1, asked.size)
   }
 }

@@ -3,6 +3,9 @@ package dev.phantom.ai
 
 import dev.phantom.ai.board.BoardFlow
 import dev.phantom.ai.board.BoardStep
+import dev.phantom.ai.board.forget
+import dev.phantom.ai.board.newCard
+import dev.phantom.ai.board.rekey
 import dev.phantom.ai.core.AgentKind
 import dev.phantom.ai.core.AgentStatus
 import dev.phantom.ai.core.AiState

@@ -280,35 +280,12 @@ class WorkspaceBoardPanel(
       alignmentX = Component.LEFT_ALIGNMENT
     }
     val rows = JPanel().apply { layout = BoxLayout(this, BoxLayout.Y_AXIS); isOpaque = false }
-    val top = JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply { isOpaque = false; alignmentX = Component.LEFT_ALIGNMENT }
-    top.add(JBLabel(c.title).apply { font = font.deriveFont(java.awt.Font.BOLD) })
-    c.prNumber?.let { n ->
-      if (c.prUrl != null) top.add(ActionLink("#$n") { BrowserUtil.browse(c.prUrl) }.apply { name = "pr" })
-      else top.add(JBLabel("#$n").apply { foreground = JBColor.BLUE; name = "pr" })
-    }
-    if (allProjects != null) c.projectName?.let { top.add(JBLabel(it).apply { foreground = JBColor.GRAY; name = "project" }) }
-    rows.add(top)
+    rows.add(cardTitle(c))
     val sub = if (c.planned) PhantomAiBundle.message("board.planned", c.repo.orEmpty().substringAfterLast('/')) else c.branch.orEmpty()
     rows.add(line(sub, "branch"))
     c.prompt?.takeIf { it.isNotBlank() }?.let { rows.add(line("> " + oneLine(it), "prompt")) }
-    if (c.sessions.isNotEmpty()) {
-      val badges = JPanel(FlowLayout(FlowLayout.LEFT, 4, 2)).apply { isOpaque = false; alignmentX = Component.LEFT_ALIGNMENT }
-      c.sessions.forEach { s -> badges.add(badge(c, s)) }
-      rows.add(badges)
-    }
-    val links = JPanel(FlowLayout(FlowLayout.LEFT, 8, 2)).apply { isOpaque = false; alignmentX = Component.LEFT_ALIGNMENT }
-    fun link(key: String, run: () -> Unit) = links.add(ActionLink(PhantomAiBundle.message(key)) { run() }.apply { name = "action:$key" })
-    val end = { col: String -> boardLayout.cardsOf(col).size }
-    when (column) {
-      BoardFlow.TODO -> link("board.start") { moveCard(c.path, BoardFlow.IN_PROGRESS, end(BoardFlow.IN_PROGRESS)) }
-      BoardFlow.IN_PROGRESS -> if (!c.planned) link("board.changes") { work.showChanges(projectOf(c), c) }
-      BoardFlow.IN_REVIEW -> {
-        link("board.changes") { work.showChanges(projectOf(c), c) }
-        link("board.followup") { moveCard(c.path, BoardFlow.IN_PROGRESS, end(BoardFlow.IN_PROGRESS)) }
-        link("board.done") { moveCard(c.path, BoardFlow.DONE, end(BoardFlow.DONE)) }
-      }
-    }
-    if (links.componentCount > 0) rows.add(links)
+    if (c.sessions.isNotEmpty()) rows.add(row(4).also { badges -> c.sessions.forEach { s -> badges.add(badge(c, s)) } })
+    cardLinks(c, column)?.let(rows::add)
     p.add(rows, BorderLayout.CENTER)
     p.maximumSize = java.awt.Dimension(Int.MAX_VALUE, p.preferredSize.height)
     val drag = DragHandler(c.path)
@@ -319,6 +296,37 @@ class WorkspaceBoardPanel(
     }
     return p
   }
+
+  /** Title, pull request (a link when its page is known) and, on the dashboard, the project. */
+  private fun cardTitle(c: BoardCard): JComponent {
+    val top = row(4)
+    top.add(JBLabel(c.title).apply { font = font.deriveFont(java.awt.Font.BOLD) })
+    c.prNumber?.let { n ->
+      if (c.prUrl != null) top.add(ActionLink("#$n") { BrowserUtil.browse(c.prUrl) }.apply { name = "pr" })
+      else top.add(JBLabel("#$n").apply { foreground = JBColor.BLUE; name = "pr" })
+    }
+    if (allProjects != null) c.projectName?.let { top.add(JBLabel(it).apply { foreground = JBColor.GRAY; name = "project" }) }
+    return top
+  }
+
+  /** The next steps of a card in [column], as links; null when there are none. */
+  private fun cardLinks(c: BoardCard, column: String): JComponent? {
+    val links = row(8)
+    fun link(key: String, run: () -> Unit) = links.add(ActionLink(PhantomAiBundle.message(key)) { run() }.apply { name = "action:$key" })
+    fun moveTo(col: String) = moveCard(c.path, col, boardLayout.cardsOf(col).size)
+    when (column) {
+      BoardFlow.TODO -> link("board.start") { moveTo(BoardFlow.IN_PROGRESS) }
+      BoardFlow.IN_PROGRESS -> if (!c.planned) link("board.changes") { work.showChanges(projectOf(c), c) }
+      BoardFlow.IN_REVIEW -> {
+        link("board.changes") { work.showChanges(projectOf(c), c) }
+        link("board.followup") { moveTo(BoardFlow.IN_PROGRESS) }
+        link("board.done") { moveTo(BoardFlow.DONE) }
+      }
+    }
+    return links.takeIf { it.componentCount > 0 }
+  }
+
+  private fun row(gap: Int) = JPanel(FlowLayout(FlowLayout.LEFT, gap, 2)).apply { isOpaque = false; alignmentX = Component.LEFT_ALIGNMENT }
 
   /** A session's status; "waiting for you" stands out. A click jumps to its terminal. */
   private fun badge(c: BoardCard, s: BoardSession): JComponent = JBLabel(PhantomAiBundle.message("board.status.${s.status}")).apply {

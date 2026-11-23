@@ -98,25 +98,6 @@ class AiState : SimplePersistentStateComponent<AiStateData>(AiStateData()) {
   /** Read-only: the entry of [path] or null; does not create one. */
   fun findWorktree(path: String): WorktreeEntry? = state.worktrees.firstOrNull { it.path == path }
 
-  /** A new planned card in the first column of [repo]: no worktree until it moves to In progress. */
-  fun newCard(repo: String, title: String, prompt: String?, agent: AgentKind): WorktreeEntry {
-    val first = boardColumns().first()
-    val order = state.worktrees.count { it.column == first }
-    return worktree(PLANNED_CARD_PREFIX + java.util.UUID.randomUUID()).also {
-      it.repo = repo; it.userName = title; it.prompt = prompt; it.agent = agent.name; it.column = first; it.order = order
-    }
-  }
-
-  /** The card of [from] now stands for the worktree at [to] (a planned card got its worktree); placement and task stay. */
-  fun rekey(from: String, to: String) {
-    state.worktrees.removeIf { it.path == to }
-    findWorktree(from)?.path = to
-  }
-
-  fun forget(path: String) {
-    state.worktrees.removeIf { it.path == path }
-  }
-
   /** Creates the entry on write; use [findWorktree] to read. */
   fun worktree(path: String): WorktreeEntry =
     state.worktrees.firstOrNull { it.path == path } ?: WorktreeEntry().also { it.path = path; state.worktrees.add(it) }
@@ -162,8 +143,6 @@ class AiState : SimplePersistentStateComponent<AiStateData>(AiStateData()) {
   companion object {
     val TOPIC: Topic<AiStateListener> = Topic.create("Phantom AI state", AiStateListener::class.java)
     val DEFAULT_COLUMNS = listOf("Todo", "In progress", "In review", "Done")
-    /** Key prefix of a board card that has no worktree yet. */
-    const val PLANNED_CARD_PREFIX = "card:"
 
     fun getInstance(): AiState = ApplicationManager.getApplication().getService(AiState::class.java)
   }

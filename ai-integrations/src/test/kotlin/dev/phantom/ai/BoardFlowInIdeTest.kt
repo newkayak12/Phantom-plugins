@@ -48,7 +48,7 @@ class BoardFlowInIdeTest : BasePlatformTestCase() {
     override fun send(text: String) {
       sent += text
     }
-    override fun onChange(parent: Disposable, listener: () -> Unit) {}
+    override fun onChange(parent: Disposable, listener: () -> Unit) = Unit
   }
 
   private inner class Dialogs : BoardDialogs {

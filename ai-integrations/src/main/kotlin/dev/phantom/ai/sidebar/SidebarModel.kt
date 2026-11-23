@@ -50,7 +50,6 @@ data class SidebarModel(val repos: List<RepoNode>) {
   /** True when the worktrees are the top-level rows (one repository). */
   val flat: Boolean get() = repos.size == 1
 
-
   companion object {
     /** A remembered session of AiState that has no live tab; its tab id is "saved:<session id>". */
     fun saved(e: SessionEntry): AgentSession? {
