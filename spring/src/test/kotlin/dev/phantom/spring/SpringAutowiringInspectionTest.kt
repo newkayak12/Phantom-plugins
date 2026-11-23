@@ -1,6 +1,9 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.spring
 
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import dev.phantom.spring.core.PhantomSpringBundle
 import dev.phantom.spring.core.ide.SpringAutowiringInspection
@@ -66,6 +69,25 @@ class SpringAutowiringInspectionTest : LightJavaCodeInsightFixtureTestCase() {
     myFixture.addClass("package app; @org.springframework.context.annotation.Configuration @org.springframework.context.annotation.Import(Adapter.class) public class Config {}")
     myFixture.configureByText("Svc.java", "package app; @org.springframework.stereotype.Component public class Svc { public Svc(Port port) {} }")
     myFixture.checkHighlighting()
+  }
+
+  /** An `@Import` added to an existing class registers the type: the per-type cache follows declarations. */
+  fun testImportAddedLaterRegistersTheClass() {
+    myFixture.addClass("package app; public class Adapter implements Port {}")
+    val config = myFixture.addFileToProject("app/Config.java", "package app; @org.springframework.context.annotation.Configuration public class Config {}")
+    myFixture.configureByText("Svc.java", "package app; @org.springframework.stereotype.Component public class Svc { public Svc(Port port) {} }")
+    assertContainsElements(myFixture.doHighlighting().mapNotNull { it.description }, noBean("Port"))
+    edit(config, "public class Config", "@org.springframework.context.annotation.Import(Adapter.class) public class Config")
+    assertDoesntContain(myFixture.doHighlighting().mapNotNull { it.description }, noBean("Port"))
+  }
+
+  private fun edit(file: PsiFile, from: String, to: String) {
+    val document = PsiDocumentManager.getInstance(project).getDocument(file)!!
+    WriteCommandAction.runWriteCommandAction(project) {
+      val at = document.text.indexOf(from)
+      document.replaceString(at, at + from.length, to)
+    }
+    PsiDocumentManager.getInstance(project).commitAllDocuments()
   }
 
   fun testMultipleBeansAndTieBreakers() {

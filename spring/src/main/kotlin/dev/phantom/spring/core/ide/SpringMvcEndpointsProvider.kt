@@ -14,11 +14,11 @@ import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.ModificationTracker
 import com.intellij.psi.PsiElement
-import com.intellij.psi.util.PsiModificationTracker
 import dev.phantom.spring.core.PhantomSpringIcons
 import dev.phantom.spring.core.SpringEndpoint
 import dev.phantom.spring.core.SpringMvcEndpoints
 import dev.phantom.spring.core.SpringProjectGate
+import dev.phantom.spring.core.SpringStructureTracker
 
 /** The controllers of one module (or of no module, for sources outside every module). */
 class SpringEndpointsGroup(val module: Module?, val endpoints: List<SpringEndpoint>)
@@ -54,7 +54,11 @@ internal class SpringMvcEndpointsProvider : EndpointsProvider<SpringEndpointsGro
   override fun getEndpointPresentation(group: SpringEndpointsGroup, endpoint: SpringEndpoint): ItemPresentation =
     HttpMethodPresentation(SpringMvcEndpoints.readablePath(endpoint.path), endpoint.methods, "${endpoint.controllerName}.${endpoint.handlerName}", PhantomSpringIcons.Bean)
 
-  override fun getModificationTracker(project: Project): ModificationTracker = PsiModificationTracker.getInstance(project)
+  // the dependencies of SpringMvcEndpoints.all, summed: each count only grows
+  override fun getModificationTracker(project: Project): ModificationTracker {
+    val deps = SpringStructureTracker.deps(project).map { it as ModificationTracker }
+    return ModificationTracker { deps.sumOf { it.modificationCount } }
+  }
 
   override fun getNavigationElement(group: SpringEndpointsGroup, endpoint: SpringEndpoint): PsiElement? = endpoint.handler.element
 
