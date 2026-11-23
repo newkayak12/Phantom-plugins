@@ -865,6 +865,14 @@
         "com.intellij.modules.lang"
       ],
       "download": "terminal-0.3.0/terminal-0.3.0.zip",
+      "versions": [
+        {
+          "version": "0.2.0",
+          "since": "262.261113",
+          "until": "262.*",
+          "download": "terminal-0.2.0/terminal-0.2.0.zip"
+        }
+      ],
       "detect": []
     },
     {

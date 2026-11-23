@@ -31,6 +31,16 @@ def main(folder: str, publish: bool) -> None:
     entry = next((p for p in marketplace["plugins"] if p.get("source") == folder), None)
     if entry is None:
         sys.exit(f'{folder} has no entry in {MARKETPLACE.relative_to(ROOT)}; add one with "source": "{folder}"')
+    # A release that needs a newer Phantom (a higher sinceBuild in build.gradle.kts) keeps the previous one under "versions", newest
+    # first: Phantom offers each IDE the newest release whose since/until holds its build (GitHubPluginRepository.compatibleRelease)
+    since = re.search(r'^\s*sinceBuild = "([^"]+)"', build_file.read_text(), re.M)
+    since = since.group(1) if since else entry.get("since")
+    previous = {k: entry[k] for k in ("version", "since", "until", "download", "changeNotes") if k in entry}
+    if since != entry.get("since") and previous.get("version") not in (None, version):
+        older = [v for v in entry.get("versions", []) if v.get("version") != previous["version"]]
+        entry["versions"] = ([previous] + older)[:5]
+    if since:
+        entry["since"] = since
     entry["version"] = version
     entry["download"] = f"{tag}/{zip_path.name}"
     MARKETPLACE.write_text(json.dumps(marketplace, indent=2, ensure_ascii=False) + "\n")
