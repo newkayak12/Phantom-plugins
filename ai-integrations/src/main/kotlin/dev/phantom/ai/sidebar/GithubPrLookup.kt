@@ -63,7 +63,11 @@ object PullsResponse {
     arr.firstNotNullOfOrNull { e ->
       val o = e.asJsonObject
       val title = o.get("title")?.takeUnless { it.isJsonNull }?.asString?.takeIf { it.isNotBlank() } ?: return@firstNotNullOfOrNull null
-      PrInfo(o.get("number")?.takeUnless { it.isJsonNull }?.asInt, title)
+      PrInfo(
+        o.get("number")?.takeUnless { it.isJsonNull }?.asInt,
+        title,
+        o.get("html_url")?.takeUnless { it.isJsonNull }?.asString?.takeIf { it.isNotBlank() },
+      )
     }
   }.getOrNull()
 

@@ -73,6 +73,10 @@ class GithubPrLookupTest {
   fun `response parses number and title`() {
     val body = """[{"url":"u","id":1,"number":42,"state":"open","title":"Add X","head":{"ref":"feat/x"}},{"number":7,"title":"other"}]"""
     assertEquals(PrInfo(42, "Add X"), PullsResponse.parse(body))
+    assertEquals(
+      PrInfo(5, "Fix", "https://github.com/o/r/pull/5"),
+      PullsResponse.parse("""[{"number":5,"title":"Fix","html_url":"https://github.com/o/r/pull/5"}]"""),
+    )
     assertNull(PullsResponse.parse("[]"))
     assertNull(PullsResponse.parse("""{"message":"Not Found"}"""))
     assertNull(PullsResponse.parse("not json"))

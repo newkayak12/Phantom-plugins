@@ -3,6 +3,7 @@
 ## 미배포
 
 - `@Converter(autoApply = true)` 타입 목록과 Spring Data JDBC 애그리거트 루트·프로젝트 판별이 SQL·YAML·XML 입력마다 다시 계산되지 않는다. JVM 코드나 라이브러리가 바뀔 때만 다시 계산한다. (#119)
+- IntelliJ IDEA Ultimate가 만든 프로젝트를 열 때 "Unknown facet type: 'jpa'" 오류 알림이 더 이상 뜨지 않는다. .iml의 JPA facet 설정은 그대로 남아 Ultimate에서도 읽힌다. (#111)
 
 ## 0.7.3 (2026-11-22)
 
