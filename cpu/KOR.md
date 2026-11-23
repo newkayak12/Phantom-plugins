@@ -12,7 +12,7 @@ IDE가 느리거나 팬이 돌 때 IDE 탓인지 다른 프로그램 탓인지 �
 2초마다, 전용 데몬 스레드 `Phantom CPU Indicator`에서 잽니다.
 
 - IDE: 프로세스 CPU 시간(`OperatingSystemMXBean.getProcessCpuTime`)을 경과 시간과 코어 수로 나눈 값. 시스템: `getCpuLoad()`.
-- 팝업이 열려 있거나 IDE가 높은 상태일 때만: 스레드별 CPU 시간(`ThreadMXBean`)과 그동안 돈 스레드의 스택. 스레드 이름으로는 작업을 거의 알 수 없어서(대부분 `DefaultDispatcher-worker-N`, `ApplicationImpl pooled thread N`) 스택에서 가장 바깥쪽에 있는 알려진 프레임으로 정합니다. `com.intellij.util.indexing`의 인덱서·스캐너는 인덱싱, 데몬·인스펙션·자동완성·인레이 힌트·Kotlin Analysis API/FIR은 코드 분석입니다. 인덱스 Writer 스레드는 이름으로 인덱싱입니다.
+- 팝업이 열려 있을 때만: 스레드별 CPU 시간(`ThreadMXBean`)과 그동안 돈 스레드의 스택(최대 256프레임). 스레드 이름으로는 작업을 거의 알 수 없어서(대부분 `DefaultDispatcher-worker-N`, `ApplicationImpl pooled thread N`) 스택에서 가장 바깥쪽에 있는 알려진 프레임으로 정합니다. `com.intellij.util.indexing`의 인덱서·스캐너는 인덱싱, 데몬·인스펙션·자동완성·인레이 힌트·Kotlin Analysis API/FIR은 코드 분석입니다. 인덱스 Writer 스레드는 이름으로 인덱싱입니다.
 - GC와 JIT는 `ThreadMXBean`에 안 나오는 VM 스레드에서 돕니다. 프로세스 CPU 중 Java 스레드 몫을 뺀 나머지를 MXBean이 알려 주는 GC 시간과 컴파일 시간 비율로 나누고, 남는 건 기타입니다.
 - `ps -Ao pcpu,comm -r`은 팝업이 열려 있을 때만 실행합니다.
 
