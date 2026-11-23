@@ -62,6 +62,13 @@ class ActuatorTest : BasePlatformTestCase() {
     assertEquals(listOf("db: UP (MySQL)", "redis: DOWN"), lines)
   }
 
+  fun testHealthPollsOnlyWhileItsSubTabIsSelected() {
+    assertTrue(ActuatorTab.pollsHealth(selectedTab = 0, showing = true, terminated = false))
+    assertFalse("switched to Beans", ActuatorTab.pollsHealth(selectedTab = 1, showing = true, terminated = false))
+    assertFalse("Actuator tab hidden", ActuatorTab.pollsHealth(selectedTab = 0, showing = false, terminated = false))
+    assertFalse("application stopped", ActuatorTab.pollsHealth(selectedTab = 0, showing = true, terminated = true))
+  }
+
   fun testSpringBootRunsGetAnActuatorTab() {
     val configuration = SpringBootRunConfiguration("app", project, SpringBootConfigurationType.getInstance().factory)
     val added = ArrayList<AdditionalTabComponent>()

@@ -2,6 +2,8 @@
 
 ## 미배포
 
+- Actuator 탭에서 Health가 아닌 탭으로 옮기면 5초마다 하던 health 요청을 멈춘다.
+
 ## 0.8.4 (2026-11-22)
 
 - 이름을 바꿨다: Spring Boot Support → Phantom for Spring Boot. Phantom으로 시작하고, 지원하는 프로젝트 이름은 뒤에 둔다. 플러그인 id와 기능은 그대로다.
