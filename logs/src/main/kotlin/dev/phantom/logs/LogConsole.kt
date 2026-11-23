@@ -32,6 +32,10 @@ object LogInputFilter : InputFilter {
     if (contentType != ConsoleViewContentType.NORMAL_OUTPUT && contentType != ConsoleViewContentType.ERROR_OUTPUT) return null
     var changed = false
     val parts = ArrayList<Pair<String, ConsoleViewContentType>>()
+    // Lines of one type in a row are collected in a builder: appending each to the last part's String copied that part
+    // again for every line, quadratic in the lines of a chunk, even when nothing was changed and the parts were dropped.
+    val run = StringBuilder()
+    var runType: ConsoleViewContentType? = null
     var start = 0
     while (start < text.length) {
       val end = text.indexOf('\n', start).let { if (it < 0) text.length else it + 1 }
@@ -45,11 +49,17 @@ object LogInputFilter : InputFilter {
       }
       val type = typeOf(level) ?: contentType
       if (json != null || type != contentType) changed = true
-      if (parts.isNotEmpty() && parts.last().second == type) parts[parts.size - 1] = Pair(parts.last().first + shown, type)
-      else parts.add(Pair(shown, type))
+      if (type != runType) {
+        runType?.let { parts.add(Pair(run.toString(), it)) }
+        run.setLength(0)
+        runType = type
+      }
+      run.append(shown)
       start = end
     }
-    return if (changed) parts else null
+    if (!changed) return null
+    runType?.let { parts.add(Pair(run.toString(), it)) }
+    return parts
   }
 
   private fun typeOf(level: LogLevel?): ConsoleViewContentType? = when (level) {

@@ -17,6 +17,7 @@
     <codeBodies language="JAVA" implementationClass="dev.phantom.spring.core.JavaSpringCodeBodies"/>
   </extensions>
   <extensions defaultExtensionNs="com.intellij">
+    <facetIgnorer implementation="dev.phantom.spring.core.WebFacetIgnorer"/>
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.spring.core.ide.SpringBeanLineMarkerProvider"/>
     <implicitUsageProvider implementation="dev.phantom.spring.core.ide.SpringImplicitUsageProvider"/>
     <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomSpringAutowiring"

@@ -41,6 +41,16 @@ class LogConsoleTest : BasePlatformTestCase() {
     assertNull(LogInputFilter.applyFilter("$json\n", ConsoleViewContentType.SYSTEM_OUTPUT))
   }
 
+  fun `test the input filter keeps runs of lines of one type together in a large chunk`() {
+    val info = "10:00:00 INFO c.Foo - request handled\n".repeat(50_000)
+    val warn = "10:00:01 WARN c.Foo - slow\n"
+    val parts = LogInputFilter.applyFilter(info + warn + info, ConsoleViewContentType.NORMAL_OUTPUT)!!
+    assertEquals(listOf(info, warn, info), parts.map { it.first })
+    val normal = ConsoleViewContentType.NORMAL_OUTPUT
+    assertEquals(listOf(normal, ConsoleViewContentType.LOG_WARNING_OUTPUT, normal), parts.map { it.second })
+    assertNull(LogInputFilter.applyFilter(info, ConsoleViewContentType.NORMAL_OUTPUT))
+  }
+
   fun `test trace ids`() {
     val boot = "2026 INFO [app] [main] [803b448a0489f84084905d3093480352-3425f23bb2432450] a.B : x"
     assertEquals(listOf("803b448a0489f84084905d3093480352"), LogLines.traceIds(boot).map { boot.substring(it) })
