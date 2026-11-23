@@ -2,7 +2,7 @@
 
 ## 미배포
 
-- IntelliJ IDEA Ultimate가 만든 프로젝트를 열 때 "Unknown facet type: 'jpa'" 오류 알림이 더 이상 뜨지 않는다. .iml의 JPA facet 설정은 그대로 남아 Ultimate에서도 읽힌다.
+- IntelliJ IDEA Ultimate가 만든 프로젝트를 열 때 "Unknown facet type: 'jpa'" 오류 알림이 더 이상 뜨지 않는다. .iml의 JPA facet 설정은 그대로 남아 Ultimate에서도 읽힌다. (#111)
 
 ## 0.7.3 (2026-11-22)
 
