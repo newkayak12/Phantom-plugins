@@ -2,6 +2,8 @@
 
 ## 미배포
 
+- Entity Diagram 도구 창 아이콘을 Database와 같던 표 아이콘에서 선으로 이어진 엔티티 상자 두 개로 바꿨다.
+
 ## 0.7.3 (2026-11-22)
 
 - 이름을 바꿨다: JPA Support → Phantom for JPA. Phantom으로 시작하고, 지원하는 프로젝트 이름은 뒤에 둔다. 플러그인 id와 기능은 그대로다.
