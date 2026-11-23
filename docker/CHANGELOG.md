@@ -2,6 +2,8 @@
 
 ## 미배포
 
+- Containers 창은 IDE가 다른 앱 뒤에 있는 동안 `docker ps -a`를 3초마다 돌리지 않고 멈췄다가, IDE로 돌아오면 바로 새로 고친다.
+
 ## 0.6.2 (2026-11-22)
 
 - 이름을 바꿨다: Docker Support → Phantom for Docker. Phantom으로 시작하고, 지원하는 프로젝트 이름은 뒤에 둔다. 플러그인 id와 기능은 그대로다.

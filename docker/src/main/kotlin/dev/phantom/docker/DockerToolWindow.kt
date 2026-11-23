@@ -8,6 +8,7 @@ import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.*
+import com.intellij.openapi.application.ApplicationActivationListener
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.ide.CopyPasteManager
@@ -18,6 +19,7 @@ import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.ToolWindow
+import com.intellij.openapi.wm.IdeFrame
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.ColoredTableCellRenderer
 import com.intellij.ui.DoubleClickListener
@@ -50,8 +52,8 @@ class DockerToolWindowFactory : ToolWindowFactory, DumbAware {
 }
 
 /**
- * `docker ps -a` as a table, grouped by compose project. Refreshes every three seconds while it is on screen, never
- * in the background. Start, stop, restart, remove and logs run the docker command for the selected containers.
+ * `docker ps -a` as a table, grouped by compose project. Refreshes every three seconds while it is on screen and the IDE is
+ * the active application, never in the background; switching back to the IDE refreshes at once. Start, stop, restart, remove and logs run the docker command for the selected containers.
  */
 class ContainersPanel(private val project: Project, parent: Disposable) : JPanel(BorderLayout()), Disposable {
   private var rows: List<DockerCli.Container> = emptyList()
@@ -67,6 +69,11 @@ class ContainersPanel(private val project: Project, parent: Disposable) : JPanel
 
   init {
     Disposer.register(parent, this)
+    ApplicationManager.getApplication().messageBus.connect(this).subscribe(ApplicationActivationListener.TOPIC, object : ApplicationActivationListener {
+      override fun applicationActivated(ideFrame: IdeFrame) {
+        if (isShowing) schedule(0)
+      }
+    })
     table.setShowGrid(false)
     table.selectionModel.selectionMode = ListSelectionModel.MULTIPLE_INTERVAL_SELECTION
     table.emptyText.text = "Loading containers…"
@@ -126,6 +133,8 @@ class ContainersPanel(private val project: Project, parent: Disposable) : JPanel
   }
 
   private fun poll() {
+    // paused while another application is in front; applicationActivated starts it again
+    if (!ApplicationManager.getApplication().isActive) return
     val result = runCatching { DockerCli.containers() }
     ApplicationManager.getApplication().invokeLater({
       result.onSuccess { list ->
