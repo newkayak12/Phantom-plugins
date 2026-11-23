@@ -9,6 +9,7 @@
   </dependencies>
   <resource-bundle>messages.PhantomJpaBundle</resource-bundle>
   <extensions defaultExtensionNs="com.intellij">
+    <facetIgnorer implementation="dev.phantom.jpa.core.JpaFacetIgnorer"/>
     <fileType name="JPQL" language="JPQL" implementationClass="dev.phantom.jpa.core.JpqlFileType" fieldName="INSTANCE"/>
     <lang.parserDefinition language="JPQL" implementationClass="dev.phantom.jpa.core.JpqlParserDefinition"/>
     <lang.syntaxHighlighterFactory language="JPQL" implementationClass="dev.phantom.jpa.core.JpqlSyntaxHighlighterFactory"/>

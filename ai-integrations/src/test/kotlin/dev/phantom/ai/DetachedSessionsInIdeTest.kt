@@ -15,7 +15,8 @@ import dev.phantom.ai.core.AgentKind
 import dev.phantom.ai.core.AgentSession
 import dev.phantom.ai.core.AgentStatus
 import dev.phantom.ai.core.SessionStore
-import dev.phantom.ai.dashboard.AgentDashboardPanel
+import dev.phantom.ai.board.BoardCard
+import dev.phantom.ai.board.WorkspaceBoardPanel
 import dev.phantom.ai.launch.LaunchCommand
 import dev.phantom.ai.memo.AiMemoStore
 import dev.phantom.ai.memo.MemoSender
@@ -340,12 +341,12 @@ class DetachedSessionsInIdeTest : BasePlatformTestCase() {
     assertEquals(listOf(Tmux.attach("tmux", "phantom-t1")), commands.toList())
   }
 
-  fun testDashboardCardClickReattachesHere() {
+  fun testBoardBadgeClickReattachesHere() {
     val tab = detachedTab()
     val prs = PrTitles { _, _ -> null }
-    val panel = AgentDashboardPanel(project, { emptyList() }, prs, { ProjectRepos { emptyList() } })
+    val panel = WorkspaceBoardPanel(project, { emptyList() }, prs, ProjectRepos { emptyList() })
     Disposer.register(testRootDisposable, panel)
-    panel.open(tab)
+    panel.jumpTo(BoardCard(store.get(tab)!!.worktree, "w", null, null), tab)
     assertEquals(listOf(tab), host.tabs().map { it.id })
     assertFalse(store.get(tab)!!.detached)
   }

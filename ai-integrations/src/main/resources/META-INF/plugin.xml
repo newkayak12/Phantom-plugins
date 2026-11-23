@@ -97,5 +97,7 @@
     <listener class="dev.phantom.ai.hooks.HookUninstall" topic="com.intellij.ide.plugins.DynamicPluginListener"/>
     <!-- the agent teams poller starts with the first Claude session that has a session id, not at startup -->
     <listener class="dev.phantom.ai.hooks.AgentTeamsStarter" topic="dev.phantom.ai.core.SessionListener"/>
+    <!-- a finished session moves its board card from In progress to In review, with or without an open board -->
+    <listener class="dev.phantom.ai.board.BoardReviewMover" topic="dev.phantom.ai.core.SessionListener"/>
   </applicationListeners>
 </idea-plugin>

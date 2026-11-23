@@ -3,6 +3,7 @@
 ## 미배포
 
 - Entity Diagram 도구 창 아이콘을 Database와 같던 표 아이콘에서 선으로 이어진 엔티티 상자 두 개로 바꿨다. (#112)
+- IntelliJ IDEA Ultimate가 만든 프로젝트를 열 때 "Unknown facet type: 'jpa'" 오류 알림이 더 이상 뜨지 않는다. .iml의 JPA facet 설정은 그대로 남아 Ultimate에서도 읽힌다. (#111)
 
 ## 0.7.3 (2026-11-22)
 
