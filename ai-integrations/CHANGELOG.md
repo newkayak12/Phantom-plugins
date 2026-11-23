@@ -2,6 +2,9 @@
 
 ## 미배포
 
+- 보드의 열이 작업 단계가 됐다. New Card로 작업을 계획하고, In progress로 옮기면 worktree를 만들고 카드의 프롬프트로 에이전트를 시작한다. 에이전트가 끝나면 카드가 In review로 가고, 되돌리면 후속 프롬프트를 같은 세션에 보낸다(바쁘면 대기). Done은 확인 후 worktree를 지울 수 있고 병합이나 푸시는 하지 않는다. 카드에 세션 상태 배지, diff(Changes), PR 링크가 붙는다.
+- Agent Dashboard 창은 상태별 열 대신 열려 있는 모든 프로젝트의 보드를 프로젝트 필터와 함께 보여 준다. 검색, 에이전트 필터, 서브에이전트 목록은 빠졌다.
+
 ## 0.5.2
 
 - 계정의 로그인과 이메일을 CLI에 묻는다. Claude Code는 `claude auth status --json`, Codex는 `codex app-server`의 `account/read`다. Codex의 `auth.json`(토큰이 든 파일)과 Claude의 `.claude.json` 로그인 정보를 더는 읽지 않는다.
