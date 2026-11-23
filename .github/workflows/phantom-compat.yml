@@ -89,7 +89,9 @@ jobs:
             rel="$(gh release list -R "$GITHUB_REPOSITORY" --limit 1000 --json tagName -q '.[].tagName' | grep "^$name-" | sort -V | tail -1)"
             gh release download "$rel" -R "$GITHUB_REPOSITORY" -p '*.zip' -D "$RUNNER_TEMP/$name"
             unzip -q "$RUNNER_TEMP/$name"/*.zip -d "$RUNNER_TEMP/$name/plugin"
-            echo "${name^^}_PLUGIN=$(find "$RUNNER_TEMP/$name/plugin" -mindepth 1 -maxdepth 1 -type d | head -1)" >> "$GITHUB_ENV"
+            # macOS runners run bash 3.2, which has no ${name^^}
+            upper="$(printf %s "$name" | tr '[:lower:]' '[:upper:]')"
+            echo "${upper}_PLUGIN=$(find "$RUNNER_TEMP/$name/plugin" -mindepth 1 -maxdepth 1 -type d | head -1)" >> "$GITHUB_ENV"
             echo "$rel" >> "$RUNNER_TEMP/companions"
           done
           kotlin="$(paste -sd, "$RUNNER_TEMP/companions")"
