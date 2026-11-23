@@ -16,6 +16,7 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <fileBasedIndexInfrastructureExtension implementation="dev.phantom.localsharedindex.LocalSharedIndexExtension"/>
+    <registryKey key="phantom.localsharedindex.alias" defaultValue="true" description="Phantom Local Shared Index: skip IdIndex and Trigram.Index of files whose content another checkout indexed, answering from that file (prototype)"/>
     <registryKey key="phantom.localsharedindex.verify.one.in" defaultValue="0" description="Phantom Local Shared Index: recompute every Nth cache hit and compare (0 = off)"/>
     <projectIndexingActivityHistoryListener implementation="dev.phantom.localsharedindex.LocalSharedIndexHistoryListener"/>
     <advancedSetting id="phantom.localsharedindex.max.size.mb" default="2048" bundle="messages.PhantomLocalSharedIndexBundle" groupKey="advanced.settings.phantom.localsharedindex"/>

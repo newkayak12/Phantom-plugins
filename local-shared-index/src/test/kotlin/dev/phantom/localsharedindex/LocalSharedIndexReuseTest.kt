@@ -49,6 +49,7 @@ class LocalSharedIndexReuseTest {
     (FileBasedIndex.getInstance() as FileBasedIndexImpl).waitUntilIndicesAreInitialized() // opens the store
     store.clearAll()
     Registry.get("phantom.localsharedindex.verify.one.in").setValue(1, disposable.disposable) // verify every hit
+    Registry.get(LocalSharedIndexAllowlist.ALIAS_KEY).setValue(false, disposable.disposable) // these test the value cache
   }
 
   @After

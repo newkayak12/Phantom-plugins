@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.localsharedindex
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.options.advanced.AdvancedSettings
@@ -31,7 +32,8 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
   @Volatile
   private var layoutId: String? = null
 
-  override fun createFileIndexingStatusProcessor(project: Project): FileIndexingStatusProcessor? = null
+  override fun createFileIndexingStatusProcessor(project: Project): FileIndexingStatusProcessor? =
+    if (store != null) LocalSharedIndexStatusProcessor(project) else null
 
   override fun <K, V> combineIndex(
     indexExtension: FileBasedIndexExtension<K, V>,
@@ -61,6 +63,7 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
     store?.close()
     val maxBytes = AdvancedSettings.getInt(MAX_SIZE_SETTING).coerceAtLeast(1).toLong() shl 20
     store = LocalSharedIndexStore.open(PathManager.getIndexRoot().resolve(ROOT), maxBytes)
+    if (store != null) AliasRegistry.load(donorsFile())
     if (store == null) LOG.warn("Phantom Local Shared Index: the cache at ${PathManager.getIndexRoot().resolve(ROOT)} is locked by another IDE process or unreadable; indexes are not cached in this process")
     return InitializationResult.SUCCESSFULLY
   }
@@ -71,16 +74,27 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
 
   override fun resetPersistentState() {
     store?.clearAll()
+    AliasRegistry.clearAll()
   }
 
   // The platform calls this after it dropped the data of a broken index (FileBasedIndexImpl.initIndexStorage).
   override fun resetPersistentState(indexId: ID<*, *>) {
     store?.clear(indexId.name)
+    AliasRegistry.clear(indexId.name)
   }
 
   override fun shutdown() {
+    if (store != null) AliasRegistry.save(donorsFile())
     store?.close()
     store = null
+  }
+
+  private fun donorsFile() = PathManager.getIndexRoot().resolve(ROOT).resolve("donors.bin")
+
+  /** Writes the donor list now, off the calling thread (indexing listeners run on the indexing thread). */
+  fun saveDonors() {
+    if (store == null) return
+    ApplicationManager.getApplication().executeOnPooledThread { if (store != null) AliasRegistry.save(donorsFile()) }
   }
 
   // -1 so that this extension never changes the version of the indexes it does not wrap

@@ -13,6 +13,8 @@ class LocalSharedIndexHistoryListener : ProjectIndexingActivityHistoryListener {
     if (ApplicationManager.getApplication().isUnitTestMode) lastHistory = history
     val counts = LocalSharedIndexStatistics.getInstance().takeCounts(history.project)
     if (counts.values.any { it.hits != 0 || it.misses != 0 }) LOG.info(formatLine(history.project.name, counts))
+    // Donors are also saved after each indexing, not only at shutdown: an IDE that is killed would lose them.
+    LocalSharedIndexExtension.getInstance().saveDonors()
   }
 
   companion object {
