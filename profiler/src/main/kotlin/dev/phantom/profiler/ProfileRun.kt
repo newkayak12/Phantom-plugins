@@ -112,10 +112,12 @@ object Recordings {
     if (!Files.isDirectory(dir)) emptyList()
     else Files.list(dir).use { s -> s.filter { it.toString().endsWith(".jfr") && sizeOf(it) > 0 }.toList() }.sortedByDescending { sizeOf(it) }
 
-  /** Saved recordings, newest first. */
-  fun list(): List<Path> =
+  /** Saved recordings, newest first, with their size and time read here so the tool window does not read them as it paints. */
+  fun list(): List<SavedRecording> =
     if (!directory.exists()) emptyList()
-    else directory.listDirectoryEntries("*.jfr").filter { it.isRegularFile() }.sortedByDescending { it.getLastModifiedTime() }
+    else directory.listDirectoryEntries("*.jfr").filter { it.isRegularFile() }
+      .mapNotNull { file -> runCatching { SavedRecording(file, Files.size(file), file.getLastModifiedTime().toMillis()) }.getOrNull() }
+      .sortedByDescending { it.modified }
 
   fun open(project: Project, file: Path) {
     val vFile = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(file) ?: return
@@ -126,6 +128,8 @@ object Recordings {
     NotificationGroupManager.getInstance().getNotificationGroup("Phantom Profiler").createNotification(message, type).notify(project)
   }
 }
+
+class SavedRecording(val path: Path, val size: Long, val modified: Long)
 
 /** Opens a profiled run's recording once the program has ended and the JVM has written it. */
 class ProfileExecutionListener(private val project: Project) : ExecutionListener {
