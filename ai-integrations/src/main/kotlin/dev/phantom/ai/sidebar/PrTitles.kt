@@ -4,8 +4,8 @@ package dev.phantom.ai.sidebar
 import dev.phantom.ai.core.bestEffort
 import java.util.concurrent.ConcurrentHashMap
 
-/** The open pull request of a branch: [number] is null when only a title is known. */
-data class PrInfo(val number: Int?, val title: String)
+/** The open pull request of a branch: [number] is null when only a title is known; [url] is its web page when known. */
+data class PrInfo(val number: Int?, val title: String, val url: String? = null)
 
 /** Title (and number) of the pull request of a branch, or null. Fakeable; any failure is null. */
 fun interface PrTitles {
