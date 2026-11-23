@@ -1,4 +1,4 @@
-# Git Support
+# Phantom for Git
 
 `dev.phantom.git` · [English](./README.md)
 

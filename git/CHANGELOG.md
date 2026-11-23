@@ -1,6 +1,10 @@
-# Git Support 변경 이력
+# Phantom for Git 변경 이력
 
 ## 미배포
+
+## 0.2.1 (2026-11-23)
+
+- 이름을 바꿨다: Git Support → Phantom for Git. Phantom으로 시작하고, 지원하는 프로젝트 이름은 뒤에 둔다. 플러그인 id와 기능은 그대로다.
 
 ## 0.2.0 (2026-11-23)
 

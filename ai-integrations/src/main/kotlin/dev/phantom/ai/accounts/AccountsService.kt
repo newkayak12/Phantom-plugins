@@ -16,8 +16,11 @@ import com.intellij.openapi.diagnostic.logger
 import dev.phantom.ai.hooks.HookInstallService
 import dev.phantom.ai.launch.LaunchCommand
 import java.nio.file.Files
+import org.jetbrains.annotations.TestOnly
 import java.nio.file.Path
+import java.util.Optional
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 /** Runs the CLI login and returns when it ended: command, env, title. Throws [LoginFailed], or a cancellation. */
 fun interface LoginRunner {
@@ -33,8 +36,12 @@ class AccountsService(
   private val stateProvider: () -> AiState = { AiState.getInstance() },
   private val notify: (String, Throwable?) -> Unit = { message, cause -> AiNotify.error(LOG, null, message, cause) },
   private val inherit: (AgentKind, Path) -> Unit = { k, d -> AccountHome.inherit(k, d) },
+  private var probe: LoginProbe = CliLoginProbe(),
 ) {
   private val state get() = stateProvider()
+
+  /** What the CLI last said about each account dir's login (absent: not asked yet); asking takes a CLI run. */
+  private val logins = ConcurrentHashMap<String, Optional<Login>>()
 
   fun accounts(kind: AgentKind): List<AgentAccount> = state.accountsOf(kind).mapNotNull { it.toAccount() }
 
@@ -44,8 +51,28 @@ class AccountsService(
     return accounts(kind).firstOrNull { it.id == id }
   }
 
-  /** An account whose login is gone (logged out, or never finished) cannot run an agent until it signs in again. */
-  fun signedIn(account: AgentAccount): Boolean = AccountLogin.name(account.provider, Path.of(account.dir)) != null
+  /**
+   * An account whose login is gone (logged out, or never finished) cannot run an agent until it signs in again. Uses what
+   * the CLI last said; [refreshLogins] asks again.
+   */
+  fun signedIn(account: AgentAccount): Boolean = login(account) != null
+
+  /** Asks the CLI again about every added account's login (a CLI run each; not on the EDT without progress). */
+  fun refreshLogins() {
+    logins.clear()
+    AgentKind.entries.flatMap { accounts(it) }.forEach { login(it) }
+  }
+
+  private fun login(account: AgentAccount, fresh: Boolean = false): Login? {
+    if (fresh) logins.remove(account.dir)
+    return logins.computeIfAbsent(account.dir) { Optional.ofNullable(probe.read(account.provider, Path.of(it))) }.orElse(null)
+  }
+
+  @TestOnly
+  fun replaceProbe(probe: LoginProbe) {
+    this.probe = probe
+    logins.clear()
+  }
 
   fun setActive(kind: AgentKind, id: String?) {
     state.setActiveAccount(kind, id?.takeIf { want -> accounts(kind).any { it.id == want && signedIn(it) } })
@@ -76,6 +103,7 @@ class AccountsService(
       state.state.accounts.add(AccountEntry().also { it.provider = kind.name; it.id = id; it.label = account.label; it.dir = account.dir })
       return account
     } catch (e: Throwable) {
+      logins.remove(pending.dir)
       bestEffort { NioFiles.deleteRecursively(dir) }
       throw e
     }
@@ -90,13 +118,12 @@ class AccountsService(
 
   /** The login's name ("" when it has no address). */
   private fun signIn(account: AgentAccount): String {
-    val dir = Path.of(account.dir)
     login.run(LaunchCommand.login(account.provider), LaunchCommand.accountEnv(account.provider, account), "${account.provider.displayName} login")
-    val name = AccountLogin.name(account.provider, dir) ?: throw LoginFailed(PhantomAiBundle.message("accounts.login.failed.none"))
-    val identity = AccountLogin.identity(account.provider, dir)
-    val taken = identity != null && accounts(account.provider).any { it.id != account.id && AccountLogin.identity(it.provider, Path.of(it.dir)) == identity }
-    if (taken) throw LoginFailed(PhantomAiBundle.message("accounts.login.failed.duplicate", name))
-    return name
+    val found = login(account, fresh = true) ?: throw LoginFailed(PhantomAiBundle.message("accounts.login.failed.none"))
+    val identity = found.identity
+    val taken = identity != null && accounts(account.provider).any { it.id != account.id && login(it)?.identity == identity }
+    if (taken) throw LoginFailed(PhantomAiBundle.message("accounts.login.failed.duplicate", found.name))
+    return found.name
   }
 
   /** Brings an account's dir up to the user's current setup, before an agent runs in it. Best effort. */
@@ -112,7 +139,9 @@ class AccountsService(
 
   /** Forgets the account and deletes its dir, not following the links into the user's own setup. */
   fun remove(kind: AgentKind, id: String) {
-    val dir = accounts(kind).firstOrNull { it.id == id }?.let { Path.of(it.dir).normalize() }
+    val account = accounts(kind).firstOrNull { it.id == id }
+    account?.let { logins.remove(it.dir) }
+    val dir = account?.let { Path.of(it.dir).normalize() }
     if (state.activeAccountId(kind) == id) state.setActiveAccount(kind, null)
     state.state.accounts.removeAll { it.provider == kind.name && it.id == id }
     if (dir == null || !dir.startsWith(baseDir.normalize()) || dir == baseDir.normalize()) return

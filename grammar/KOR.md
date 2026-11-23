@@ -19,6 +19,11 @@ Grazie 라이브러리(`ai.grazie.*`)는 쓰지 않습니다. IDE 부분이 거�
 `tanvd.grazi`와 `dev.phantom.grazie`는 별칭으로 남겨 두고 콘텐츠 모듈 이름도 IntelliJ 것을 그대로 써서, 이것에 의존하는
 플러그인과 번들 모듈(Kotlin, Python, TOML, Maven, YAML, Markdown 등)이 그대로 동작합니다.
 
+**0.2.3**: 마켓플레이스에서 설치했을 때 설정 페이지, 알림, 인스펙션, 사전 이름이 "Grazie" 대신 중립적인 이름(Grammar and Style,
+Proofreader, Extended Dictionary)으로 나오고, Grazie 로고 대신 플러그인 자체 아이콘을 씁니다. NOTICE가 언어 번들의 GPL, LGPL,
+MPL 사전을 밝히고 서면 제공 약속에 포함합니다. 릴리스에는 컴파일된 jar 대신 english-pos-dict의 소스(단어 목록과 빌드
+스크립트)를 첨부합니다.
+
 **0.2.2**: 플러그인 jar에 영어 사전(SCOWL 등 english-pos-dict의 단어 목록)의 저작권 고지가 `META-INF/NOTICE-grammar`로
 들어갑니다. 쓰지 않는 gRPC 라이브러리 모듈에 대한 의존을 빼서, gRPC가 없는 Phantom에서도 문법 검사가 로드됩니다 (#32).
 

@@ -7,6 +7,7 @@ import dev.phantom.ai.core.SystemDirs
 import dev.phantom.ai.core.rethrowIfCancellation
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.PathManager
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import java.io.BufferedWriter
@@ -102,40 +103,10 @@ class CodexUsageClient(
   /** [codexHome] null = System default. */
   fun fetch(codexHome: String?): CodexUsage? = viaRpc(codexHome ?: defaultHome())
 
-  private fun viaRpc(home: String): CodexUsage? {
-    val channel = try { launcher.launch(home) } catch (e: IOException) { return null } catch (e: RuntimeException) { rethrowIfCancellation(e); return null }
-    try {
-      val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs)
-      channel.send(message(1, "initialize", JsonObject().apply { add("clientInfo", JsonObject().apply { addProperty("name", "phantom-ai"); addProperty("version", "1.0.0") }) }))
-      while (true) {
-        val left = TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime())
-        if (left <= 0) return null
-        val line = channel.readLine(left)?.trim() ?: return null
-        val msg = bestEffort { JsonParser.parseString(line) }.getOrNull()?.takeIf { it.isJsonObject }?.asJsonObject ?: continue
-        val id = msg.get("id")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isNumber }?.asInt ?: continue
-        when (id) {
-          1 -> {
-            channel.send(JsonObject().apply { addProperty("jsonrpc", "2.0"); addProperty("method", "initialized"); add("params", JsonObject()) }.toString())
-            channel.send(message(2, "account/rateLimits/read", JsonObject()))
-          }
-          2 -> return if (msg.has("error")) null else parseRpc(msg.get("result"), now())
-        }
-      }
-    } catch (e: IOException) {
-      return null
-    } catch (e: InterruptedException) {
-      Thread.currentThread().interrupt()
-      return null
-    } finally {
-      bestEffort { channel.close() }
-    }
-  }
+  private fun viaRpc(home: String): CodexUsage? = codexRequest(launcher, home, "account/rateLimits/read", timeoutMs)?.let { parseRpc(it, now()) }
 
   companion object {
     private const val DRIFT_MINUTES = 1
-
-    private fun message(id: Int, method: String, params: JsonObject) =
-      JsonObject().apply { addProperty("jsonrpc", "2.0"); addProperty("id", id); addProperty("method", method); add("params", params) }.toString()
 
     /** [result] of account/rateLimits/read: {rateLimits:{primary,secondary}} with usedPercent, windowDurationMins, resetsAt. Null when no window is usable. */
     fun parseRpc(result: com.google.gson.JsonElement?, nowMs: Long): CodexUsage? {
@@ -181,3 +152,39 @@ class CodexUsageClient(
     }
   }
 }
+
+/**
+ * One request over a short-lived `codex app-server` for [codexHome]: initialize, then [method] without params. Its result,
+ * or null on an error, a timeout or any failure.
+ */
+fun codexRequest(launcher: CodexLauncher, codexHome: String, method: String, timeoutMs: Long): JsonElement? {
+  val channel = try { launcher.launch(codexHome) } catch (e: IOException) { return null } catch (e: RuntimeException) { rethrowIfCancellation(e); return null }
+  try {
+    val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs)
+    channel.send(rpcMessage(1, "initialize", JsonObject().apply { add("clientInfo", JsonObject().apply { addProperty("name", "phantom-ai"); addProperty("version", "1.0.0") }) }))
+    while (true) {
+      val left = TimeUnit.NANOSECONDS.toMillis(deadline - System.nanoTime())
+      if (left <= 0) return null
+      val line = channel.readLine(left)?.trim() ?: return null
+      val msg = bestEffort { JsonParser.parseString(line) }.getOrNull()?.takeIf { it.isJsonObject }?.asJsonObject ?: continue
+      val id = msg.get("id")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isNumber }?.asInt ?: continue
+      when (id) {
+        1 -> {
+          channel.send(JsonObject().apply { addProperty("jsonrpc", "2.0"); addProperty("method", "initialized"); add("params", JsonObject()) }.toString())
+          channel.send(rpcMessage(2, method, JsonObject()))
+        }
+        2 -> return if (msg.has("error")) null else msg.get("result")
+      }
+    }
+  } catch (e: IOException) {
+    return null
+  } catch (e: InterruptedException) {
+    Thread.currentThread().interrupt()
+    return null
+  } finally {
+    bestEffort { channel.close() }
+  }
+}
+
+private fun rpcMessage(id: Int, method: String, params: JsonObject) =
+  JsonObject().apply { addProperty("jsonrpc", "2.0"); addProperty("id", id); addProperty("method", method); add("params", params) }.toString()

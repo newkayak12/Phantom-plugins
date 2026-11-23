@@ -12,7 +12,7 @@
 # https://github.com/JetBrains/languagetool for IntelliJ. They are taken once from JetBrains' download location so
 # that the files are byte for byte the ones whose MD5 checksums the plugin checks (LanguageToolDescriptor.kt); each is
 # checked before anything is uploaded. The release also carries the license texts, and tools/attach-sources.sh adds
-# the corresponding sources jars of the language modules.
+# the corresponding sources: the sources jars of the language modules and the sources of the dictionary data they embed.
 set -euo pipefail
 
 repo="newkayak12/Phantom-plugins"
@@ -37,7 +37,7 @@ for iso in $isos; do
   lower=$(tr '[:upper:]' '[:lower:]' <<<"$iso")
   echo "  $lower-$version.jar  md5 $(checksum "$iso")  from $origin/$version/$lower-$version.jar"
 done
-echo "  LICENSE-{LGPL-2.1,GPL-2.0,GPL-3.0,CC-BY-SA-4.0,Unicode-3.0,Apache-2.0}.txt  from licenses/ and LICENSE"
+echo "  LICENSE-{LGPL-2.1,LGPL-3.0,GPL-2.0,GPL-3.0,MPL-2.0,CC-BY-SA-4.0,Unicode-3.0,Apache-2.0}.txt  from licenses/ and LICENSE"
 if $dry_run; then
   bash "$root/tools/attach-sources.sh" "$tag" --dry-run
   exit 0
@@ -59,14 +59,15 @@ for iso in $isos; do
   files+=("$file")
 done
 # The bundles embed components under other licenses (tools/languagetool-release-notes.md lists them); their texts
-for spdx in LGPL-2.1-only:LGPL-2.1 GPL-2.0-only:GPL-2.0 GPL-3.0-only:GPL-3.0 CC-BY-SA-4.0:CC-BY-SA-4.0 Unicode-3.0:Unicode-3.0; do
+for spdx in LGPL-2.1-only:LGPL-2.1 LGPL-3.0-only:LGPL-3.0 GPL-2.0-only:GPL-2.0 GPL-3.0-only:GPL-3.0 MPL-2.0:MPL-2.0 \
+  CC-BY-SA-4.0:CC-BY-SA-4.0 Unicode-3.0:Unicode-3.0; do
   cp "$root/licenses/${spdx%%:*}.txt" "$work/LICENSE-${spdx##*:}.txt"
   files+=("$work/LICENSE-${spdx##*:}.txt")
 done
 cp "$root/LICENSE" "$work/LICENSE-Apache-2.0.txt"
 files+=("$work/LICENSE-Apache-2.0.txt")
 bash "$root/tools/attach-sources.sh" "$tag" --download-dir "$work/sources"
-files+=("$work/sources/"*.jar)
+files+=("$work/sources/"*)
 
 # Written for 6.8.27 from the POMs and README files inside the bundles; check them again for another version
 notes_file="$root/tools/languagetool-release-notes.md"

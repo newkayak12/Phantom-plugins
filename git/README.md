@@ -1,4 +1,4 @@
-# Git Support
+# Phantom for Git
 
 `dev.phantom.git` · [한국어](./KOR.md)
 

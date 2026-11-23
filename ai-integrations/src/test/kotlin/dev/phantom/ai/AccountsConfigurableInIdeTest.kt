@@ -49,10 +49,9 @@ class AccountsConfigurableInIdeTest : BasePlatformTestCase() {
     val svc = AccountsService(
       baseDir = base,
       installer = { _, _ -> true },
-      login = LoginRunner { _, env, _ ->
-        java.nio.file.Files.writeString(java.nio.file.Path.of(env.getValue("CODEX_HOME"), "auth.json"), """{"OPENAI_API_KEY":"k"}""")
-      },
+      login = LoginRunner { _, env, _ -> FakeLoginProbe.signIn(env.getValue("CODEX_HOME")) },
       stateProvider = { AiState.getInstance() },
+      probe = FakeLoginProbe,
     )
     val a = svc.add(AgentKind.CODEX, "Work")
     val c = AccountsConfigurable(svc)
@@ -73,13 +72,12 @@ class AccountsConfigurableInIdeTest : BasePlatformTestCase() {
     val svc = AccountsService(
       baseDir = base,
       installer = { _, _ -> true },
-      login = LoginRunner { _, env, _ ->
-        java.nio.file.Files.writeString(java.nio.file.Path.of(env.getValue("CODEX_HOME"), "auth.json"), """{"OPENAI_API_KEY":"k"}""")
-      },
+      login = LoginRunner { _, env, _ -> FakeLoginProbe.signIn(env.getValue("CODEX_HOME")) },
       stateProvider = { AiState.getInstance() },
+      probe = FakeLoginProbe,
     )
     val a = svc.add(AgentKind.CODEX, "Work")
-    java.nio.file.Files.delete(java.nio.file.Path.of(a.dir, "auth.json"))
+    java.nio.file.Files.delete(java.nio.file.Path.of(a.dir, FakeLoginProbe.FILE))
     val c = AccountsConfigurable(svc)
     val comps = all(c.createComponent())
     val radio = comps.filterIsInstance<JBRadioButton>().single { it.name == "CODEX:${a.id}" }

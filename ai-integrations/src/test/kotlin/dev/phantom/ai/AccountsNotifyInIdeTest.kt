@@ -33,9 +33,10 @@ class AccountsNotifyInIdeTest : BasePlatformTestCase() {
         installer = { _, _ -> false },
         login = LoginRunner { command, env, _ ->
           logins.add(command)
-          Files.writeString(java.nio.file.Path.of(env.getValue("CLAUDE_CONFIG_DIR"), ".claude.json"), """{"oauthAccount":{}}""")
+          FakeLoginProbe.signIn(env.getValue("CLAUDE_CONFIG_DIR"))
         },
         stateProvider = { AiState() },
+        probe = FakeLoginProbe,
       )
       val account = service.add(AgentKind.CLAUDE)
       assertEquals(1, seen.size)

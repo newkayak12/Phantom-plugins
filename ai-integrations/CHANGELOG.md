@@ -2,6 +2,12 @@
 
 ## 미배포
 
+## 0.5.2
+
+- 계정의 로그인과 이메일을 CLI에 묻는다. Claude Code는 `claude auth status --json`, Codex는 `codex app-server`의 `account/read`다. Codex의 `auth.json`(토큰이 든 파일)과 Claude의 `.claude.json` 로그인 정보를 더는 읽지 않는다.
+- 설정 페이지가 열릴 때 계정마다 CLI에 로그인 상태를 묻는다(진행 표시와 함께). 그 사이에는 마지막 답을 쓴다.
+- README의 인증 정보 설명을 실제 동작에 맞췄다.
+
 ## 0.5.1 (2026-11-22)
 
 - macOS 시스템 터미널(Terminal)은 Apple 이벤트 대신 `open -a Terminal`로 연다. 자동화 권한을 묻지 않고, 권한이 없을 때 창이 안 뜨던 문제가 없다.
