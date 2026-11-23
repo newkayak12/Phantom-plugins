@@ -2,7 +2,7 @@
 
 ## 미배포
 
-- Database 도구 창 아이콘을 표 대신 데이터베이스 원통으로, Database Changes 아이콘을 변경 목록 대신 시계가 붙은 원통(커밋 대기)으로 바꿨다. JPA의 Entity Diagram과 더는 같지 않다.
+- Database 도구 창 아이콘을 표 대신 데이터베이스 원통으로, Database Changes 아이콘을 변경 목록 대신 시계가 붙은 원통(커밋 대기)으로 바꿨다. JPA의 Entity Diagram과 더는 같지 않다. (#112)
 
 ## 0.25.11 (2026-11-22)
 
