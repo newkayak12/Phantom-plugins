@@ -1,12 +1,12 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.java.terminal.backend
+package dev.phantom.terminal.java.backend
 
 import com.intellij.execution.vmOptions.VMOptionsService
-import com.intellij.java.terminal.backend.JavaShellCommandUtils.CLASSPATH_ARGUMENT_NAME
-import com.intellij.java.terminal.backend.JavaShellCommandUtils.UIOptionInfo
-import com.intellij.java.terminal.backend.JavaShellCommandUtils.addClassPathOption
-import com.intellij.java.terminal.backend.JavaShellCommandUtils.addOptionsFromData
-import com.intellij.java.terminal.shared.JavaTerminalBundle
+import dev.phantom.terminal.java.backend.JavaShellCommandUtils.CLASSPATH_ARGUMENT_NAME
+import dev.phantom.terminal.java.backend.JavaShellCommandUtils.UIOptionInfo
+import dev.phantom.terminal.java.backend.JavaShellCommandUtils.addClassPathOption
+import dev.phantom.terminal.java.backend.JavaShellCommandUtils.addOptionsFromData
+import dev.phantom.terminal.java.shared.JavaTerminalBundle
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.terminal.completion.spec.ShellCommandParserOptions
 import com.intellij.terminal.completion.spec.ShellCommandSpec

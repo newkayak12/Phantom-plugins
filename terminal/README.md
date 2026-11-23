@@ -13,7 +13,7 @@ services are plain application services (Phantom runs frontend and backend in on
 statistics are collected, and there is no Agent Workbench promotion.
 
 The Java support (JDK on the terminal PATH, `java` and `javac` completion, the Java section of the terminal settings) is
-here too, as the optional `intellij.java.terminal.*` modules moved from the IDE core, so the core compiles without the
+here too, as the optional `phantom.terminal.java.*` modules moved from the IDE core, so the core compiles without the
 Terminal plugin. They switch off without the Java plugin. Version 0.3.0 needs Phantom 262.261123 or later: earlier builds
 still have them in the core.
 

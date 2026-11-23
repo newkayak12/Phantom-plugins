@@ -1,8 +1,8 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.java.terminal.backend
+package dev.phantom.terminal.java.backend
 
 import com.intellij.icons.AllIcons
-import com.intellij.java.terminal.shared.JavaTerminalBundle
+import dev.phantom.terminal.java.shared.JavaTerminalBundle
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.components.service
