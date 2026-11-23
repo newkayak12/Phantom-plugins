@@ -50,6 +50,13 @@ data class SidebarModel(val repos: List<RepoNode>) {
   /** True when the worktrees are the top-level rows (one repository). */
   val flat: Boolean get() = repos.size == 1
 
+  /** This model with every session's elapsed time at [now]; nothing else is looked up again. */
+  fun withElapsed(now: Long): SidebarModel = copy(
+    repos = repos.map { r ->
+      r.copy(worktrees = r.worktrees.map { w -> w.copy(sessions = w.sessions.map { it.copy(elapsed = SessionRow.elapsed(it.session.startedAt, now)) }) })
+    },
+  )
+
   companion object {
     /** A remembered session of AiState that has no live tab; its tab id is "saved:<session id>". */
     fun saved(e: SessionEntry): AgentSession? {

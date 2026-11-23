@@ -191,7 +191,11 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
         val dialog = KafkaClusterDialog(project, cluster, props)
         if (dialog.showAndGet()) {
           val (edited, properties) = dialog.result()
-          KafkaClusters.getInstance(project).save(edited, properties)
+          val clusters = KafkaClusters.getInstance(project)
+          clusters.save(edited)
+          // The password safe may block on the OS keychain. On the session executor the write also lands before the
+          // session that reloadClusters starts reads the properties.
+          executor.execute { clusters.storeProperties(edited.id, properties) }
           reloadClusters(edited.id)
         }
       }, ModalityState.nonModal())
@@ -202,7 +206,10 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
     val cluster = clusters.selectedItem as? KafkaCluster ?: return
     if (cluster.id == KafkaClusters.LOCAL_ID) return
     if (Messages.showYesNoDialog(project, "Remove $cluster?", "Remove Kafka Cluster", null) != Messages.YES) return
-    KafkaClusters.getInstance(project).remove(cluster.id)
+    val clusters = KafkaClusters.getInstance(project)
+    clusters.remove(cluster.id)
+    // The password safe may block on the OS keychain.
+    executor.execute { clusters.storeProperties(cluster.id, null) }
     reloadClusters(null)
   }
 

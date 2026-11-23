@@ -50,7 +50,9 @@ class WorktreeTreePanelInIdeTest : BasePlatformTestCase() {
   private var sessions = listOf<SessionEntry>()
   private var worktreeEntries = listOf<dev.phantom.ai.core.WorktreeEntry>()
 
+  private var sourceCalls = 0
   private val source = WorktreeSource { path ->
+    sourceCalls++
     if (path == "/r/app") listOf(Worktree("/r/app", "main", true), Worktree("/r/app-feat", "feat", false)) else emptyList()
   }
   private val prs = object : PrTitles {
@@ -111,6 +113,19 @@ class WorktreeTreePanelInIdeTest : BasePlatformTestCase() {
     assertTrue("$menu enabled", item.isEnabled)
     item.doClick()
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+  }
+
+  // the 30 s ticker only moves elapsed times on: no git worktree list, no PR lookup
+  fun testTickerRetimesWithoutAskingGit() {
+    val start = 1_800_000_000_000L
+    SessionStore.getInstance().put(AgentSession("t1", "/r/app-feat", AgentKind.CLAUDE, sessionId = "sess-9", firstPrompt = "fix it", startedAt = start))
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    val calls = sourceCalls
+    panel.retime(start + 5 * 60_000)
+    assertEquals("5m", (objectAt(sessionRow()) as SessionRow).elapsed)
+    panel.retime(start + 2 * 3_600_000 + 60_000)
+    assertEquals("2h 1m", (objectAt(sessionRow()) as SessionRow).elapsed)
+    assertEquals(calls, sourceCalls)
   }
 
   fun testOneRepoShowsWorktreesAtTheTopWithTheirSessions() {

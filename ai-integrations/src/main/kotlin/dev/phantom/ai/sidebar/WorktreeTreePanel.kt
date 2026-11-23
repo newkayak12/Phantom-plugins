@@ -2,9 +2,11 @@
 package dev.phantom.ai.sidebar
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationActivationListener
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.wm.IdeFrame
 import com.intellij.ui.PopupHandler
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.components.JBLabel
@@ -85,8 +87,8 @@ class WorktreeTreePanel(
   }
   private val scroll = ScrollPaneFactory.createScrollPane(tree)
   private val refreshQueued = AtomicBoolean()
-  // the elapsed times move on while shown
-  private val ticker = javax.swing.Timer(30_000) { if (isShowing) refresh() }
+  // the elapsed times move on while shown: re-timed from the last model, as a full refresh runs git and PR lookups
+  private val ticker = javax.swing.Timer(TICK_MS) { if (isShowing) retime(System.currentTimeMillis()) }
   private var repoOfWorktree: Map<String, RepoNode> = emptyMap()
   private var nestedOf: Map<String, NestedWorktree> = emptyMap()
   private val known = HashSet<String>() // rows seen before: a new row opens, an old one keeps what the user chose
@@ -134,6 +136,11 @@ class WorktreeTreePanel(
     // worktree names and sessions are shared by every window: a change in another window shows here too
     ApplicationManager.getApplication().messageBus.connect(this)
       .subscribe(AiState.TOPIC, dev.phantom.ai.core.AiStateListener { whenShown.request() })
+    // worktrees made or removed outside the IDE show once it is back in front
+    ApplicationManager.getApplication().messageBus.connect(this)
+      .subscribe(ApplicationActivationListener.TOPIC, object : ApplicationActivationListener {
+        override fun applicationActivated(ideFrame: IdeFrame) = whenShown.request()
+      })
     whenShown.request()
     ticker.start()
   }
@@ -213,13 +220,20 @@ class WorktreeTreePanel(
           repos.roots(), worktrees, SessionStore.getInstance().all(),
           state.state.sessions.mapNotNull(SidebarModel::saved), prTitles,
           // whole 30 s steps, as the ticker: elapsed times then do not make every refresh a new model
-          { state.findWorktree(it)?.userName }, System.currentTimeMillis() / 30_000 * 30_000,
+          { state.findWorktree(it)?.userName }, step(System.currentTimeMillis()),
           { state.findWorktree(it)?.parentPath },
         )
       }.getOrNull() ?: return@Runnable
       ApplicationManager.getApplication().invokeLater({ show(built) }, project.disposed)
     })
   }
+
+  /** The ticker: the last model with its elapsed times at [now], on the EDT; no git and no PR lookup. */
+  @TestOnly internal fun retime(now: Long) {
+    shown?.let { show(it.withElapsed(step(now))) }
+  }
+
+  private fun step(now: Long) = now / TICK_MS * TICK_MS
 
   private fun show(m: SidebarModel) {
     // hook events refresh several times a second while agents work; most change nothing that shows
@@ -467,6 +481,7 @@ class WorktreeTreePanel(
   private companion object {
     /** Width at the end of a row that is its + (icon and gap). */
     const val PLUS_HIT = 22
+    const val TICK_MS = 30_000
   }
 
   private object UIManagerColors {

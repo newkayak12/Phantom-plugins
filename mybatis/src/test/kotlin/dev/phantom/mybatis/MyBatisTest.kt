@@ -63,6 +63,15 @@ class MyBatisTest : LightJavaCodeInsightFixtureTestCase() {
     <delete id="deleteAll">delete from users</delete>
   """
 
+  fun testCachedMapperFilesFollowXmlChanges() {
+    val mapper = myFixture.findClass("app.UserMapper")
+    assertEmpty(MyBatis.mapperFiles(mapper))
+    val xml = addMapper(statements) as com.intellij.psi.xml.XmlFile
+    assertEquals(listOf("UserMapper.xml"), MyBatis.mapperFiles(mapper).map { it.name })
+    com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction(project) { xml.rootTag!!.setAttribute("namespace", "app.Other") }
+    assertEmpty(MyBatis.mapperFiles(mapper))
+  }
+
   fun testIndexFindsMapperXml() {
     addMapper(statements)
     val mapper = myFixture.findClass("app.UserMapper")

@@ -51,15 +51,20 @@ class RedisServers : PersistentStateComponent<RedisServers.State> {
   /** With nothing saved yet, the local default, so a project with Redis in compose works at once. */
   val servers: List<RedisServer> get() = state.servers.toList().ifEmpty { listOf(RedisServer().apply { id = LOCAL_ID; name = "localhost:6379" }) }
 
-  fun save(server: RedisServer, password: CharArray?) {
+  /** The server only; its password goes through [storePassword], off the EDT. */
+  fun save(server: RedisServer) {
     val i = state.servers.indexOfFirst { it.id == server.id }
     if (i >= 0) state.servers[i] = server else state.servers.add(server)
-    if (password != null) PasswordSafe.instance.setPassword(credentials(server.id), String(password).ifEmpty { null })
   }
 
+  /** The server only; its password is dropped with [storePassword] and null, off the EDT. */
   fun remove(id: String) {
     state.servers.removeIf { it.id == id }
-    PasswordSafe.instance.setPassword(credentials(id), null)
+  }
+
+  /** Blocking: may ask the OS keychain. An empty or null [password] removes the entry. */
+  fun storePassword(id: String, password: String?) {
+    PasswordSafe.instance.setPassword(credentials(id), password?.ifEmpty { null })
   }
 
   /** Blocking: may ask the OS keychain. */
