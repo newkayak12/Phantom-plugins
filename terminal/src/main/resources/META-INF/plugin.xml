@@ -31,10 +31,11 @@
     <module name="intellij.terminal.frontend"/>
     <module name="intellij.terminal.cloud"/>
     <module name="intellij.terminal.sh"/>
-    <!-- Java support, moved from the IDE core's Java plugin; each switches off without the Java plugin -->
-    <module name="intellij.java.terminal.shared"/>
-    <module name="intellij.java.terminal.backend"/>
-    <module name="intellij.java.terminal.frontend"/>
+    <!-- Java support, moved from the IDE core's Java plugin (intellij.java.terminal.*; renamed, as IntelliJ's Java plugin still
+         declares those names); each switches off without the Java plugin -->
+    <module name="phantom.terminal.java.shared"/>
+    <module name="phantom.terminal.java.backend"/>
+    <module name="phantom.terminal.java.frontend"/>
   </content>
 
   <resource-bundle>messages.TerminalBundle</resource-bundle>

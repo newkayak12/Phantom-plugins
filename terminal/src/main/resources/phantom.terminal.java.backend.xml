@@ -1,0 +1,24 @@
+<!-- JDK on the terminal PATH and java/javac command completion, moved here from the IDE core (java/terminal) so the core no longer compiles against the Terminal plugin.
+     It switches off without the Java plugin. -->
+<idea-plugin package="dev.phantom.terminal.java.backend">
+  <dependencies>
+    <module name="intellij.java.execution.impl"/>
+    <module name="intellij.java.impl"/>
+    <module name="phantom.terminal.java.shared"/>
+  </dependencies>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <consoleFilterProvider implementation="dev.phantom.terminal.java.backend.NoJavaExecutableFilter"/>
+    <postStartupActivity implementation="dev.phantom.terminal.java.backend.JavaTerminalSettingsReloadActivity"/>
+  </extensions>
+
+  <extensions defaultExtensionNs="org.jetbrains.plugins.terminal">
+    <shellExecOptionsCustomizer implementation="dev.phantom.terminal.java.backend.JdkCustomizer"/>
+    <commandSpecsProvider implementation="dev.phantom.terminal.java.backend.JavaShellCommandSpecsProvider"/>
+    <commandSpecsProvider implementation="dev.phantom.terminal.java.backend.JavacShellCommandSpecsProvider"/>
+  </extensions>
+
+  <extensions defaultExtensionNs="com.intellij.openapi.projectRoots">
+    <externalJavaConfigurationMissingAction implementation="dev.phantom.terminal.java.backend.ExternalJavaConfigurationDownloadInTerminalAction" order="first"/>
+  </extensions>
+</idea-plugin>

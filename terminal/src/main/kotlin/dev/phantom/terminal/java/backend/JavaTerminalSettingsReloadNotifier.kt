@@ -1,9 +1,9 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
-package com.intellij.java.terminal.backend
+package dev.phantom.terminal.java.backend
 
-import com.intellij.java.terminal.shared.JavaTerminalBundle
-import com.intellij.java.terminal.shared.JavaTerminalSettings
-import com.intellij.java.terminal.shared.JavaTerminalSettingsListener
+import dev.phantom.terminal.java.shared.JavaTerminalBundle
+import dev.phantom.terminal.java.shared.JavaTerminalSettings
+import dev.phantom.terminal.java.shared.JavaTerminalSettingsListener
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
