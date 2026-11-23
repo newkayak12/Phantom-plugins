@@ -7,8 +7,8 @@ Several plugins are modified versions of plugins from IntelliJ IDEA Community Ed
 (https://github.com/JetBrains/intellij-community), Copyright (C) JetBrains s.r.o. and contributors,
 licensed under the Apache License, Version 2.0; each such plugin's README names the plugin it is based on.
 Plugins based on IntelliJ Community code were modified by Phantom contributors: each changed file keeps its original
-copyright header and carries the line "Modified by Phantom contributors" below it, and the changes are recorded in this
-repository's Git history.
+copyright header, if it has one, and carries the line "Modified by Phantom contributors" below it (or as its first line),
+and the changes are recorded in this repository's Git history.
 The Gradle DSL plugin (gradle-dsl/) is based on code of the Android Open Source Project
 (https://source.android.com/), Copyright (C) The Android Open Source Project, under the Apache License, Version 2.0.
 The TOML plugin (toml/) includes code from the intellij-rust project under the MIT License (toml/LICENSE).

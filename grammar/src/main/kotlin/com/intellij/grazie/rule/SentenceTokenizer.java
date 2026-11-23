@@ -1,4 +1,6 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
+// Based on SentenceTokenizer.java from IntelliJ Community, Copyright 2000-2026 JetBrains s.r.o. and contributors (Apache 2.0).
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package com.intellij.grazie.rule;
 
 import com.intellij.grazie.text.TextContent;
