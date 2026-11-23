@@ -9,6 +9,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import dev.phantom.springboot.core.BootConfigImports
 import dev.phantom.springboot.core.BootConfigUsages
+import dev.phantom.springboot.core.FunctionBeans
 import dev.phantom.springboot.core.ProjectConfigKeys
 
 /**
@@ -116,5 +117,24 @@ class BootConfigCacheTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals(setOf("app.name", "app.dev"), keys())
     WriteAction.run<Throwable> { dev.delete(this) }
     assertEquals(setOf("app.name"), keys())
+  }
+
+  /** Function bean names come from Java: a Java edit updates them, typing in the YAML file that names them does not. */
+  fun testFunctionBeanNamesFollowJavaEditsOnly() {
+    myFixture.addClass("package org.springframework.context.annotation; public @interface Bean { String[] name() default {}; String[] value() default {}; }")
+    val functions = myFixture.addFileToProject("app/Functions.java", """
+      package app;
+      import java.util.function.Function;
+      public class Functions {
+        @org.springframework.context.annotation.Bean public Function<String, String> upper() { return s -> s; }
+      }
+    """.trimIndent())
+    val yaml = myFixture.addFileToProject("application.yml", "spring:\n  cloud:\n    function:\n      definition: upper\n")
+    val first = FunctionBeans.names(project)
+    assertEquals(setOf("upper"), first)
+    edit(yaml, "definition: upper", "definition: uppe")
+    assertSame(first, FunctionBeans.names(project))
+    edit(functions, "upper()", "lower()")
+    assertEquals(setOf("lower"), FunctionBeans.names(project))
   }
 }
