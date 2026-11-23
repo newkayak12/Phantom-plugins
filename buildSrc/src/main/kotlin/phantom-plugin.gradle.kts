@@ -145,6 +145,12 @@ intellijPlatform {
     if (verifyIde.isPresent || !providers.gradleProperty("platformFromRepository").isPresent) {
       externalPrefixes.add("org.jetbrains.kotlin")
     }
+    // The IntelliJ Community build has none of the plugins built here, so a plugin depending on another one
+    // (ai-visualization on dev.phantom.ai, ai-integrations on dev.phantom.workspaces) would fail on its classes as
+    // unresolved. The check against a Phantom build, which bundles them, still covers those references.
+    if (!verifyIde.isPresent && providers.gradleProperty("platformFromRepository").isPresent) {
+      externalPrefixes.add("dev.phantom")
+    }
     ides {
       when {
         verifyIde.isPresent -> local(verifyIde)
