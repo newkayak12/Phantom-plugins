@@ -14,5 +14,8 @@ IntelliJ 플러그인 대신 이 빌드를 번들합니다.
 FreeMarker와 coverage-report, Apache 2.0) 목록이 있고, `META-INF/licenses/`에 EPL 2.0과 BSD 전문이 들어 있습니다. JaCoCo 소스를
 받는 곳은 NOTICE에 있습니다.
 
+**0.1.4**: 플러그인 jar의 NOTICE가 플러그인 자체 릴리스와 함께, 이 플러그인을 싣는 공개 phantom-libs 릴리스를 JaCoCo 소스를
+받을 곳으로 안내합니다. 서면 제공 약속의 신청 창구는 공개 저장소 Phantom의 이슈입니다.
+
 **0.1.3**: `java-coverage-rt.jar`에 `plugin.xml` 사본이 더 이상 들어 있지 않아 `lib/`의 플러그인 디스크립터가 하나뿐이고, Plugin
 Verifier가 플러그인을 받아들입니다.

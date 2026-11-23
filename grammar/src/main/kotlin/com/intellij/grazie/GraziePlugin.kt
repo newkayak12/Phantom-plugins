@@ -13,7 +13,8 @@ object GraziePlugin {
 
   object LanguageTool {
     const val version = "6.8.27"
-    // phantom: the language bundles (LGPL 2.1, the same files and checksums as JetBrains' resources.jetbrains.com/grazie/model/language-tool)
+    // phantom: the language bundles (LanguageTool, LGPL 2.1, with dictionary data under GPL, LGPL, MPL and other licenses;
+    // the same files and checksums as JetBrains' resources.jetbrains.com/grazie/model/language-tool)
     // are downloaded from this repository's GitHub release, made by tools/languagetool-release.sh, not from JetBrains' servers
     const val url = "https://github.com/newkayak12/Phantom-plugins/releases/download/languagetool-$version"
   }

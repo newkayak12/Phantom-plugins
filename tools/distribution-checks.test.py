@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import tarfile
 import tempfile
 import unittest
 import zipfile
@@ -124,7 +125,8 @@ class SourceTests(unittest.TestCase):
             f'private const val {iso}_CHECKSUM = "{checksum}"' for iso in ('EN', 'DE')))
         (descriptor.parent.parent / 'GraziePlugin.kt').write_text('const val version = "6.8.27"')
         (self.root / 'licenses').mkdir()
-        for spdx in ('LGPL-2.1-only', 'GPL-2.0-only', 'GPL-3.0-only', 'CC-BY-SA-4.0', 'Unicode-3.0'):
+        for spdx in ('LGPL-2.1-only', 'LGPL-3.0-only', 'GPL-2.0-only', 'GPL-3.0-only', 'MPL-2.0', 'CC-BY-SA-4.0',
+                     'Unicode-3.0'):
             (self.root / f'licenses/{spdx}.txt').write_text(spdx)
         (self.root / 'LICENSE').write_text('Apache 2.0')
         shutil.copyfile(TOOLS / 'languagetool-release-notes.md', self.root / 'tools/languagetool-release-notes.md')
@@ -132,15 +134,27 @@ class SourceTests(unittest.TestCase):
         self.bin.mkdir()
         curl = self.bin / 'curl'
         curl.write_text('''#!/usr/bin/env python3
-import os, sys, zipfile
+import io, json, os, sys, tarfile, zipfile
 from pathlib import Path
 if os.environ.get('FAIL_DOWNLOAD') == 'true':
     sys.exit(22)
 if os.environ.get('FAIL_SOURCE_DOWNLOAD') == 'true' and '-sources.jar' in sys.argv[-1]:
     sys.exit(22)
+if '-o' not in sys.argv:
+    # GitHub API and raw files of the LibreOffice dictionaries
+    if '/git/trees/' in sys.argv[-1]:
+        print(json.dumps({'tree': [{'path': d + '/README', 'type': 'blob'} for d in ('it_IT', 'da_DK', 'sl_SI', 'gl')]}))
+    else:
+        print('dictionary data')
+    sys.exit(0)
 path = Path(sys.argv[sys.argv.index('-o') + 1])
 if os.environ.get('CORRUPT_DOWNLOAD') == 'true':
     path.write_text('not a jar')
+elif path.name.endswith('.tar.gz'):
+    with tarfile.open(path, 'w:gz') as archive:
+        info = tarfile.TarInfo('project/README')
+        info.size = 7
+        archive.addfile(info, io.BytesIO(b'project'))
 else:
     with zipfile.ZipFile(path, 'w') as jar:
         jar.writestr(zipfile.ZipInfo('source/Example.java'), 'class Example {}')
@@ -156,12 +170,16 @@ else:
         return subprocess.run(['bash', str(self.script), *args], env=dict(self.env, **env), capture_output=True, text=True)
 
     def test_prepare_all_supported_sources_without_publishing(self):
-        for tag, count in [('grammar-0.2.1', 4), ('coverage-0.1.2', 4), ('languagetool-6.8.27', 3)]:
+        for tag, jars, archives in [('grammar-0.2.1', 3, 1), ('coverage-0.1.2', 4, 0), ('languagetool-6.8.27', 5, 10)]:
             with self.subTest(tag=tag):
                 destination = self.root / tag
                 result = self.run_script(tag, '--download-dir', str(destination))
                 self.assertEqual(result.returncode, 0, result.stderr)
-                self.assertEqual(len(list(destination.glob('*.jar'))), count)
+                self.assertEqual(len(list(destination.glob('*.jar'))), jars)
+                self.assertEqual(len(list(destination.glob('*.tar.gz'))), archives)
+        self.assertIn('english-pos-dict-2c68994244.tar.gz', [f.name for f in (self.root / 'grammar-0.2.1').iterdir()])
+        with tarfile.open(self.root / 'languagetool-6.8.27/dictionaries-libreoffice-7.0.0.1-it_IT.tar.gz') as archive:
+            self.assertEqual(archive.getnames(), ['dictionaries-libreoffice-7.0.0.1/it_IT/README'])
         self.assertFalse(self.calls.exists())
 
     def test_download_failure_does_not_publish(self):
@@ -196,6 +214,8 @@ else:
         self.assertIn('release create languagetool-6.8.27', call)
         self.assertIn('languagetool-core-6.8.27-sources.jar', call)
         self.assertIn('language-de-6.8.27-sources.jar', call)
+        self.assertIn('asturian-pos-dict-c587ea3843.tar.gz', call)
+        self.assertIn('LICENSE-MPL-2.0.txt', call)
 
     def test_language_source_failure_prevents_release(self):
         result = subprocess.run(['bash', str(self.root / 'tools/languagetool-release.sh')], env=dict(self.env, FAIL_SOURCE_DOWNLOAD='true'), capture_output=True, text=True)
