@@ -2,6 +2,7 @@
 package dev.phantom.ktor
 
 import com.intellij.microservices.endpoints.EndpointsProvider
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 
 class KtorRoutesTest : LightJavaCodeInsightFixtureTestCase() {
@@ -28,6 +29,31 @@ class KtorRoutesTest : LightJavaCodeInsightFixtureTestCase() {
   }
 
   private fun routes(): List<String> = KtorRoutes.all(project).map { "${it.method} ${it.path}" }
+
+  /** Routes are calls inside function bodies: an edit there updates them, an edit in a YAML file does not search again. */
+  fun testRoutesFollowKotlinEditsOnly() {
+    myFixture.configureByText("Application.kt", """
+      package app
+      import io.ktor.server.routing.*
+
+      fun Application.module() {
+          routing {
+              get("/health") { }<caret>
+          }
+      }
+    """.trimIndent())
+    myFixture.configureByText("notes.yaml", "a: <caret>1\n")
+    assertSameElements(routes(), "GET /health")
+    val before = KtorRoutes.all(project)
+    myFixture.type("2")
+    PsiDocumentManager.getInstance(project).commitAllDocuments()
+    assertSame(before, KtorRoutes.all(project))
+    myFixture.configureFromExistingVirtualFile(myFixture.findFileInTempDir("Application.kt"))
+    myFixture.editor.caretModel.moveToOffset(myFixture.file.text.indexOf("get(\"/health\") { }") + "get(\"/health\") { }".length)
+    myFixture.type("\n        post(\"/items\") { }")
+    PsiDocumentManager.getInstance(project).commitAllDocuments()
+    assertSameElements(routes(), "GET /health", "POST /items")
+  }
 
   fun testNestedRoutes() {
     myFixture.addFileToProject("app/Application.kt", """

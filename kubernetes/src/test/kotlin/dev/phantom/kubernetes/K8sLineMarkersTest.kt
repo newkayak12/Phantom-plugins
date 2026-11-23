@@ -3,7 +3,12 @@ package dev.phantom.kubernetes
 
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.RelatedItemLineMarkerInfo
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.editor.Document
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import org.jetbrains.yaml.psi.YAMLFile
 
 class K8sLineMarkersTest : BasePlatformTestCase() {
   /** Tooltip -> the text of each target, for the Kubernetes gutters of the open file. */
@@ -166,5 +171,46 @@ class K8sLineMarkersTest : BasePlatformTestCase() {
                   name: cfg
     """.trimIndent())
     assertEmpty(gutters())
+  }
+
+  /** The resources of a file are read once per file version, not once per key the gutter visits. */
+  fun testResourcesAreCachedPerFile() {
+    val file = myFixture.configureByText("cm.yaml", "apiVersion: v1\nkind: <caret>ConfigMap\nmetadata:\n  name: cfg\n") as YAMLFile
+    val first = K8sResource.all(file)
+    assertSame(first, K8sResource.all(file))
+    myFixture.type("X")
+    PsiDocumentManager.getInstance(project).commitAllDocuments()
+    assertEquals(listOf("XConfigMap"), K8sResource.all(file).map { it.kind })
+  }
+
+  /** A YAML edit in another manifest updates the targets; an edit in a file of another language keeps the scan. */
+  fun testProjectResourcesFollowYamlEditsOnly() {
+    val cm = myFixture.addFileToProject("k8s/cm.yaml", "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: cfg\n")
+    val notes = myFixture.addFileToProject("notes.txt", "hello\n")
+    myFixture.configureByText("pod.yaml", """
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: p
+      spec:
+        containers:
+          - name: c
+            image: x
+            envFrom:
+              - configMapRef:
+                  name: cfg2
+    """.trimIndent())
+    assertEmpty(gutters())
+    val before = K8sProjectResources.all(project)
+    edit(notes) { it.insertString(0, "more ") }
+    assertSame(before, K8sProjectResources.all(project))
+    edit(cm) { it.replaceString(it.text.indexOf("cfg"), it.text.indexOf("cfg") + 3, "cfg2") }
+    assertEquals(listOf("Defined as ConfigMap/cfg2 -> cfg2"), gutters())
+  }
+
+  private fun edit(file: PsiFile, change: (Document) -> Unit) {
+    val documents = PsiDocumentManager.getInstance(project)
+    WriteCommandAction.runWriteCommandAction(project) { change(documents.getDocument(file)!!) }
+    documents.commitAllDocuments()
   }
 }

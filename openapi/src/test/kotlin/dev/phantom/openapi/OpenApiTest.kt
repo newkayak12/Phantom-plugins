@@ -12,6 +12,7 @@ import com.intellij.navigation.ItemPresentation
 import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.ModificationTracker
+import com.intellij.openapi.util.SimpleModificationTracker
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.JavaPsiFacade
@@ -20,6 +21,7 @@ import com.intellij.psi.PsiMethod
 import com.intellij.testFramework.ExtensionTestUtil
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import org.jetbrains.yaml.psi.YAMLKeyValue
+import java.util.concurrent.atomic.AtomicInteger
 
 class OpenApiTest : LightJavaCodeInsightFixtureTestCase() {
   companion object {
@@ -135,16 +137,21 @@ class OpenApiTest : LightJavaCodeInsightFixtureTestCase() {
   }
 
   /** A stand-in for Spring MVC: one GET handler on `/api/pets/{id}`. */
-  private class FakeProvider(private val handler: () -> PsiElement?) : EndpointsProvider<String, String> {
+  private class FakeProvider(private val tracker: ModificationTracker = ModificationTracker.NEVER_CHANGED, private val handler: () -> PsiElement?) :
+    EndpointsProvider<String, String> {
+    val searches = AtomicInteger()
     override val endpointType = HTTP_SERVER_TYPE
     override val presentation = FrameworkPresentation("Fake", "Fake", AllIcons.Nodes.Method)
     override fun getStatus(project: Project) = EndpointsProvider.Status.HAS_ENDPOINTS
-    override fun getEndpointGroups(project: Project, filter: EndpointsFilter): Iterable<String> = listOf("group")
+    override fun getEndpointGroups(project: Project, filter: EndpointsFilter): Iterable<String> {
+      searches.incrementAndGet()
+      return listOf("group")
+    }
     override fun getEndpoints(group: String): Iterable<String> = listOf("/api/pets/{id}")
     override fun isValidEndpoint(group: String, endpoint: String) = true
     override fun getEndpointPresentation(group: String, endpoint: String): ItemPresentation =
       HttpMethodPresentation(endpoint, listOf("GET"), "PetController.find", AllIcons.Nodes.Method)
-    override fun getModificationTracker(project: Project): ModificationTracker = ModificationTracker.NEVER_CHANGED
+    override fun getModificationTracker(project: Project): ModificationTracker = tracker
     override fun getNavigationElement(group: String, endpoint: String): PsiElement? = handler()
   }
 
@@ -152,11 +159,12 @@ class OpenApiTest : LightJavaCodeInsightFixtureTestCase() {
     myFixture.addClass("""
       package app;
       public class PetController {
+          @Deprecated
           public String find(long id) { return ""; }
       }
     """.trimIndent())
     val handler = { JavaPsiFacade.getInstance(project).findClass("app.PetController", myFixture.module.moduleScope)?.findMethodsByName("find", false)?.firstOrNull() as PsiMethod? }
-    ExtensionTestUtil.maskExtensions(EndpointsProvider.EP_NAME, listOf(FakeProvider(handler)), testRootDisposable)
+    ExtensionTestUtil.maskExtensions(EndpointsProvider.EP_NAME, listOf(FakeProvider(handler = handler)), testRootDisposable)
     myFixture.addFileToProject("common.yaml", "components:\n  responses:\n    NotFound:\n      description: not found\n")
     myFixture.configureByText("petstore.yaml", petstore)
     val specGutters = myFixture.findAllGutters().map { it.tooltipText }
@@ -165,6 +173,33 @@ class OpenApiTest : LightJavaCodeInsightFixtureTestCase() {
     val controller = myFixture.findFileInTempDir("app/PetController.java")
     myFixture.configureFromExistingVirtualFile(controller)
     assertEquals(listOf("Go to GET /pets/{petId} in petstore.yaml"), myFixture.findAllGutters().map { it.tooltipText }.filter { it?.startsWith("Go to") == true })
+  }
+
+  /** The endpoint list follows the providers' trackers, not every PSI change: a YAML keystroke does not search again. */
+  fun testEndpointsFollowProviderTrackers() {
+    val tracker = SimpleModificationTracker()
+    val provider = FakeProvider(tracker) { null }
+    ExtensionTestUtil.maskExtensions(EndpointsProvider.EP_NAME, listOf(provider), testRootDisposable)
+    CodeEndpoints.all(project)
+    val searches = provider.searches.get()
+    myFixture.configureByText("notes.yaml", "a: <caret>1\n")
+    myFixture.type("2")
+    PsiDocumentManager.getInstance(project).commitAllDocuments()
+    CodeEndpoints.all(project)
+    assertEquals(searches, provider.searches.get())
+    tracker.incModificationCount()
+    CodeEndpoints.all(project)
+    assertEquals(searches + 1, provider.searches.get())
+  }
+
+  /** Handlers carry mapping annotations: gutters of a file without any never ask the providers. */
+  fun testFileWithoutAnnotationsDoesNotAskProviders() {
+    val provider = FakeProvider { null }
+    ExtensionTestUtil.maskExtensions(EndpointsProvider.EP_NAME, listOf(provider), testRootDisposable)
+    myFixture.addFileToProject("petstore.yaml", petstore)
+    myFixture.configureByText("Plain.java", "class Plain { void run() {} }")
+    myFixture.findAllGutters()
+    assertEquals(0, provider.searches.get())
   }
 
   /** The probe the real project check used: a spec in a module's resource root with a `$ref` to a missing schema. */

@@ -16,7 +16,9 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.ModificationTracker
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
@@ -46,13 +48,14 @@ class KtorRoute(val path: String, val method: String, val location: String, val 
 /**
  * Ktor routes from the routing DSL: `get("/x") { }`, `post { }` and the other verbs, under `route("/prefix") { }`.
  * Routes in extension functions (`fun Route.userRoutes() { get("/users") { } }`) take the prefixes of the places that
- * call the function. Only Kotlin files that mention Ktor are read; results are cached until the next PSI change.
+ * call the function. Only Kotlin files that mention Ktor are read; results are cached until the next change of JVM code.
  */
 object KtorRoutes {
   private const val ROUTING_PACKAGE = "io.ktor.server.routing"
   private val MARKERS = listOf("$ROUTING_PACKAGE.Route", "$ROUTING_PACKAGE.RoutingKt", "$ROUTING_PACKAGE.RoutingBuilderKt")
   private val VERBS = mapOf("get" to "GET", "post" to "POST", "put" to "PUT", "delete" to "DELETE", "patch" to "PATCH", "head" to "HEAD", "options" to "OPTIONS")
   private const val MAX_DEPTH = 6
+  private val CODE_LANGUAGES = setOf("kotlin", "JAVA")
 
   fun isKtorProject(project: Project): Boolean {
     if (project.isDefault || project.isDisposed) return false
@@ -62,7 +65,18 @@ object KtorRoutes {
   }
 
   fun all(project: Project): List<KtorRoute> = CachedValuesManager.getManager(project).getCachedValue(project) {
-    CachedValueProvider.Result.create(find(project), PsiModificationTracker.getInstance(project))
+    CachedValueProvider.Result.create(find(project), tracker(project))
+  }
+
+  /**
+   * What the routes depend on: Kotlin and Java code (routes are calls inside function bodies, so no declaration-only
+   * tracker fits, and a path may be a Java constant), files created, deleted or renamed, and roots (libraries). Narrower
+   * than PsiModificationTracker, which also moves on every YAML or other non-JVM keystroke.
+   */
+  fun tracker(project: Project): ModificationTracker {
+    val code = PsiModificationTracker.getInstance(project).forLanguages { it.id in CODE_LANGUAGES }
+    val roots = ProjectRootManager.getInstance(project)
+    return ModificationTracker { code.modificationCount + roots.modificationCount + VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS.modificationCount }
   }
 
   private fun find(project: Project): List<KtorRoute> {
@@ -168,7 +182,7 @@ class KtorEndpointsProvider : EndpointsProvider<KtorEndpointsGroup, KtorRoute> {
   override fun getEndpointPresentation(group: KtorEndpointsGroup, endpoint: KtorRoute): ItemPresentation =
     HttpMethodPresentation(endpoint.path, listOf(endpoint.method), endpoint.location, AllIcons.Webreferences.Server)
 
-  override fun getModificationTracker(project: Project): ModificationTracker = PsiModificationTracker.getInstance(project)
+  override fun getModificationTracker(project: Project): ModificationTracker = KtorRoutes.tracker(project)
 
   override fun getNavigationElement(group: KtorEndpointsGroup, endpoint: KtorRoute): PsiElement? = endpoint.call.element
 
