@@ -234,6 +234,7 @@ class LocalSharedIndexAliasRestartTest {
     val checkouts = listOf(rootA, rootB).map { CheckoutFixture.virtualFile(it).path + "/" }
     fun rebuilt() = trace.filter { event -> event.index == "IdIndex" && checkouts.any { event.path.startsWith(it) } }
     waitFor("the rebuild of IdIndex", a) { rebuilt().isNotEmpty() }
+    println("DIAG rebuilt IdIndex events: " + rebuilt())
     assertTrue(trace.filter { it.index == "IdIndex" }.toString(), rebuilt().all { it.hit })
     waitFor("b to answer", b) { containing(b, "greet", main(rootB)) }
     assertTrue(containing(a, "greet", main(rootA)))
