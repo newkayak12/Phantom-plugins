@@ -7,7 +7,9 @@ import com.intellij.codeInsight.navigation.NavigationGutterIconBuilder
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VfsUtilCore
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
 import com.intellij.psi.search.FilenameIndex
@@ -16,12 +18,13 @@ import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiTreeUtil
+import org.jetbrains.yaml.YAMLLanguage
 import org.jetbrains.yaml.psi.*
 import javax.swing.Icon
 
 /**
  * The resources of the project's plain Kubernetes manifests (Helm templates and other templated files left out),
- * read only when a manifest's gutter asks and kept until the next PSI change.
+ * read only when a manifest's gutter asks and kept until YAML changes or files are created, deleted or renamed.
  */
 object K8sProjectResources {
   class Named(val resource: K8sResource, val name: String, val namespace: String?) {
@@ -46,7 +49,10 @@ object K8sProjectResources {
         }
       }
     }
-    CachedValueProvider.Result.create(out as List<Named>, PsiModificationTracker.MODIFICATION_COUNT)
+    // Only YAML PSI, file structure and the project scope change the result: MODIFICATION_COUNT also moved on every
+    // keystroke in Java or any other language and reread every manifest of the project.
+    val yaml = PsiModificationTracker.getInstance(project).forLanguages { it.isKindOf(YAMLLanguage.INSTANCE) }
+    CachedValueProvider.Result.create(out as List<Named>, yaml, VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS, ProjectRootManager.getInstance(project))
   }
 
   fun namespaceOf(resource: K8sResource): String? =

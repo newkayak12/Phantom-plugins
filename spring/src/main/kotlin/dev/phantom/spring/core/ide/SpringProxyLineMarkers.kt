@@ -14,11 +14,11 @@ import com.intellij.psi.search.searches.AnnotatedElementsSearch
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.InheritanceUtil
-import com.intellij.psi.util.PsiModificationTracker
 import dev.phantom.spring.core.PhantomSpringBundle
 import dev.phantom.spring.core.SpringBeans
 import dev.phantom.spring.core.SpringProjectGate
 import dev.phantom.spring.core.SpringProxies
+import dev.phantom.spring.core.SpringStructureTracker
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.uast.*
 import javax.swing.Icon
@@ -117,12 +117,12 @@ object AopAdviceMatching {
     /**
      * The regexes of this advice's `execution`/`within` patterns (named pointcuts included), by kind and pattern text,
      * compiled on first use: the gutter matches every advice against every bean method, and compiling them per method
-     * was most of its cost. Dropped with the advice list on the next PSI change.
+     * was most of its cost. Dropped with the advice list when declarations change.
      */
     internal val patterns = java.util.concurrent.ConcurrentHashMap<String, java.util.Optional<Regex>>()
   }
 
-  /** Advice methods in project sources, cached until the next PSI change. */
+  /** Advice methods in project sources, cached until declarations change ([SpringStructureTracker]). */
   fun advices(project: Project): List<Advice> = CachedValuesManager.getManager(project).getCachedValue(project) {
     val facade = JavaPsiFacade.getInstance(project)
     val all = GlobalSearchScope.allScope(project)
@@ -137,7 +137,9 @@ object AopAdviceMatching {
         result += Advice(method, fqn.substringAfterLast('.'), expression)
       }
     }
-    CachedValueProvider.Result.create(result, PsiModificationTracker.MODIFICATION_COUNT)
+    // advice annotations and the constants they use are declarations: MODIFICATION_COUNT dropped the list (and its
+    // compiled patterns) on every keystroke in any language
+    CachedValueProvider.Result.create(result, *SpringStructureTracker.deps(project))
   }
 
   fun matches(advice: Advice, target: PsiMethod): Match = Evaluator(advice, advice.method, target, 0).evaluate(advice.expression)

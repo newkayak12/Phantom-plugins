@@ -21,6 +21,7 @@ import com.intellij.psi.util.PsiModificationTracker
 import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.annotations.PropertyKey
+import org.jetbrains.yaml.YAMLLanguage
 import org.jetbrains.yaml.YAMLUtil
 import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLScalar
@@ -71,14 +72,24 @@ internal fun relativeToRoot(module: Module, file: VirtualFile): Pair<VirtualFile
  * application.yml). Only `classpath:` locations are followed; a `{vendor}` placeholder matches any folder.
  */
 object FlywayLocations {
-  private val LOCATIONS = Key.create<CachedValue<List<String>>>("phantom.flyway.locations")
+  private class Found(val locations: List<String>, val deps: Array<Any>)
+
+  private val LOCATIONS = Key.create<CachedValue<Found>>("phantom.flyway.locations")
   private val PROPERTIES = Regex("""^\s*spring\.flyway\.locations\s*[=:]\s*(.+)$""", RegexOption.MULTILINE)
 
-  fun of(module: Module): List<String> = CachedValuesManager.getManager(module.project).getCachedValue(module, LOCATIONS, {
+  fun of(module: Module): List<String> = found(module).locations
+
+  /** What [of] depends on, for a cache that is built on the locations. */
+  internal fun deps(module: Module): Array<Any> = found(module).deps
+
+  private fun found(module: Module): Found = CachedValuesManager.getManager(module.project).getCachedValue(module, LOCATIONS, {
     val found = linkedSetOf("db/migration")
-    val psiManager = PsiManager.getInstance(module.project)
+    val project = module.project
+    val psiManager = PsiManager.getInstance(project)
+    val read = ArrayList<VirtualFile>()
     for (root in sourceAndResourceRoots(module, false)) {
       VfsUtilCore.iterateChildrenRecursively(root, { it.isDirectory || it.extension in setOf("yml", "yaml", "properties") }) { file ->
+        if (!file.isDirectory) read += file
         if (!file.isDirectory && file.length < 512 * 1024) {
           val text = VfsUtilCore.loadText(file)
           if (text.contains("flyway")) {
@@ -90,7 +101,12 @@ object FlywayLocations {
       }
     }
     val normalized = found.mapNotNull(::normalize).distinct()
-    CachedValueProvider.Result.create(normalized, PsiModificationTracker.getInstance(module.project), VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS)
+    // YAML is read through PSI (committed unsaved edits), .properties from disk (each file read is a dependency, so a
+    // change on disk counts), plus files created, deleted or renamed and roots. The whole PsiModificationTracker
+    // also moved on every Java or SQL keystroke and reread every config file of the module.
+    val deps = arrayOf<Any>(PsiModificationTracker.getInstance(project).forLanguages { it.isKindOf(YAMLLanguage.INSTANCE) },
+                       VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS, ProjectRootManager.getInstance(project), *read.toTypedArray())
+    CachedValueProvider.Result.create(Found(normalized, deps), *deps)
   }, false)
 
   private fun yamlLocations(file: YAMLFile): List<String> = file.documents.flatMap { document ->
@@ -137,7 +153,7 @@ data class FlywayName(val prefix: String, val version: String, val description: 
   }
 }
 
-/** The versioned migrations of a module's Flyway locations, cached until files are added, removed or renamed. */
+/** The versioned migrations of a module's Flyway locations, cached until files are added, removed or renamed, or the locations change. */
 object FlywayMigrations {
   private val MIGRATIONS = Key.create<CachedValue<List<Pair<VirtualFile, FlywayName>>>>("phantom.flyway.migrations")
 
@@ -153,7 +169,9 @@ object FlywayMigrations {
         }
       }
     }
-    CachedValueProvider.Result.create(result.distinctBy { it.first }.toList(), VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS, PsiModificationTracker.getInstance(module.project))
+    // only file names and places matter, not contents: no PSI tracker, so typing in a migration keeps the list
+    CachedValueProvider.Result.create(result.distinctBy { it.first }.toList(), VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS,
+                                      ProjectRootManager.getInstance(module.project), *FlywayLocations.deps(module))
   }, false)
 }
 

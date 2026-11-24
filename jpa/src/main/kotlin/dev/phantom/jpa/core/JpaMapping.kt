@@ -9,7 +9,6 @@ import com.intellij.psi.search.searches.AnnotatedElementsSearch
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.InheritanceUtil
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiUtil
 import org.jetbrains.uast.UAnnotated
 import org.jetbrains.uast.UAnnotation
@@ -92,6 +91,7 @@ object JpaMapping {
         }
       }
     }
-    CachedValueProvider.Result.create(result, PsiModificationTracker.getInstance(project))
+    // JVM code and roots only: the whole PsiModificationTracker also moved on every SQL, YAML or XML keystroke
+    CachedValueProvider.Result.create(result, *JpaCacheDeps.code(project))
   }
 }

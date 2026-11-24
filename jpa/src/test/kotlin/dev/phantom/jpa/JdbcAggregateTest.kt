@@ -2,9 +2,14 @@
 package dev.phantom.jpa
 
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiFile
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.testFramework.fixtures.JavaCodeInsightTestFixture
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import dev.phantom.jpa.core.JdbcAggregateBoundaryInspection
+import dev.phantom.jpa.core.JdbcAggregates
 import dev.phantom.jpa.core.PhantomJpaBundle
 
 object JdbcStubs {
@@ -58,5 +63,34 @@ class JdbcAggregateTest : LightJavaCodeInsightFixtureTestCase() {
     myFixture.configureFromExistingVirtualFile(myFixture.findClass("app.Line").containingFile.virtualFile)
     val shared = myFixture.doHighlighting(HighlightSeverity.WEAK_WARNING).filter { it.inspectionToolId?.startsWith("Phantom") == true }.mapNotNull { it.description }
     assertEquals(listOf(PhantomJpaBundle.message("jdbc.several.aggregates", "Line", "Invoice, Order")), shared)
+  }
+
+  /** The roots and the project check follow Java edits; typing in a file of another language keeps them. */
+  fun testCachesFollowJavaEditsOnly() {
+    JdbcStubs.add(myFixture)
+    val repositories = myFixture.addFileToProject("app/Repositories.java",
+      "package app; interface Customers extends org.springframework.data.repository.CrudRepository<Customer, Long> {}")
+    myFixture.addClass("package app; public class Customer { Long id; }")
+    myFixture.addClass("package app; public class Order { Long id; }")
+    val notes = myFixture.addFileToProject("notes.txt", "hello")
+    val scope = GlobalSearchScope.allScope(project)
+    val roots = JdbcAggregates.roots(project)
+    assertEquals(listOf("app.Customer"), roots.map { it.qualifiedName })
+    assertTrue(JdbcAggregates.isJdbcProject(project, scope))
+    edit(notes, "hello", "hello there")
+    assertSame(roots, JdbcAggregates.roots(project))
+    edit(repositories, "<Customer,", "<Order,")
+    assertEquals(listOf("app.Order"), JdbcAggregates.roots(project).map { it.qualifiedName })
+    myFixture.addClass("package jakarta.persistence; public @interface Entity {}")
+    assertFalse(JdbcAggregates.isJdbcProject(project, scope))
+  }
+
+  private fun edit(file: PsiFile, from: String, to: String) {
+    val document = PsiDocumentManager.getInstance(project).getDocument(file)!!
+    WriteCommandAction.runWriteCommandAction(project) {
+      val at = document.text.indexOf(from)
+      document.replaceString(at, at + from.length, to)
+    }
+    PsiDocumentManager.getInstance(project).commitAllDocuments()
   }
 }

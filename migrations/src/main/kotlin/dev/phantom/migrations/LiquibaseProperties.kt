@@ -6,9 +6,12 @@ import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.VfsUtilCore
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiComment
 import com.intellij.psi.search.GlobalSearchScope
@@ -30,20 +33,29 @@ import com.intellij.psi.xml.XmlFile
 internal class LiquibaseProperties(val names: Set<String>, val unknowable: Boolean) {
   companion object {
     private val KEY = Key.create<CachedValue<LiquibaseProperties>>("phantom.liquibase.properties")
+    private val CODE_KEY = Key.create<CachedValue<Boolean>>("phantom.liquibase.parameters.in.code")
     private val XML_PROPERTY = Regex("""<property\b[^>]*?\bname\s*=\s*["']([^"']+)["']""")
     private val YAML_NAME = Regex("""(?m)^\s*-?\s*name\s*:\s*["']?([\w.-]+)""")
     private val SQL_PROPERTY = Regex("""(?im)^\s*--\s*property\s+.*?\bname\s*:\s*(\S+)""")
     private val PROPERTIES_KEY = Regex("""(?m)^\s*([\w.-]+)\s*[=:]""")
     private val SPRING_PARAMETER = Regex("""spring\.liquibase\.parameters\.([\w.-]+)""")
 
-    fun of(module: Module): LiquibaseProperties = CachedValuesManager.getManager(module.project).getCachedValue(module, KEY, {
+    fun of(module: Module): LiquibaseProperties {
+      val fromFiles = fromFiles(module)
+      return if (fromFiles.unknowable || !setsParametersInCode(module)) fromFiles else LiquibaseProperties(fromFiles.names, true)
+    }
+
+    private fun fromFiles(module: Module): LiquibaseProperties = CachedValuesManager.getManager(module.project).getCachedValue(module, KEY, {
       val names = HashSet<String>()
       var unknowable = false
+      val read = ArrayList<VirtualFile>()
       for (root in sourceAndResourceRoots(module, true)) {
         VfsUtilCore.iterateChildrenRecursively(root, null) { file ->
           if (file.isDirectory) return@iterateChildrenRecursively true
           val ext = file.extension?.lowercase()
-          if (ext !in setOf("xml", "yaml", "yml", "sql", "properties") || file.length > 2_000_000) return@iterateChildrenRecursively true
+          if (ext !in setOf("xml", "yaml", "yml", "sql", "properties")) return@iterateChildrenRecursively true
+          read += file
+          if (file.length > 2_000_000) return@iterateChildrenRecursively true
           val text = runCatching { VfsUtilCore.loadText(file) }.getOrNull() ?: return@iterateChildrenRecursively true
           when (ext) {
             "xml" -> if (text.contains("databaseChangeLog")) XML_PROPERTY.findAll(text).forEach { names += it.groupValues[1] }
@@ -62,12 +74,22 @@ internal class LiquibaseProperties(val names: Set<String>, val unknowable: Boole
           true
         }
       }
+      // The files are read from disk, so each file read is a dependency (its content on disk), plus files created,
+      // deleted or renamed and roots. MODIFICATION_COUNT moved on every keystroke in any language and reread them all.
+      CachedValueProvider.Result.create(LiquibaseProperties(names, unknowable), VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS,
+                                        ProjectRootManager.getInstance(module.project), *read.toTypedArray())
+    }, false)
+
+    /**
+     * Whether code of the module may set parameters (`setChangeLogParameters`, a `changeLogParameters` property). Kept
+     * apart from the file scan: the word can appear in a file of any language, so this cheap index lookup is what still
+     * follows every PSI change.
+     */
+    private fun setsParametersInCode(module: Module): Boolean = CachedValuesManager.getManager(module.project).getCachedValue(module, CODE_KEY, {
       val helper = PsiSearchHelper.getInstance(module.project)
       val scope = GlobalSearchScope.moduleScope(module)
-      for (word in listOf("setChangeLogParameters", "changeLogParameters")) {
-        if (!helper.processAllFilesWithWordInText(word, scope, { false }, true)) unknowable = true
-      }
-      CachedValueProvider.Result.create(LiquibaseProperties(names, unknowable), PsiModificationTracker.MODIFICATION_COUNT)
+      val found = listOf("setChangeLogParameters", "changeLogParameters").any { word -> !helper.processAllFilesWithWordInText(word, scope, { false }, true) }
+      CachedValueProvider.Result.create(found, PsiModificationTracker.getInstance(module.project))
     }, false)
   }
 }

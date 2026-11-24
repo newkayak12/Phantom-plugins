@@ -14,7 +14,6 @@ import com.intellij.psi.search.searches.AnnotatedElementsSearch
 import com.intellij.psi.search.searches.ClassInheritorsSearch
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiUtil
 
 private fun configText(file: PsiFile): String =
@@ -69,7 +68,8 @@ internal object FunctionBeans {
 
   /** Bean names, or null when no function bean is found at all (they may come from where this does not look). */
   fun names(project: Project): Set<String>? = CachedValuesManager.getManager(project).getCachedValue(project) {
-    CachedValueProvider.Result.create(compute(project), PsiModificationTracker.MODIFICATION_COUNT)
+    // JVM sources and roots only: MODIFICATION_COUNT also moved on every keystroke in the YAML file this inspection checks
+    CachedValueProvider.Result.create(compute(project), *BootCacheDeps.jvm(project))
   }
 
   private fun compute(project: Project): Set<String>? {

@@ -8,13 +8,18 @@ import com.intellij.codeInspection.*
 import com.intellij.lang.jvm.actions.annotationRequest
 import com.intellij.lang.jvm.actions.createAddAnnotationActions
 import com.intellij.lang.jvm.actions.stringAttribute
+import com.intellij.openapi.util.Key
 import com.intellij.psi.*
 import com.intellij.psi.search.GlobalSearchScopesCore
 import com.intellij.psi.search.searches.ReferencesSearch
+import com.intellij.psi.util.CachedValue
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
 import com.intellij.uast.UastHintedVisitorAdapter
 import dev.phantom.spring.core.*
 import org.jetbrains.uast.*
 import org.jetbrains.uast.visitor.AbstractUastNonRecursiveVisitor
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Warns where Spring would fail to start: an injection point with no bean of its type, or with several and nothing
@@ -82,6 +87,7 @@ class SpringAutowiringInspection : AbstractBaseUastLocalInspectionTool() {
 
   companion object {
     private const val MAX_FIXED_CANDIDATES = 3
+    private val REGISTERED_ELSEWHERE = Key.create<CachedValue<ConcurrentHashMap<PsiClass, Boolean>>>("phantom.spring.registered.elsewhere")
     private const val CONDITIONAL = "org.springframework.context.annotation.Conditional"
 
     /** Collections, maps, arrays, `Optional` and providers accept any number of beans, including none. */
@@ -117,6 +123,19 @@ class SpringAutowiringInspection : AbstractBaseUastLocalInspectionTool() {
 
     /** Classes named in an annotation, as in `@Import(Foo.class)` or `@EnableConfigurationProperties(Props.class)`. */
     private fun isRegisteredElsewhere(beanType: PsiClass): Boolean {
+      // asked for the same types at every injection point of every file: kept per type until declarations change, since
+      // the references that count sit in annotations and the inheritors are declarations too
+      val project = beanType.project
+      val known = CachedValuesManager.getManager(project).getCachedValue(project, REGISTERED_ELSEWHERE, {
+        CachedValueProvider.Result.create(ConcurrentHashMap<PsiClass, Boolean>(), *SpringStructureTracker.deps(project))
+      }, false)
+      known[beanType]?.let { return it }
+      // searched outside the map's lock: the search may be cancelled, and other keys must not wait for it
+      val found = searchRegisteredElsewhere(beanType)
+      return known.putIfAbsent(beanType, found) ?: found
+    }
+
+    private fun searchRegisteredElsewhere(beanType: PsiClass): Boolean {
       // production only: `@SpringBootTest(classes = …)` and `@WebMvcTest(…)` in tests do not register anything for the app
       val scope = GlobalSearchScopesCore.projectProductionScope(beanType.project)
       val types = LinkedHashSet<PsiClass>().apply {

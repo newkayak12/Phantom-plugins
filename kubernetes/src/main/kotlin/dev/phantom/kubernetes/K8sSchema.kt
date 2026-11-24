@@ -1,6 +1,9 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.kubernetes
 
+import com.intellij.openapi.util.text.StringUtil
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
 import org.jetbrains.yaml.psi.YAMLDocument
 import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLKeyValue
@@ -128,9 +131,16 @@ class K8sResource(val document: YAMLDocument, val root: YAMLMapping, val kind: S
   val apiVersionScalar: YAMLScalar? get() = root.getKeyValueByKey("apiVersion")?.value as? YAMLScalar
 
   companion object {
-    /** Every resource document of [file]; none for Helm templates or files with template syntax. */
-    fun all(file: YAMLFile): List<K8sResource> {
-      if (file.textContains('{') && file.text.contains("{{")) return emptyList()
+    /**
+     * Every resource document of [file]; none for Helm templates or files with template syntax. Cached per file: the
+     * gutter asks for every key of the file.
+     */
+    fun all(file: YAMLFile): List<K8sResource> = CachedValuesManager.getCachedValue(file) {
+      CachedValueProvider.Result.create(compute(file), file)
+    }
+
+    private fun compute(file: YAMLFile): List<K8sResource> {
+      if (StringUtil.contains(file.viewProvider.contents, "{{")) return emptyList()
       return file.documents.mapNotNull { doc ->
         val root = doc.topLevelValue as? YAMLMapping ?: return@mapNotNull null
         val kind = (root.getKeyValueByKey("kind")?.value as? YAMLScalar)?.textValue ?: return@mapNotNull null

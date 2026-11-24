@@ -2,6 +2,12 @@
 package dev.phantom.migrations
 
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.editor.Document
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 class MigrationsTest : BasePlatformTestCase() {
@@ -168,5 +174,46 @@ class MigrationsTest : BasePlatformTestCase() {
     """.trimIndent())
     assertEquals(listOf("Changelog property 'schmea' is not defined; Liquibase leaves the placeholder in the SQL as written"),
                  problemsIn("db/changelog/parts/tables.xml"))
+  }
+
+  /** Migration names come from the VFS: a rename updates the list, typing in a migration does not rescan. */
+  fun testMigrationListFollowsFileNamesOnly() {
+    val v1 = myFixture.addFileToProject("db/migration/V1__a.sql", "select 1;")
+    val first = FlywayMigrations.of(module)
+    assertEquals(listOf("V1__a.sql"), first.map { it.first.name })
+    edit(v1) { it.insertString(0, "-- note\n") }
+    assertSame(first, FlywayMigrations.of(module))
+    WriteAction.runAndWait<Throwable> { v1.virtualFile.rename(this, "V2__a.sql") }
+    assertEquals(listOf("V2__a.sql"), FlywayMigrations.of(module).map { it.first.name })
+  }
+
+  /** Locations follow YAML edits and `.properties` files changed on disk; the migration list follows the locations. */
+  fun testLocationsFollowConfig() {
+    val yaml = myFixture.addFileToProject("application.yaml", "spring:\n  flyway:\n    locations: classpath:db/a\n")
+    val properties = myFixture.addFileToProject("flyway.properties", "x=1\n")
+    myFixture.addFileToProject("db/b/V1__b.sql", "")
+    assertContainsElements(FlywayLocations.of(module), "db/a")
+    assertEmpty(FlywayMigrations.of(module))
+    edit(yaml) { it.replaceString(it.text.indexOf("db/a"), it.text.indexOf("db/a") + 4, "db/b") }
+    assertContainsElements(FlywayLocations.of(module), "db/b")
+    assertEquals(listOf("V1__b.sql"), FlywayMigrations.of(module).map { it.first.name })
+    WriteAction.runAndWait<Throwable> { VfsUtil.saveText(properties.virtualFile, "spring.flyway.locations=classpath:db/c\n") }
+    assertContainsElements(FlywayLocations.of(module), "db/c")
+  }
+
+  /** Changelog files are read from disk: a change on disk and a new changelog both count. */
+  fun testLiquibasePropertiesFollowFiles() {
+    val properties = myFixture.addFileToProject("liquibase.properties", "parameter.first=1\n")
+    assertContainsElements(LiquibaseProperties.of(module).names, "first")
+    WriteAction.runAndWait<Throwable> { VfsUtil.saveText(properties.virtualFile, "parameter.second=1\n") }
+    assertContainsElements(LiquibaseProperties.of(module).names, "second")
+    myFixture.addFileToProject("db/changelog/more.xml", "<databaseChangeLog><property name=\"third\" value=\"1\"/></databaseChangeLog>")
+    assertContainsElements(LiquibaseProperties.of(module).names, "third")
+  }
+
+  private fun edit(file: PsiFile, change: (Document) -> Unit) {
+    val documents = PsiDocumentManager.getInstance(project)
+    WriteCommandAction.runWriteCommandAction(project) { change(documents.getDocument(file)!!) }
+    documents.commitAllDocuments()
   }
 }

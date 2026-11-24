@@ -6,13 +6,14 @@ import com.intellij.codeInspection.LocalInspectionToolSession
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Key
 import com.intellij.psi.*
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.searches.ClassInheritorsSearch
+import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.InheritanceUtil
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiUtil
 import com.intellij.uast.UastHintedVisitorAdapter
 import org.jetbrains.uast.UAnnotation
@@ -20,6 +21,7 @@ import org.jetbrains.uast.UClass
 import org.jetbrains.uast.UField
 import org.jetbrains.uast.evaluateString
 import org.jetbrains.uast.visitor.AbstractUastNonRecursiveVisitor
+import java.util.concurrent.ConcurrentHashMap
 
 /** Spring Data JDBC aggregates: the domain types of repositories, in projects with spring-data-jdbc and no JPA. */
 internal object JdbcAggregates {
@@ -29,9 +31,20 @@ internal object JdbcAggregates {
   private const val EMBEDDED = "org.springframework.data.relational.core.mapping.Embedded"
   private val TRANSIENT = listOf("org.springframework.data.annotation.Transient", "java.beans.Transient")
 
+  private val JDBC_PROJECT = Key.create<CachedValue<ConcurrentHashMap<GlobalSearchScope, Boolean>>>("phantom.jpa.jdbc.project")
+
+  /**
+   * Asked by the inspection for every file it highlights, so the class lookups are kept per resolve scope until JVM
+   * code or roots change.
+   */
   fun isJdbcProject(project: Project, scope: GlobalSearchScope): Boolean {
-    val facade = JavaPsiFacade.getInstance(project)
-    return facade.findClass(AGGREGATE_REFERENCE, scope) != null && JpaMapping.fqns("Entity").none { facade.findClass(it, scope) != null }
+    val byScope = CachedValuesManager.getManager(project).getCachedValue(project, JDBC_PROJECT, {
+      CachedValueProvider.Result.create(ConcurrentHashMap<GlobalSearchScope, Boolean>(), *JpaCacheDeps.code(project))
+    }, false)
+    return byScope.getOrPut(scope) {
+      val facade = JavaPsiFacade.getInstance(project)
+      facade.findClass(AGGREGATE_REFERENCE, scope) != null && JpaMapping.fqns("Entity").none { facade.findClass(it, scope) != null }
+    }
   }
 
   /** Aggregate roots of the project: the entity type argument of every Spring Data repository in project sources. */
@@ -45,7 +58,8 @@ internal object JdbcAggregates {
         DerivedQuery.entityOf(repository)?.takeIf { it !is PsiTypeParameter && it.qualifiedName?.startsWith("java.") == false }?.let(result::add)
       }
     }
-    CachedValueProvider.Result.create(result, PsiModificationTracker.getInstance(project))
+    // JVM code and roots only: the whole PsiModificationTracker also moved on every SQL, YAML or XML keystroke
+    CachedValueProvider.Result.create(result, *JpaCacheDeps.code(project))
   }
 
   /** Entity classes a root contains directly: property types and element types, without embedded values and references by id. */
