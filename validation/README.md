@@ -1,4 +1,4 @@
-# Phantom for Bean Validation
+# Support for Bean Validation
 `dev.phantom.validation` · [한국어](./KOR.md)
 
 Jakarta (and javax) Bean Validation checks for Java and Kotlin.

@@ -3,7 +3,7 @@
        ones, as other plugins depend on them by name. The bundled IntelliJ Services View plugin has to be gone, or both
        claim the same id and modules. -->
   <id>dev.phantom.serviceview</id>
-  <name>Services View</name>
+  <name>Phantom Services View</name>
   <module value="intellij.execution.serviceView.plugin"/>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Tools Integration</category>

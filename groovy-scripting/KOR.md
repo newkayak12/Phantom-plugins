@@ -1,4 +1,4 @@
-# Phantom for Groovy Scripting
+# Support for Groovy Scripting
 `dev.phantom.groovy-scripting` · [English](./README.md)
 
 IDE Scripting Console에서 쓰는 Groovy JSR223 스크립팅 엔진과, Groovy·Groovy Live Templates 등 다른 플러그인이

@@ -1,4 +1,4 @@
-# Phantom for TestNG
+# Support for TestNG
 `dev.phantom.testng` · [English](./README.md)
 
 Java용 TestNG: 클래스, 메서드, 패키지, 그룹, 패턴, suite 파일 단위 실행 구성(거터나 컨텍스트에서 실행), 테스트 트리, 다시 실행,

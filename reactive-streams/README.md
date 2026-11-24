@@ -1,4 +1,4 @@
-# Phantom for Reactive Streams
+# Support for Reactive Streams
 `dev.phantom.reactive` · [한국어](./KOR.md)
 
 Reactor and RxJava checks for Java and Kotlin.

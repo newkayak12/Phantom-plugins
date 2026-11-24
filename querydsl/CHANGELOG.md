@@ -1,6 +1,8 @@
-# Phantom for QueryDSL 변경 이력
+# Support for QueryDSL 변경 이력
 
 ## 미배포
+
+- 표시 이름을 바꿨다: Phantom for QueryDSL → Support for QueryDSL. 플러그인 id와 기능은 그대로다. (#136)
 
 ## 0.1.2 (2026-11-22)
 

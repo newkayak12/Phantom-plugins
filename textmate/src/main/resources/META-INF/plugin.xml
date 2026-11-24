@@ -3,7 +3,7 @@
        content module names stay the IntelliJ ones, as bundled modules depend on them by name. The bundled IntelliJ
        TextMate Bundles plugin has to be gone, or both claim the same id and modules. -->
   <id>dev.phantom.textmate</id>
-  <name>Phantom for TextMate Bundles</name>
+  <name>Support for TextMate Bundles</name>
   <module value="org.jetbrains.plugins.textmate"/>
   <category>Languages</category>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>

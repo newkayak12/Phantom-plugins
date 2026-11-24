@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.docker</id>
-  <name>Phantom for Docker</name>
+  <name>Support for Docker</name>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Cloud</category>
   <description><![CDATA[

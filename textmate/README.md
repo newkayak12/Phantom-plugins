@@ -1,4 +1,4 @@
-# Phantom for TextMate Bundles
+# Support for TextMate Bundles
 `dev.phantom.textmate` · [한국어](./KOR.md)
 
 Highlighting, brace matching, commenting and snippets for file types no other plugin covers, from TextMate and VS Code grammars: the 22 bundled ones (`lib/bundles`) and any you add in Settings | Editor | TextMate Bundles. Markdown highlights code fences with it.

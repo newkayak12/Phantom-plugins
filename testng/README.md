@@ -1,4 +1,4 @@
-# Phantom for TestNG
+# Support for TestNG
 `dev.phantom.testng` · [한국어](./KOR.md)
 
 TestNG for Java: run configurations for a class, method, package, group, pattern or suite file, run from the gutter or a

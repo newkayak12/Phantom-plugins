@@ -1,4 +1,4 @@
-# Phantom for TextMate Bundles
+# Support for TextMate Bundles
 `dev.phantom.textmate` · [English](./README.md)
 
 다른 플러그인이 다루지 않는 파일 형식에 TextMate와 VS Code 문법으로 하이라이팅, 괄호 짝, 주석, 스니펫을 제공합니다. 기본 문법 22개(`lib/bundles`)와 Settings | Editor | TextMate Bundles에서 추가한 문법을 씁니다. Markdown이 코드 블록 하이라이팅에 이것을 씁니다.

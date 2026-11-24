@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.jpa</id>
-  <name>Phantom for JPA</name>
+  <name>Support for JPA</name>
   <vendor>Phantom</vendor>
   <category>Frameworks</category>
   <description><![CDATA[

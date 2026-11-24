@@ -1,6 +1,8 @@
-# Phantom for MyBatis 변경 이력
+# Support for MyBatis 변경 이력
 
 ## 미배포
+
+- 표시 이름을 바꿨다: Phantom for MyBatis → Support for MyBatis. 플러그인 id와 기능은 그대로다. (#136)
 
 ## 0.3.4 (2026-11-24)
 

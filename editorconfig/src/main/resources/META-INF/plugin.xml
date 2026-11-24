@@ -4,7 +4,7 @@
        resolve to this one. The content module names stay the IntelliJ ones, as bundled modules depend on them by name.
        The bundled IntelliJ EditorConfig plugin has to be gone, or both claim the same id and modules. -->
   <id>dev.phantom.editorconfig</id>
-  <name>Phantom for EditorConfig</name>
+  <name>Support for EditorConfig</name>
   <module value="org.editorconfig.editorconfigjetbrains"/>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>IDE Settings</category>

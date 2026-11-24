@@ -1,4 +1,4 @@
-# Phantom for Markdown
+# Support for Markdown
 `dev.phantom.markdown` · [English](./README.md)
 
 Markdown 파일: 하이라이팅, 자동완성, 탐색, 인스펙션, 표와 목록 편집, 이미지 끌어다 놓기, 코드 블록 언어 주입, front matter, JCEF 미리보기. Shell Script, Kotlin 등이 `intellij.markdown` 모듈을 씁니다.

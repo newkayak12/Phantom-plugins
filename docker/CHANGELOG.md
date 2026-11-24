@@ -1,7 +1,8 @@
-# Phantom for Docker 변경 이력
+# Support for Docker 변경 이력
 
 ## 미배포
 
+- 표시 이름을 바꿨다: Phantom for Docker → Support for Docker. 플러그인 id와 기능은 그대로다. (#136)
 - Containers 창은 IDE가 다른 앱 뒤에 있는 동안 `docker ps -a`를 3초마다 돌리지 않고 멈췄다가, IDE로 돌아오면 바로 새로 고친다. (#114)
 - Docker 도구 창 아이콘을 빈 사각형 대신 쌓인 컨테이너 세 개로 바꿨다. (#112)
 

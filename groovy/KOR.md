@@ -1,4 +1,4 @@
-# Phantom for Groovy
+# Support for Groovy
 `dev.phantom.groovy` · [English](./README.md)
 
 Groovy: 하이라이팅, 자동완성, 인스펙션과 빠른 수정, 인텐션, 리팩터링, 빠른 문서, 포매팅, 구조 검색, GDSL 스크립트, 디버거 핫

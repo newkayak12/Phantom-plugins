@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.ktor</id>
-  <name>Phantom for Ktor</name>
+  <name>Support for Ktor</name>
   <vendor>Phantom</vendor>
   <category>Frameworks</category>
   <description><![CDATA[

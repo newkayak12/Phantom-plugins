@@ -1,4 +1,4 @@
-# Phantom for EditorConfig
+# Support for EditorConfig
 `dev.phantom.editorconfig` · [한국어](./KOR.md)
 
 `.editorconfig` files: properties applied to the code style, indentation, encoding and trailing spaces of every supported language, and an editor for the files themselves with highlighting, completion of standard and IntelliJ-specific properties, inspections and quick fixes, navigation, rename, a preview of affected files, and export of a code style scheme to `.editorconfig`. Parsing and glob matching use [ec4j](https://github.com/ec4j/ec4j), packaged in the plugin.

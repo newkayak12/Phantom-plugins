@@ -1,4 +1,4 @@
-# Phantom for Gradle DSL
+# Support for Gradle DSL
 `dev.phantom.gradle-dsl` · [한국어](./KOR.md)
 
 A technical plugin with no UI of its own: an API that reads Gradle build files as a model and edits them in place —

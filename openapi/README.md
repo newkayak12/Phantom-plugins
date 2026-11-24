@@ -1,4 +1,4 @@
-# Phantom for OpenAPI
+# Support for OpenAPI
 `dev.phantom.openapi` · [한국어](./KOR.md)
 
 OpenAPI 3 and Swagger 2 specifications in YAML and JSON.

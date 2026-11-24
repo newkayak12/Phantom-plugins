@@ -1,4 +1,4 @@
-# Phantom for Kubernetes
+# Support for Kubernetes
 `dev.phantom.kubernetes` · [English](./README.md)
 
 Helm 차트 지원입니다. 차트 템플릿(`<chart>/Chart.yaml` 옆의 `<chart>/templates/…`) 안에서만 동작합니다.

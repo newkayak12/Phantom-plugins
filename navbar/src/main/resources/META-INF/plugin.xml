@@ -3,7 +3,7 @@
        platform depends on them by name (intellij.platform.navbar). The bundled IntelliJ Navbar plugin has to be gone, or
        both claim the same id and modules. -->
   <id>dev.phantom.navbar</id>
-  <name>Navigation Bar</name>
+  <name>Phantom Navigation Bar</name>
   <module value="intellij.navbar.plugin"/>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Navigation</category>

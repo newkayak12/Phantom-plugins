@@ -1,7 +1,8 @@
-# Phantom for Kubernetes 변경 이력
+# Support for Kubernetes 변경 이력
 
 ## 미배포
 
+- 표시 이름을 바꿨다: Phantom for Kubernetes → Support for Kubernetes. 플러그인 id와 기능은 그대로다. (#136)
 - 매니페스트 사이 거터가 키마다 파일 전체를 다시 읽지 않고, 프로젝트 매니페스트 목록은 YAML이 바뀌거나 파일이 생기고 지워질 때만 다시 읽는다. Java 등 다른 언어를 입력해도 다시 읽지 않는다. (#119)
 
 ## 0.6.2 (2026-11-22)
