@@ -222,10 +222,19 @@ sourceSets.test {
 
 tasks.test {
   useJUnitPlatform()
+  filter {
+    // The Gradle/JVM compatibility feed update is off by default in Phantom (gradle.compatibility.update.interval 0, see
+    // intellij.gradle.xml), so these tests of the update find no request made
+    excludeTest("org.jetbrains.plugins.gradle.util.GradleJvmUpdateMatricesTest", "test update configuration")
+    excludeTest("org.jetbrains.plugins.gradle.util.GradleJvmUpdateMatricesTest", "test should not update configuration twice")
+    excludeTest("org.jetbrains.plugins.gradle.util.GradleJvmUpdateMatricesTest", "test update configuration for appropriate idea version")
+  }
 }
 
-// The IDE the tests run in still bundles IntelliJ's Gradle, which claims the id this plugin keeps as an alias
+// The IDE the tests run in still bundles IntelliJ's Gradle and Groovy Scripting, which claim the ids this plugin and
+// groovy-scripting keep as aliases
 tasks.prepareTestSandbox {
   disabledPlugins.add("com.intellij.gradle")
   disabledPlugins.add("org.jetbrains.plugins.gradle")
+  disabledPlugins.add("com.intellij.groovy.scripting")
 }
