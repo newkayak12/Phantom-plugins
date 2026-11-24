@@ -104,7 +104,7 @@ class LocalSharedIndexStubsAliasTest {
     val psi = JavaPsiFacade.getInstance(b).findClass("p.Greeter", GlobalSearchScope.projectScope(b))!!.containingFile as PsiFileImpl
     assertNotNull(psi.stub)
     assertFalse(psi.isContentsLoaded)
-    // JavaShortClassNameIndex traces key hashes: with b's filter only the widened one lets a's logged keys through.
+    // JavaShortClassNameIndex traces key hashes: with b's filter, a's logged keys come only as keys borrowed through aliases.
     val names = StubIndex.getInstance().getAllKeys(JavaStubIndexKeys.CLASS_SHORT_NAMES, b)
     assertTrue(names.toString(), "Greeter" in names && "C17" in names)
     assertEquals(emptyList<String>(), errors)
@@ -204,5 +204,39 @@ class LocalSharedIndexStubsAliasTest {
     val stubEvents = trace.filter { it.index == "Stubs" }.map { it.path }.toSet()
     assertEquals(setOf(greeter(rootB).path), stubEvents)
     assertEquals(emptyList<String>(), errors)
+  }
+
+  @Test
+  fun `test listing class names with aliases costs about what it costs without`() {
+    val roots = listOf("a", "b").map { name ->
+      tempDir.newDirectory(name).toPath().also { root ->
+        CheckoutFixture.writeJavaCheckout(root)
+        for (i in 0 until 500) {
+          val file = root.resolve("src/q/Q$i.java")
+          java.nio.file.Files.createDirectories(file.parent)
+          java.nio.file.Files.writeString(file, "package q;\npublic class Q$i { void m() {} }\n")
+        }
+      }
+    }
+    val a = CheckoutFixture.openCheckout(roots[0], disposable.disposable)
+    val b = CheckoutFixture.openCheckout(roots[1], disposable.disposable)
+    assertTrue(AliasRegistry.of("Stubs").hasAliases)
+    fun medianMs(project: Project): Double {
+      val filter = com.intellij.util.indexing.IdFilter.getProjectIdFilter(project, false)
+      val scope = GlobalSearchScope.projectScope(project)
+      val times = (0 until 40).map {
+        val names = HashSet<String>()
+        val started = System.nanoTime()
+        StubIndex.getInstance().processAllKeys(JavaStubIndexKeys.CLASS_SHORT_NAMES, { names.add(it) }, scope, filter)
+        val ms = (System.nanoTime() - started) / 1e6
+        assertTrue(names.size.toString(), "Q499" in names)
+        ms
+      }.drop(5).sorted()
+      return times[times.size / 2]
+    }
+    val without = medianMs(a) // a's files are donors, not aliases
+    val with = medianMs(b) // every file of b is an alias
+    println("class names, median of 35 calls: without aliases $without ms, with aliases $with ms")
+    assertTrue("with $with ms, without $without ms", with <= without * 1.5 + 1.0)
   }
 }
