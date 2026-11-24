@@ -1,8 +1,11 @@
 <idea-plugin allow-bundled-update="true">
-  <name>Gradle for Java</name>
-  <!-- "org.jetbrains.plugins.gradle" id has been reused to avoid dependent plugins breakage-->
-  <id>org.jetbrains.plugins.gradle</id>
-  <vendor>JetBrains</vendor>
+  <!-- phantom-idea: Phantom's own id; org.jetbrains.plugins.gradle (IntelliJ's id for Gradle for Java) stays as an alias,
+       so plugins depending on the IntelliJ id resolve to this one. The content module names stay the IntelliJ ones. The
+       bundled IntelliJ Gradle for Java plugin has to be gone, or both claim the same id and modules. -->
+  <id>dev.phantom.gradle-java</id>
+  <name>Phantom for Gradle (Java)</name>
+  <module value="org.jetbrains.plugins.gradle"/>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Build Tools</category>
   <description>
     Provides Java Gradle projects import, run configuration and profiler integrations.

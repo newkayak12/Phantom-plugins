@@ -86,6 +86,7 @@ include("navbar")
 include("recentfiles")
 include("serviceview")
 include("gradle-core")
+include("gradle-java")
 
 // Not plugins: Kotlin compiler plugins some plugins compile with
 include(":compiler-plugins:fleet-rpc")
