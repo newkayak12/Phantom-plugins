@@ -236,7 +236,7 @@ class LocalSharedIndexAliasRestartTest {
     waitFor("the rebuild of IdIndex", a) { rebuilt().isNotEmpty() }
     assertTrue(trace.filter { it.index == "IdIndex" }.toString(), rebuilt().all { it.hit })
     waitFor("b to answer", b) { containing(b, "greet", main(rootB)) }
-    assertTrue(containing(a, "greet", main(rootA)))
+    waitFor("a to answer", a) { containing(a, "greet", main(rootA)) }
     assertTrue(Files.exists(saved.resolveSibling(AliasRegistry.MARKER)))
   }
 
