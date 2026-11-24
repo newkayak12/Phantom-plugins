@@ -1,4 +1,4 @@
-# Phantom for Groovy
+# Support for Groovy
 `dev.phantom.groovy` · [한국어](./KOR.md)
 
 Groovy: highlighting, completion, inspections and quick fixes, intentions, refactorings, quick documentation, formatting,

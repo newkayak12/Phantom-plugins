@@ -3,7 +3,7 @@
        Groovy Live Templates, Spock and others) resolve to this one. The content module names stay the IntelliJ ones. The
        bundled IntelliJ Groovy plugin has to be gone, or both claim the same id and modules. -->
   <id>dev.phantom.groovy</id>
-  <name>Phantom for Groovy</name>
+  <name>Support for Groovy</name>
   <module value="org.intellij.groovy"/>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Languages</category>

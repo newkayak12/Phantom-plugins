@@ -1,4 +1,4 @@
-# Phantom for Groovy Scripting
+# Support for Groovy Scripting
 `dev.phantom.groovy-scripting` · [한국어](./KOR.md)
 
 The Groovy JSR223 scripting engine for the IDE Scripting Console, and the Groovy 3 library (with Apache Ivy, for Grape)

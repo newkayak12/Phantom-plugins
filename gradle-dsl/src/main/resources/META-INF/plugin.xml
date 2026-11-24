@@ -8,7 +8,7 @@
        intellij.android.gradle.dsl.android by name. The bundled IntelliJ Gradle DSL API plugin has to be gone, or both
        claim the same id and modules. -->
   <id>dev.phantom.gradle-dsl</id>
-  <name>Phantom for Gradle DSL</name>
+  <name>Support for Gradle DSL</name>
   <module value="org.jetbrains.idea.gradle.dsl"/>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <description>

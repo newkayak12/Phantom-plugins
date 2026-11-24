@@ -1,4 +1,4 @@
-# Phantom for Groovy Live Templates
+# Support for Groovy Live Templates
 `dev.phantom.groovy-live-templates` · [한국어](./KOR.md)
 
 The `groovyScript()` live template macro: a template variable computed by a Groovy script, inline or from a file, with
