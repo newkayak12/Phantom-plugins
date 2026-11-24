@@ -26,12 +26,19 @@ fun platformJars(vararg dirs: String) = files(provider {
   dirs.flatMap { dir -> platformPath.get().resolve(dir).toFile().walkTopDown().filter { it.isFile && it.name.endsWith(".jar") }.toList() }
 })
 
+// Ant, which the JPS builder's resource filtering uses (ChainingFilterTransformer, GradleResourceFileProcessor). The
+// build process has no Ant of its own, so IntelliJ packs it into gradle-jps.jar (CommunityStandaloneJpsBuilder); so
+// does this build, with the same version.
+val ant = "org.apache.ant:ant:1.10.15"
+val jpsAnt by configurations.creating { isTransitive = false }
+
 val jpsJar = tasks.register<Jar>("jpsJar") {
   archiveFileName = "gradle-jps.jar"
   destinationDirectory = layout.buildDirectory.dir("jpsJar")
   // classes and own resources only: the platform plugin adds the patched plugin.xml to every source set's resources
   from(sourceSets["jps"].output.classesDirs)
   from(layout.projectDirectory.dir("src/jps/resources"))
+  from(provider { jpsAnt.map { zipTree(it) } }) { exclude("META-INF/**") }
 }
 
 val gradleApi = "org.jetbrains.intellij.deps:gradle-api:9.6.0"
@@ -64,6 +71,10 @@ dependencies {
   // the Gradle API it reads build output models with
   "jpsCompileOnly"(platformJars("lib", "plugins/java/lib"))
   "jpsCompileOnly"(gradleApi) { isTransitive = false }
+  "jpsCompileOnly"(ant) { isTransitive = false }
+  jpsAnt(ant)
+  // In THIRD-PARTY-NOTICES with the libraries in lib/
+  packedLibraries(ant) { isTransitive = false }
 
   testImplementation(platform("org.junit:junit-bom:6.0.3"))
   testImplementation("org.junit.jupiter:junit-jupiter")
