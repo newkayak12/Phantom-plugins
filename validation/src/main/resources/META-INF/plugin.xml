@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.validation</id>
-  <name>Phantom for Bean Validation</name>
+  <name>Support for Bean Validation</name>
   <vendor>Phantom</vendor>
   <category>Frameworks</category>
   <description><![CDATA[

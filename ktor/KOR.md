@@ -1,4 +1,4 @@
-# Phantom for Ktor
+# Support for Ktor
 `dev.phantom.ktor` · [English](./README.md)
 
 Ktor 서버 지원입니다.

@@ -1,6 +1,8 @@
-# Phantom for Bean Validation 변경 이력
+# Support for Bean Validation 변경 이력
 
 ## 미배포
+
+- 표시 이름을 바꿨다: Phantom for Bean Validation → Support for Bean Validation. 플러그인 id와 기능은 그대로다. (#?)
 
 ## 0.2.2 (2026-11-22)
 

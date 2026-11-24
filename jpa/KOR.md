@@ -1,4 +1,4 @@
-# Phantom for JPA
+# Support for JPA
 `dev.phantom.jpa` · [English](./README.md)
 
 Java와 Kotlin을 위한 JPA, Hibernate, Spring Data JPA 지원입니다.

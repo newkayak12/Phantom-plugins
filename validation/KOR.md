@@ -1,4 +1,4 @@
-# Phantom for Bean Validation
+# Support for Bean Validation
 `dev.phantom.validation` · [English](./README.md)
 
 Java와 Kotlin을 위한 Jakarta(그리고 javax) Bean Validation 검사입니다.

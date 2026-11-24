@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.mybatis</id>
-  <name>Phantom for MyBatis</name>
+  <name>Support for MyBatis</name>
   <vendor>Phantom</vendor>
   <category>Frameworks</category>
   <description><![CDATA[
