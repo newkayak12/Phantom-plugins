@@ -3,7 +3,7 @@
        the platform depends on them by name (intellij.platform.vcs.impl.frontend needs intellij.platform.recentFiles). The
        bundled IntelliJ Recent Files plugin has to be gone, or both claim the same id and modules. -->
   <id>dev.phantom.recentfiles</id>
-  <name>Recent Files</name>
+  <name>Phantom Recent Files</name>
   <module value="intellij.recentFiles.plugin"/>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Navigation</category>

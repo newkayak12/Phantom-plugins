@@ -1,4 +1,4 @@
-# Navigation Bar
+# Phantom Navigation Bar
 
 `dev.phantom.navbar` · [한국어](./KOR.md)
 

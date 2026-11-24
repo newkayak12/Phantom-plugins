@@ -1,4 +1,4 @@
-# Recent Files
+# Phantom Recent Files
 
 `dev.phantom.recentfiles` · [한국어](./KOR.md)
 
