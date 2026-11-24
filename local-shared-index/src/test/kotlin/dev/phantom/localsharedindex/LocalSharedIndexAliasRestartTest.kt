@@ -114,7 +114,7 @@ class LocalSharedIndexAliasRestartTest {
     val vfs = ManagingFS.getInstance().creationTimestamp
     AliasRegistry.save(saved, vfs)
     AliasRegistry.clearAll()
-    assertEquals(emptySet<Int>(), AliasRegistry.load(saved, vfs) { true }.orphans)
+    assertEquals(emptySet<Int>(), AliasRegistry.load(saved, vfs).orphans)
     assertTrue(containing(b, "greet", main(rootB)))
     assertEquals(id(main(rootA)), AliasRegistry.of("IdIndex").donorOf(id(main(rootB))))
     assertEquals(greeterB, JavaPsiFacade.getInstance(b).findClass("p.Greeter", GlobalSearchScope.projectScope(b))?.containingFile?.virtualFile)
@@ -142,12 +142,13 @@ class LocalSharedIndexAliasRestartTest {
     AliasRegistry.save(saved, vfs)
     AliasRegistry.clearAll()
     val mainA = id(main(rootA))
-    val orphans = AliasRegistry.load(saved, vfs) { it != mainA }.orphans
+    AliasRegistry.load(saved, vfs)
+    val orphans = AliasRegistry.dropGoneDonors { it != mainA }
     assertTrue(orphans.toString(), orphans.isNotEmpty())
     assertTrue(AliasRegistry.of("IdIndex").aliasesOf(mainA).isEmpty())
     // Another VFS: nothing of the saved list applies.
     AliasRegistry.clearAll()
-    assertEquals(emptySet<Int>(), AliasRegistry.load(saved, vfs + 1) { true }.orphans)
+    assertEquals(emptySet<Int>(), AliasRegistry.load(saved, vfs + 1).orphans)
     assertFalse(AliasRegistry.of("IdIndex").hasDonors)
   }
 
@@ -217,20 +218,25 @@ class LocalSharedIndexAliasRestartTest {
     AliasRegistry.save(saved, vfs)
     AliasRegistry.clearAll()
     val mainA = id(main(rootA))
-    ext.restoreAliases(saved, vfs) { it != mainA }
+    ext.restoreAliases(saved, vfs) { it != mainA }.join()
     waitFor("b's Main to be indexed", b) { containing(b, "greet", main(rootB)) }
     assertNull(AliasRegistry.of("IdIndex").donorOf(id(main(rootB))))
   }
 
   private fun assertRebuiltAndAnswering(saved: Path, vfs: Long, a: Project, rootA: Path, b: Project, rootB: Path) {
     val trace = LocalSharedIndexStatistics.getInstance().startTrace()
-    ext.restoreAliases(saved, vfs)
+    ext.restoreAliases(saved, vfs).join()
     assertFalse(AliasRegistry.of("IdIndex").hasAliases)
-    // The rebuild maps a's files again, from the cache it kept.
-    waitFor("the rebuild of IdIndex", a) { trace.any { it.index == "IdIndex" && "/a/" in it.path } }
-    assertTrue(trace.filter { it.index == "IdIndex" }.toString(), trace.filter { it.index == "IdIndex" && "/a/" in it.path }.all { it.hit })
+    // The rebuild maps the files again, from the cache it kept. Both projects are scanned at once after the rebuild
+    // (FileBasedIndexImpl.scheduleIndexRescanningForAllProjects): the checkout indexed first becomes the donor, and
+    // scanning marks the other checkout's files its aliases without mapping them. Which one comes first is up to the
+    // scheduler, so either checkout's files count.
+    val checkouts = listOf(rootA, rootB).map { CheckoutFixture.virtualFile(it).path + "/" }
+    fun rebuilt() = trace.filter { event -> event.index == "IdIndex" && checkouts.any { event.path.startsWith(it) } }
+    waitFor("the rebuild of IdIndex", a) { rebuilt().isNotEmpty() }
+    assertTrue(trace.filter { it.index == "IdIndex" }.toString(), rebuilt().all { it.hit })
     waitFor("b to answer", b) { containing(b, "greet", main(rootB)) }
-    assertTrue(containing(a, "greet", main(rootA)))
+    waitFor("a to answer", a) { containing(a, "greet", main(rootA)) }
     assertTrue(Files.exists(saved.resolveSibling(AliasRegistry.MARKER)))
   }
 
@@ -261,7 +267,7 @@ class LocalSharedIndexAliasRestartTest {
     val saved = tempDir.newDirectory("saved").toPath().resolve("donors.bin")
     val vfs = ManagingFS.getInstance().creationTimestamp
     AliasRegistry.save(saved, vfs)
-    AliasRegistry.load(saved, vfs) { true } // the marker now lives next to saved
+    AliasRegistry.load(saved, vfs) // the marker now lives next to saved
     AliasRegistry.of("IdIndex").alias(id(main(rootB)), id(main(rootA))) // a change after the save
     val marker = saved.resolveSibling(AliasRegistry.MARKER)
     assertTrue(Files.exists(marker))
@@ -269,11 +275,54 @@ class LocalSharedIndexAliasRestartTest {
     assertFalse(Files.exists(marker))
     AliasRegistry.clearAll()
     val trace = LocalSharedIndexStatistics.getInstance().startTrace()
-    ext.restoreAliases(saved, vfs)
+    ext.restoreAliases(saved, vfs).join()
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
     Thread.sleep(500)
     IndexingTestUtil.waitUntilIndexesAreReady(b)
     assertTrue(containing(b, "greet", main(rootB)))
     assertEquals(emptyList<TraceEvent>(), trace.filter { it.index == "IdIndex" })
+  }
+
+  @Test
+  fun `test a large donor list does not hold up index initialization`() {
+    val aliases = AliasRegistry.of("IdIndex")
+    val random = java.util.Random(42)
+    for (i in 0 until 300_000) aliases.recordDonor(ByteArray(20).also(random::nextBytes), 10_000_000 + i, 100L + i % 1000, "F$i.java")
+    for (i in 0 until 60_000) aliases.alias(20_000_000 + i, 10_000_000 + i * 5)
+    val saved = tempDir.newDirectory("saved").toPath().resolve("donors.bin")
+    val vfs = ManagingFS.getInstance().creationTimestamp
+    AliasRegistry.save(saved, vfs)
+    AliasRegistry.clearAll()
+    // What LocalSharedIndexExtension.initialize spends on the list: handing it to a pooled thread.
+    val started = System.nanoTime()
+    val restored = ext.restoreAliases(saved, vfs) { true }
+    val initMs = (System.nanoTime() - started) / 1_000_000
+    restored.join()
+    val totalMs = (System.nanoTime() - started) / 1_000_000
+    println("initialization part: $initMs ms, list read and checked in the background: $totalMs ms")
+    assertTrue("$initMs ms", initMs < 300)
+    assertEquals(10_000_000 + 5 * 59_999, aliases.donorOf(20_000_000 + 59_999))
+    AliasRegistry.clearAll()
+  }
+
+  @Test
+  fun `test queries wait for the donor list being read`() {
+    val (_, rootA) = open("a")
+    val (b, rootB) = open("b")
+    val saved = tempDir.newDirectory("saved").toPath().resolve("donors.bin")
+    val vfs = ManagingFS.getInstance().creationTimestamp
+    AliasRegistry.save(saved, vfs)
+    AliasRegistry.clearAll()
+    val release = java.util.concurrent.CountDownLatch(1)
+    AliasRegistry.loadInBackground {
+      release.await()
+      AliasRegistry.load(saved, vfs)
+    }
+    val answer = java.util.concurrent.CompletableFuture.supplyAsync { AliasRegistry.of("IdIndex").donorOf(id(main(rootB))) }
+    Thread.sleep(200)
+    assertFalse("a query must not answer before the list is in", answer.isDone)
+    release.countDown()
+    assertEquals(id(main(rootA)), answer.get(10, java.util.concurrent.TimeUnit.SECONDS))
+    assertTrue(containing(b, "greet", main(rootB)))
   }
 }
