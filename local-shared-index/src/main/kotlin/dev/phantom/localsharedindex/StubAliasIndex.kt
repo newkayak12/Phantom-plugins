@@ -2,7 +2,12 @@
 package dev.phantom.localsharedindex
 
 import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.stubs.StubIndexKey
+import com.intellij.psi.stubs.StubUpdatingIndex
 import com.intellij.util.Processor
+import com.intellij.util.indexing.FileBasedIndex
+import com.intellij.util.indexing.FileBasedIndexEx
+import com.intellij.util.indexing.FileBasedIndexExtension
 import com.intellij.util.indexing.FileContent
 import com.intellij.util.indexing.IdFilter
 import com.intellij.util.indexing.IndexedFile
@@ -25,8 +30,15 @@ internal class StubAliasIndex<K, V, D>(
   override fun <E : Exception> withData(key: K & Any, processor: ValueContainerProcessor<V, E>): Boolean =
     withAliasData(base, aliases, key, processor)
 
+  // A stub index has no forward index of its own; a donor's keys come from its stub tree.
+  private val borrowedKeys: BorrowedKeys<K>? = if (base.extension.let { it is FileBasedIndexExtension && it.traceKeyHashToVirtualFileMapping() }) {
+    BorrowedKeys(aliases) { donor -> stubKeysOf(base.extension.name as StubIndexKey<*, *>, donor) }
+  }
+  else null
+
+  // Keys only a donor has, of an alias the filter accepts (Goto Class, completion).
   override fun processAllKeys(processor: Processor<in K>, scope: GlobalSearchScope, idFilter: IdFilter?): Boolean =
-    base.processAllKeys(processor, scope, aliases.widen(idFilter))
+    processWithBorrowedKeys(borrowedKeys, idFilter, processor) { base.processAllKeys(processor, scope, idFilter) }
 
   override fun getModificationStamp(): Long = base.modificationStamp + aliases.modificationCount
 
@@ -65,6 +77,25 @@ internal fun <K, V, E : Exception> withAliasData(
   }
   if (!completed || borrowed.size() == 0) return completed
   return processor.process(borrowed)
+}
+
+/** [processBase] with the original filter (KeyHashLog caches its answer per project), then the keys borrowed for it. */
+internal inline fun <K> processWithBorrowedKeys(
+  borrowed: BorrowedKeys<K>?,
+  idFilter: IdFilter?,
+  processor: Processor<in K>,
+  processBase: () -> Boolean,
+): Boolean {
+  if (!processBase()) return false
+  if (borrowed == null || idFilter == null) return true
+  return borrowed.of(idFilter).all(processor::process)
+}
+
+@Suppress("UNCHECKED_CAST")
+private fun <K> stubKeysOf(key: StubIndexKey<*, *>, donor: Int): Collection<K> {
+  val stubs = (FileBasedIndex.getInstance() as FileBasedIndexEx).getIndex(StubUpdatingIndex.INDEX_ID)
+  val tree = stubs.getIndexedFileData(donor).values.firstOrNull() ?: return emptyList()
+  return tree.stubIndicesValueMap[key]?.keys.orEmpty() as Collection<K>
 }
 
 internal fun <K, V> copyOfData(index: UpdatableIndex<K, V, FileContent, *>, key: K & Any): ValueContainer<V> {

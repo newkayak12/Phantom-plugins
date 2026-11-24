@@ -172,4 +172,24 @@ class LocalSharedIndexAliasTest {
     assertTrue(containing(a, "greet", mainA))
     assertEquals(null, AliasRegistry.of("IdIndex").donorOf(id(mainB)))
   }
+
+  @Test
+  fun `test files inside a library jar are neither donors nor aliases`() {
+    // A fresh copy: a jar indexed in an earlier run of the test sandbox would not be indexed again.
+    val jar = tempDir.newDirectory("lib").toPath().resolve("junit.jar").also {
+      Files.copy(Path.of(com.intellij.util.PathUtil.getJarPathForClass(org.junit.Test::class.java)), it)
+    }.toString().replace('\\', '/')
+    val (a, _) = open("a")
+    val module = com.intellij.openapi.module.ModuleManager.getInstance(a).findModuleByName("m")!!
+    com.intellij.openapi.roots.ModuleRootModificationUtil.addModuleLibrary(module, "jar://$jar!/")
+    IndexingTestUtil.waitUntilIndexesAreReady(a)
+    val entry = com.intellij.openapi.vfs.JarFileSystem.getInstance().findFileByPath("$jar!/org/junit/Test.class")!!
+    // Indexed (its stubs are there), but not recorded: the same id serves every project using the jar.
+    assertTrue(FileBasedIndex.getInstance().getFileData(com.intellij.psi.stubs.StubUpdatingIndex.INDEX_ID, entry, a).isNotEmpty())
+    for (name in LocalSharedIndexAllowlist.ALIASED) {
+      assertEquals(name, null, AliasRegistry.of(name).donorToken(id(entry)))
+      assertEquals(name, null, AliasRegistry.of(name).donorOf(id(entry)))
+    }
+    assertFalse(LocalSharedIndexStatusProcessor(a).tryIndexFileWithoutContent(IndexedFileImpl(entry, a), id(entry), com.intellij.psi.stubs.StubUpdatingIndex.INDEX_ID))
+  }
 }

@@ -78,9 +78,13 @@ internal class CachingIndex<K, V, D>(
   override fun <E : Exception> withData(key: K & Any, processor: ValueContainerProcessor<V, E>): Boolean =
     withAliasData(base, aliases, key, processor)
 
-  // Keys only a donor has, of an alias the filter accepts (Goto Class, completion over the Kotlin name indexes).
+  // Only indexes whose key listing honors the IdFilter (KeyHashLog) need the keys borrowed through aliases.
+  private val borrowedKeys: BorrowedKeys<K>? = aliases?.takeIf { base.extension.let { it is FileBasedIndexExtension && it.traceKeyHashToVirtualFileMapping() } }
+    ?.let { BorrowedKeys(it) { donor -> base.getIndexedFileData(donor).keys } }
+
+  // Keys only a donor has, of an alias the filter accepts (completion over the Kotlin name indexes).
   override fun processAllKeys(processor: Processor<in K>, scope: GlobalSearchScope, idFilter: IdFilter?): Boolean =
-    base.processAllKeys(processor, scope, aliases?.widen(idFilter) ?: idFilter)
+    processWithBorrowedKeys(borrowedKeys, idFilter, processor) { base.processAllKeys(processor, scope, idFilter) }
 
   override fun getIndexedFileData(fileId: Int): Map<K, V> = base.getIndexedFileData(aliases?.donorOf(fileId) ?: fileId)
 
@@ -136,10 +140,13 @@ internal class CachingIndex<K, V, D>(
     aliases.forgetFile(inputId)
     val orphans = aliases.dropDonor(inputId)
     if (orphans.isNotEmpty()) reindex(orphans)
-    if (content !is FileContentImpl || !isCacheable(content, stubs)) return null
+    // A file inside an archive (jar, jrt) has one id for every project using that library (PersistentFSImpl.findRoot
+    // keys roots by path, not project): it is indexed once and never needs a stand-in, and as a donor it only grows the
+    // saved list.
+    if (content !is FileContentImpl || !isCacheable(content, stubs) || !content.file.isInLocalFileSystem) return null
     val key = CacheKeys.keyFor(content, base.extension.indexer)
     val donor = aliases.donorFor(key)
-    if (donor == null || donor == inputId) {
+    if (donor == null || donor == inputId || !aliases.isLive(donor)) {
       aliases.recordDonor(key, inputId, content.file.length, content.fileName)
       GitBlobs.blobOf(content.file)?.let { blob ->
         aliases.recordBlobDonor(CacheKeys.blobKeyFor(content, blob, base.extension.indexer), inputId)
