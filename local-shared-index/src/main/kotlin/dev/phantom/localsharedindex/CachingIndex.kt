@@ -143,7 +143,7 @@ internal class CachingIndex<K, V, D>(
     if (content !is FileContentImpl || !isCacheable(content, stubs)) return null
     val key = CacheKeys.keyFor(content, base.extension.indexer)
     val donor = aliases.donorFor(key)
-    if (donor == null || donor == inputId) {
+    if (donor == null || donor == inputId || !aliases.isLive(donor)) {
       aliases.recordDonor(key, inputId, content.file.length, content.fileName)
       GitBlobs.blobOf(content.file)?.let { blob ->
         aliases.recordBlobDonor(CacheKeys.blobKeyFor(content, blob, base.extension.indexer), inputId)

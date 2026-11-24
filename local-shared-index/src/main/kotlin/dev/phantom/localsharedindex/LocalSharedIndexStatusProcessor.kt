@@ -36,7 +36,7 @@ internal class LocalSharedIndexStatusProcessor(private val project: Project) : F
     if (indexId.name == LocalSharedIndexAllowlist.STUBS && !mayAliasStubs(file, vFile)) return false
     val extension = FileBasedIndexExtension.EXTENSION_POINT_NAME.extensionList.firstOrNull { it.name == indexId } ?: return false
     val donor = findDonor(aliases, file, vFile, extension) ?: return false
-    if (donor == inputId || hasOwnData(inputId, indexId)) return false
+    if (donor == inputId || hasOwnData(inputId, indexId) || !aliases.isLive(donor)) return false
     aliases.alias(inputId, donor)
     return true
   }
