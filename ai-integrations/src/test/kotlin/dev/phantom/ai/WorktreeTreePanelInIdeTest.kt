@@ -50,7 +50,9 @@ class WorktreeTreePanelInIdeTest : BasePlatformTestCase() {
   private var sessions = listOf<SessionEntry>()
   private var worktreeEntries = listOf<dev.phantom.ai.core.WorktreeEntry>()
 
+  private var sourceCalls = 0
   private val source = WorktreeSource { path ->
+    sourceCalls++
     if (path == "/r/app") listOf(Worktree("/r/app", "main", true), Worktree("/r/app-feat", "feat", false)) else emptyList()
   }
   private val prs = object : PrTitles {
@@ -111,6 +113,19 @@ class WorktreeTreePanelInIdeTest : BasePlatformTestCase() {
     assertTrue("$menu enabled", item.isEnabled)
     item.doClick()
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+  }
+
+  // the 30 s ticker only moves elapsed times on: no git worktree list, no PR lookup
+  fun testTickerRetimesWithoutAskingGit() {
+    val start = 1_800_000_000_000L
+    SessionStore.getInstance().put(AgentSession("t1", "/r/app-feat", AgentKind.CLAUDE, sessionId = "sess-9", firstPrompt = "fix it", startedAt = start))
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    val calls = sourceCalls
+    panel.retime(start + 5 * 60_000)
+    assertEquals("5m", (objectAt(sessionRow()) as SessionRow).elapsed)
+    panel.retime(start + 2 * 3_600_000 + 60_000)
+    assertEquals("2h 1m", (objectAt(sessionRow()) as SessionRow).elapsed)
+    assertEquals(calls, sourceCalls)
   }
 
   fun testOneRepoShowsWorktreesAtTheTopWithTheirSessions() {
@@ -180,5 +195,43 @@ class WorktreeTreePanelInIdeTest : BasePlatformTestCase() {
     assertEquals(0x5fb865, SidebarColors.DONE.rgb and 0xffffff)
     assertEquals(0x8fb0ff, SidebarColors.PR_FG.rgb and 0xffffff)
     assertEquals(0x2c3550, SidebarColors.PR_BG.rgb and 0xffffff)
+  }
+
+  private fun <T> withInput(text: String, run: () -> T): T {
+    val previous = TestDialogManager.setTestInputDialog(TestInputDialog { text })
+    try {
+      return run()
+    } finally {
+      TestDialogManager.setTestInputDialog(previous)
+    }
+  }
+
+  fun testSessionMenuRenamesTheSessionAndRemembersTheName() {
+    AiState.getInstance().rememberSession("/r/app-feat", AgentKind.CLAUDE, "sess-9", "fix it")
+    withInput("Review bot") { click(sessionRow(), "sidebar.rename") }
+    assertEquals("Review bot", SessionStore.getInstance().get("t1")!!.userTitle)
+    assertEquals("Review bot", AiState.getInstance().state.sessions.single { it.sessionId == "sess-9" }.userTitle)
+    panel.refresh()
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    assertEquals("Review bot", (objectAt(sessionRow()) as SessionRow).title)
+  }
+
+  fun testF2RenamesTheSelectedWorktreeOrSession() {
+    tree.selectionPath = tree.getPathForRow(worktreeRow("/r/app-feat"))
+    withInput("Login") {
+      tree.keyListeners.forEach { it.keyPressed(KeyEvent(tree, KeyEvent.KEY_PRESSED, System.currentTimeMillis(), 0, KeyEvent.VK_F2, KeyEvent.CHAR_UNDEFINED)) }
+    }
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    assertEquals("Login", (objectAt(worktreeRow("/r/app-feat")) as WorktreeNode).title)
+    tree.selectionPath = tree.getPathForRow(sessionRow())
+    withInput("Bot") { panel.renameSelected() }
+    assertEquals("Bot", SessionStore.getInstance().get("t1")!!.userTitle)
+  }
+
+  fun testANameGivenBeforeTheSessionIdIsStoredWithIt() {
+    SessionStore.getInstance().put(AgentSession("t2", "/r/app", AgentKind.CLAUDE))
+    dev.phantom.ai.sidebar.SessionNames.rename(SessionStore.getInstance().get("t2")!!, "Early name")
+    dev.phantom.ai.hooks.HookIngest.apply("t2", AgentKind.CLAUDE, dev.phantom.ai.hooks.HookEvent("SessionStart", null, "sess-2", null, null))
+    assertEquals("Early name", AiState.getInstance().state.sessions.single { it.sessionId == "sess-2" }.userTitle)
   }
 }

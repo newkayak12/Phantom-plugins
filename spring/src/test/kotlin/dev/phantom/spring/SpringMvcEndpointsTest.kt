@@ -2,6 +2,7 @@
 package dev.phantom.spring
 
 import com.intellij.microservices.endpoints.EndpointsProvider
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import dev.phantom.spring.core.SpringMvcEndpoints
 
@@ -59,6 +60,31 @@ class SpringMvcEndpointsTest : LightJavaCodeInsightFixtureTestCase() {
       "DELETE /api/users/{id} UserController.delete",
       "GET /api/users/{id} UserController.get",
     ), endpoints())
+  }
+
+  /** A method body edit keeps the endpoint list; an edit of a mapping updates it. */
+  fun testListFollowsDeclarationsOnly() {
+    myFixture.configureByText("PingController.java", """
+      package app;
+      import org.springframework.web.bind.annotation.*;
+      @RestController
+      public class PingController {
+        @GetMapping("/ping") public String ping() { return "pong"; }
+      }
+    """.trimIndent())
+    assertEquals(listOf("GET /ping PingController.ping"), endpoints())
+    val before = SpringMvcEndpoints.all(project)
+    typeAfter("return \"pong", "!")
+    assertSame(before, SpringMvcEndpoints.all(project))
+    typeAfter("@GetMapping(\"/ping", "s")
+    assertEquals(listOf("GET /pings PingController.ping"), endpoints())
+  }
+
+  /** Types [text] at the end of the first [anchor] in the open file and commits. */
+  private fun typeAfter(anchor: String, text: String) {
+    myFixture.editor.caretModel.moveToOffset(myFixture.file.text.indexOf(anchor) + anchor.length)
+    myFixture.type(text)
+    PsiDocumentManager.getInstance(project).commitAllDocuments()
   }
 
   fun testConstantsAndAnyMethod() {

@@ -2,6 +2,8 @@
 
 ## 미배포
 
+- Spring Cloud Function 정의 검사가 함수 빈 목록을 YAML 입력마다 다시 찾지 않는다. Java·Kotlin·Groovy 코드나 라이브러리가 바뀔 때만 다시 찾는다. (#119)
+
 ## 0.8.4 (2026-11-22)
 
 - 이름을 바꿨다: Spring Boot Support → Phantom for Spring Boot. Phantom으로 시작하고, 지원하는 프로젝트 이름은 뒤에 둔다. 플러그인 id와 기능은 그대로다.

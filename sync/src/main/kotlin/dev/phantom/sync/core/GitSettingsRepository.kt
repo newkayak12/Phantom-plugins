@@ -34,6 +34,9 @@ class GitSettingsRepository(val url: String, private val workDir: Path, private 
   /** Test hook: runs in [write] between the version check and the commit. */
   internal var afterVersionCheck: () -> Unit = {}
 
+  /** Test hook: runs before each `git fetch`. */
+  internal var beforeFetch: () -> Unit = {}
+
   @Synchronized
   @Throws(IOException::class)
   fun latestVersion(path: String): String? = if (fetch()) fetchedVersion(path) else null
@@ -92,9 +95,18 @@ class GitSettingsRepository(val url: String, private val workDir: Path, private 
     ensureWorkingCopy()
     val heads = git("ls-remote", "--heads", "origin", branch).text()
     if (heads.isEmpty()) return false
+    // the sync engine asks for the latest version on every check and again before it reads; while the branch is still at
+    // the commit fetched last time, the ls-remote answer is enough and the second connection to the remote is skipped
+    val remoteHead = heads.lineSequence().firstOrNull { it.substringAfter('\t') == "refs/heads/$branch" }?.substringBefore('\t')
+    if (remoteHead != null && remoteHead == fetchedHead()) return true
+    beforeFetch()
     git("fetch", "--quiet", "--no-tags", "origin", "+refs/heads/$branch:$remoteRef")
     return true
   }
+
+  /** The commit of the last fetched remote branch, or null before the first fetch. */
+  private fun fetchedHead(): String? =
+    run(listOf(gitExecutable(), "rev-parse", "--verify", "--quiet", remoteRef), workDir, failOnError = false).takeIf { it.exitCode == 0 }?.text()
 
   private fun resetToRemote() = checkout(fetch())
 

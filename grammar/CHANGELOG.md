@@ -1,5 +1,9 @@
 # Phantom Grammar 변경 이력
 
+## 미배포
+
+- 주석과 문자열이 많은 파일에서 문법 검사가 빨라진다. 언어 감지가 텍스트마다 파일 전체의 감지 결과 표를 새로 만들던 것을 한 번만 만든다. (#121)
+
 ## 0.2.3
 
 - 마켓플레이스 설치에서 설정 페이지, 알림, 인스펙션, 사전 이름이 "Grazie" 대신 중립적인 이름(Grammar and Style, Proofreader, Extended Dictionary)으로 나온다. 설정 내보내기와 알림 설정에 보이는 이름도 Proofreading Settings, Proofreading notifications로 바꿨다.

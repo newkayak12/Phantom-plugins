@@ -24,6 +24,7 @@ import java.security.SecureRandom
 import java.util.Base64
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
 
 fun interface StatuslineListener {
   /** [tabId] from the X-Phantom-Tab-Id header / tabId query (may be null); [body] the raw statusline JSON. */
@@ -40,6 +41,7 @@ class HookServer : Disposable {
   val token: String = ByteArray(32).also { SecureRandom().nextBytes(it) }.let { Base64.getUrlEncoder().withoutPadding().encodeToString(it) }
   private var server: HttpServer? = null
   private var executor: java.util.concurrent.ExecutorService? = null
+  private var mcpExecutor: java.util.concurrent.ExecutorService? = null
   val statuslineListeners = CopyOnWriteArrayList<StatuslineListener>()
   @Volatile var mcp: PhantomMcp = PhantomMcp(IdeEditorBridge(), IdeCodeIndex(), dev.phantom.ai.mcp.AgentTools::all) { tab -> tab?.takeUnless { Unloading.inProgress }?.let { SessionStore.getInstance().get(it)?.worktree } }
     @TestOnly set
@@ -52,14 +54,27 @@ class HookServer : Disposable {
     // the usage widget's poller listens from the moment payloads can come in
     serviceIfCreated<dev.phantom.ai.usage.UsagePoller>()?.listenTo(this)
     val s = HttpServer.create(InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0)
+    val pool = threads("Phantom AI hook server")
+    val mcpPool = threads("Phantom AI MCP server")
     s.createContext("/") { handle(it) }
-    // an MCP call may wait on the EDT; hooks keep their own threads meanwhile
-    val pool = Executors.newFixedThreadPool(4) { r -> Thread(r, "Phantom AI hook server").apply { isDaemon = true } }
+    // an MCP tool may block for up to a minute (DbAgentTools' runBlocking, a consent dialog through invokeAndWait): MCP
+    // calls run on their own threads, so hooks and the status line never wait behind them
+    s.createContext("/mcp") { ex ->
+      try {
+        mcpPool.execute { handle(ex) }
+      } catch (ignored: RejectedExecutionException) {
+        // the server is stopping: the agent gets a closed connection
+        ex.close()
+      }
+    }
     s.executor = pool
     s.start()
     server = s
     executor = pool
+    mcpExecutor = mcpPool
   }
+
+  private fun threads(name: String) = Executors.newFixedThreadPool(THREADS) { r -> Thread(r, name).apply { isDaemon = true } }
 
   private class Reply(val code: Int, val json: String? = null)
 
@@ -117,10 +132,13 @@ class HookServer : Disposable {
     server = null
     executor?.shutdownNow()
     executor = null
+    mcpExecutor?.shutdownNow()
+    mcpExecutor = null
   }
 
   companion object {
     private const val MAX_BODY = 4 * 1024 * 1024
+    private const val THREADS = 4
     private val LOCAL_ORIGIN = Regex("^https?://(127\\.0\\.0\\.1|localhost|\\[::1])(:\\d+)?$")
     fun getInstance(): HookServer = ApplicationManager.getApplication().getService(HookServer::class.java)
   }

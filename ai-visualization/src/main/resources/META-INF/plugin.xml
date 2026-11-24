@@ -16,7 +16,7 @@
   <depends>dev.phantom.ai</depends>
 
   <extensions defaultExtensionNs="com.intellij">
-    <toolWindow id="AI Visualization" anchor="bottom" icon="AllIcons.Toolwindows.ToolWindowHierarchy"
+    <toolWindow id="AI Visualization" anchor="bottom" icon="/icons/phantom/toolwindow/aiVisualization.svg"
                 factoryClass="dev.phantom.ai.visualization.editor.AiOfficeToolWindowFactory"/>
     <fileEditorProvider implementation="dev.phantom.ai.visualization.editor.AiOfficeEditorProvider"/>
     <applicationService serviceImplementation="dev.phantom.ai.visualization.settings.VizSettings"/>

@@ -15,7 +15,8 @@ import dev.phantom.ai.core.AgentKind
 import dev.phantom.ai.core.AgentSession
 import dev.phantom.ai.core.AgentStatus
 import dev.phantom.ai.core.SessionStore
-import dev.phantom.ai.dashboard.AgentDashboardPanel
+import dev.phantom.ai.board.BoardCard
+import dev.phantom.ai.board.WorkspaceBoardPanel
 import dev.phantom.ai.launch.LaunchCommand
 import dev.phantom.ai.memo.AiMemoStore
 import dev.phantom.ai.memo.MemoSender
@@ -60,6 +61,7 @@ class DetachedSessionsInIdeTest : BasePlatformTestCase() {
   private val ios = Collections.synchronizedList(mutableListOf<FakeIo>())
   @Volatile private var tmuxUnknown = false
   private var tmuxCount = 0
+  private var existsCalls = 0
   private var inTmux = true
   private lateinit var service: AgentTerminalService
   private lateinit var realTmux: TmuxSessions
@@ -76,7 +78,10 @@ class DetachedSessionsInIdeTest : BasePlatformTestCase() {
       StartedTerminal(JPanel(), io = FakeIo().also { ios.add(it) }, tmuxSession = name)
     })
     realTmux = Tmux.replaceSessions(object : TmuxSessions {
-      override fun exists(name: String): Boolean? = if (tmuxUnknown) null else name in running
+      override fun exists(name: String): Boolean? {
+        existsCalls++
+        return if (tmuxUnknown) null else name in running
+      }
       override fun kill(name: String) {
         running.remove(name)
         killed.add(name)
@@ -246,6 +251,24 @@ class DetachedSessionsInIdeTest : BasePlatformTestCase() {
     assertTrue(late.isCancelled)
   }
 
+  // one poller for all hook-less Claude tabs, none for Codex, gone once every session is bound
+  fun testOneBindingPollerOnlyWhileAClaudeSessionIsUnbound() {
+    AgentTerminalService.stopBindingPoller()
+    service.launch("/w/keep/a", AgentKind.CODEX)!!
+    assertFalse("Codex has no .jsonl to look for", AgentTerminalService.bindingPollerRunning())
+    val a = service.launch("/w/keep/a", AgentKind.CLAUDE)!!
+    val b = service.launch("/w/keep/b", AgentKind.CLAUDE)!!
+    assertTrue(AgentTerminalService.bindingPollerRunning())
+    assertEquals("one poller, not one per tab", 1, DetachedSessions.liveTasks())
+    store.update(a) { it.copy(sessionId = "sess-a") }
+    AgentTerminalService.bindTickForTest()
+    assertTrue("b still unbound", AgentTerminalService.bindingPollerRunning())
+    store.update(b) { it.copy(sessionId = "sess-b") }
+    AgentTerminalService.bindTickForTest()
+    assertFalse(AgentTerminalService.bindingPollerRunning())
+    assertEquals(0, DetachedSessions.liveTasks())
+  }
+
   fun testReattachKeepsTheTabIdAndClearsDetached() {
     val tab = detachedTab()
     val before = store.get(tab)!!
@@ -316,7 +339,11 @@ class DetachedSessionsInIdeTest : BasePlatformTestCase() {
       store.put(AgentSession("d2", dir.toString(), AgentKind.CLAUDE, tmuxSession = "p2", detached = true, detachedFrom = "/w/other-window"))
       store.put(AgentSession("d3", "/w/x", AgentKind.CODEX, tmuxSession = "p3", detached = false, detachedFrom = dir.toString()))
 
-      service.reattachDetached(dir.toRealPath().toString())
+      val live = service.liveDetached(dir.toRealPath().toString())
+      assertEquals(listOf("d1"), live)
+      existsCalls = 0
+      service.reattachDetached(live)
+      assertEquals("tmux was asked before, not on the EDT", 0, existsCalls)
 
       assertEquals(listOf("d1"), host.tabs().map { it.id })
       assertEquals(listOf(Tmux.attach("tmux", "p1")), commands.toList())
@@ -329,8 +356,23 @@ class DetachedSessionsInIdeTest : BasePlatformTestCase() {
 
   fun testTheWindowItDetachedFromGetsItBack() {
     val tab = detachedTab()
-    service.reattachDetached(project.basePath!!)
+    service.reattachDetached(service.liveDetached(project.basePath!!))
     assertEquals(listOf(tab), host.tabs().map { it.id })
+  }
+
+  fun testLiveDetachedDropsEndedSessionsAndKeepsUnknownOnes() {
+    val gone = detachedTab()
+    val kept = service.launch("/w/keep/b", AgentKind.CLAUDE)!!
+    closeProjectWindow()
+    running.remove("phantom-t1")
+    assertEquals(listOf(kept), service.liveDetached(project.basePath!!))
+    assertNull("ended: dropped", store.get(gone))
+    assertEquals(listOf("phantom-t1"), killed.toList())
+
+    tmuxUnknown = true
+    assertTrue(service.liveDetached(project.basePath!!).isEmpty())
+    assertTrue("unknown: stays detached", store.get(kept)!!.detached)
+    assertTrue(host.tabs().isEmpty())
   }
 
   fun testSessionTreeClickReattachesHere() {
@@ -340,12 +382,12 @@ class DetachedSessionsInIdeTest : BasePlatformTestCase() {
     assertEquals(listOf(Tmux.attach("tmux", "phantom-t1")), commands.toList())
   }
 
-  fun testDashboardCardClickReattachesHere() {
+  fun testBoardBadgeClickReattachesHere() {
     val tab = detachedTab()
     val prs = PrTitles { _, _ -> null }
-    val panel = AgentDashboardPanel(project, { emptyList() }, prs, { ProjectRepos { emptyList() } })
+    val panel = WorkspaceBoardPanel(project, { emptyList() }, prs, ProjectRepos { emptyList() })
     Disposer.register(testRootDisposable, panel)
-    panel.open(tab)
+    panel.jumpTo(BoardCard(store.get(tab)!!.worktree, "w", null, null), tab)
     assertEquals(listOf(tab), host.tabs().map { it.id })
     assertFalse(store.get(tab)!!.detached)
   }

@@ -53,7 +53,7 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <!-- ===== core (U1) ===== -->
-    <toolWindow id="Phantom AI Integration" anchor="right" icon="AllIcons.Toolwindows.ToolWindowMessages"
+    <toolWindow id="Phantom AI Integration" anchor="right" icon="/icons/phantom/toolwindow/aiIntegration.svg"
                 factoryClass="dev.phantom.ai.core.AiToolWindowFactory"/>
     <!-- ===== U3 accounts: applicationConfigurable (append here) ===== -->
     <applicationConfigurable parentId="tools" instance="dev.phantom.ai.accounts.AccountsConfigurable"
@@ -97,5 +97,9 @@
     <listener class="dev.phantom.ai.hooks.HookUninstall" topic="com.intellij.ide.plugins.DynamicPluginListener"/>
     <!-- the agent teams poller starts with the first Claude session that has a session id, not at startup -->
     <listener class="dev.phantom.ai.hooks.AgentTeamsStarter" topic="dev.phantom.ai.core.SessionListener"/>
+    <!-- the usage widget asks Codex for its limits only once a Codex session exists, not at startup -->
+    <listener class="dev.phantom.ai.usage.UsageStarter" topic="dev.phantom.ai.core.SessionListener"/>
+    <!-- a finished session moves its board card from In progress to In review, with or without an open board -->
+    <listener class="dev.phantom.ai.board.BoardReviewMover" topic="dev.phantom.ai.core.SessionListener"/>
   </applicationListeners>
 </idea-plugin>

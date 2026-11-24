@@ -124,6 +124,39 @@ class HookServerInIdeTest : BasePlatformTestCase() {
     }
   }
 
+  // MCP tools may block for a minute: hooks keep answering while every MCP thread waits
+  fun testBlockedMcpCallsDoNotStarveHooks() {
+    val release = java.util.concurrent.CountDownLatch(1)
+    val before = server.mcp
+    server.mcp = dev.phantom.ai.mcp.PhantomMcp(object : dev.phantom.ai.mcp.EditorBridge {
+      override fun open(worktree: String?, path: String, line: Int?, column: Int?, endLine: Int?): String {
+        release.await(30, java.util.concurrent.TimeUnit.SECONDS)
+        return path
+      }
+      override fun context(worktree: String?) = com.google.gson.JsonObject()
+      override fun runOutput(worktree: String?, name: String?, lines: Int, grep: String?) = ""
+    }, dev.phantom.ai.mcp.IdeCodeIndex()) { null }
+    val client = java.net.http.HttpClient.newHttpClient()
+    try {
+      val body = """{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"open_in_editor","arguments":{"path":"a.kt"}}}"""
+      val blocked = (1..6).map {
+        val request = java.net.http.HttpRequest.newBuilder(URI("http://127.0.0.1:${server.port}/mcp?tabId=tabA"))
+          .header("Content-Type", "application/json").header("Authorization", "Bearer ${server.token}")
+          .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body)).build()
+        client.sendAsync(request, java.net.http.HttpResponse.BodyHandlers.ofString())
+      }
+      Thread.sleep(300)
+      val start = System.nanoTime()
+      assertEquals(204, call("POST", "/hook/claude", ev("PreToolUse"), tab = "tabA"))
+      assertTrue("hook answered while MCP calls block", System.nanoTime() - start < 5_000_000_000L)
+      release.countDown()
+      blocked.forEach { assertEquals(200, it.get(30, java.util.concurrent.TimeUnit.SECONDS).statusCode()) }
+    } finally {
+      release.countDown()
+      server.mcp = before
+    }
+  }
+
   fun testEnvAndLoopback() {
     val env = HookEnv.forTab(wt, "tabA")
     assertEquals(server.port.toString(), env[HookEnv.PORT]); assertEquals(server.token, env[HookEnv.TOKEN])

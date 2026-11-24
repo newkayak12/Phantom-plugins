@@ -15,6 +15,8 @@ data class WorktreeNode(
   val prNumber: Int? = null,
   /** The worktree this one was made from (Orca's lineage), not its base branch; null at the top. */
   val parentPath: String? = null,
+  /** Web page of the open pull request, when the lookup knows it. */
+  val prUrl: String? = null,
 )
 
 /** A worktree with the worktrees made from it. */
@@ -48,6 +50,12 @@ data class SidebarModel(val repos: List<RepoNode>) {
   /** True when the worktrees are the top-level rows (one repository). */
   val flat: Boolean get() = repos.size == 1
 
+  /** This model with every session's elapsed time at [now]; nothing else is looked up again. */
+  fun withElapsed(now: Long): SidebarModel = copy(
+    repos = repos.map { r ->
+      r.copy(worktrees = r.worktrees.map { w -> w.copy(sessions = w.sessions.map { it.copy(elapsed = SessionRow.elapsed(it.session.startedAt, now)) }) })
+    },
+  )
 
   companion object {
     /** A remembered session of AiState that has no live tab; its tab id is "saved:<session id>". */
@@ -89,6 +97,7 @@ data class SidebarModel(val repos: List<RepoNode>) {
               byWorktree[norm(w.path)].orEmpty().sortedByDescending { it.startedAt }.map { SessionRow.of(it, now) },
               pr?.number,
               parentOf(w.path),
+              pr?.url,
             )
           },
         )
