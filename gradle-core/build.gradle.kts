@@ -8,7 +8,7 @@ plugins {
 version = "0.1.0"
 
 // The IntelliJ sources keep Java next to Kotlin. src/main is intellij.gradle, intellij.gradle.settings and the content
-// modules completion, completion.kotlin, completion.toml and properties. The other source sets are jars of their own,
+// modules completion, completion.toml and properties. The other source sets are jars of their own,
 // named as IntelliJ names them (CommunityRepositoryModules, intellij.gradle.plugin):
 // - toolingExtension, toolingExtensionImpl, toolingProxy: lib/gradle-tooling-extension-api.jar,
 //   gradle-tooling-extension-impl.jar and gradle-tooling-proxy.jar. The IDE puts them on the Gradle daemon's class path

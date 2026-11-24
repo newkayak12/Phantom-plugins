@@ -26,9 +26,10 @@
     <module name="intellij.gradle.toolingExtension.impl" loading="embedded"/>
     <module name="intellij.gradle.toolingProxy" loading="embedded"/>
     <module name="intellij.gradle.completion"/>
-    <module name="intellij.gradle.completion.kotlin"/>
+    <!-- phantom-idea: no intellij.gradle.completion.kotlin (Kotlin build script completion; it needs the Kotlin plugin,
+         which Phantom no longer bundles, and goes with the separate Kotlin release) and no intellij.gradle.completion.ex
+         (not in IntelliJ Community's sources) -->
     <module name="intellij.gradle.completion.toml"/>
-    <module name="intellij.gradle.completion.ex"/>
     <module name="intellij.gradle.properties"/>
     <module name="intellij.gradle.settings" loading="embedded"/>
   </content>
