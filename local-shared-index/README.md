@@ -37,5 +37,5 @@ Not cached: `TodoIndex` (depends on your TODO patterns), `FilenameIndex` and `fi
 ## Diagnostics
 
 - After each project indexing the IDE log (`idea.log`) gets one line, for example `Phantom local shared index: demo: 190 of 200 index updates from cache (IdIndex 100/100, Stubs 90/100), about 2000 ms of indexing saved`. "Saved" is the time it took to compute the reused data the first time.
-- Registry key `phantom.localsharedindex.alias` (default on): a file whose content another checkout already indexed is not indexed again for the content-only indexes; scanning skips it and queries read the other checkout's data. A file clean in git is matched by its blob id in `.git/index`, without reading it. Stubs are not aliased yet.
+- Registry key `phantom.localsharedindex.alias` (default on): a file whose content another checkout already indexed is not indexed again for the content-only indexes and for stubs (the file types above, never `.kts`); scanning skips it and queries, stub index lookups included, read the other checkout's data. A file clean in git is matched by its blob id in `.git/index`, without reading it.
 - Registry key `phantom.localsharedindex.verify.one.in` (default 0 = off): with N > 0, every Nth cache hit is also recomputed and compared. A difference is logged as an error, and the cache stays off for that index until restart.
