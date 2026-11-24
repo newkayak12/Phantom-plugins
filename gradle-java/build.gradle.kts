@@ -39,7 +39,8 @@ val jpsJar = tasks.register<Jar>("jpsJar") {
   // classes and own resources only: the platform plugin adds the patched plugin.xml to every source set's resources
   from(sourceSets["jps"].output.classesDirs)
   from(layout.projectDirectory.dir("src/jps/resources"))
-  from(provider { jpsAnt.map { zipTree(it) } }) { exclude("META-INF/**") }
+  // Ant's classes with its LICENSE.txt and NOTICE.txt (Apache 2.0 asks for the NOTICE to travel with it)
+  from(provider { jpsAnt.map { zipTree(it) } }) { exclude("META-INF/MANIFEST.MF", "META-INF/INDEX.LIST", "META-INF/maven/**") }
 }
 
 val gradleApi = "org.jetbrains.intellij.deps:gradle-api:9.6.0"
