@@ -304,12 +304,20 @@ class SpringAutowiredOutsideBeanInspection : AbstractBaseUastLocalInspectionTool
     val scope = GlobalSearchScope.projectScope(project)
     if (ClassInheritorsSearch.search(psiClass, scope, false).findFirst() != null) return true
     // include filters can make any class a component
-    JavaPsiFacade.getInstance(project).findClass(SpringDefinitionNames.COMPONENT_SCAN_FILTER, GlobalSearchScope.allScope(project))?.let { filter ->
-      if (ReferencesSearch.search(filter, scope).findFirst() != null) return true
-    }
+    if (usesScanFilters(project)) return true
     val qualifiedName = psiClass.qualifiedName ?: return true
     if (!PsiSearchHelper.getInstance(project).processUsagesInNonJavaFiles(qualifiedName, { _, _, _ -> false }, scope)) return true
     return !ReferencesSearch.search(psiClass, scope).forEach(com.intellij.util.Processor { reference -> !createsOrNames(reference.element) })
+  }
+
+  /**
+   * Whether project sources use `@ComponentScan.Filter`. The same answer for every class the inspection visits, so it is
+   * kept until declarations change (filters are written in annotations) instead of searched per class.
+   */
+  private fun usesScanFilters(project: Project): Boolean = CachedValuesManager.getManager(project).getCachedValue(project) {
+    val filter = JavaPsiFacade.getInstance(project).findClass(SpringDefinitionNames.COMPONENT_SCAN_FILTER, GlobalSearchScope.allScope(project))
+    val used = filter != null && ReferencesSearch.search(filter, GlobalSearchScope.projectScope(project)).findFirst() != null
+    CachedValueProvider.Result.create(used, *SpringStructureTracker.deps(project))
   }
 
   /** A reference that can make Spring create the class: inside a `@Bean` method, a class literal, a constructor reference. */

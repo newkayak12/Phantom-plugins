@@ -165,9 +165,9 @@
     <actionPromoter implementation="dev.phantom.db.core.ui.DbTreeActionPromoter"/>
     <actionPromoter implementation="dev.phantom.db.core.exec.DbGridActionPromoter"/>
     <serviceViewContributor implementation="dev.phantom.db.core.ui.DbServiceViewContributor"/>
-    <toolWindow id="Database" anchor="right" secondary="false" icon="AllIcons.Nodes.DataTables"
+    <toolWindow id="Database" anchor="right" secondary="false" icon="/icons/phantom/toolwindow/database.svg"
                 factoryClass="dev.phantom.db.core.ui.DbToolWindowFactory"/>
-    <toolWindow id="Database Changes" anchor="bottom" secondary="false" icon="AllIcons.Vcs.Changelist"
+    <toolWindow id="Database Changes" anchor="bottom" secondary="false" icon="/icons/phantom/toolwindow/databaseChanges.svg"
                 factoryClass="dev.phantom.db.core.ui.DbChangesToolWindowFactory"/>
     <projectCloseHandler implementation="dev.phantom.db.core.exec.DbPendingChangesCloseHandler"/>
     <fileEditorProvider implementation="dev.phantom.db.core.ui.DbDiagramEditorProvider"/>

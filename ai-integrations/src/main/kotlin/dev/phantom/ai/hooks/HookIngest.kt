@@ -33,7 +33,12 @@ object HookIngest {
         subagents = withSubagent(s.subagents, event),
       )
     } ?: return false
-    next.sessionId?.let { AiState.getInstance().rememberSession(next.worktree, kind, it, next.firstPrompt, next.accountId) }
+    next.sessionId?.let { id ->
+      val entry = AiState.getInstance().rememberSession(next.worktree, kind, id, next.firstPrompt, next.accountId)
+      // a name given before the session had an id is stored with it; a resumed session takes its stored name back
+      if (entry.userTitle == null && next.userTitle != null) entry.userTitle = next.userTitle
+      else if (next.userTitle == null && entry.userTitle != null) store.update(tabId) { it.copy(userTitle = entry.userTitle) }
+    }
     return true
   }
 

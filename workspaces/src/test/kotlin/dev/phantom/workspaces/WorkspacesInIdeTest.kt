@@ -22,7 +22,10 @@ import dev.phantom.workspaces.core.ProjectTabsService
 import dev.phantom.workspaces.core.Tiling
 import dev.phantom.workspaces.core.WindowStack
 import java.awt.GraphicsEnvironment
+import java.awt.AWTEvent
 import java.awt.Rectangle
+import java.awt.Toolkit
+import java.awt.event.AWTEventListenerProxy
 import java.awt.event.HierarchyEvent
 import javax.swing.JComponent
 import javax.swing.JFrame
@@ -282,6 +285,25 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
     }
     settle()
     assertTrue(first.isVisible)
+  }
+
+  // A toolkit hierarchy listener makes AWT create a HierarchyEvent for every subtree change in the IDE: only while it is on.
+  fun testTheNewFrameListenerIsRegisteredOnlyWhileTheSettingIsOn() {
+    ProjectTabsService.getInstance()
+    fun listening() = Toolkit.getDefaultToolkit().getAWTEventListeners(AWTEvent.HIERARCHY_EVENT_MASK)
+      .any { (it as AWTEventListenerProxy).listener.javaClass.name.startsWith(ProjectTabsService::class.java.name) }
+    assertTrue(listening())
+
+    AdvancedSettings.setBoolean(ProjectTabs.SETTING_ID, false)
+    try {
+      settle()
+      assertFalse(listening())
+    }
+    finally {
+      AdvancedSettings.setBoolean(ProjectTabs.SETTING_ID, true)
+    }
+    settle()
+    assertTrue(listening())
   }
 
   /** A project frame as the platform makes one: an [IdeFrame] that gets its project only after it is shown. */

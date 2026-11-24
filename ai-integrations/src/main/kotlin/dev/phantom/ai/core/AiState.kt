@@ -19,6 +19,12 @@ class WorktreeEntry : BaseState() {
   var userName by string()
   /** The worktree this one was made from, as in Orca's lineage; the sidebar shows it below that one. Not its base branch. */
   var parentPath by string()
+  /** The board card's task: the prompt its agent starts with when the card moves to In progress. */
+  var prompt by string()
+  /** AgentKind name the card's agent runs as; absent = Claude. */
+  var agent by string()
+  /** Repository of a planned card (no worktree yet, [path] "card:<id>"): its worktree is made there on In progress. */
+  var repo by string()
 }
 
 /** A remembered agent session of a worktree (provider = AgentKind.name). */

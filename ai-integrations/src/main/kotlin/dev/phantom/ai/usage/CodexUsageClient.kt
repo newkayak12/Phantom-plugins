@@ -76,6 +76,14 @@ class ProcessCodexLauncher(private val cwdProvider: () -> File = ::hiddenProbeCw
     private val EXTRA_PATH = listOf("/opt/homebrew/bin", "/usr/local/bin", "${System.getProperty("user.home")}/.local/bin", "${System.getProperty("user.home")}/.npm-global/bin")
     private val EOF = String()
 
+    /** Whether [executable] can run: as given when absolute, else found on [path] or the extra directories the probe adds. */
+    fun installed(executable: String = SystemDirs.cli(AgentKind.CODEX), path: String? = System.getenv("PATH")): Boolean {
+      val exe = File(executable)
+      if (exe.isAbsolute) return exe.canExecute()
+      val dirs = path.orEmpty().split(File.pathSeparator).filter { it.isNotEmpty() } + EXTRA_PATH
+      return dirs.any { File(it, executable).canExecute() }
+    }
+
     private fun checkProbeCwd(cwd: File) {
       val path = cwd.toPath()
       if (path.nameCount == 0 || path.parent == null || !cwd.isDirectory) throw IOException("refusing probe cwd: $cwd")

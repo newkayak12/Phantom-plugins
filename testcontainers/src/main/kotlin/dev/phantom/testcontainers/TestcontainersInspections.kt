@@ -6,8 +6,12 @@ import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
+import com.intellij.java.library.JavaLibraryUtil
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElementVisitor
+import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiField
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiMethod
@@ -37,6 +41,19 @@ internal object Tc {
   const val TEST_INSTANCE = "org.junit.jupiter.api.TestInstance"
   const val EXTEND_WITH = "org.junit.jupiter.api.extension.ExtendWith"
   const val JVM_STATIC = "kotlin.jvm.JvmStatic"
+
+  /**
+   * Testcontainers is on the classpath of [file]'s module. Without it nothing here can be reported, and the image tag
+   * check would otherwise resolve every call of every Java and Kotlin file.
+   */
+  fun isTestcontainersModule(file: PsiFile): Boolean {
+    val module = ModuleUtilCore.findModuleForPsiElement(file) ?: return false
+    if (module.isDisposed) return false
+    if (JavaLibraryUtil.hasLibraryClass(module, STARTABLE)) return true
+    // Light test fixtures declare the classes as source stubs instead of a library.
+    return ApplicationManager.getApplication().isUnitTestMode &&
+           JavaPsiFacade.getInstance(module.project).findClass(STARTABLE, module.getModuleWithDependenciesAndLibrariesScope(false)) != null
+  }
 
   /** Whether [psi] is (meta-)annotated with [name], two levels deep: `@IntegrationTest` carrying `@Testcontainers`. */
   fun annotated(psi: PsiModifierListOwner, name: String, depth: Int = 2): Boolean =
@@ -87,7 +104,8 @@ internal object Tc {
 /** A `@Container` that never starts: its class lacks `@Testcontainers`, or it is not a container (Startable). */
 class ContainerNotStartedInspection : LocalInspectionTool() {
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor =
-    UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
+    if (!Tc.isTestcontainersModule(holder.file)) PsiElementVisitor.EMPTY_VISITOR
+    else UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
       override fun visitField(node: UField): Boolean {
         val field = node.javaPsi as? PsiField ?: return true
         if (!Tc.annotated(field, Tc.CONTAINER, 0)) return true
@@ -111,7 +129,8 @@ class ContainerNotStartedInspection : LocalInspectionTool() {
 /** An instance `@Container` field: a new container starts (and stops) for each test, which is slow and rarely meant. */
 class ContainerPerTestInspection : LocalInspectionTool() {
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor =
-    UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
+    if (!Tc.isTestcontainersModule(holder.file)) PsiElementVisitor.EMPTY_VISITOR
+    else UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
       override fun visitField(node: UField): Boolean {
         val field = node.javaPsi as? PsiField ?: return true
         if (!Tc.annotated(field, Tc.CONTAINER, 0)) return true
@@ -127,7 +146,8 @@ class ContainerPerTestInspection : LocalInspectionTool() {
 /** An image with no tag, or `:latest`: what the tests run against changes whenever the image is pushed. */
 class ContainerImageTagInspection : LocalInspectionTool() {
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor =
-    UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
+    if (!Tc.isTestcontainersModule(holder.file)) PsiElementVisitor.EMPTY_VISITOR
+    else UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
       override fun visitCallExpression(node: UCallExpression): Boolean {
         val method = node.resolve() ?: return true
         val owner = method.containingClass ?: return true
@@ -149,7 +169,8 @@ class ContainerImageTagInspection : LocalInspectionTool() {
 /** Spring finds `@DynamicPropertySource` methods and `@ServiceConnection` fields only when they are static. */
 class SpringStaticRequiredInspection : LocalInspectionTool() {
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor =
-    UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
+    if (!Tc.isTestcontainersModule(holder.file)) PsiElementVisitor.EMPTY_VISITOR
+    else UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
       override fun visitMethod(node: UMethod): Boolean {
         val method: PsiMethod = node.javaPsi
         if (!Tc.annotated(method, Tc.DYNAMIC_PROPERTY_SOURCE, 0)) return true

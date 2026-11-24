@@ -6,6 +6,7 @@ import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.RelatedItemLineMarkerInfo
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiDirectory
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiMethod
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import dev.phantom.spring.core.PhantomSpringBundle
@@ -134,6 +135,30 @@ class SpringProxyMarkersTest : LightJavaCodeInsightFixtureTestCase() {
                  targetsOf(msg("aop.advised.gutter.tooltip", "@Before Guard.voids, @Around Guard.bound, @Around Guard.lock")))
     assertEquals(listOf("Guard.log"), targetsOf(msg("aop.advised.gutter.tooltip", "@Before Guard.log")))
     assertEquals(listOf("Guard.bound", "Guard.lock"), targetsOf(msg("aop.advised.gutter.tooltip", "@Around Guard.bound, @Around Guard.lock")))
+  }
+
+  /** A body edit keeps the advice list and its compiled patterns; an edit of a pointcut updates it. */
+  fun testAdvicesFollowDeclarationsOnly() {
+    myFixture.configureByText("Guard.java", """
+      package app;
+      import org.aspectj.lang.annotation.*;
+      @Aspect @org.springframework.stereotype.Component public class Guard {
+        @Before("execution(* app.svc..*.find*(..))") public void log() { System.out.println(); }
+      }
+    """.trimIndent())
+    val before = AopAdviceMatching.advices(project)
+    assertEquals(listOf("execution(* app.svc..*.find*(..))"), before.map { it.expression })
+    typeAfter("System.out.println(", "1")
+    assertSame(before, AopAdviceMatching.advices(project))
+    typeAfter(".find", "All")
+    assertEquals(listOf("execution(* app.svc..*.findAll*(..))"), AopAdviceMatching.advices(project).map { it.expression })
+  }
+
+  /** Types [text] at the end of the first [anchor] in the open file and commits. */
+  private fun typeAfter(anchor: String, text: String) {
+    myFixture.editor.caretModel.moveToOffset(myFixture.file.text.indexOf(anchor) + anchor.length)
+    myFixture.type(text)
+    PsiDocumentManager.getInstance(project).commitAllDocuments()
   }
 
   fun testAdvisedKotlinMethods() {

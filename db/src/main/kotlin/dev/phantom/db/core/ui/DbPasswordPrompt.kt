@@ -33,21 +33,25 @@ object DbPasswordPrompt {
     val app = ApplicationManager.getApplication()
     if (app.isDispatchThread || app.isReadAccessAllowed || app.isHeadlessEnvironment) return null
     var result: SignIn? = null
+    var storage: DbPasswordStorage? = null
     app.invokeAndWait({
       if (project.isDisposed) return@invokeAndWait
       val dialog = Dialog(project, dataSource, error)
       if (!dialog.showAndGet()) return@invokeAndWait
-      val signIn = SignIn(dialog.user.text.trim(), String(dialog.password.password))
-      val storage = dialog.storage.selectedItem as DbPasswordStorage
+      result = SignIn(dialog.user.text.trim(), String(dialog.password.password))
+      storage = dialog.storage.selectedItem as DbPasswordStorage
+    }, ModalityState.any())
+    val signIn = result ?: return null
+    // Saving reads and writes the password safe, which may wait for the OS keychain: on this thread, not in the EDT block.
+    if (!project.isDisposed) {
       val service = DbDataSourceService.getInstance(project)
       service.find(dataSource.id)?.copy()?.let { saved ->
         saved.user = signIn.user
-        saved.credentialStorage = storage
+        saved.credentialStorage = storage ?: saved.credentialStorage
         service.save(saved, signIn.password.toCharArray())
       }
-      result = signIn
-    }, ModalityState.any())
-    return result
+    }
+    return signIn
   }
 
   /**
@@ -58,6 +62,7 @@ object DbPasswordPrompt {
     val app = ApplicationManager.getApplication()
     if (app.isDispatchThread || app.isReadAccessAllowed || app.isHeadlessEnvironment) return null
     var result: String? = null
+    var keep = false
     app.invokeAndWait({
       if (project.isDisposed) return@invokeAndWait
       val key = if (dataSource.sshAuth == DbSshAuth.KEY) "db.ssh.passphrase.title" else "db.ssh.password.title"
@@ -78,14 +83,16 @@ object DbPasswordPrompt {
         }
       }
       if (!dialog.showAndGet()) return@invokeAndWait
-      val secret = String(password.password)
-      if (save.isSelected) {
-        val service = DbDataSourceService.getInstance(project)
-        service.find(dataSource.id)?.let { service.save(it.copy(), null, secret.toCharArray()) }
-      }
-      result = secret
+      result = String(password.password)
+      keep = save.isSelected
     }, ModalityState.any())
-    return result
+    val secret = result ?: return null
+    // Off the EDT, like ask: the password safe may wait for the OS keychain.
+    if (keep && !project.isDisposed) {
+      val service = DbDataSourceService.getInstance(project)
+      service.find(dataSource.id)?.let { service.save(it.copy(), null, secret.toCharArray()) }
+    }
+    return secret
   }
 
   fun storageName(storage: DbPasswordStorage): String = PhantomDbBundle.message("db.password.save.${storage.name.lowercase()}")

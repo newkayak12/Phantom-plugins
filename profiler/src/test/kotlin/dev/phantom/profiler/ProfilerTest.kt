@@ -83,6 +83,19 @@ class ProfilerTest : BasePlatformTestCase() {
     assertEquals(1, own.vmParametersList.parameters.count { it.startsWith("-XX:StartFlightRecording") })
   }
 
+  fun testSavedRecordingsCarrySizeAndTime() {
+    val file = Recordings.newFile("Saved Size")
+    try {
+      Files.write(file, ByteArray(1234))
+      val saved = Recordings.list().single { it.path == file }
+      assertEquals(1234L, saved.size)
+      assertEquals(Files.getLastModifiedTime(file).toMillis(), saved.modified)
+    }
+    finally {
+      Files.deleteIfExists(file)
+    }
+  }
+
   fun testRunnerOnlyTakesTheProfileExecutor() {
     val configuration = ApplicationConfiguration("App", project)
     assertTrue(ProfileProgramRunner().canRun(ProfileExecutor.ID, configuration))

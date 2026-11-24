@@ -70,6 +70,7 @@ class UsageWidgetInIdeTest : BasePlatformTestCase() {
     poller.begin()
     try {
       assertEquals(before + 1, server.statuslineListeners.size)
+      assertFalse("the widget alone starts no Codex timer", poller.isCodexStarted)
       poller.listenTo(server)
       assertEquals("once only", before + 1, server.statuslineListeners.size)
     } finally {
