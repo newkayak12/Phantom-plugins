@@ -8,7 +8,7 @@ plugins {
 version = "0.1.0"
 
 // The IntelliJ sources keep Java next to Kotlin. src/main is intellij.gradle.java and the content modules (coverage,
-// groovy, groovy.ml, groovy.toml, performance, properties, toml, analysis, dependencyUpdater, java.maven). src/jps is
+// groovy, groovy.toml, performance, properties, toml, analysis, dependencyUpdater, java.maven). src/jps is
 // lib/gradle-jps.jar, the JPS builder, which the build process loads (compileServer.plugin in intellij.gradle.java.xml
 // names it; BuildProcessClasspathManager finds it in <plugin dir>/lib), as IntelliJ packs it.
 sourceSets {
@@ -47,7 +47,6 @@ dependencies {
     bundledPlugin("org.jetbrains.idea.maven")
     bundledPlugin("org.jetbrains.idea.reposearch")
     bundledPlugin("com.jetbrains.performancePlugin")
-    bundledPlugin("com.intellij.completion.ml.ranking")
     localPlugin(project(":groovy"))
     localPlugin(project(":gradle-dsl"))
     testFramework(TestFrameworkType.Plugin.Java, providers.gradleProperty("platformTestBuild"))
