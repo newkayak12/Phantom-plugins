@@ -1,8 +1,8 @@
 // Copyright 2000-2019 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package org.jetbrains.plugins.gradle.integrations.maven.codeInsight.actions;
 
 import com.intellij.openapi.command.WriteCommandAction;
-import com.intellij.testFramework.PlatformTestUtil;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;
 import com.intellij.testFramework.fixtures.CodeInsightTestUtil;
 import org.jetbrains.idea.maven.model.MavenId;
@@ -41,6 +41,8 @@ public class AddGradleDslDependencyActionTest extends BasePlatformTestCase {
 
   @Override
   protected String getTestDataPath() {
-    return PlatformTestUtil.getCommunityPath().replace(File.separatorChar, '/') + getBasePath();
+    // phantom-idea: the test data is this plugin's testData folder (the test's working directory is the plugin folder),
+    // not plugins/gradle/java/testData under an IntelliJ checkout
+    return new File("testData").getAbsolutePath().replace(File.separatorChar, '/');
   }
 }

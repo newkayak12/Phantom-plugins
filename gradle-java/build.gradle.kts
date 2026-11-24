@@ -13,7 +13,11 @@ version = "0.1.0"
 // names it; BuildProcessClasspathManager finds it in <plugin dir>/lib), as IntelliJ packs it.
 sourceSets {
   main { java.srcDir("src/main/kotlin") }
-  test { java.srcDir("src/test/kotlin") }
+  // testData is a test resource root, as in IntelliJ (intellij.gradle.java.tests)
+  test {
+    java.srcDir("src/test/kotlin")
+    resources.srcDir("testData")
+  }
   create("jps")
 }
 

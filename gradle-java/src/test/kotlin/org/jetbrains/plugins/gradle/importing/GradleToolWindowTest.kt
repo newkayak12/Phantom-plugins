@@ -1,4 +1,5 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package org.jetbrains.plugins.gradle.importing
 
 import com.intellij.openapi.application.edtWriteAction
@@ -12,7 +13,6 @@ import com.intellij.openapi.externalSystem.view.ProjectNode
 import com.intellij.openapi.module.JavaModuleType
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager.Companion.getInstance
-import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.PsiTestUtil
 import com.intellij.testFramework.runInEdtAndWait
 import com.intellij.toolWindow.ToolWindowHeadlessManagerImpl
@@ -341,9 +341,10 @@ include 'p1:leaf', 'p2:leaf'
 
   protected open val path: String
     get() {
-      val communityPath = PlatformTestUtil.getCommunityPath().replace(File.separatorChar, '/')
       var testName = getTestName(true)
       testName = getTestName(testName, true)
-      return "$communityPath/plugins/gradle/java/testData/toolWindow/$testName.test"
+      // phantom-idea: this plugin's testData folder (the test's working directory is the plugin folder), not
+      // plugins/gradle/java/testData under an IntelliJ checkout
+      return File("testData/toolWindow/$testName.test").absolutePath.replace(File.separatorChar, '/')
     }
 }

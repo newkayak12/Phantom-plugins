@@ -1,3 +1,4 @@
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 /*
  * Copyright 2000-2013 JetBrains s.r.o.
  *
@@ -17,7 +18,6 @@ package org.jetbrains.plugins.gradle.codeInsight.actions;
 
 import com.intellij.gradle.java.groovy.codeInsight.actions.AddGradleDslPluginAction;
 import com.intellij.openapi.command.WriteCommandAction;
-import com.intellij.testFramework.PlatformTestUtil;
 import com.intellij.testFramework.fixtures.BasePlatformTestCase;
 import com.intellij.testFramework.fixtures.CodeInsightTestUtil;
 
@@ -49,6 +49,8 @@ public class AddGradleDslPluginActionTest extends BasePlatformTestCase {
 
   @Override
   protected String getTestDataPath() {
-    return PlatformTestUtil.getCommunityPath().replace(File.separatorChar, '/') + getBasePath();
+    // phantom-idea: the test data is gradle-core's testData folder (IntelliJ's plugins/gradle/testData), next to this
+    // plugin's folder, which is the test's working directory
+    return new File("../gradle-core/testData").toPath().toAbsolutePath().normalize().toString().replace(File.separatorChar, '/');
   }
 }
