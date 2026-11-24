@@ -14,9 +14,9 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.searches.AnnotatedElementsSearch
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import dev.phantom.spring.core.PhantomSpringBundle
 import dev.phantom.spring.core.SpringProjectGate
+import dev.phantom.spring.core.SpringStructureTracker
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.uast.*
 import javax.swing.Icon
@@ -54,7 +54,7 @@ object SpringCacheOperations {
     }.filter { it.isNotBlank() }.toSet()
   }
 
-  /** Every cache operation in project sources, cached until the next PSI change. */
+  /** Every cache operation in project sources, cached until declarations change ([SpringStructureTracker]). */
   fun all(project: Project): List<Operation> = CachedValuesManager.getManager(project).getCachedValue(project) {
     val facade = JavaPsiFacade.getInstance(project)
     val all = GlobalSearchScope.allScope(project)
@@ -64,7 +64,7 @@ object SpringCacheOperations {
       val annotation = facade.findClass(fqn, all) ?: continue
       AnnotatedElementsSearch.searchPsiMethods(annotation, scope).forEach { methods += it }
     }
-    CachedValueProvider.Result.create(methods.flatMap(::of), PsiModificationTracker.MODIFICATION_COUNT)
+    CachedValueProvider.Result.create(methods.flatMap(::of), *SpringStructureTracker.deps(project))
   }
 }
 

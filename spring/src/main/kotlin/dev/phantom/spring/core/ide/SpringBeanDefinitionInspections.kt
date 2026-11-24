@@ -268,7 +268,9 @@ class SpringAspectjAutoproxyInspection : AbstractBaseUastLocalInspectionTool() {
                     ReferencesSearch.search(it, GlobalSearchScope.projectScope(project)).findFirst() != null
                   } == true ||
                   !PsiSearchHelper.getInstance(project).processUsagesInNonJavaFiles("aspectj-autoproxy", { _, _, _ -> false }, GlobalSearchScope.projectScope(project))
-    CachedValueProvider.Result.create(enabled, PsiModificationTracker.MODIFICATION_COUNT)
+    // aspectj-autoproxy is looked up in XML too, which SpringStructureTracker does not count
+    CachedValueProvider.Result.create(enabled, PsiModificationTracker.getInstance(project).forLanguages { it.id == "XML" },
+                                      *SpringStructureTracker.deps(project))
   }
 }
 

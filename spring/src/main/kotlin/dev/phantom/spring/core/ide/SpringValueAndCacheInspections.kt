@@ -11,7 +11,6 @@ import com.intellij.psi.search.searches.ClassInheritorsSearch
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.InheritanceUtil
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.uast.UastHintedVisitorAdapter
 import dev.phantom.spring.core.*
 import org.jetbrains.annotations.NonNls
@@ -236,7 +235,7 @@ class SpringCacheNamesInspection : AbstractBaseUastLocalInspectionTool() {
     val configurer = facade.findClass(CacheNames.CACHING_CONFIGURER, all)
     val custom = (resolver != null && ClassInheritorsSearch.search(resolver, scope, true).findFirst() != null) ||
                  (configurer != null && ClassInheritorsSearch.search(configurer, scope, true).anyMatch { it.findMethodsByName("cacheResolver", false).isNotEmpty() })
-    CachedValueProvider.Result.create(custom, PsiModificationTracker.MODIFICATION_COUNT)
+    CachedValueProvider.Result.create(custom, *SpringStructureTracker.deps(project))
   }
 }
 

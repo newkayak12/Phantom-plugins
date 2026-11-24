@@ -14,9 +14,9 @@ import com.intellij.psi.search.searches.MethodReferencesSearch
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.InheritanceUtil
-import com.intellij.psi.util.PsiModificationTracker
 import dev.phantom.spring.core.PhantomSpringBundle
 import dev.phantom.spring.core.SpringProjectGate
+import dev.phantom.spring.core.SpringStructureTracker
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.uast.*
 import javax.swing.Icon
@@ -28,7 +28,7 @@ object SpringEventModel {
 
   class Listener(val method: PsiMethod, val types: List<PsiType>)
 
-  /** Listener methods in project sources, cached until the next PSI change. */
+  /** Listener methods in project sources, cached until declarations change ([SpringStructureTracker]). */
   fun listeners(project: Project): List<Listener> = CachedValuesManager.getManager(project).getCachedValue(project) {
     val facade = JavaPsiFacade.getInstance(project)
     val all = GlobalSearchScope.allScope(project)
@@ -43,7 +43,7 @@ object SpringEventModel {
       }
     }
     val result = methods.map { Listener(it, SpringEvents.eventTypes(it)) }.filter { it.types.isNotEmpty() }
-    CachedValueProvider.Result.create(result, PsiModificationTracker.MODIFICATION_COUNT)
+    CachedValueProvider.Result.create(result, *SpringStructureTracker.deps(project))
   }
 
   fun isPublishCall(call: UCallExpression): Boolean {

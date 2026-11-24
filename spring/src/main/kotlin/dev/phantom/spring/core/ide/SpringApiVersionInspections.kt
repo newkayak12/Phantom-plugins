@@ -15,12 +15,12 @@ import com.intellij.psi.search.searches.ClassInheritorsSearch
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.uast.UastHintedVisitorAdapter
 import dev.phantom.spring.core.PhantomSpringBundle
 import dev.phantom.spring.core.SpringCacheDeps
 import dev.phantom.spring.core.SpringConfigKeys
 import dev.phantom.spring.core.SpringMvcEndpoints
+import dev.phantom.spring.core.SpringStructureTracker
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.uast.UAnnotation
 import org.jetbrains.uast.evaluateString
@@ -77,7 +77,7 @@ object SpringApiVersioning {
   fun hasCustomParser(project: Project): Boolean = CachedValuesManager.getManager(project).getCachedValue(project) {
     val parser = JavaPsiFacade.getInstance(project).findClass(PARSER, GlobalSearchScope.allScope(project))
     val custom = parser != null && ClassInheritorsSearch.search(parser, GlobalSearchScope.projectScope(project), true).findFirst() != null
-    CachedValueProvider.Result.create(custom, PsiModificationTracker.MODIFICATION_COUNT)
+    CachedValueProvider.Result.create(custom, *SpringStructureTracker.deps(project))
   }
 }
 
