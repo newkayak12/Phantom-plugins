@@ -1,4 +1,5 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package org.intellij.plugins.markdown.ui.preview;
 
 import com.intellij.openapi.actionSystem.ex.ActionUtil;
@@ -37,8 +38,13 @@ public final class MarkdownEditorWithPreview extends TextEditorWithPreview {
       editor,
       preview,
       MarkdownBundle.message("markdown.editor.name"),
-      Layout.SHOW_EDITOR_AND_PREVIEW,
-      !settings.isVerticalSplit()
+      // phantom-idea: a new Markdown tab shows only the editor, so opening a file does not start JCEF. Passed as the
+      // initial layout, not just the default, so neither the layout remembered app-wide from the last tab nor the
+      // preview-only README that IdeProjectFrameAllocator opens on a project's first open (DEFAULT_LAYOUT_FOR_FILE)
+      // applies; only the file's own restored state keeps a split or preview layout.
+      Layout.SHOW_EDITOR,
+      !settings.isVerticalSplit(),
+      Layout.SHOW_EDITOR
     );
 
     this.settings = settings;
@@ -46,6 +52,9 @@ public final class MarkdownEditorWithPreview extends TextEditorWithPreview {
     // allow launching actions while in preview mode;
     // FIXME: better solution IDEA-354102
     editor.getEditor().getContentComponent().putClientProperty(ActionUtil.ALLOW_ACTION_PERFORM_WHEN_HIDDEN, true);
+    // phantom-idea: the preview starts hidden, so MarkdownPreviewFileEditor creates its HTML panel only when
+    // TextEditorWithPreview shows it for a split or preview layout, not for every opened file.
+    preview.getComponent().setVisible(false);
     preview.setMainEditor(editor.getEditor());
 
     autoScrollPreview = settings.isAutoScrollEnabled();

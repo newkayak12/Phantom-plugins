@@ -1,4 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package org.intellij.plugins.markdown.ui.preview
 
 import com.intellij.ide.DataManager
@@ -54,7 +55,6 @@ import java.util.concurrent.atomic.AtomicReference
 import javax.swing.JComponent
 import javax.swing.JPanel
 
-
 @Internal
 class MarkdownPreviewFileEditor(
   private val project: Project,
@@ -86,7 +86,9 @@ class MarkdownPreviewFileEditor(
     coroutineScope.launch {
       mainEditor.filterNotNull().first()
       coroutineScope.launch(Dispatchers.EDT) {
-        attachHtmlPanel()
+        // phantom-idea: a hidden preview (editor-only layout) gets no HTML panel, so no JCEF browser; it is attached
+        // by AttachPanelOnVisibilityChangeListener once the preview is shown.
+        if (panel == null && htmlPanelWrapper.isVisible) attachHtmlPanel()
       }
     }
 
@@ -319,7 +321,8 @@ class MarkdownPreviewFileEditor(
   private inner class AttachPanelOnVisibilityChangeListener : ComponentAdapter() {
     override fun componentShown(event: ComponentEvent) {
       if (panel == null) {
-        coroutineScope.launch(Dispatchers.EDT) { attachHtmlPanel() }
+        // phantom-idea: checked again on the EDT because the initial attach in init may have run in between.
+        coroutineScope.launch(Dispatchers.EDT) { if (panel == null) attachHtmlPanel() }
       }
     }
 
@@ -337,7 +340,8 @@ class MarkdownPreviewFileEditor(
       coroutineScope.launch(Dispatchers.EDT) {
         if (settings.splitLayout != TextEditorWithPreview.Layout.SHOW_EDITOR) {
           if (panel == null) {
-            attachHtmlPanel()
+            // phantom-idea: a settings change must not create a JCEF browser for a preview that is hidden.
+            if (htmlPanelWrapper.isVisible) attachHtmlPanel()
           }
           else if (lastPanelProviderInfo == null ||
                    MarkdownHtmlPanelProvider.createFromInfo(lastPanelProviderInfo!!) == retrievePanelProvider(settings)) {
