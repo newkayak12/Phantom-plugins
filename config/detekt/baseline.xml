@@ -2571,6 +2571,7 @@
     <ID>TooManyFunctions:ProfileRun.kt:ProfileExecutor : Executor</ID>
     <ID>TooManyFunctions:ProgressIndicatorWrapper.kt:ProgressIndicatorWrapper : ProgressIndicator</ID>
     <ID>TooManyFunctions:ProjectTabStrip.kt:ProjectTabStrip : JPanel</ID>
+    <ID>TooManyFunctions:ProjectTabs.kt:ProjectTabs</ID>
     <ID>TooManyFunctions:ProjectTabsService.kt:ProjectTabsService : Disposable</ID>
     <ID>TooManyFunctions:PsiUtils.kt:com.intellij.grazie.utils.PsiUtils.kt</ID>
     <ID>TooManyFunctions:RecursiveMethodAnalyzer.kt:RecursiveMethodAnalyzer : GroovyRecursiveElementVisitor</ID>

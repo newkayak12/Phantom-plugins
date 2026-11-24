@@ -4,10 +4,20 @@ package dev.phantom.workspaces.core
 import kotlin.math.abs
 
 /** An open project as the tab strip sees it. [key] identifies it (the [com.intellij.openapi.project.Project] in the IDE). */
-data class OpenProject(val key: Any, val name: String, val location: String?)
+data class OpenProject(val key: Any, val name: String, val location: String?, val git: GitCheckout? = null)
 
-/** [isSideBySide]: on screen beside the current one ([ProjectTabsService.openSideBySide]); highlighted as its partner. */
-data class ProjectTab(val key: Any, val title: String, val tooltip: String?, val isCurrent: Boolean, val isSideBySide: Boolean = false)
+/**
+ * [isSideBySide]: on screen beside the current one ([ProjectTabsService.openSideBySide]); highlighted as its partner.
+ * [isMainCheckout]: the main checkout of a repository whose worktrees are open too.
+ */
+data class ProjectTab(
+  val key: Any,
+  val title: String,
+  val tooltip: String?,
+  val isCurrent: Boolean,
+  val isSideBySide: Boolean = false,
+  val isMainCheckout: Boolean = false,
+)
 
 /** What the project tab strip shows. No UI and no platform state, so it is tested as is. */
 object ProjectTabs {
@@ -16,18 +26,35 @@ object ProjectTabs {
   const val CLOSE_PROJECT_ACTION_ID: String = "CloseProject"
 
   /**
-   * One tab per project in [open] order; projects that share a name are titled by the shortest end of their location
-   * that tells them apart (the worktrees of one repository: by their folders), the whole location in the tooltip. The
-   * projects in [sideBySide] are marked, the current one included.
+   * One tab per project in [open] order. Projects that share a git repository (its main checkout and worktrees) are titled
+   * by their branch. Other projects that share a name are titled by the shortest end of their location that tells them
+   * apart; the whole location is in the tooltip. The projects in [sideBySide] are marked, the current one included.
    */
   fun tabs(open: List<OpenProject>, current: Any?, userHome: String, sideBySide: List<Any> = emptyList()): List<ProjectTab> {
     val shared = open.groupBy { it.name }.filterValues { it.size > 1 }
+    val repositories = open.mapNotNull { it.git }.groupBy { it.commonDir }.filterValues { it.size > 1 }
     return open.map { project ->
       val where = project.location?.let { shortened(it, userHome) }
+      val checkouts = project.git?.let { repositories[it.commonDir] }
+      // two checkouts detached at the same commit have the same title: they fall back to their locations
+      val branch = project.git?.branch?.takeIf { b -> checkouts != null && checkouts.count { it.branch == b } == 1 }
       val namesakes = shared[project.name]
-      val title = if (namesakes != null && where != null) distinctEnd(project, namesakes, userHome) ?: where else project.name
-      ProjectTab(project.key, title, where, project.key == current, sideBySide.any { it == project.key })
+      val title = branch ?: if (namesakes != null && where != null) distinctEnd(project, namesakes, userHome) ?: where else project.name
+      val isMain = checkouts != null && project.git.isMain
+      ProjectTab(project.key, title, where, project.key == current, sideBySide.any { it == project.key }, isMain)
     }
+  }
+
+  /**
+   * [order] with [item] moved right after the last other item of the same [repository]: a project that opens joins the
+   * tabs of its repository. Unchanged when it has no repository or no other item shares it.
+   */
+  fun <T> placed(order: List<T>, item: T, repository: (T) -> String?): List<T> {
+    val repo = repository(item) ?: return order
+    val rest = order.filter { it !== item }
+    val last = rest.indexOfLast { repository(it) == repo }
+    if (last < 0) return order
+    return rest.toMutableList().apply { add(last + 1, item) }
   }
 
   /** The fewest last folders of [project]'s location that no other of [namesakes] ends with; null if none does. */

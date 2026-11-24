@@ -9,7 +9,9 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.asContextElement
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceIfCreated
@@ -19,6 +21,9 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.project.ProjectCloseListener
 import com.intellij.openapi.project.ProjectNameListener
+import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.openapi.vfs.newvfs.BulkFileListener
+import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.openapi.wm.IdeFrame
 import com.intellij.util.SystemProperties
 import com.intellij.util.concurrency.annotations.RequiresEdt
@@ -29,7 +34,12 @@ import java.awt.Rectangle
 import java.awt.Toolkit
 import java.awt.event.AWTEventListener
 import java.awt.event.HierarchyEvent
+import java.nio.file.Path
 import javax.swing.JFrame
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * The open project windows: their tab strips and the [WindowStack] that keeps the windows on top of each other.
@@ -44,15 +54,30 @@ import javax.swing.JFrame
  *
  * [openSideBySide] shows two project windows side by side over the stack's area ([WindowStack.split]); both of their
  * tabs are highlighted in every strip until it ends.
+ *
+ * The git checkout of each open project is read off the EDT ([readCheckouts]) when it opens, when a project window is
+ * activated and when the HEAD file of one changes in the VFS: tabs of one repository are titled by their branch, and a
+ * project that opens is put next to the other tabs of its repository.
  */
 @Service(Service.Level.APP)
-class ProjectTabsService : Disposable {
+class ProjectTabsService(private val scope: CoroutineScope) : Disposable {
   private val stack = WindowStack()
   private val strips = ArrayList<ProjectTabStrip>()
   private val openOrder = ArrayList<Project>()
 
   // projects taken out of the stack into a window of their own, until attached again or closed (not kept on restart)
   private val detached = ArrayList<Project>()
+
+  private val checkouts = HashMap<Project, GitCheckout>()
+
+  // projects opened whose checkout is not read yet: they move next to their repository's tabs once it is
+  private val placing = ArrayList<Project>()
+  private var reading = false
+  private var readAgain = false
+
+  // the HEAD files of the open checkouts, read by the VFS listener off the EDT
+  @Volatile
+  private var heads: Set<String> = emptySet()
 
   // Window.show() makes the frame displayable (addNotify) and only then shows it; the event comes in between.
   // Registered only while the setting is on: a toolkit listener for HIERARCHY_EVENT_MASK makes AWT create a HierarchyEvent
@@ -64,6 +89,15 @@ class ProjectTabsService : Disposable {
   init {
     listenForNewFrames(isEnabled)
     stack.single = isEnabled
+    // a branch switched in the IDE; one switched in a terminal is read when a project window is activated
+    ApplicationManager.getApplication().messageBus.connect(this).subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener {
+      override fun after(events: List<VFileEvent>) {
+        val watched = heads
+        if (watched.isNotEmpty() && events.any { it.path in watched }) {
+          ApplicationManager.getApplication().invokeLater({ readCheckouts() }, ModalityState.any())
+        }
+      }
+    })
   }
 
   override fun dispose() {
@@ -92,7 +126,11 @@ class ProjectTabsService : Disposable {
   internal fun attach(strip: ProjectTabStrip) {
     if (strips.any { it === strip }) return
     strips += strip
-    if (openOrder.none { it === strip.project }) openOrder += strip.project
+    if (openOrder.none { it === strip.project }) {
+      openOrder += strip.project
+      placing += strip.project
+      readCheckouts()
+    }
     strip.window?.let { stack.add(it, align = isEnabled) }
     refresh()
   }
@@ -114,7 +152,53 @@ class ProjectTabsService : Disposable {
   /** Also when a hidden project window is shown by someone else than the stack: it comes to front in place. */
   @RequiresEdt
   internal fun windowActivated(window: StackedWindow) {
-    if (isEnabled) refreshAfter { stack.activated(window) }
+    if (isEnabled) {
+      refreshAfter { stack.activated(window) }
+      readCheckouts()
+    }
+  }
+
+  /**
+   * Reads the git checkout of every open project on the IO dispatcher. Tabs are refreshed when one changed (another
+   * branch), and a project that just opened moves next to the other tabs of its repository.
+   */
+  @RequiresEdt
+  private fun readCheckouts() {
+    if (reading) {
+      readAgain = true
+      return
+    }
+    reading = true
+    val projects = openOrder.filter { !it.isDisposed }
+    scope.launch(Dispatchers.IO) {
+      val read = projects.map { p -> p to p.basePath?.let { GitCheckouts.read(Path.of(it)) } }
+      withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) { checkoutsRead(read) }
+    }
+  }
+
+  @RequiresEdt
+  private fun checkoutsRead(read: List<Pair<Project, GitCheckout?>>) {
+    reading = false
+    var changed = false
+    for ((project, checkout) in read) {
+      if (openOrder.none { it === project } || checkouts[project] == checkout) continue
+      changed = true
+      if (checkout == null) checkouts.remove(project) else checkouts[project] = checkout
+    }
+    for ((project, _) in read) {
+      if (!placing.removeIf { it === project }) continue
+      val order = ProjectTabs.placed(openOrder, project) { checkouts[it]?.commonDir }
+      if (order == openOrder) continue
+      openOrder.clear()
+      openOrder += order
+      changed = true
+    }
+    heads = checkouts.values.mapTo(HashSet()) { FileUtil.toSystemIndependentName(it.head) }
+    if (readAgain) {
+      readAgain = false
+      readCheckouts()
+    }
+    if (changed) refresh()
   }
 
   /** Records a move of [window] when it happens; true when it leads and [flushMoves] should follow (debounced). */
@@ -190,6 +274,8 @@ class ProjectTabsService : Disposable {
     val open = openTabs()
     val moved = ProjectTabs.moved(open, open.indexOfFirst { it === project }, gap)
     if (moved == open) return
+    // a tab dragged stays where it is dropped
+    placing.removeIf { it === project }
     val rest = openOrder.filter { p -> moved.none { it === p } }
     openOrder.clear()
     openOrder += moved
@@ -270,6 +356,7 @@ class ProjectTabsService : Disposable {
   @RequiresEdt
   fun attachProject(project: Project) {
     if (!isEnabled || !detached.removeIf { it === project }) return
+    placing.removeIf { it === project }
     val order = ProjectTabs.attached(openOrder, project)
     openOrder.clear()
     openOrder += order
@@ -297,6 +384,8 @@ class ProjectTabsService : Disposable {
     refreshLater {
       openOrder.removeIf { it === project }
       detached.removeIf { it === project }
+      placing.removeIf { it === project }
+      checkouts.remove(project)
     }
   }
 
@@ -306,7 +395,7 @@ class ProjectTabsService : Disposable {
 
   @RequiresEdt
   private fun refresh() {
-    val open = openTabs().map { OpenProject(it, it.name, it.presentableUrl) }
+    val open = openTabs().map { OpenProject(it, it.name, it.presentableUrl, checkouts[it]) }
     val visible = ProjectTabs.isStripVisible(isEnabled, open.size)
     val sideBySide = sideBySide()
     val home = SystemProperties.getUserHome()
