@@ -16,7 +16,11 @@ version = "0.1.0"
 //   Java 8, so they are compiled for Java 8 and hold none of the IDE side.
 sourceSets {
   main { java.srcDir("src/main/kotlin") }
-  test { java.srcDir("src/test/kotlin") }
+  // testData is a test resource root, as in IntelliJ (intellij.gradle.tests reads files from it as resources)
+  test {
+    java.srcDir("src/test/kotlin")
+    resources.srcDir("testData")
+  }
   create("toolingExtension") { java.srcDir("src/toolingExtension/kotlin") }
   create("toolingExtensionImpl") { java.srcDir("src/toolingExtensionImpl/kotlin") }
   create("toolingProxy") { java.srcDir("src/toolingProxy/kotlin") }
