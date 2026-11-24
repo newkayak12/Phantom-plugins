@@ -2,6 +2,7 @@
 package dev.phantom.localsharedindex
 
 import com.intellij.openapi.fileTypes.FileType
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.psi.stubs.StubIndexKey
 import com.intellij.util.indexing.FileBasedIndexExtension
 import com.intellij.util.indexing.flavor.FileIndexingFlavorProvider
@@ -57,6 +58,20 @@ object LocalSharedIndexAllowlist {
       extension.dependsOnFileContent() &&
       extension.canBeShared() &&
       extension.name.name in CONTENT_ONLY + STUBS
+
+  /**
+   * Indexes whose files are skipped during scanning when a donor with the same content key is indexed, and queried
+   * through the donor (prototype for #109; registry key [ALIAS_KEY]).
+   */
+  // Every audited content-only index except stubs: StubIndex keeps its own key-to-file-id maps, which a redirect of
+  // the stub tree does not reach, so stubs need a platform hook (#109).
+  internal val ALIASED = CONTENT_ONLY
+  const val ALIAS_KEY = "phantom.localsharedindex.alias"
+
+  /** Whether the index takes part at all; [aliases] also asks the registry, at each use. */
+  fun aliasable(indexName: String): Boolean = indexName in ALIASED
+
+  fun aliases(indexName: String): Boolean = aliasable(indexName) && Registry.`is`(ALIAS_KEY, true)
 
   /**
    * `KotlinFileType.getName()` (`KotlinLanguage.NAME`), matched by name so that this plugin needs no Kotlin dependency.

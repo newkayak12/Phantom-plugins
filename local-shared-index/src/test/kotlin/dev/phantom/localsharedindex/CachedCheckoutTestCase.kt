@@ -40,6 +40,7 @@ abstract class CachedCheckoutTestCase : JavaCodeInsightFixtureTestCase() {
     (FileBasedIndex.getInstance() as FileBasedIndexImpl).waitUntilIndicesAreInitialized() // opens the store
     store.clearAll()
     Registry.get("phantom.localsharedindex.verify.one.in").setValue(1, testRootDisposable) // verify every hit
+    Registry.get(LocalSharedIndexAllowlist.ALIAS_KEY).setValue(false, testRootDisposable) // these test the value cache
     seedDir = Files.createTempDirectory("local-shared-index-seed")
     writeCheckout(seedDir)
     CheckoutFixture.openCheckout(seedDir, testRootDisposable, level)

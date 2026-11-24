@@ -8,11 +8,13 @@ import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VirtualFileWithId
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubUpdatingIndexStorage
 import com.intellij.util.indexing.FileBasedIndexExtension
 import com.intellij.util.indexing.FileBasedIndexInfrastructureExtensionUpdatableIndex
 import com.intellij.util.indexing.FileContent
 import com.intellij.util.indexing.FileContentImpl
+import com.intellij.util.indexing.IdFilter
 import com.intellij.util.indexing.IndexInfrastructureExtensionUpdate
 import com.intellij.util.indexing.IndexExtension
 import com.intellij.util.indexing.IndexedFile
@@ -21,11 +23,17 @@ import com.intellij.util.indexing.StorageUpdate
 import com.intellij.util.indexing.UpdatableIndex
 import com.intellij.util.indexing.ValueContainer
 import com.intellij.util.indexing.impl.InputData
+import com.intellij.util.indexing.impl.ValueContainerImpl
+import com.intellij.util.indexing.impl.ValueContainerProcessor
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFS
+import com.intellij.util.indexing.FileBasedIndex
 import com.intellij.util.indexing.impl.MapReduceIndex
 import com.intellij.util.indexing.impl.MapReduceIndexMappingException
+import com.intellij.util.Processor
 import dev.phantom.localsharedindex.store.LocalSharedIndexStore
 import dev.phantom.localsharedindex.store.StoreHeader
 import java.util.concurrent.CancellationException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
@@ -50,21 +58,57 @@ internal class CachingIndex<K, V, D>(
   // Resolved once: a service lookup per file per index is overhead stock indexing does not have.
   private val stats = LocalSharedIndexStatistics.getInstance()
 
+  // Files skipped during scanning because a donor with the same content was indexed (LocalSharedIndexStatusProcessor).
+  private val aliases: IndexAliases? = if (LocalSharedIndexAllowlist.aliasable(indexName)) AliasRegistry.of(indexName) else null
+
   // A platform clear (rebuild, repaired stub name storage, version change) makes everything cached for this index suspect.
   override fun clear() {
     try {
       base.clear()
     }
     finally {
-      store.clear(indexName)
-      store.ensureHeader(indexName, header) // the index lives on after a clear and keeps using the cache
+      // A rebuild requested for lost aliases (LocalSharedIndexExtension.rebuildAliasedIndexes) leaves the cached maps valid.
+      if (!rebuildsKeepingCache.remove(indexName)) {
+        store.clear(indexName)
+        store.ensureHeader(indexName, header) // the index lives on after a clear and keeps using the cache
+      }
+      AliasRegistry.clear(indexName)
     }
   }
 
+  /**
+   * The base containers first, then one more container with the aliases of every donor seen in them, carrying the
+   * donor's value. [InvertedIndex.withData] allows several containers per key (sharded storages pass one per shard).
+   */
+  override fun <E : Exception> withData(key: K & Any, processor: ValueContainerProcessor<V, E>): Boolean {
+    val aliases = aliases
+    if (aliases == null || !aliases.hasAliases) return base.withData(key, processor)
+    val borrowed = ValueContainerImpl.createNewValueContainer<V>()
+    val completed = base.withData<E>(key) { container ->
+      container.forEach { id, value ->
+        for (alias in aliases.aliasesOf(id)) borrowed.addValue(alias, value)
+        true
+      }
+      processor.process(container)
+    }
+    if (!completed || borrowed.size() == 0) return completed
+    return processor.process(borrowed)
+  }
+
+  // Keys only a donor has, of an alias the filter accepts (Goto Class, completion over the Kotlin name indexes).
+  override fun processAllKeys(processor: Processor<in K>, scope: GlobalSearchScope, idFilter: IdFilter?): Boolean =
+    base.processAllKeys(processor, scope, aliases?.widen(idFilter) ?: idFilter)
+
+  override fun getIndexedFileData(fileId: Int): Map<K, V> = base.getIndexedFileData(aliases?.donorOf(fileId) ?: fileId)
+
   override fun getBaseIndex(): UpdatableIndex<K, V, FileContent, D> = base
+
+  // Caches keyed on FileBasedIndex.getIndexModificationStamp must also see aliases that scanning added.
+  override fun getModificationStamp(): Long = base.modificationStamp + (aliases?.modificationCount ?: 0)
 
   @Suppress("TooGenericExceptionCaught") // decoding a stale payload fails in any way, see the catch below
   override fun mapInputAndPrepareUpdate(inputId: Int, content: FileContent?): IndexInfrastructureExtensionUpdate {
+    if (LocalSharedIndexAllowlist.aliases(indexName)) aliases?.let { aliases -> aliasOnUpdate(aliases, inputId, content)?.let { return it } }
     if (disabled.get() || content !is FileContentImpl || !isCacheable(content, stubs)) {
       return IndexInfrastructureExtensionUpdate(base.mapInputAndPrepareUpdate(inputId, content), false)
     }
@@ -97,6 +141,40 @@ internal class CachingIndex<K, V, D>(
     }
     stats.miss(content.project, indexName, content.file)
     return if (stubs) indexStubs(inputId, content, key, epoch) else indexAndStore(inputId, content, key, epoch)
+  }
+
+  /**
+   * A file reaches the indexer (VFS change events take this path, not scanning): it stops being an alias, and aliases
+   * borrowing its old data are indexed on their own. When another file with the same content key is indexed, the file
+   * becomes its alias and only its own old data is removed (no mapping, no writing of the new data); otherwise it
+   * becomes the donor for its key and is indexed normally (null is returned).
+   */
+  private fun aliasOnUpdate(aliases: IndexAliases, inputId: Int, content: FileContent?): IndexInfrastructureExtensionUpdate? {
+    aliases.forgetFile(inputId)
+    val orphans = aliases.dropDonor(inputId)
+    if (orphans.isNotEmpty()) reindex(orphans)
+    if (content !is FileContentImpl || !isCacheable(content, stubs)) return null
+    val key = CacheKeys.keyFor(content, base.extension.indexer)
+    val donor = aliases.donorFor(key)
+    if (donor == null || donor == inputId) {
+      aliases.recordDonor(key, inputId, content.file.length, content.fileName)
+      GitBlobs.blobOf(content.file)?.let { blob ->
+        aliases.recordBlobDonor(CacheKeys.blobKeyFor(content, blob, base.extension.indexer), inputId)
+      }
+      return null
+    }
+    val removal = base.mapInputAndPrepareUpdate(inputId, null)
+    aliases.alias(inputId, donor)
+    stats.hit(content.project, indexName, content.file, 0)
+    return IndexInfrastructureExtensionUpdate(removal, true)
+  }
+
+  private fun reindex(fileIds: Set<Int>) {
+    val fs = PersistentFS.getInstance()
+    for (id in fileIds) {
+      base.setUnindexedStateForFile(id)
+      fs.findFileById(id)?.let { FileBasedIndex.getInstance().requestReindex(it) }
+    }
   }
 
   /** For every Nth hit ([VERIFY_KEY]) recomputes the map; returns it when it differs from [cached], else null. */
@@ -148,8 +226,17 @@ internal class CachingIndex<K, V, D>(
 
   override fun canUpdate(): Boolean = base.canUpdate()
 
-  @Deprecated("Deprecated in the platform; forwarded for completeness")
-  override fun getData(key: K & Any): ValueContainer<V> = @Suppress("DEPRECATION") base.getData(key)
+  @Deprecated("Deprecated in the platform; answered through withData so that aliases are included")
+  override fun getData(key: K & Any): ValueContainer<V> {
+    val copy = ValueContainerImpl.createNewValueContainer<V>()
+    withData<RuntimeException>(key) { container ->
+      container.forEach { id, value ->
+        copy.addValue(id, value)
+        true
+      }
+    }
+    return copy
+  }
 }
 
 private fun isCacheable(content: FileContentImpl, stubs: Boolean): Boolean =
@@ -176,6 +263,9 @@ private fun <K, V> mapLikePlatform(extension: IndexExtension<K, V, FileContent>,
   ProgressManager.checkCanceled()
   return data
 }
+
+/** Indexes whose next clear comes from a rebuild this plugin requested only to drop its aliases. */
+internal val rebuildsKeepingCache: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
 private const val VERIFY_KEY = "phantom.localsharedindex.verify.one.in"
 

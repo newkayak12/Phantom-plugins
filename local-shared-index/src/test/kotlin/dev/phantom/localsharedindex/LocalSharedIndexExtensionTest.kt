@@ -12,7 +12,8 @@ class LocalSharedIndexExtensionTest : BasePlatformTestCase() {
     val ext = LocalSharedIndexExtension.getInstance()
     assertEquals(-1, ext.version)
     assertEquals("phantom-local-shared-index", ext.persistentStateRoot)
-    assertNull(ext.createFileIndexingStatusProcessor(project))
+    // Skips files whose content another checkout indexed (#109).
+    assertInstanceOf(ext.createFileIndexingStatusProcessor(project), LocalSharedIndexStatusProcessor::class.java)
   }
 
   fun `test resetting the stub index right after initialize empties entries of the previous session`() {

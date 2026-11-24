@@ -5,21 +5,38 @@ import com.intellij.util.indexing.CompositeDataIndexer
 import com.intellij.util.indexing.DataIndexer
 import com.intellij.util.indexing.FileContent
 import com.intellij.util.indexing.FileContentImpl
+import com.intellij.util.indexing.IndexedFile
 import com.intellij.util.indexing.IndexedHashesSupport
 import java.security.MessageDigest
 
 internal object CacheKeys {
   /**
+   * The key of a file's content by its git blob id ([GitBlobs]) instead of its bytes: the platform's indexed-file hash
+   * computed over the blob id, so name, charset, file type and flavor count as in [keyFor]. Needs no content: a composite
+   * indexer picks its sub-indexer from the file, not its bytes.
+   */
+  fun blobKeyFor(file: IndexedFile, blob: ByteArray, indexer: DataIndexer<*, *, FileContent>): ByteArray =
+    blobKeyFor(blobHash(file, blob), file, indexer)
+
+  /** The part of [blobKeyFor] that is the same for every index of the file. */
+  fun blobHash(file: IndexedFile, blob: ByteArray): ByteArray = IndexedHashesSupport.calculateIndexedHash(file, blob)
+
+  fun blobKeyFor(blobHash: ByteArray, file: IndexedFile, indexer: DataIndexer<*, *, FileContent>): ByteArray =
+    withSubIndexerVersion(blobHash, file, indexer)
+
+  /**
    * The platform's indexed-file hash (content, charset, file name, file type, indexing flavor), mixed with the
    * sub-indexer version when the indexer is a [CompositeDataIndexer], because that version changes the result for
    * the same bytes. Always 20 bytes, the size of the store's keys.
    */
-  fun keyFor(content: FileContentImpl, indexer: DataIndexer<*, *, FileContent>): ByteArray {
-    val hash = IndexedHashesSupport.getOrInitIndexedHash(content)
+  fun keyFor(content: FileContentImpl, indexer: DataIndexer<*, *, FileContent>): ByteArray =
+    withSubIndexerVersion(IndexedHashesSupport.getOrInitIndexedHash(content), content, indexer)
+
+  private fun withSubIndexerVersion(hash: ByteArray, file: IndexedFile, indexer: DataIndexer<*, *, FileContent>): ByteArray {
     if (indexer !is CompositeDataIndexer<*, *, *, *>) return hash
     @Suppress("UNCHECKED_CAST")
     val composite = indexer as CompositeDataIndexer<*, *, Any, Any>
-    val subIndexer = composite.calculateSubIndexer(content)
+    val subIndexer = composite.calculateSubIndexer(file)
     val version = if (subIndexer == null) "" else composite.getSubIndexerVersion(subIndexer).toString()
     return MessageDigest.getInstance("SHA-1").run {
       update(hash)
