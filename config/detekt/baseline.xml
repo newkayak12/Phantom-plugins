@@ -52,6 +52,13 @@
     <ID>ComplexCondition:GitStageShowVersionAction.kt:GitStageShowVersionAction$project == null || !isStagingAreaAvailable(project) || file == null || (file is GitIndexVirtualFile == showStaged)</ID>
     <ID>ComplexCondition:GrNamedParamsConverter.kt:GrNamedParamsConverter$actualType !is GrMapTypeFromNamedArgs || targetType !is PsiClassType || !PsiTypesUtil.classNameEquals(targetType, CommonClassNames.JAVA_UTIL_MAP) || context !is GrMethodCallExpression</ID>
     <ID>ComplexCondition:GrPrimitiveCastConverter.kt:GrPrimitiveCastConverter$lType == PsiTypes.booleanType() || lType.unbox() == PsiTypes.booleanType() || rType == PsiTypes.booleanType() || rType.unbox() == PsiTypes.booleanType()</ID>
+    <ID>ComplexCondition:GradleBuildScriptErrorParser.kt:GradleBuildScriptErrorParser$reason.startsWith("Compilation failed") || reason == "Compilation error. See log for more details" || reason == "Script compilation error:" || reason.contains("compiler failed")</ID>
+    <ID>ComplexCondition:GradleOutOfMemoryIssueChecker.kt:GradleOutOfMemoryIssueChecker$rootCause.className != OutOfMemoryError::class.java.name &amp;&amp; rootCause.message != "Java heap space" &amp;&amp; rootCause.message != "GC overhead limit exceeded" &amp;&amp; rootCause.description?.lineSequence()?.firstOrNull()?.startsWith(OutOfMemoryError::class.java.name) != true</ID>
+    <ID>ComplexCondition:GradleOutputDispatcherFactory.kt:GradleOutputDispatcherFactory.GradleOutputMessageDispatcher.&lt;no name provided>$cleanLine.startsWith("> Configure") || cleanLine.startsWith("FAILURE: Build failed") || cleanLine.startsWith("FAILURE: Build completed") || cleanLine.startsWith("[Incubating] Problems report is available at:") || cleanLine.startsWith("CONFIGURE SUCCESSFUL") || cleanLine.startsWith("BUILD SUCCESSFUL")</ID>
+    <ID>ComplexCondition:GradleTomlCompletionProvider.kt:GradleTomlCompletionProvider$parameters.isAutoPopup &amp;&amp; text.length &lt; 3 &amp;&amp; (key == moduleKey || tomlKey.isDirectlyInLibrariesTable())</ID>
+    <ID>ComplexCondition:GradleTomlCompletionUtils.kt:s.length >= 2 &amp;&amp; ((s.startsWith('"') &amp;&amp; s.endsWith('"')) || (s.startsWith('\'') &amp;&amp; s.endsWith('\'')))</ID>
+    <ID>ComplexCondition:GradleTomlDependenciesAutoPopupHandler.kt:GradleTomlDependenciesAutoPopupHandler$charTyped != '"' &amp;&amp; !charTyped.isLetterOrDigit() &amp;&amp; charTyped != '-' &amp;&amp; charTyped != '.' &amp;&amp; charTyped != ':'</ID>
+    <ID>ComplexCondition:GradleVersionCatalogGotoDeclarationHandler.kt:GroovySettingsFileResolveVisitor$(element is GradleExtensionProperty || element is GradleExtensionsContributorUtil.Companion.StaticVersionCatalogProperty) &amp;&amp; element.name == method?.name &amp;&amp; method.returnType?.equalsToText(GradleCommonClassNames.GRADLE_API_VERSION_CATALOG_BUILDER) == true</ID>
     <ID>ComplexCondition:GroovyAnnotator25.kt:GroovyAnnotator25$element is GrLiteral || element is GrListOrMap || element is GrLambdaExpression || element is GrClosableBlock</ID>
     <ID>ComplexCondition:GroovyAnnotator40.kt:GroovyAnnotator40$!(switchElement is GrSwitchStatement &amp;&amp; caseSections.all { it.colon != null }) &amp;&amp; caseSections.isNotEmpty() &amp;&amp; caseSections.all { it.colon != null } &amp;&amp; jointFlow.all { it.element !is GrYieldStatement &amp;&amp; it.element !is GrThrowStatement }</ID>
     <ID>ComplexCondition:GroovyAnnotatorPre30.kt:GroovyAnnotatorPre30$run is GrReturnStatement || run is GrAssertStatement || run is GrThrowStatement || run is GrCommandArgumentList</ID>
@@ -204,6 +211,7 @@
     <ID>ComplexCondition:TextUtils.kt:Levenshtein$i > 1 &amp;&amp; j > 1 &amp;&amp; a[i - 1] == b[j - 2] &amp;&amp; a[i - 2] == b[j - 1]</ID>
     <ID>ComplexCondition:ThumbnailComponent.kt:ThumbnailComponent$oldValue != null &amp;&amp; oldValue != fileName || oldValue == null &amp;&amp; fileName != null</ID>
     <ID>ComplexCondition:ThumbnailComponent.kt:ThumbnailComponent$oldValue != null &amp;&amp; oldValue != format || oldValue == null &amp;&amp; format != null</ID>
+    <ID>ComplexCondition:TomlVersionCatalogCompletionContributor.kt:EnableAutoPopupInTomlVersionCatalogCompletion$TOML_PLUGINS_TABLE_SYNTAX_PATTERN.accepts(contextElement) || TOML_LIBRARIES_TABLE_SYNTAX_PATTERN.accepts(contextElement) || TOML_VERSIONS_TABLE_SYNTAX_PATTERN.accepts(contextElement) || TOML_VERSIONS_SYNTAX_PATTERN.accepts(contextElement) || TOML_VERSION_DOT_SYNTAX_PATTERN_BEFORE.accepts(contextElement) || TOML_TABLE_SYNTAX_PATTERN.accepts(contextElement) || TOML_BUNDLE_SYNTAX_PATTERN.accepts(contextElement)</ID>
     <ID>ComplexCondition:ToolWindowLayoutSync.kt:ToolWindowLayoutSync$from === to || from.isDisposed || to.isDisposed || !AdvancedSettings.getBoolean(SETTING_ID)</ID>
     <ID>ComplexCondition:Validation.kt:Constraints$qn == CommonClassNames.JAVA_LANG_OBJECT || qn.startsWith("java.util.Optional") || qn == "java.io.Serializable" || qn == "java.lang.Comparable"</ID>
     <ID>ComplexCondition:WindowStack.kt:WindowStack$front == null || window.isActive || single &amp;&amp; window.isShown</ID>
@@ -253,6 +261,7 @@
     <ID>CyclomaticComplexMethod:CodeIndex.kt:CodeQueries$private fun signature: String?</ID>
     <ID>CyclomaticComplexMethod:CodexUsageClient.kt:CodexUsageClient.Companion$private fun classify: CodexUsage?</ID>
     <ID>CyclomaticComplexMethod:CodexUsageClient.kt:fun codexRequest: JsonElement?</ID>
+    <ID>CyclomaticComplexMethod:CompatibilityInfoGenerator.kt:fun readAppVersion: String</ID>
     <ID>CyclomaticComplexMethod:ComposeInspections.kt:ComposeValuesInspection$override fun check</ID>
     <ID>CyclomaticComplexMethod:ComposeLineMarkers.kt:ComposeLineMarkerProvider$private fun dockerfileOf: VirtualFile?</ID>
     <ID>CyclomaticComplexMethod:ConfigMetadata.kt:MetadataParser$fun parse: ParsedMetadata</ID>
@@ -348,7 +357,24 @@
     <ID>CyclomaticComplexMethod:GrGeneratedConstructorUtils.kt:private fun acceptClass</ID>
     <ID>CyclomaticComplexMethod:GrPrimitiveCastConverter.kt:GrPrimitiveCastConverter$override fun isConvertible: ConversionResult?</ID>
     <ID>CyclomaticComplexMethod:GrStringStyleViolationInspection.kt:GrStringStyleViolationInspection$override fun buildErrorString: String</ID>
+    <ID>CyclomaticComplexMethod:GradleBaseApplicationEnvironmentProvider.kt:GradleBaseApplicationEnvironmentProvider$override fun createExecutionEnvironment: ExecutionEnvironment?</ID>
+    <ID>CyclomaticComplexMethod:GradleBuildScriptBuilderUtil.kt:fun getKotlinVersion: String</ID>
+    <ID>CyclomaticComplexMethod:GradleBuildScriptErrorParser.kt:GradleBuildScriptErrorParser$override fun parse: Boolean</ID>
+    <ID>CyclomaticComplexMethod:GradleConnectorServiceImpl.kt:GradleConnectorServiceImpl.Companion$@ApiStatus.Internal internal fun createConnector: GradleConnector</ID>
+    <ID>CyclomaticComplexMethod:GradleOutOfMemoryIssueChecker.kt:GradleOutOfMemoryIssueChecker$override fun check: BuildIssue?</ID>
+    <ID>CyclomaticComplexMethod:GradleProjectExtensionContributor.kt:GradleProjectExtensionContributor$override fun processDynamicElements</ID>
+    <ID>CyclomaticComplexMethod:GradleProjectResolverTest.kt:GradleProjectResolverTest$@Test fun `test content root merging for external sources`</ID>
+    <ID>CyclomaticComplexMethod:GradleProjectResolverTest.kt:GradleProjectResolverTest$@Test fun `test content root merging for flatten sources`</ID>
+    <ID>CyclomaticComplexMethod:GradleProjectResolverTest.kt:GradleProjectResolverTest$@Test fun `test content root merging for generated sources`</ID>
+    <ID>CyclomaticComplexMethod:GradleProjectResolverTest.kt:GradleProjectResolverTest$@Test fun `test content root merging for incomplete external sources`</ID>
+    <ID>CyclomaticComplexMethod:GradleProjectResolverTest.kt:GradleProjectResolverTest$@Test fun `test content root merging for incomplete sources`</ID>
+    <ID>CyclomaticComplexMethod:GradleProjectResolverTest.kt:GradleProjectResolverTest$@Test fun `test content root merging for non-standard sources in android project`</ID>
+    <ID>CyclomaticComplexMethod:GradleProjectResolverTest.kt:GradleProjectResolverTest$@Test fun `test content root merging for sources in multi-module project`</ID>
     <ID>CyclomaticComplexMethod:GradlePropertyModelTest.kt:GradlePropertyModelTest$@Test fun testVariables</ID>
+    <ID>CyclomaticComplexMethod:GradleResilientSyncTest.kt:GradleResilientSyncTest$@ParameterizedTest(name = "[{index}] {0} has errors in {1}") @ArgumentsSource(TestArgumentsProvider::class) fun `test resilient sync when`</ID>
+    <ID>CyclomaticComplexMethod:GradleTomlCompletionProvider.kt:GradleTomlCompletionProvider$override fun addCompletions</ID>
+    <ID>CyclomaticComplexMethod:GradleTreeStructureProvider.kt:GradleTreeStructureProvider$override fun modify: Collection&lt;AbstractTreeNode&lt;*>></ID>
+    <ID>CyclomaticComplexMethod:GradleTreeStructureProvider.kt:GradleTreeStructureProvider$private fun getProjectNodeChildren: Collection&lt;AbstractTreeNode&lt;*>></ID>
     <ID>CyclomaticComplexMethod:GradleVersionCatalogLibrariesTest.kt:GradleVersionCatalogLibrariesTest$@Test fun testAllDependencies</ID>
     <ID>CyclomaticComplexMethod:GrazieSpellCheckerEngine.kt:internal fun identifierParts: List&lt;IntRange></ID>
     <ID>CyclomaticComplexMethod:GroovyDeclarationHighlightingPassFactory.kt:private fun getDeclarationHighlightingAttribute: TextAttributesKey?</ID>
@@ -653,8 +679,12 @@
     <ID>CyclomaticComplexMethod:jsonUtil.kt:private fun toJson</ID>
     <ID>CyclomaticComplexMethod:modifiers.kt:private fun getImplicitVisibility: String?</ID>
     <ID>CyclomaticComplexMethod:precision.kt:fun isPossibleLooseOfPrecision: Boolean</ID>
+    <ID>CyclomaticComplexMethod:util.kt:TomlVersionCatalogVisitor$override fun visitTable</ID>
+    <ID>CyclomaticComplexMethod:util.kt:private fun extractDependencyFromEntry: DependencyCoordinates?</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:DbTableEdits.kt:SingleTableSelect$val (columns, name, _, tail) = match.destructured</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:DefaultGithubGistContentsCollector.kt:DefaultGithubGistContentsCollector$val (project, editor, file, files) = gistEventData</ID>
+    <ID>DestructuringDeclarationWithTooManyEntries:DefaultGradleLightBuildTest.kt:DefaultGradleLightBuildTest$val (rootBuild, buildSrcBuild, includedBuild, includedBuildSrcBuild) = convertedBuilds</ID>
+    <ID>DestructuringDeclarationWithTooManyEntries:DefaultGradleLightBuildTest.kt:DefaultGradleLightBuildTest$val (rootBuild, includedBuild, buildSrcBuild, includedBuildVisibleToBuildSrc) = convertedBuilds</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:HtmlFileDropHandler.kt:val (parent, insertionPoint, tagText, imageInfo) = readAction { val tagText = prepareTagText(target, tagTemplate, getRelativePath(target, droppedFile)) val offset = editor.caretModel.offset val element = target.findElementAt(offset) if (element == null || tagText == null) return@readAction null val parent: XmlElement = PsiTreeUtil.getParentOfType(element, XmlTag::class.java, XmlDocument::class.java) ?: return@readAction null var candidate: PsiElement? = null for (psiElement in parent.children) { if (psiElement.textRange.endOffset >= offset) { candidate = psiElement break } } if (parent is XmlTag &amp;&amp; candidate != null) { val startEnd = XmlChildRole.START_TAG_END_FINDER.findChild(parent.getNode()) if (startEnd != null &amp;&amp; startEnd.textRange.endOffset > candidate.textRange.endOffset) { candidate = startEnd.psi } val endStart = XmlChildRole.CLOSING_TAG_START_FINDER.findChild(parent.getNode()) if (endStart != null &amp;&amp; endStart.textRange.startOffset &lt;= candidate!!.textRange.startOffset) { candidate = endStart.psi.prevSibling } } val insertionPoint = candidate val imageInfo = ImageInfoIndex.getInfo(droppedFile, target.getProject()) InsertImageTagData(parent, insertionPoint, tagText, imageInfo) } ?: return</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:HtmlFileDropHandler.kt:val (relativePath, parent, existingPosition, tagText) = readAction { val relativePath = getRelativePath(target, droppedFile) val tagText = prepareTagText(target, tagTemplate, relativePath) val document = target.document if (document == null || tagText == null) return@readAction null val topLevelTags = PsiTreeUtil.getChildrenOfType(document, XmlTag::class.java) var html: XmlTag? = null var head: XmlTag? = null if (topLevelTags != null) { for (tag in topLevelTags) { if ("html" == tag.name) { html = tag break } if ("head" == tag.name) { head = tag break } } } if (html != null) { head = html.findFirstSubTag("head") } val parent: PsiElement = head ?: (html ?: document) val existingPosition = findExistingPosition(editor, tagTemplate, relativePath, parent) InsertTagData(relativePath, parent, existingPosition, tagText) } ?: return</ID>
     <ID>DestructuringDeclarationWithTooManyEntries:ImageUtils.kt:ImageUtils$val (path, width, height, title, description) = imageData</ID>
@@ -663,6 +693,7 @@
     <ID>EmptyCatchBlock:GitHistoryTraverserImplTest.kt:GitHistoryTraverserImplTest${ }</ID>
     <ID>EmptyClassBlock:FrontendRecentFileEventsController.kt:FrontendRecentFileEventsController${ }</ID>
     <ID>EmptyClassBlock:GrParameterWrapper.kt:GrParameterWrapper${ }</ID>
+    <ID>EmptyClassBlock:GradleDependencySourceDownloaderErrorHandler.kt:GradleDependencySourceDownloaderErrorHandler.Noop${}</ID>
     <ID>EmptyClassBlock:PsiSourceResolveResult.kt:PsiSourceResolveResult${ }</ID>
     <ID>EmptyClassBlock:SpringAutowiringInspectionTest.kt:SpringAutowiringInspectionTest.Companion${ }</ID>
     <ID>EmptyDefaultConstructor:BackendEditorConfigReferenceSupport.kt:BackendEditorConfigReferenceSupport</ID>
@@ -678,10 +709,13 @@
     <ID>EmptyDefaultConstructor:GitRepositoryReaderNewTest.kt:GitRepositoryReaderNewTest.UsingPackedRefs</ID>
     <ID>EmptyDefaultConstructor:GitRepositoryReaderNewTest.kt:GitRepositoryReaderNewTest.UsingReftable</ID>
     <ID>EmptyDefaultConstructor:GitShallowRepositoryCheck.kt:GitShallowRepositoryCheck</ID>
+    <ID>EmptyDefaultConstructor:GradleTomlCompletionContributor.kt:GradleTomlCompletionContributor</ID>
+    <ID>EmptyDefaultConstructor:GroovyRedundantKotlinStdLibInspectionVisitor.kt:RemoveDependencyFix</ID>
     <ID>EmptyDefaultConstructor:ModalCommitSettingsListener.kt:ModalCommitSettingsListener</ID>
     <ID>EmptyDefaultConstructor:RunContentSyncListener.kt:RunContentSyncListener</ID>
     <ID>EmptyDefaultConstructor:SLRUTextMateCache.kt:SLRUTextMateCache.LRUSegment</ID>
     <ID>EmptyDefaultConstructor:ServiceViewDescriptorIdSerializer.kt:ServiceViewDescriptorIdsSerializer</ID>
+    <ID>EmptyDefaultConstructor:UnsupportedGradleVersionIssueCheckerTest.kt:UnsupportedGradleVersionIssueCheckerTest</ID>
     <ID>EmptyElseBlock:AiIntegrationsScenario.kt:AiIntegrationsScenario$if (n &lt; 0) break</ID>
     <ID>EmptyElseBlock:AiIntegrationsScenario.kt:AiIntegrationsScenario$if (win.width != w || win.height != h) win.setSize(w, h)</ID>
     <ID>EmptyElseBlock:CodexUsageParseTest.kt:CodexUsageParseTest.FakeChannel$if (timeoutMs > 0) Thread.sleep(minOf(timeoutMs, 20))</ID>
@@ -706,6 +740,7 @@
     <ID>EmptyFunctionBlock:ActuatorTab.kt:ActuatorTab${}</ID>
     <ID>EmptyFunctionBlock:ActuatorTest.kt:ActuatorTest.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:AggregateView.kt:AggregateView${ }</ID>
+    <ID>EmptyFunctionBlock:BaseResolverExtension.kt:BaseResolverExtension${}</ID>
     <ID>EmptyFunctionBlock:BlockDecorationState.kt:EmptyHighlighterRenderer${ }</ID>
     <ID>EmptyFunctionBlock:BlockDecorationState.kt:EmptyLineMarkerRenderer${ }</ID>
     <ID>EmptyFunctionBlock:BlockTerminalCommandExecutionTest.kt:MyHyperlinkFilter.NopHyperlinkInfo${}</ID>
@@ -719,6 +754,7 @@
     <ID>EmptyFunctionBlock:DbToolWindow.kt:DbExplorerPanel.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:DbValueViewer.kt:DbValueViewer${}</ID>
     <ID>EmptyFunctionBlock:DeclarativeIdeSupport.kt:DeclarativeIdeSupport${ }</ID>
+    <ID>EmptyFunctionBlock:DependencyCompletionLoadingAdvertiserTest.kt:TestCompletionResultSet${}</ID>
     <ID>EmptyFunctionBlock:DetachedSessionsInIdeTest.kt:DetachedSessionsInIdeTest.FakeIo${}</ID>
     <ID>EmptyFunctionBlock:DockerToolWindow.kt:ContainersPanel${}</ID>
     <ID>EmptyFunctionBlock:EditorConfigConfigurable.kt:EditorConfigConfigurable${ }</ID>
@@ -746,6 +782,12 @@
     <ID>EmptyFunctionBlock:GitRevertProcess.kt:GitRevertProcess${ }</ID>
     <ID>EmptyFunctionBlock:GitUpdateSession.kt:GitUpdateSession${}</ID>
     <ID>EmptyFunctionBlock:GpgAgentConfigurator.kt:GpgAgentConfigurator${}</ID>
+    <ID>EmptyFunctionBlock:GradleDirectoryDecoration.kt:GradleDirectoryDecorationTracker${}</ID>
+    <ID>EmptyFunctionBlock:GradleJavaProjectResolverPerformanceTest.kt:GradleJavaProjectResolverPerformanceTest.GradleTestNoOpProjectResolverExtension${}</ID>
+    <ID>EmptyFunctionBlock:GradleJvmSupportMatricesTestCase.kt:GradleJvmSupportMatricesTestCase.&lt;no name provided>${ }</ID>
+    <ID>EmptyFunctionBlock:GradleLocalRepositoryIndexerImpl.kt:GradleLocalRepositoryIndexerTestImpl${}</ID>
+    <ID>EmptyFunctionBlock:GradleTasksUtilTestCase.kt:GradleTasksUtilTestCase.NoOpLogger${}</ID>
+    <ID>EmptyFunctionBlock:GradleVersionCatalogSyncContributorTest.kt:GradleVersionCatalogSyncContributorTest${}</ID>
     <ID>EmptyFunctionBlock:GrazieFolderConfig.kt:GrazieFolderConfig${}</ID>
     <ID>EmptyFunctionBlock:GrazieInspection.kt:GrazieInspection.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:GrazieLanguagesList.kt:GrazieLanguagesList${}</ID>
@@ -762,6 +804,7 @@
     <ID>EmptyFunctionBlock:IdeaDecompiler.kt:IdeaDecompiler.MyResultSaver${}</ID>
     <ID>EmptyFunctionBlock:JCefImageViewer.kt:JCefImageViewer${}</ID>
     <ID>EmptyFunctionBlock:JCefImageViewer.kt:JCefImageViewer.&lt;no name provided>${}</ID>
+    <ID>EmptyFunctionBlock:JavaGradleProjectImportBuilder.kt:JavaGradleProjectImportBuilder${}</ID>
     <ID>EmptyFunctionBlock:JfrViewer.kt:CallTreeModel${}</ID>
     <ID>EmptyFunctionBlock:JfrViewer.kt:JfrEditor${}</ID>
     <ID>EmptyFunctionBlock:JoniRegexFacade.kt:JoniRegexFacade${ }</ID>
@@ -771,6 +814,8 @@
     <ID>EmptyFunctionBlock:JsonTextLiteralService.kt:JsonTextLiteralService${ }</ID>
     <ID>EmptyFunctionBlock:LightGitTracker.kt:LightGitTracker${ }</ID>
     <ID>EmptyFunctionBlock:LocalFilterPopup.kt:LocalFilterPopup.&lt;no name provided>${}</ID>
+    <ID>EmptyFunctionBlock:LocalGradleExecutionAwareTest.kt:LocalGradleExecutionAwareTest.DummyTask${}</ID>
+    <ID>EmptyFunctionBlock:LocalGradleExecutionAwareTest.kt:LocalGradleExecutionAwareTest.DummyTaskNotificationListener${}</ID>
     <ID>EmptyFunctionBlock:LoopbackTtyConnector.kt:LoopbackTtyConnector${}</ID>
     <ID>EmptyFunctionBlock:MarkdownHtmlExportProvider.kt:MarkdownHtmlExportProvider.SaveSettingsListener${}</ID>
     <ID>EmptyFunctionBlock:MarkdownPreviewFileEditor.kt:MarkdownPreviewFileEditor${}</ID>
@@ -807,6 +852,7 @@
     <ID>EmptyFunctionBlock:StatisticsTableHeader.kt:StatisticsTableHeader.StatisticsColumnsControllerPanel.StatisticsPanel${}</ID>
     <ID>EmptyFunctionBlock:Switcher.kt:Switcher.SwitcherPanel.&lt;no name provided>${}</ID>
     <ID>EmptyFunctionBlock:TabGroupsService.kt:TabGroupsService${}</ID>
+    <ID>EmptyFunctionBlock:TargetGradleConnector.kt:TargetGradleConnector${ }</ID>
     <ID>EmptyFunctionBlock:TerminalActivityTracker.kt:TerminalNoOpActivityTracker${}</ID>
     <ID>EmptyFunctionBlock:TerminalCompletionFeedbackSurvey.kt:TerminalCompletionSurveyConfig${}</ID>
     <ID>EmptyFunctionBlock:TerminalDisplayImpl.kt:TerminalDisplayImpl${ }</ID>
@@ -826,13 +872,21 @@
     <ID>EmptyFunctionBlock:WorkspacesInIdeTest.kt:WorkspacesInIdeTest.ProjectFrame${}</ID>
     <ID>EmptyFunctionBlock:XlsxValuesExtractor.kt:XlsxValuesExtractor.XlsxExtraction${ }</ID>
     <ID>EmptyIfBlock:GHPRFilesManagerImpl.kt:GHPRFilesManagerImpl${ }</ID>
+    <ID>EmptyIfBlock:GradleMiscContributor.kt:GradleMiscContributor${ }</ID>
     <ID>EmptyIfBlock:jsonSchemaInheritance.kt:{ }</ID>
+    <ID>EmptyKotlinFile:GradleBaseTestCase.kt:.GradleBaseTestCase.kt</ID>
     <ID>EqualsWithHashCodeExist:GrazieRulesTreeNode.kt:GrazieRulesTreeNode : CheckedTreeNode</ID>
     <ID>ExplicitGarbageCollectionCall:CheckingBenchmarkTest.kt:CheckingBenchmarkTest$gc()</ID>
+    <ID>ExplicitItLambdaMultipleParameters:GradleTreeTraverserUtilTest.kt:GradleTreeTraverserUtilTest${ path, it -> resultWithPath[it.value] = path.map { it.value } result.add(it.value) it.children }</ID>
     <ID>ExplicitItLambdaParameter:BlockTerminalCommandExecutionTest.kt:BlockTerminalCommandExecutionTest${ it -> session.commandManager.addListener(it, session) }</ID>
     <ID>ExplicitItLambdaParameter:GitTestAssertions.kt:ChangesBuilder.AChange${ it -> matcher(it.status, it.beforePath, it.afterPath) }</ID>
     <ID>ExplicitItLambdaParameter:GrSignatureWrapper.kt:GrSignatureWrapper${ it -> GrParameterWrapper( it.name, it.type, it.defaultInitializer ) }</ID>
     <ID>ExplicitItLambdaParameter:GrStaticExpressionReference.kt:GrStaticExpressionReference.Resolver${ it -> arrayOf(it) }</ID>
+    <ID>ExplicitItLambdaParameter:GradleOpenProjectTest.kt:GradleOpenProjectTest${ it -> assertProjectState(it, projectInfo) attachProject(it, "linked_project") assertProjectState(it, projectInfo, linkedProjectInfo) attachMavenProject(it, "linked_project") val existingModuleNames = it.modules.map { it.name } assertTrue(existingModuleNames.contains("maven_project"), "Maven linked project not found") val linkedProjects = existingModuleNames.filter { it.contains("linked_project") } assertTrue(linkedProjects.isEmpty(), "Unexpected Gradle linked projects found: $linkedProjects") attachProject(it, "linked_project") assertProjectState(it, projectInfo, linkedProjectInfo) }</ID>
+    <ID>ExplicitItLambdaParameter:GradleProgressEventConverter.kt:GradleProgressEventConverter${ it -> convertTestFailure(it) }</ID>
+    <ID>ExplicitItLambdaParameter:GradleRerunFailedTestsAction.kt:GradleRerunFailedTestsAction${ it: TestLocationInfo -> createTestFilterFrom(it.location, it.psiClass, it.psiMethod) }</ID>
+    <ID>ExplicitItLambdaParameter:GradleRerunFailedTestsAction.kt:GradleRerunFailedTestsAction${ it: TestLocationInfo -> getSourceFile(it.element) }</ID>
+    <ID>ExplicitItLambdaParameter:LinkGradleProjectCommand.kt:LinkGradleProjectCommand${ it: ProjectImportProvider? -> it is AbstractExternalProjectImportProvider &amp;&amp; GradleConstants.SYSTEM_ID == it.externalSystemId }</ID>
     <ID>ForbiddenComment:CodeInsightFixtureExtension.kt:CodeInsightFixtureExtension$// TODO: Investigate why createLightFixtureBuilder is not working correctly with TestApplicationExtension</ID>
     <ID>ForbiddenComment:DefaultNavBarItem.kt:// TODO: remove. It doesn't look like we'll have packages in navbar ever again</ID>
     <ID>ForbiddenComment:DefaultNavBarItemProvider.kt:DefaultNavBarItemProvider$/*TODO: think about passing root here*/</ID>
@@ -883,10 +937,14 @@
     <ID>ForbiddenComment:GitWorkingTreeHolderImpl.kt:GitWorkingTreeHolderImpl$// TODO: cancel the scheduled update to reduce wait times</ID>
     <ID>ForbiddenComment:GithubApiRequest.kt:GithubApiRequest.Patch.Json$// TODO: Mark as PATCH, currently this likely sends POSTs?</ID>
     <ID>ForbiddenComment:GithubApiRequests.kt:GithubApiRequests$* Collection of factory methods for API requests used in plugin * TODO: improve url building (DSL?)</ID>
+    <ID>ForbiddenComment:GradleBuildScriptErrorParser.kt:GradleBuildScriptErrorParser$//TODO: Used english suggestions and exceptions:</ID>
+    <ID>ForbiddenComment:GradleDCLImportingTest.kt:GradleDCLImportingTest$// TODO: This test uses Internet repositories and is slow in CI environment.</ID>
+    <ID>ForbiddenComment:GradleNewProjectWizardTestCase.kt:GradleNewProjectWizardTestCase$// TODO: IDEA-386782 has to be fixed by throwing exception from e.g. `compileModules`</ID>
     <ID>ForbiddenComment:GradlePropertyModelTest.kt:GradlePropertyModelTest$/*, "0", "ext.prop1.0" TODO: FIX THIS */</ID>
     <ID>ForbiddenComment:GradlePropertyModelTest.kt:GradlePropertyModelTest$// TODO: Order of statements is wrong so this model does not get correctly parsed.</ID>
     <ID>ForbiddenComment:GradlePropertyModelTest.kt:GradlePropertyModelTest$// TODO: Should not be visible, this needs line number support to correctly hide itself.</ID>
     <ID>ForbiddenComment:GradlePropertyModelTest.kt:GradlePropertyModelTest$// TODO: This is not currently parsed.</ID>
+    <ID>ForbiddenComment:GradleUndefinedDaemonJvmCriteriaIssueChecker.kt:GradleUndefinedDaemonJvmCriteriaIssueChecker$// TODO: No known exception since right now is an opt-in feature</ID>
     <ID>ForbiddenComment:GroovyInferenceSessionBuilder.kt:GroovyInferenceSessionBuilder$//TODO:add explicit typed closure constraints</ID>
     <ID>ForbiddenComment:GroovySliceUsage.kt:GroovySliceUsage$// TODO: This is a simple implementation created mainly for the purpose of cross-language graph testing</ID>
     <ID>ForbiddenComment:HeaderAnchorLinkDestinationReference.kt:HeaderAnchorLinkDestinationReference$// TODO: Replace with actual header icon</ID>
@@ -905,6 +963,7 @@
     <ID>ForbiddenComment:ShellJsonBasedArgumentSpec.kt:ShellJsonBasedArgumentSpec$// TODO: there should be a way to localize the json-based descriptions</ID>
     <ID>ForbiddenComment:ShellPromptRenderer.kt:ShellPromptRenderer$// TODO: Add tests</ID>
     <ID>ForbiddenComment:ShellPromptRenderer.kt:ShellPromptRenderer$// TODO: Add tests. Consider using it in TerminalCaretModel, because it is not taking into account the line wraps now.</ID>
+    <ID>ForbiddenComment:TargetProjectConnection.kt:TargetProjectConnection$// TODO: implement passing information about recent file changes to a Gradle daemon</ID>
     <ID>ForbiddenComment:TerminalAgentsSupport.kt:// TODO: ad hoc code for Junie, should be generalized if we want to track other agents installs</ID>
     <ID>ForbiddenComment:TerminalContentChangesTracker.kt:TerminalContentChangesTracker.&lt;no name provided>$// TODO: consider tracking of the discarded lines in case of resizing to not replace everything.</ID>
     <ID>ForbiddenComment:TerminalEventDispatcher.kt:// TODO: I suspect that Y positions should be screen-start based (without history).</ID>
@@ -927,6 +986,11 @@
     <ID>FunctionNaming:GHUIUtil.kt:GHUIUtil.SelectionPresenters$fun PRReviewers: (GHPullRequestRequestedReviewer) -> PopupItemPresentation.Simple</ID>
     <ID>FunctionNaming:GHUIUtil.kt:GHUIUtil.SelectionPresenters$fun Users: (GHUser) -> PopupItemPresentation.Simple</ID>
     <ID>FunctionNaming:GitStageTree.kt:NodeKind$abstract fun `is`: Boolean</ID>
+    <ID>FunctionNaming:GradleBuildEntityModifications.kt:@JvmOverloads @JvmName("createGradleBuildEntity") fun GradleBuildEntity: GradleBuildEntityBuilder</ID>
+    <ID>FunctionNaming:GradleExternalProjectEntityModifications.kt:@JvmOverloads @JvmName("createGradleExternalProjectEntity") fun GradleExternalProjectEntity: GradleExternalProjectEntityBuilder</ID>
+    <ID>FunctionNaming:GradleModuleEntityModifications.kt:@JvmOverloads @JvmName("createGradleModuleEntity") fun GradleModuleEntity: GradleModuleEntityBuilder</ID>
+    <ID>FunctionNaming:GradleProjectEntityModifications.kt:@JvmOverloads @JvmName("createGradleProjectEntity") fun GradleProjectEntity: GradleProjectEntityBuilder</ID>
+    <ID>FunctionNaming:GradleVersionCatalogEntityModifications.kt:@JvmOverloads @JvmName("createGradleVersionCatalogEntity") fun GradleVersionCatalogEntity: GradleVersionCatalogEntityBuilder</ID>
     <ID>FunctionNaming:_Json5Lexer.kt:_Json5Lexer.Companion$@JvmStatic private fun zzUnpackcmap_blocks: Int</ID>
     <ID>FunctionNaming:_Json5Lexer.kt:_Json5Lexer.Companion$@JvmStatic private fun zzUnpackcmap_blocks: IntArray</ID>
     <ID>FunctionNaming:_Json5Lexer.kt:_Json5Lexer.Companion$@JvmStatic private fun zzUnpackcmap_top: Int</ID>
@@ -937,6 +1001,15 @@
     <ID>FunctionNaming:_JsonLexer.kt:_JsonLexer.Companion$@JvmStatic private fun zzUnpackcmap_top: IntArray</ID>
     <ID>FunctionOnlyReturningConstant:DeclarativeIdeSupport.kt:DeclarativeIdeSupport$@JvmStatic fun isEnabled: Boolean</ID>
     <ID>FunctionOnlyReturningConstant:GHNewPRDiffVirtualFile.kt:private fun getFileName: String</ID>
+    <ID>FunctionOnlyReturningConstant:GradleBuildScriptBuilderUtil.kt:fun getGroovyVersion: String</ID>
+    <ID>FunctionOnlyReturningConstant:GradleBuildScriptBuilderUtil.kt:fun getJunit4Version: String</ID>
+    <ID>FunctionOnlyReturningConstant:GradleBuildScriptBuilderUtil.kt:fun getJunit5Version: String</ID>
+    <ID>FunctionOnlyReturningConstant:GradleBuildScriptBuilderUtil.kt:fun getJunit6Version: String</ID>
+    <ID>FunctionOnlyReturningConstant:GradleCodeInsightTestCase.kt:GradleCodeInsightTestCase$fun getDistributionContainerFqn: String</ID>
+    <ID>FunctionOnlyReturningConstant:GradleDaemonJvmHelper.kt:GradleDaemonJvmHelper$@JvmStatic fun isDaemonJvmCriteriaRequired: Boolean</ID>
+    <ID>FunctionOnlyReturningConstant:GradleExecutionSettingsUtil.kt:fun createTestWildcardFilter: String</ID>
+    <ID>FunctionOnlyReturningConstant:GradleReflectionUtilTest.kt:GradleReflectionUtilTest.GetValueTestObject$fun problemSolver</ID>
+    <ID>FunctionOnlyReturningConstant:GradleReflectionUtilTest.kt:GradleReflectionUtilTest.GetValueTestObject$private fun privateMethod: Int</ID>
     <ID>FunctionOnlyReturningConstant:NavBarRootPaneExtension.kt:MyNavBarWrapperPanel$private fun shouldPaintWrapperPanel: Boolean</ID>
     <ID>FunctionOnlyReturningConstant:TomlParserUtil.kt:TomlParserUtil$@Suppress("UNUSED_PARAMETER") @JvmStatic fun any: Boolean</ID>
     <ID>FunctionOnlyReturningConstant:_Json5Lexer.kt:_Json5Lexer$private fun zzCanGrow: Boolean</ID>
@@ -948,10 +1021,13 @@
     <ID>FunctionParameterNaming:HtmlUtils.kt:_content: TextContent?</ID>
     <ID>FunctionParameterNaming:YAMLExpandCollectionIntentionAction.kt:YAMLExpandAllCollectionsInsideIntentionAction$collection_: PsiElement</ID>
     <ID>InvalidPackageDeclaration:AstUtil.kt:package org.jetbrains.yaml</ID>
+    <ID>InvalidPackageDeclaration:DependencyCompletionLoadingAdvertiserTest.kt:package com.intellij.gradle.completion</ID>
+    <ID>InvalidPackageDeclaration:GradleJvmSupportDefaultData.kt:package org.jetbrains.plugins.gradle.jvmcompat;</ID>
     <ID>InvalidPackageDeclaration:ImportantFileTypeUsageDescriptorTest.kt:package org.jetbrains.yaml</ID>
     <ID>InvalidPackageDeclaration:JvmBacktickReferenceContributor.kt:package com.intellij.markdown.java</ID>
     <ID>InvalidPackageDeclaration:JvmCodeSpanConfigurationContextSearcher.kt:package com.intellij.markdown.java</ID>
     <ID>InvalidPackageDeclaration:MarkdownReferenceUseScopeEnlarger.kt:package org.intellij.plugins.markdown.lang.references.backtick</ID>
+    <ID>InvalidPackageDeclaration:MetadataStorageImpl.kt:package org.jetbrains.plugins.gradle.service.syncContributor.impl</ID>
     <ID>InvalidPackageDeclaration:Names.kt:package org.jetbrains.yaml.helm.fileTypes</ID>
     <ID>InvalidPackageDeclaration:SeYAMLKeysProvider.kt:package org.jetbrains.yaml.searchEverywhere</ID>
     <ID>InvalidPackageDeclaration:SeYAMLKeysProviderFactory.kt:package org.jetbrains.yaml.searchEverywhere</ID>
@@ -1006,15 +1082,24 @@
     <ID>InvalidRange:GitTextFilePatchWithHistoryTest.kt:GitTextFilePatchWithHistoryTest.Companion$5..&lt;5</ID>
     <ID>IteratorNotThrowingNoSuchElementException:GHCloneDialogExtensionComponentBase.kt:GHCloneDialogExtensionComponentBase.Companion$&lt;no name provided> : Iterator</ID>
     <ID>LargeClass:AndroidModelTest.kt:AndroidModelTest : AndroidGradleFileModelTestCase</ID>
+    <ID>LargeClass:AssertionMessageParserTest.kt:AssertionMessageParserTest$Companion</ID>
     <ID>LargeClass:BytecodeLineMappingTest.kt:BytecodeLineMappingTest : BasePlatformTestCase</ID>
     <ID>LargeClass:GHGQLDataTest.kt:MetaTest</ID>
     <ID>LargeClass:GitBranchWorkerTest.kt:GitBranchWorkerTest : GitPlatformTest</ID>
     <ID>LargeClass:GitCommitTest.kt:GitCommitTestBase</ID>
     <ID>LargeClass:GitSingleRepoRebaseTest.kt:GitSingleRepoRebaseTest : GitRebaseBaseTest</ID>
+    <ID>LargeClass:GradleAvoidDependencyNamedArgumentsNotationInspectionTest.kt:GradleAvoidDependencyNamedArgumentsNotationInspectionTest : GradleCodeInsightTestCase</ID>
+    <ID>LargeClass:GradleContentRootSyncContributorTest.kt:GradleContentRootSyncContributorTest : GradlePhasedSyncTestCase</ID>
+    <ID>LargeClass:GradleOutputParsersMessagesImportingTest.kt:GradleOutputParsersMessagesImportingTest : GradleOutputParsersMessagesImportingTestCase</ID>
+    <ID>LargeClass:GradlePhasedSyncTest.kt:GradlePhasedSyncTest : GradlePhasedSyncTestCase</ID>
+    <ID>LargeClass:GradleProjectResolverTest.kt:GradleProjectResolverTest : GradleProjectResolverTestCase</ID>
     <ID>LargeClass:GradlePropertyModelTest.kt:GradlePropertyModelTest : GradleFileModelTestCase</ID>
+    <ID>LargeClass:GradleTestAssertionTest.kt:GradleTestAssertionTest : GradleTestExecutionTestCase</ID>
+    <ID>LargeClass:GradleTestExecutionTest.kt:GradleTestExecutionTest : GradleTestExecutionTestCase</ID>
     <ID>LargeClass:JUnitMalformedDeclarationInspection.kt:JUnitMalformedSignatureVisitor : AbstractUastNonRecursiveVisitor</ID>
     <ID>LargeClass:JavaJUnitMalformedDeclarationInspectionTest.kt:JavaJUnitMalformedDeclarationInspectionTest$Latest : JUnitMalformedDeclarationInspectionTestBase</ID>
     <ID>LargeClass:JsonSchema2020FeaturesTest.kt:JsonSchema2020FeaturesTest : JsonSchemaVersionTestBase</ID>
+    <ID>LargeClass:MetadataStorageImpl.kt:MetadataStorageImpl : MetadataStorageBase</ID>
     <ID>LargeClass:NetworkntErrorMapper.kt:NetworkntErrorMapper</ID>
     <ID>LargeClass:ProductFlavorModelTest.kt:ProductFlavorModelTest : AndroidGradleFileModelTestCase</ID>
     <ID>LargeClass:ProjectBuildModelTest.kt:ProjectBuildModelTest : GradleFileModelTestCase</ID>
@@ -1030,9 +1115,13 @@
     <ID>LongMethod:BranchesInGitLogUiFactoryProvider.kt:BranchesVcsLogUi$private fun createMainComponent: JComponent</ID>
     <ID>LongMethod:ClassDiagramTest.kt:ClassDiagramTest$fun `test keywords in identifiers`</ID>
     <ID>LongMethod:CoverageIntegrationTest.kt:CoverageIntegrationTest$@Test fun `test sub coverage`: Unit</ID>
+    <ID>LongMethod:DaemonServicesFactory.kt:private fun getDaemonRequestContextAfter8Dot8: Any</ID>
     <ID>LongMethod:DbGridEditing.kt:DbGridEdits$private fun apply</ID>
     <ID>LongMethod:DbSshTunnel.kt:DbSshTunnelOpener$override fun open: DbTunnel</ID>
     <ID>LongMethod:DbToolWindow.kt:DbExplorerPanel.Renderer$override fun customizeCellRenderer</ID>
+    <ID>LongMethod:DefaultGradleLightBuildTest.kt:DefaultGradleLightBuildTest$@ParameterizedTest @GradleTestSource("6.6.1, 7.6.6") fun `test converted buildSrc does not have a parent before Gradle 8,0`</ID>
+    <ID>LongMethod:DefaultGradleLightBuildTest.kt:DefaultGradleLightBuildTest$@ParameterizedTest @GradleTestSource("8.0.2, $BASE_GRADLE_VERSION") fun `test converted buildSrc has a parent build since Gradle 8,0`</ID>
+    <ID>LongMethod:DefaultGradleLightBuildTest.kt:DefaultGradleLightBuildTest$@ParameterizedTest @GradleTestSource("8.1.1, 8.2.1") fun `test DefaultGradleLightBuild#convertGradleBuilds for composite build`</ID>
     <ID>LongMethod:DependenciesTest.kt:DependenciesTest$@Test fun testAllDependencies</ID>
     <ID>LongMethod:Dockerfile.kt:Dockerfile.Companion$fun parse: Dockerfile</ID>
     <ID>LongMethod:DockerfileInspections.kt:DockerfileInspectionImpl$override fun check</ID>
@@ -1056,11 +1145,75 @@
     <ID>LongMethod:GitStageLineStatusTracker.kt:GitStageLineStatusTracker.MyLineStatusMarkerPopupRenderer$private fun paintStageLines</ID>
     <ID>LongMethod:GitTextFilePatchWithHistoryTest.kt:GitTextFilePatchWithHistoryTest.Companion$@JvmStatic fun testCases: Array&lt;TestCase></ID>
     <ID>LongMethod:GitVcsPanel.kt:GitVcsPanel$override fun createPanel: DialogPanel</ID>
+    <ID>LongMethod:GradleBuildOutputTest.kt:GradleBuildOutputTest$@Disabled("IDEA-387217") @ParameterizedTest @AllGradleVersionsSource fun `test build script errors on Build`</ID>
+    <ID>LongMethod:GradleBuildScriptBuilderTest.kt:GradleBuildScriptBuilderTest$@Test fun `test junit dependency generation`</ID>
+    <ID>LongMethod:GradleBuildScriptErrorParser.kt:GradleBuildScriptErrorParser$override fun parse: Boolean</ID>
     <ID>LongMethod:GradleCatalogVersionsTest.kt:GradleCatalogVersionsTest$@Test fun testAllDependencies</ID>
+    <ID>LongMethod:GradleCommandLineParserTest.kt:GradleCommandLineParserTest$@Test fun `test compose hot reload run task options`</ID>
+    <ID>LongMethod:GradleCommandLineParserTest.kt:GradleCommandLineParserTest$@Test fun `test simple parsing`</ID>
+    <ID>LongMethod:GradleCommandLineParserTest.kt:GradleCommandLineParserTest$@Test fun `test space merging`</ID>
+    <ID>LongMethod:GradleContentRootSyncContributorTest.kt:GradleContentRootSyncContributorTest$@Test fun `test workspace entities configuration in the Gradle project with buildSrc`</ID>
+    <ID>LongMethod:GradleContentRootSyncContributorTest.kt:GradleContentRootSyncContributorTest$@Test fun `test workspace entities configuration outside project root`</ID>
+    <ID>LongMethod:GradleContentRootSyncContributorTest.kt:GradleContentRootSyncContributorTest$@Test fun `test workspace entities creation for a linked project`</ID>
+    <ID>LongMethod:GradleContentRootSyncContributorTest.kt:GradleContentRootSyncContributorTest$@Test fun `test workspace entities creation in the Gradle project with included build`</ID>
+    <ID>LongMethod:GradleContentRootSyncContributorTest.kt:GradleContentRootSyncContributorTest$@Test fun `test workspace entities creation in the multi-module Gradle project`</ID>
+    <ID>LongMethod:GradleHighlightingTest.kt:GradleHighlightingTest$@ParameterizedTest @BaseGradleVersionSource fun testGradleJavaImplicitUsages</ID>
+    <ID>LongMethod:GradleJVMIssuePatternMatcherTest.kt:GradleJVMIssuePatternMatcherTest$@CartesianTest(name = "{index} => suppliedJvmVersion: {0}, expectedJvmVersion: {1}, dependencyName: {2}") @CartesianTest.MethodFactory("unresolvedDependencyJvmIssueFactory") fun `unresolved Gradle 6_2-6_3 test`</ID>
+    <ID>LongMethod:GradleJavaCompilerSettingsImportingTest.kt:GradleJavaCompilerSettingsImportingTest$@Test fun `test language level approximation`</ID>
+    <ID>LongMethod:GradleJavaOutputParsersMessagesImportingTest.kt:GradleJavaOutputParsersMessagesImportingTest$@Ignore("IDEA-387217") @Test fun `test build script errors on Build`</ID>
+    <ID>LongMethod:GradleModuleDataIndexTest.kt:GradleModuleDataIndexTest$@Test fun `test module data finding`: Unit</ID>
+    <ID>LongMethod:GradleOutOfMemoryIssueChecker.kt:GradleOutOfMemoryIssueChecker$override fun check: BuildIssue?</ID>
+    <ID>LongMethod:GradleOutputParsersMessagesImportingTest.kt:GradleOutputParsersMessagesImportingTest$@Test @TargetVersions("6.0+", "&lt;9.0.0") @TargetJavaVersion(value = "&lt;17", reason = "JUnit 6 requires Java 17 or newer") @TestFor(issues = ["IDEA-380461"]) fun `test unresolved dependencies errors on Sync due to outdated Gradle JVM`</ID>
+    <ID>LongMethod:GradleOutputParsersMessagesImportingTest.kt:GradleOutputParsersMessagesImportingTest$@Test fun `test build script plugins errors on Sync`</ID>
+    <ID>LongMethod:GradleOutputParsersMessagesImportingTest.kt:GradleOutputParsersMessagesImportingTest$@Test fun `test unresolved build script dependencies errors on Sync`</ID>
+    <ID>LongMethod:GradleOutputParsersMessagesImportingTest.kt:GradleOutputParsersMessagesImportingTest$@Test fun `test unresolved dependencies errors on Sync`</ID>
+    <ID>LongMethod:GradlePartialSyncTest.kt:GradlePartialSyncTest$@Test fun `test partial Gradle sync consistency`</ID>
+    <ID>LongMethod:GradlePhasedSyncTest.kt:GradlePhasedSyncTest$@Test fun `test Gradle model fetch phase completion`</ID>
+    <ID>LongMethod:GradlePhasedSyncTest.kt:GradlePhasedSyncTest$@Test fun `test bridge entity contribution on Gradle sync phase with bridge disabled`</ID>
+    <ID>LongMethod:GradlePhasedSyncTest.kt:GradlePhasedSyncTest$@Test fun `test entity contribution on Gradle sync phase`</ID>
+    <ID>LongMethod:GradlePhasedSyncTest.kt:GradlePhasedSyncTest$private fun `test phased Gradle sync cancellation`</ID>
+    <ID>LongMethod:GradleProjectResolverTest.kt:GradleProjectResolverTest$@Test fun `test content root merging for non-standard sources in android project`</ID>
+    <ID>LongMethod:GradleProjectResolverTest.kt:GradleProjectResolverTest$@Test fun `test content root merging for sources in multi-module project`</ID>
+    <ID>LongMethod:GradleProjectRootSyncContributorTest.kt:GradleProjectRootSyncContributorTest$@Test fun `test project root creation in the simple Gradle project`</ID>
     <ID>LongMethod:GradlePropertyModelTest.kt:GradlePropertyModelTest$@Test fun testProperties</ID>
     <ID>LongMethod:GradlePropertyModelTest.kt:GradlePropertyModelTest$@Test fun testSetToListValues</ID>
     <ID>LongMethod:GradlePropertyModelTest.kt:GradlePropertyModelTest$@Test fun testVariables</ID>
+    <ID>LongMethod:GradleResilientSyncTest.kt:GradleResilientSyncTest$@ParameterizedTest(name = "[{index}] {0} has errors in {1}") @ArgumentsSource(TestArgumentsProvider::class) fun `test resilient sync when`</ID>
+    <ID>LongMethod:GradleRunAnythingProviderTest.kt:GradleRunAnythingProviderTest$@Test fun `test multi-module project`</ID>
+    <ID>LongMethod:GradleRunAnythingProviderTest.kt:GradleRunAnythingProviderTest$@Test fun `test running commands with build options and tasks arguments`</ID>
+    <ID>LongMethod:GradleRunConfigurationExtension.kt:GradleRunConfigurationExtension$override fun SettingsEditorFragmentContainer&lt;GradleRunConfiguration>.configureFragments</ID>
+    <ID>LongMethod:GradleServerEnvironmentSetupImpl.kt:GradleServerEnvironmentSetupImpl$override fun prepareEnvironment: TargetedCommandLine</ID>
+    <ID>LongMethod:GradleServerRunner.kt:GradleServerRunner$private fun runTargetProcess</ID>
+    <ID>LongMethod:GradleSourceRootSyncContributorTest.kt:GradleSourceRootSyncContributorTest$@Test fun `test source root creation in the multi-module Gradle project`</ID>
+    <ID>LongMethod:GradleSourceSetDependencySerialisationServiceTest.kt:GradleSourceSetDependencySerialisationServiceTest$@Test fun `serializes source set dependency model`</ID>
+    <ID>LongMethod:GradleSourceSetSerialisationServiceTest.kt:GradleSourceSetSerialisationServiceTest$@Test fun `serializes source set model`</ID>
+    <ID>LongMethod:GradleTasksIndicesTest.kt:GradleTasksIndicesTest$@Test fun `test task finding`</ID>
+    <ID>LongMethod:GradleTestAssertionTest.kt:GradleTestAssertionTest$@ParameterizedTest @AllGradleVersionsSource @TargetVersions( "8.4+", reason = "Integration between Intellij and Gradle &lt;7.6 doesn't support custom assertion exceptions " + "and between Junit 4 and Gradle &lt;8.4 doesn't support Opentest4j assertion exceptions." ) fun `test assertion result of Junit 4 (Opentest4j FileComparisonFailure)`</ID>
+    <ID>LongMethod:GradleTestAssertionTest.kt:GradleTestAssertionTest$@ParameterizedTest @AllGradleVersionsSource @TargetVersions("7.6+", reason = "Integration between Intellij and Gradle &lt;7.6 doesn't support custom assertion exceptions.") fun `test assertion result of Junit Platform (Opentest4j FileComparisonFailure)`</ID>
+    <ID>LongMethod:GradleTestAssertionTest.kt:GradleTestAssertionTest$@ParameterizedTest @AllGradleVersionsSource @TargetVersions(JUNIT_5_SUPPORTED_VERSIONS) fun `test assertion result of Junit 5 (AssertJ)`</ID>
+    <ID>LongMethod:GradleTestAssertionTest.kt:GradleTestAssertionTest$@ParameterizedTest @AllGradleVersionsSource @TargetVersions(JUNIT_5_SUPPORTED_VERSIONS) fun `test assertion result of Junit 5 (IJ FileComparisonFailure)`</ID>
+    <ID>LongMethod:GradleTestAssertionTest.kt:GradleTestAssertionTest$@ParameterizedTest @AllGradleVersionsSource @TargetVersions(JUNIT_5_SUPPORTED_VERSIONS) fun `test assertion result of Junit Platform (Opentest4j FileInfo)`</ID>
+    <ID>LongMethod:GradleTestAssertionTest.kt:GradleTestAssertionTest$@ParameterizedTest @AllGradleVersionsSource @TargetVersions(JUNIT_5_SUPPORTED_VERSIONS) fun `test assertion result of Junit Platform (Opentest4j)`</ID>
+    <ID>LongMethod:GradleTestAssertionTest.kt:GradleTestAssertionTest$@ParameterizedTest @AllGradleVersionsSource @TargetVersions(JUNIT_5_SUPPORTED_VERSIONS) fun `test assertion result of Junit Platform`</ID>
+    <ID>LongMethod:GradleTestAssertionTest.kt:GradleTestAssertionTest$@ParameterizedTest @AllGradleVersionsSource fun `test assertion result of Junit 4 (IJ FileComparisonFailure)`</ID>
+    <ID>LongMethod:GradleTestAssertionTest.kt:GradleTestAssertionTest$@ParameterizedTest @AllGradleVersionsSource fun `test assertion result of Junit 4 (Junit 3)`</ID>
+    <ID>LongMethod:GradleTestAssertionTest.kt:GradleTestAssertionTest$@ParameterizedTest @AllGradleVersionsSource fun `test assertion result of Junit 4 (Opentest4j)`</ID>
+    <ID>LongMethod:GradleTestAssertionTest.kt:GradleTestAssertionTest$@ParameterizedTest @AllGradleVersionsSource fun `test assertion result of Junit 4`</ID>
+    <ID>LongMethod:GradleTestAssertionTest.kt:GradleTestAssertionTest$@ParameterizedTest @AllGradleVersionsSource fun `test assertion result of Test NG (Junit 3)`</ID>
+    <ID>LongMethod:GradleTestAssertionTest.kt:GradleTestAssertionTest$@ParameterizedTest @AllGradleVersionsSource fun `test assertion result of Test NG`</ID>
+    <ID>LongMethod:GradleTestAssertionTest.kt:GradleTestAssertionTest$fun `test assertion result of Junit 4 (Opentest4j FileInfo)`</ID>
+    <ID>LongMethod:GradleTestExecutionTest.kt:GradleTestExecutionTest$@ParameterizedTest @AllGradleVersionsSource @TargetVersions("&lt;7.6", reason = "IDEA-340676 flaky test") fun `test task execution order`</ID>
+    <ID>LongMethod:GradleTestExecutionTest.kt:GradleTestExecutionTest$@ParameterizedTest @AllGradleVersionsSource fun `test non test task execution`</ID>
+    <ID>LongMethod:GradleTestExecutionTest.kt:GradleTestExecutionTest$@ParameterizedTest @AllGradleVersionsSource fun `test test task execution`</ID>
+    <ID>LongMethod:GradleTestExecutionTest.kt:GradleTestExecutionTest$@ParameterizedTest @TargetVersions(JUNIT_5_SUPPORTED_VERSIONS) @AllGradleVersionsSource fun `test grouping events of the same suite comes from different tasks`</ID>
+    <ID>LongMethod:GradleTestNavigationTest.kt:GradleTestNavigationTest$@ParameterizedTest @AllGradleVersionsSource @TargetVersions("9.0.0+") fun `test display name and navigation with Java and Junit Platform with Gradle 9_0 and newer`</ID>
+    <ID>LongMethod:GradleTestNavigationTest.kt:GradleTestNavigationTest$@ParameterizedTest @TargetVersions("7.0+", "&lt;9.0") @AllGradleVersionsSource fun `test display name and navigation with Java and Junit Platform with Gradle from 7_0 before 9_0`</ID>
+    <ID>LongMethod:GradleTestNavigationTest.kt:GradleTestNavigationTest$@ParameterizedTest @TargetVersions(JUNIT_5_SUPPORTED_VERSIONS, "&lt;7.0") @AllGradleVersionsSource fun `test display name and navigation with Java and Junit Platform with Gradle before 7_0`</ID>
+    <ID>LongMethod:GradleTestRunConfigurationProducerTestCase.kt:GradleTestRunConfigurationProducerTestCase$protected fun generateAndImportTemplateProject: ProjectData</ID>
+    <ID>LongMethod:GradleTomlCompletionProvider.kt:GradleTomlCompletionProvider$override fun addCompletions</ID>
     <ID>LongMethod:GradleVersionCatalogLibrariesTest.kt:GradleVersionCatalogLibrariesTest$@Test fun testAllDependencies</ID>
+    <ID>LongMethod:GradleVersionCatalogSyncContributorTest.kt:GradleVersionCatalogSyncContributorTest$@Test @TargetVersions("7.6+") fun `test version catalog entities for an included build`</ID>
+    <ID>LongMethod:GradleVersionCatalogSyncContributorTest.kt:GradleVersionCatalogSyncContributorTest$@Test @TargetVersions("7.6+") fun `test version catalog entities for buildSrc`</ID>
     <ID>LongMethod:GroovyColorSettingsPage.kt:GroovyColorSettingsPage$@NonNls override fun getDemoText: String</ID>
     <ID>LongMethod:HamcrestAssertionsConverterInspection.kt:MigrateToAssertThatQuickFix$override fun applyFix</ID>
     <ID>LongMethod:HttpHandlerRunner.kt:HttpHandlerRunner$fun run: HttpHandlerReport</ID>
@@ -1091,11 +1244,13 @@
     <ID>LongMethod:KotlinSpringStructureCachesTest.kt:KotlinSpringStructureCachesTest$fun testKotlinEdits</ID>
     <ID>LongMethod:MarkdownCodeStyleSettingsProvider.kt:MarkdownCodeStyleSettingsProvider$override fun customizeSettings</ID>
     <ID>LongMethod:MarkdownSmartKeysConfigurable.kt:MarkdownSmartKeysConfigurable$override fun Panel.createContent</ID>
+    <ID>LongMethod:MavenDependenciesGradleCompletionContributor.kt:MavenDependenciesGradleCompletionContributor.&lt;no name provided>$override fun addCompletions</ID>
     <ID>LongMethod:MergeDirectionComponentFactory.kt:MergeDirectionComponentFactory$fun create: JComponent</ID>
     <ID>LongMethod:MermaidCodeStyleSettingsProvider.kt:MermaidCodeStyleSettingsProvider$override fun customizeSettings</ID>
     <ID>LongMethod:MermaidHighlighter.kt:MermaidHighlighter.Companion$private fun addBaseHighlights</ID>
     <ID>LongMethod:MermaidSpacingBuilder.kt:MermaidSpacingBuilder$private fun SpacingBuilder.addCustomizableRules: SpacingBuilder</ID>
     <ID>LongMethod:MermaidSpacingBuilder.kt:MermaidSpacingBuilder$private fun SpacingBuilder.addForceOneSpaceBetweenWordsRule: SpacingBuilder</ID>
+    <ID>LongMethod:MetadataStorageImpl.kt:MetadataStorageImpl$override fun initializeMetadata</ID>
     <ID>LongMethod:NetworkntValidationService.kt:NetworkntValidationService$fun validateForAnnotation: Map&lt;PsiElement, JsonValidationError></ID>
     <ID>LongMethod:OfficeLayout.kt:OfficeLayout$fun layout: Scene</ID>
     <ID>LongMethod:OfficeRenderer.kt:OfficeRenderer$private fun drawTags: Tags</ID>
@@ -1122,6 +1277,7 @@
     <ID>LongMethod:TerminalOptionsConfigurable.kt:TerminalOptionsConfigurable$override fun createPanel: DialogPanel</ID>
     <ID>LongMethod:TerminalOutput.kt:@OptIn(ExperimentalCoroutinesApi::class) internal fun createTerminalOutputFlow: MutableSharedFlow&lt;List&lt;TerminalOutputEvent>></ID>
     <ID>LongMethod:TerminalOutputPattern.kt:fun processNodes</ID>
+    <ID>LongMethod:TestGradleConfigurationProducerUtilTest.kt:TestGradleConfigurationProducerUtilTest$@Test fun `test generation of gradle test settings`</ID>
     <ID>LongMethod:TextMateBundlesListPanel.kt:TextMateBundlesListPanel$fun createMainComponent: JPanel</ID>
     <ID>LongMethod:TextMateLexerCore.kt:TextMateLexerCore$private fun parseCaptures: Boolean</ID>
     <ID>LongMethod:TextMateLexerCore.kt:TextMateLexerCore$private fun parseLine: PersistentList&lt;TextMateLexerState></ID>
@@ -1144,6 +1300,7 @@
     <ID>MatchingDeclarationName:CherryPickProcess.kt:GitCherryPickProcess : GitApplyChangesProcess</ID>
     <ID>MatchingDeclarationName:ColumnLocalFilterClearAction.kt:ColumnLocalFilterClearAllAction : DumbAwareActionGridActionFrontendOtherwiseBackend</ID>
     <ID>MatchingDeclarationName:ComposeLineMarkers.kt:ComposeLineMarkerProvider : LineMarkerProviderDescriptor</ID>
+    <ID>MatchingDeclarationName:ContainsTestUtils.kt:Inverted&lt;T></ID>
     <ID>MatchingDeclarationName:CopyRepositoryRootPathProvider.kt:CopyPathFromRepositoryRootProvider : DumbAwareCopyPathProvider</ID>
     <ID>MatchingDeclarationName:DbRunFile.kt:DbRunSqlFileAction : DumbAwareAction</ID>
     <ID>MatchingDeclarationName:DisableGridFloatingPagingAction.kt:MoveGridFloatingPagingAction : DumbAwareActionGridAction</ID>
@@ -1198,10 +1355,12 @@
     <ID>MayBeConstant:GitCheckinEnvironment.kt:GitCheckinEnvironment.Companion$private val GIT_COMMIT_MSG_FILE_PREFIX: @NonNls String = "git-commit-msg-" // the file name prefix for commit message file</ID>
     <ID>MayBeConstant:GitCheckinHandlerFactory.kt:GitFileNameCheckinHandler.Companion$private val WINDOWS_INVALID_CHARS = "&lt;&gt;:\"\\|?*"</ID>
     <ID>MayBeConstant:GitRecentProjectsBranchesProvider.kt:GitRecentProjectsBranchesService.Companion$private val INVALID = ".invalid"</ID>
+    <ID>MayBeConstant:GradleHeadlessLoggingProjectActivity.kt:private val gradlePrefix = "[Gradle]: "</ID>
     <ID>NestedBlockDepth:ActuatorTab.kt:ActuatorJson$fun mappings: List&lt;Mapping></ID>
     <ID>NestedBlockDepth:AstUtil.kt:fun visitTopLevelKeyPairs : Boolean</ID>
     <ID>NestedBlockDepth:BranchesTreeModel.kt:NodeDescriptorsModel$private fun groupByRepoAndPrefixIfApplicable: List&lt;BranchNodeDescriptor></ID>
     <ID>NestedBlockDepth:CheckerRunner.kt:CheckerRunner.Companion$private fun ignoredRules: RuleGroup</ID>
+    <ID>NestedBlockDepth:CompatibilityInfoGenerator.kt:fun readAppVersion: String</ID>
     <ID>NestedBlockDepth:DbCsvImport.kt:DbCsvReader$fun next: List&lt;String?>?</ID>
     <ID>NestedBlockDepth:DbParameters.kt:DbParameters$fun find: List&lt;Occurrence></ID>
     <ID>NestedBlockDepth:DbSshTunnel.kt:DbSshTunnelOpener$override fun open: DbTunnel</ID>
@@ -1210,6 +1369,8 @@
     <ID>NestedBlockDepth:EndpointRequests.kt:ServerConfig$fun hocon: Map&lt;String, String></ID>
     <ID>NestedBlockDepth:FrontendRunDashboardManager.kt:FrontendRunDashboardManager$fun detachServiceRunContentDescriptor</ID>
     <ID>NestedBlockDepth:GitBranchComparisonResultImpl.kt:GitBranchComparisonResultImpl$private fun initForLinearHistory</ID>
+    <ID>NestedBlockDepth:GradleTreeStructureProvider.kt:GradleTreeStructureProvider$override fun modify: Collection&lt;AbstractTreeNode&lt;*>></ID>
+    <ID>NestedBlockDepth:GradleTreeStructureProvider.kt:GradleTreeStructureProvider$private fun getProjectNodeChildren: Collection&lt;AbstractTreeNode&lt;*>></ID>
     <ID>NestedBlockDepth:HelpersTest.kt:HelpersTest$@Test fun helpersSitOnTheirRugBesideTheParentClearOfPeopleAndFurniture</ID>
     <ID>NestedBlockDepth:HelpersTest.kt:HelpersTest$@Test fun twoSubagentsDrawExtraPixelsNextToTheParentInEveryTheme</ID>
     <ID>NestedBlockDepth:JUnitMalformedDeclarationInspection.kt:JUnitMalformedSignatureVisitor$private fun checkEnumConstants</ID>
@@ -1947,8 +2108,12 @@
     <ID>PackageNaming:gitAsyncExtensions.kt:package git4idea.remote.hosting</ID>
     <ID>PackageNaming:repositoryMapping.kt:package git4idea.remote.hosting</ID>
     <ID>PrintStackTrace:GHGQLData.kt:e</ID>
+    <ID>PrintStackTrace:testWrapperUtil.kt:e</ID>
     <ID>ProtectedMemberInFinalClass:GitChangeProviderVersionedTest.kt:GitChangeProviderVersionedTest$protected fun assertProviderChangesIn</ID>
     <ID>ProtectedMemberInFinalClass:GitStageLineStatusTracker.kt:GitStageLineStatusTracker$protected var isInitialized: Boolean = false private set</ID>
+    <ID>ProtectedMemberInFinalClass:GradleJavaNewProjectWizard.kt:GradleJavaNewProjectWizard.Step$@Deprecated("The onboarding tips generated unconditionally") protected fun setupSampleCodeWithOnBoardingTipsUI</ID>
+    <ID>ProtectedMemberInFinalClass:GradleReflectionUtilTest.kt:GradleReflectionUtilTest.GetMethodTestObject$protected fun protectedMethod: Unit</ID>
+    <ID>ProtectedMemberInFinalClass:GradleReflectionUtilTest.kt:GradleReflectionUtilTest.HasMethodTestObject$protected fun protectedMethod: Unit</ID>
     <ID>ProtectedMemberInFinalClass:TomlDslWriter.kt:TomlDslWriter$protected fun TomlElement?.deleteToComma</ID>
     <ID>ProtectedMemberInFinalClass:TomlDslWriter.kt:TomlDslWriter$protected fun TomlPsiFactory.createComma</ID>
     <ID>ProtectedMemberInFinalClass:TomlDslWriter.kt:TomlDslWriter$protected fun TomlPsiFactory.createDot</ID>
@@ -1956,6 +2121,8 @@
     <ID>ProtectedMemberInFinalClass:TomlDslWriter.kt:TomlDslWriter$protected inline fun &lt;T : GradlePropertiesDslElement, reified P : TomlElement> deletePsiParentOfTypeFromDslParent</ID>
     <ID>ProtectedMemberInFinalClass:_Json5Lexer.kt:_Json5Lexer$/** Number of characters from the last newline up to the start of the matched text. */ @Suppress("unused") protected var yycolumn: Int = 0</ID>
     <ID>ProtectedMemberInFinalClass:_JsonLexer.kt:_JsonLexer$/** Number of characters from the last newline up to the start of the matched text. */ @Suppress("unused") protected var yycolumn: Int = 0</ID>
+    <ID>SerialVersionUIDInSerializableClass:DaemonState.kt:DaemonState : Serializable</ID>
+    <ID>SerialVersionUIDInSerializableClass:ExternalAnnotationsTaskId.kt:ExternalAnnotationsTaskId : Serializable</ID>
     <ID>SwallowedException:ActuatorTest.kt:ActuatorTest$e: java.net.ConnectException</ID>
     <ID>SwallowedException:AndroidGradleDeclarativeBuildModelImpl.kt:AndroidGradleDeclarativeBuildModelImpl$e: IllegalStateException</ID>
     <ID>SwallowedException:BlockTerminalSearchSession.kt:BlockTerminalSearchSession$e: PatternSyntaxException</ID>
@@ -2008,6 +2175,9 @@
     <ID>SwallowedException:GithubApiRequestExecutor.kt:GithubApiRequestExecutor.Base$jse: GithubJsonException</ID>
     <ID>SwallowedException:GithubLoginPanel.kt:GithubLoginPanel$e: Exception</ID>
     <ID>SwallowedException:GrVisibilityUtils.kt:e: IllegalArgumentException</ID>
+    <ID>SwallowedException:GradleHeadlessLoggingProjectActivity.kt:GradleHeadlessLoggingProjectActivity.LoggingNotificationListener$e: java.nio.file.FileAlreadyExistsException</ID>
+    <ID>SwallowedException:GradleServiceLookupProxy.kt:GradleServiceLookupProxy$e: ClassNotFoundException</ID>
+    <ID>SwallowedException:GradleUseScopeEnlarger.kt:GradleUseScopeEnlarger$e: IndexNotReadyException</ID>
     <ID>SwallowedException:GrazieDynamic.kt:GrazieDynamic$e: MissingResourceException</ID>
     <ID>SwallowedException:HostedGitRepositoryReferenceUtil.kt:HostedGitRepositoryReference.File$e: Exception</ID>
     <ID>SwallowedException:HtmlExporter.kt:HtmlExporter$exception: IOException</ID>
@@ -2026,12 +2196,16 @@
     <ID>SwallowedException:PandocExecutableDetector.kt:PandocExecutableDetector.GetVersionPandocTask$exception: Throwable</ID>
     <ID>SwallowedException:RemoteControlConfigurable.kt:RemoteControlConfigurable.Companion$e: java.net.SocketException</ID>
     <ID>SwallowedException:RemoveParenthesesFromMethodCallIntention.kt:RemoveParenthesesFromMethodCallIntention.Predicate$e: IncorrectOperationException</ID>
+    <ID>SwallowedException:ReportDaemonStatusClient.kt:ReportDaemonStatusClient$t: Throwable</ID>
     <ID>SwallowedException:TerminalSearchSession.kt:TerminalSearchSession$e: PatternSyntaxException</ID>
     <ID>SwallowedException:TerminalShellInfoStatistics.kt:TerminalShellInfoStatistics$t: Throwable</ID>
+    <ID>SwallowedException:ToolingSerializerTest.kt:ToolingSerializerTest.Companion.MyObjectFactory$exception: java.lang.Exception</ID>
     <ID>SwallowedException:WindowsExecutableProblemHandler.kt:WindowsExecutableProblemHandler$e: Exception</ID>
     <ID>SwallowedException:_Json5Lexer.kt:_Json5Lexer$e: IndexOutOfBoundsException</ID>
     <ID>SwallowedException:_JsonLexer.kt:_JsonLexer$e: IndexOutOfBoundsException</ID>
     <ID>SwallowedException:gitAsyncExtensions.kt:e: Exception</ID>
+    <ID>SwallowedException:jarUtil.kt:e: Exception</ID>
+    <ID>ThrowingExceptionsWithoutMessageOrCause:BuildScriptDataBuilder.kt:BuildScriptDataBuilder$Throwable()</ID>
     <ID>ThrowingExceptionsWithoutMessageOrCause:EditorConfigComplexKeyFullTemplateCompletionProvider.kt:EditorConfigComplexKeyFullTemplateCompletionProvider$IllegalStateException()</ID>
     <ID>ThrowingExceptionsWithoutMessageOrCause:EditorConfigDescriptorUtil.kt:IllegalStateException()</ID>
     <ID>ThrowingExceptionsWithoutMessageOrCause:EditorConfigElementAwareDescriptorVisitor.kt:EditorConfigElementAwareDescriptorVisitor$IllegalStateException()</ID>
@@ -2056,12 +2230,15 @@
     <ID>ThrowingExceptionsWithoutMessageOrCause:PropertiesStubRegistryExtension.kt:PropertyStubFactory$NullPointerException()</ID>
     <ID>ThrowingExceptionsWithoutMessageOrCause:_Json5Lexer.kt:_Json5Lexer$IndexOutOfBoundsException()</ID>
     <ID>ThrowingExceptionsWithoutMessageOrCause:_JsonLexer.kt:_JsonLexer$IndexOutOfBoundsException()</ID>
+    <ID>ThrowsCount:AnalyzeDependenciesCommand.kt:AnalyzeDependenciesCommand$override suspend fun doExecute</ID>
     <ID>ThrowsCount:BrowserLogin.kt:BrowserLogin$fun await</ID>
     <ID>ThrowsCount:BytecodeToolWindowService.kt:BytecodeToolWindowService$fun updateTabNames</ID>
     <ID>ThrowsCount:CodeIndex.kt:IdeCodeIndex$override fun fileProblems: String</ID>
     <ID>ThrowsCount:CodeIndex.kt:IdeCodeIndex$private fun edit: String</ID>
     <ID>ThrowsCount:CodeIndex.kt:IdeCodeIndex$private fun renameOnEdt: String</ID>
+    <ID>ThrowsCount:CompatibilityInfoGenerator.kt:fun readAppVersion: String</ID>
     <ID>ThrowsCount:ComposeRunConfiguration.kt:ComposeRunConfiguration$override fun checkConfiguration</ID>
+    <ID>ThrowsCount:DaemonServicesFactory.kt:private fun getDaemonRequestContextAfter8Dot8: Any</ID>
     <ID>ThrowsCount:DbAgentTools.kt:DbAgentTools$private fun connected: String</ID>
     <ID>ThrowsCount:DbAgentTools.kt:DbAgentTools$private fun draft: String</ID>
     <ID>ThrowsCount:DbAgentTools.kt:DbAgentTools$private fun query: String</ID>
@@ -2082,6 +2259,8 @@
     <ID>ThrowsCount:GitRepositoryCommitter.kt:GitRepositoryCommitter$@Throws(VcsException::class) private fun performCommit</ID>
     <ID>ThrowsCount:GitWorkingTree.kt:GitWorkingTreeSerializer$override fun deserialize: GitWorkingTree</ID>
     <ID>ThrowsCount:GithubApiRequest.kt:GithubApiRequest.Post.GQLQuery$protected fun throwException: Nothing</ID>
+    <ID>ThrowsCount:GradleDaemonActionTest.kt:GradleDaemonActionTest$private fun findDaemon: DaemonState?</ID>
+    <ID>ThrowsCount:GradleProjectTestFixtureImpl.kt:GradleProjectTestFixtureImpl.Companion$private suspend fun &lt;R> assertExecutionStatusIsSuccess: R</ID>
     <ID>ThrowsCount:HostedGitRepositoryConnectionFactory.kt:ValidatingHostedGitRepositoryConnectionFactory$override suspend fun connect: C</ID>
     <ID>ThrowsCount:HttpInspections.kt:JsonCheck.Parser$private fun obj</ID>
     <ID>ThrowsCount:HttpInspections.kt:JsonCheck.Parser$private fun string</ID>
@@ -2091,6 +2270,7 @@
     <ID>ThrowsCount:IdeaLogger.kt:IdeaLogger$override fun writeMessage</ID>
     <ID>ThrowsCount:JsInterpreter.kt:JsInterpreter$private fun exec</ID>
     <ID>ThrowsCount:JsInterpreter.kt:JsInterpreter$private fun tick</ID>
+    <ID>ThrowsCount:LocalGradleExecutionAware.kt:LocalGradleExecutionAware$private fun checkGradleJvmInfo</ID>
     <ID>ThrowsCount:NetworkntValidationService.kt:NetworkntValidationService$fun validateForAnnotation: Map&lt;PsiElement, JsonValidationError></ID>
     <ID>ThrowsCount:NetworkntValidationService.kt:NetworkntValidationService$private fun extendWithBranchValidation: Map&lt;PsiElement, JsonValidationError></ID>
     <ID>ThrowsCount:ProcessInfoUtil.kt:ProcessInfoUtil$@Suppress("HardCodedStringLiteral") @Throws(ExecutionException::class) private fun getCwdOnUnix: String</ID>
@@ -2098,6 +2278,7 @@
     <ID>ThrowsCount:RemoteControlConfigurable.kt:RemoteControlConfigurable$@Throws(ConfigurationException::class) override fun apply</ID>
     <ID>ThrowsCount:TerminalSessionHasRunningCommandsTest.kt:private suspend fun sendEchoCommandAndAwaitItsCompletion</ID>
     <ID>ThrowsCount:TextWithReplacement.kt:internal fun parseTextWithReplacement: TextWithReplacement</ID>
+    <ID>ThrowsCount:ValidateGradleMatrixCompatibilityCommand.kt:ValidateGradleMatrixCompatibilityCommand$override suspend fun doExecute</ID>
     <ID>ThrowsCount:_Json5Lexer.kt:_Json5Lexer$internal fun CharSequence.offsetByCodePoints: Int</ID>
     <ID>ThrowsCount:_JsonLexer.kt:_JsonLexer$internal fun CharSequence.offsetByCodePoints: Int</ID>
     <ID>TooGenericExceptionCaught:AccountsService.kt:AccountsService$e: Exception</ID>
@@ -2124,6 +2305,7 @@
     <ID>TooGenericExceptionCaught:CpuSampler.kt:CpuSampler$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:CpuSampler.kt:CpuSampler.Companion$e: Exception</ID>
     <ID>TooGenericExceptionCaught:CurrentFeatureBranchBaseDetector.kt:CurrentFeatureBranchBaseDetector$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:DaemonAction.kt:DaemonAction.Companion$e: Exception</ID>
     <ID>TooGenericExceptionCaught:DbAgentTools.kt:DbAgentTools$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:DbConnections.kt:DbConnectionService$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:DbCsvImport.kt:DbCsvImport$e: Exception</ID>
@@ -2212,6 +2394,17 @@
     <ID>TooGenericExceptionCaught:GitWorkingTreesService.kt:GitWorkingTreesService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:GithubLoginPanel.kt:GithubLoginPanel$e: Exception</ID>
     <ID>TooGenericExceptionCaught:GithubShareDialog.kt:GithubShareDialog$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GradleApplicationEnvironmentProvider.kt:GradleApplicationEnvironmentProvider$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GradleArtifactDownloader.kt:GradleArtifactDownloader$exception: Exception</ID>
+    <ID>TooGenericExceptionCaught:GradleConnectorServiceImpl.kt:GradleConnectorServiceImpl$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GradleConnectorServiceImpl.kt:GradleConnectorServiceImpl$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GradleDaemonServices.kt:t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GradleDependencyNodeIndex.kt:GradleDependencyNodeIndex$exception: Exception</ID>
+    <ID>TooGenericExceptionCaught:GradleIdeaModelHolder.kt:GradleIdeaModelHolder$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:GradleIdeaModelHolder.kt:GradleIdeaModelHolder$reflectionError: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GradleObjectTraverser.kt:GradleObjectTraverser$exception: Throwable</ID>
+    <ID>TooGenericExceptionCaught:GradleProjectTaskRunner.kt:GradleProjectTaskRunner$exception: Exception</ID>
+    <ID>TooGenericExceptionCaught:GradleTargetUtil.kt:e: Exception</ID>
     <ID>TooGenericExceptionCaught:GrazieDynamic.kt:GrazieDynamic$e: RuntimeException</ID>
     <ID>TooGenericExceptionCaught:GrazieLanguagesPopupStep.kt:GrazieLanguagesPopupStep$e: Exception</ID>
     <ID>TooGenericExceptionCaught:HookInstallService.kt:HookInstallService$e: Exception</ID>
@@ -2222,6 +2415,7 @@
     <ID>TooGenericExceptionCaught:HttpRunner.kt:HttpRunner$e: Exception</ID>
     <ID>TooGenericExceptionCaught:HunspellDictionaryProvider.kt:HunspellDictionaryProvider$e: Exception</ID>
     <ID>TooGenericExceptionCaught:IdeEditorBridge.kt:IdeEditorBridge$e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:IdeVersionedDataUpdater.kt:IdeVersionedDataUpdater$e: Exception</ID>
     <ID>TooGenericExceptionCaught:IdeaDecompiler.kt:IdeaDecompiler$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ImageFileService.kt:ImageFileService.ImageFileLoaderImpl$e: Exception</ID>
     <ID>TooGenericExceptionCaught:IncrementalDOMBuilder.kt:IncrementalDOMBuilder$exception: Throwable</ID>
@@ -2234,6 +2428,7 @@
     <ID>TooGenericExceptionCaught:LanguageDownloader.kt:LanguageDownloader$e: Exception</ID>
     <ID>TooGenericExceptionCaught:LanguageDownloader.kt:LanguageDownloader$exception: Throwable</ID>
     <ID>TooGenericExceptionCaught:LanguageToolChecker.kt:LanguageToolChecker$exception: Throwable</ID>
+    <ID>TooGenericExceptionCaught:LocalBuildLayoutParameters.kt:LocalBuildLayoutParameters$e: Exception</ID>
     <ID>TooGenericExceptionCaught:MacExecutableProblemHandler.kt:MacExecutableProblemHandler$e: Exception</ID>
     <ID>TooGenericExceptionCaught:MarkdownHtmlExportProvider.kt:MarkdownHtmlExportProvider$e: Exception</ID>
     <ID>TooGenericExceptionCaught:MarkdownLinkOpenerImpl.kt:MarkdownLinkOpenerImpl$exception: Throwable</ID>
@@ -2261,6 +2456,7 @@
     <ID>TooGenericExceptionCaught:RedisClient.kt:RedisConnection.Companion$e: Exception</ID>
     <ID>TooGenericExceptionCaught:RemoteControlServer.kt:RemoteControlServer$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:RemoteControlServer.kt:RemoteControlServer.Router$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ReportDaemonStatusClient.kt:ReportDaemonStatusClient$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:RepositoryAndAccountSelectorViewModelBase.kt:RepositoryAndAccountSelectorViewModelBase$e: Throwable</ID>
     <ID>TooGenericExceptionCaught:ShDocumentationProvider.kt:e: Exception</ID>
     <ID>TooGenericExceptionCaught:ShellCommandManager.kt:ShellCommandManager$t: Throwable</ID>
@@ -2275,6 +2471,7 @@
     <ID>TooGenericExceptionCaught:StateAwareTerminalSession.kt:StateAwareTerminalSession.State$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:SvgImageReader.kt:SvgImageReader$e: Exception</ID>
     <ID>TooGenericExceptionCaught:TabsScenario.kt:e: Throwable</ID>
+    <ID>TooGenericExceptionCaught:TargetEnvironmentProvider.kt:TargetEnvironmentProvider$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:TerminalAgentsAvailabilityService.kt:TerminalAgentsAvailabilityService$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:TerminalAgentsSupport.kt:e: Throwable</ID>
     <ID>TooGenericExceptionCaught:TerminalClipboard.kt:TerminalClipboard$t: Throwable</ID>
@@ -2313,6 +2510,8 @@
     <ID>TooGenericExceptionCaught:TextMateServiceImpl.kt:e: Throwable</ID>
     <ID>TooGenericExceptionCaught:TomlDslNameConverter.kt:TomlDslNameConverter$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ToolWindowLayoutSync.kt:ToolWindowLayoutSync$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ToolingProxyConnector.kt:ToolingProxyConnector$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ToolingProxyConnector.kt:ToolingProxyConnector$e: RuntimeException</ID>
     <ID>TooGenericExceptionCaught:TransferableTerminalSession.kt:TransferableTerminalLifetime$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:TransferableTerminalSession.kt:TransferableTerminalSessionImpl$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:Utils.kt:exception: Throwable</ID>
@@ -2323,23 +2522,41 @@
     <ID>TooGenericExceptionCaught:_Json5Lexer.kt:_Json5Lexer$e: IndexOutOfBoundsException</ID>
     <ID>TooGenericExceptionCaught:_JsonLexer.kt:_JsonLexer$e: IndexOutOfBoundsException</ID>
     <ID>TooGenericExceptionCaught:gitAsyncExtensions.kt:e: Exception</ID>
+    <ID>TooGenericExceptionCaught:jarUtil.kt:e: Exception</ID>
     <ID>TooGenericExceptionCaught:jsonSchemaObjectRendering.kt:exception: Exception</ID>
     <ID>TooGenericExceptionCaught:terminalEelProcesses.kt:e: Exception</ID>
     <ID>TooGenericExceptionCaught:terminalStartup.kt:e: Exception</ID>
     <ID>TooGenericExceptionThrown:CustomContextProjectBuildModelTest.kt:CustomContextProjectBuildModelTest.&lt;no name provided>$throw RuntimeException("Method should not be called")</ID>
+    <ID>TooGenericExceptionThrown:DaemonAction.kt:DaemonAction.Companion$throw RuntimeException(e)</ID>
+    <ID>TooGenericExceptionThrown:DaemonServicesFactory.kt:throw RuntimeException("Cannot resolve ServiceRegistry by reflection. Gradle version: " + GradleVersion.current(), e)</ID>
+    <ID>TooGenericExceptionThrown:DaemonServicesFactory.kt:throw RuntimeException("Unable to cast the result of the invocation to ServiceRegistry. Gradle version: " + GradleVersion.current(), e)</ID>
     <ID>TooGenericExceptionThrown:GHGQLData.kt:GHGQLTestSchemas$throw RuntimeException("Schema could not be parsed:\n\n${parsedSchema.issues.joinToString("\n") { it.message }}")</ID>
     <ID>TooGenericExceptionThrown:GHGQLData.kt:GHGQLTestSchemas$throw RuntimeException("Schema is invalid:\n\n${validatedSchema.issues.joinToString("\n") { it.message }}")</ID>
     <ID>TooGenericExceptionThrown:GitBranchComparisonResultImpl.kt:GitBranchComparisonResultImpl$throw RuntimeException("Unable to build branch comparison result between $baseSha and $headSha via $mergeBaseSha - ${e.message}", e)</ID>
     <ID>TooGenericExceptionThrown:GitDownloadAndInstall.kt:throw RuntimeException("Failed to parse the downloaded list of available Gits. ${t.message}", t)</ID>
     <ID>TooGenericExceptionThrown:GitDownloadAndInstall.kt:throw RuntimeException("Failed to unpack the list of available Gits from $feedUrl. ${t.message}", t)</ID>
+    <ID>TooGenericExceptionThrown:GradleBaseApplicationEnvironmentProvider.kt:GradleBaseApplicationEnvironmentProvider$throw RuntimeException(ExecutionBundle.message("run.configuration.cannot.find.vm.executable"))</ID>
+    <ID>TooGenericExceptionThrown:GradleBaseApplicationEnvironmentProvider.kt:GradleBaseApplicationEnvironmentProvider$throw RuntimeException(ExecutionBundle.message("run.configuration.error.no.jdk.specified"))</ID>
+    <ID>TooGenericExceptionThrown:GradleDaemonParametersFactory.kt:throw RuntimeException("Cannot create DaemonParameters by reflection, gradle version " + GradleVersion.current(), e)</ID>
+    <ID>TooGenericExceptionThrown:GradleJvmCompatibilityUpToDateTest.kt:GradleJvmCompatibilityUpToDateTest$throw RuntimeException("Cannot find compatibility.json")</ID>
+    <ID>TooGenericExceptionThrown:GradleJvmUpdateMatricesTest.kt:GradleJvmUpdateMatricesTest$throw Exception()</ID>
+    <ID>TooGenericExceptionThrown:GradleProjectTaskRunnerTest.kt:GradleProjectTaskRunnerTest$throw RuntimeException("Simulated Gradle build failure")</ID>
     <ID>TooGenericExceptionThrown:GroovyBreadcrumbsInfoProvider.kt:GroovyBreadcrumbsInfoProvider$throw RuntimeException()</ID>
     <ID>TooGenericExceptionThrown:LibraryDeclarationModelImpl.kt:LibraryDeclarationModelImpl$throw RuntimeException("Trying create version out of ${foundElement?.elementType}")</ID>
     <ID>TooGenericExceptionThrown:NetworkntSchemaValidatorTest.kt:NetworkntSchemaValidatorTest$throw RuntimeException("Validation cancelled")</ID>
     <ID>TooGenericExceptionThrown:PluginDeclarationModelImpl.kt:PluginDeclarationModelImpl$throw RuntimeException("Trying create version out of ${foundElement?.elementType}")</ID>
     <ID>TooGenericExceptionThrown:ScriptsCleanup.kt:ScriptsCleanup$throw RuntimeException(e)</ID>
     <ID>TooGenericExceptionThrown:TerminalSessionTestUtil.kt:TerminalSessionTestUtil$throw RuntimeException(e)</ID>
+    <ID>TooGenericExceptionThrown:TestGradleBuildScriptBuilder.kt:TestGradleBuildScriptBuilder$throw RuntimeException("Directory $localDirWithJar not found")</ID>
+    <ID>TooGenericExceptionThrown:TestGradleBuildScriptBuilder.kt:TestGradleBuildScriptBuilder$throw RuntimeException("File $localDirWithJar is not directory")</ID>
+    <ID>TooGenericExceptionThrown:TestGradleBuildScriptBuilder.kt:TestGradleBuildScriptBuilder$throw RuntimeException("Invalid jar file $jarFile")</ID>
+    <ID>TooGenericExceptionThrown:TestGradleBuildScriptBuilder.kt:TestGradleBuildScriptBuilder$throw RuntimeException("Jar with gradle-idea-ext plugin not found")</ID>
     <ID>TooGenericExceptionThrown:_Json5Lexer.kt:_Json5Lexer$throw Error(message)</ID>
     <ID>TooGenericExceptionThrown:_JsonLexer.kt:_JsonLexer$throw Error(message)</ID>
+    <ID>TooManyFunctions:AbstractGradleBuildScriptBuilder.kt:AbstractGradleBuildScriptBuilder&lt;Self : GradleBuildScriptBuilder&lt;Self>> : AbstractGradleBuildScriptBuilderCoreGradleBuildScriptBuilder</ID>
+    <ID>TooManyFunctions:AbstractGradleBuildScriptBuilderCore.kt:AbstractGradleBuildScriptBuilderCore&lt;Self : GradleBuildScriptBuilderCore&lt;Self>> : GradleBuildScriptBuilderCoreAbstractGradleScriptElementBuilder</ID>
+    <ID>TooManyFunctions:AbstractGradleScriptElementBuilder.kt:AbstractGradleScriptElementBuilder : GradleScriptElementBuilder</ID>
+    <ID>TooManyFunctions:AbstractGradleSettingScriptBuilderCore.kt:AbstractGradleSettingScriptBuilderCore&lt;Self : AbstractGradleSettingScriptBuilderCore&lt;Self>> : GradleSettingScriptBuilderCoreAbstractGradleScriptElementBuilder</ID>
     <ID>TooManyFunctions:AbstractSortPropertiesSession.kt:AbstractSortPropertiesSession&lt;TObj : PsiElement, TProp : PsiElement></ID>
     <ID>TooManyFunctions:AccountsService.kt:AccountsService</ID>
     <ID>TooManyFunctions:ActuatorTab.kt:ActuatorTab : AdditionalTabComponent</ID>
@@ -2347,15 +2564,18 @@
     <ID>TooManyFunctions:AgentToolWindowPanel.kt:AgentToolWindowPanel : JPanel</ID>
     <ID>TooManyFunctions:AiOfficeEditor.kt:AiOfficeEditor : UserDataHolderBaseFileEditor</ID>
     <ID>TooManyFunctions:AliasRegistry.kt:IndexAliases</ID>
+    <ID>TooManyFunctions:AnnotationProcessingDataService.kt:AnnotationProcessingDataService : AbstractProjectDataService</ID>
     <ID>TooManyFunctions:BackendLuxedRunDashboardContentManager.kt:BackendLuxedRunDashboardContentManager</ID>
     <ID>TooManyFunctions:BackendRecentFileEventsModel.kt:BackendRecentFileEventsModel</ID>
     <ID>TooManyFunctions:BackendRunDashboardManagerState.kt:BackendRunDashboardManagerState</ID>
     <ID>TooManyFunctions:BackendTerminalHyperlinkHighlighter.kt:HighlightTaskRunner</ID>
     <ID>TooManyFunctions:BaseJunitAnnotationReference.kt:BaseJunitAnnotationReference&lt;Psi : PsiMember, U : UDeclaration> : PsiReferenceBasePsiMemberReferencePsiPolyVariantReference</ID>
+    <ID>TooManyFunctions:BaseResolverExtension.kt:BaseResolverExtension : GradleProjectResolverExtension</ID>
     <ID>TooManyFunctions:BaseToggleStateAction.kt:BaseToggleStateAction : ToggleActionDumbAware</ID>
     <ID>TooManyFunctions:BlockTerminalSearchSession.kt:BlockTerminalSearchSession : SearchSessionSearchResultsListenerListener</ID>
     <ID>TooManyFunctions:BlockTerminalView.kt:BlockTerminalView : TerminalContentViewTerminalCommandExecutor</ID>
     <ID>TooManyFunctions:BoardFileEditor.kt:BoardFileEditor : UserDataHolderBaseFileEditor</ID>
+    <ID>TooManyFunctions:BuildScriptDataBuilder.kt:BuildScriptDataBuilder : GradleBuildScriptBuilderGradleScriptElementBuilder</ID>
     <ID>TooManyFunctions:CachingIndex.kt:CachingIndex&lt;K, V, D> : FileBasedIndexInfrastructureExtensionUpdatableIndexUpdatableIndex</ID>
     <ID>TooManyFunctions:CallReferenceHighlighter.kt:CallReferenceHighlighter</ID>
     <ID>TooManyFunctions:CheckerRunner.kt:CheckerRunner$Companion</ID>
@@ -2482,6 +2702,33 @@
     <ID>TooManyFunctions:GrCodeReferenceResolver.kt:org.jetbrains.plugins.groovy.lang.resolve.GrCodeReferenceResolver.kt</ID>
     <ID>TooManyFunctions:GrEmptyLightModifierList.kt:GrEmptyLightModifierList : GrLightModifierList</ID>
     <ID>TooManyFunctions:GrLambdaExpressionImpl.kt:GrLambdaExpressionImpl : GrExpressionImplGrLambdaExpression</ID>
+    <ID>TooManyFunctions:GradleBuildEntityImpl.kt:GradleBuildEntityData : WorkspaceEntityDataSoftLinkable</ID>
+    <ID>TooManyFunctions:GradleBuildScriptBuilder.kt:GradleBuildScriptBuilder&lt;Self : GradleBuildScriptBuilder&lt;Self>> : GradleBuildScriptBuilderCore</ID>
+    <ID>TooManyFunctions:GradleBuildScriptBuilderCore.kt:GradleBuildScriptBuilderCore&lt;out Self : GradleBuildScriptBuilderCore&lt;Self>> : GradleScriptElementBuilder</ID>
+    <ID>TooManyFunctions:GradleBuildScriptBuilderUtil.kt:org.jetbrains.plugins.gradle.frameworkSupport.buildscript.GradleBuildScriptBuilderUtil.kt</ID>
+    <ID>TooManyFunctions:GradleDaemonServices.kt:org.jetbrains.plugins.gradle.internal.daemon.GradleDaemonServices.kt</ID>
+    <ID>TooManyFunctions:GradleDependencyModificator.kt:GradleDependencyModificator : ExternalDependencyModificator</ID>
+    <ID>TooManyFunctions:GradleDslInspectionProvider.kt:GradleDslInspectionProvider</ID>
+    <ID>TooManyFunctions:GradleExecutionSettingsUtil.kt:org.jetbrains.plugins.gradle.util.GradleExecutionSettingsUtil.kt</ID>
+    <ID>TooManyFunctions:GradleExtensionType.kt:GradleExtensionType : PsiClassType</ID>
+    <ID>TooManyFunctions:GradleIdeaModelHolder.kt:GradleIdeaModelHolder</ID>
+    <ID>TooManyFunctions:GradleInitScriptUtil.kt:org.jetbrains.plugins.gradle.service.execution.GradleInitScriptUtil.kt</ID>
+    <ID>TooManyFunctions:GradleInstallationManager.kt:GradleInstallationManager$Companion</ID>
+    <ID>TooManyFunctions:GradleJvmSupportMatrix.kt:GradleJvmSupportMatrix : IdeVersionedDataStorage</ID>
+    <ID>TooManyFunctions:GradleJvmSupportMatrix.kt:GradleJvmSupportMatrix$Companion</ID>
+    <ID>TooManyFunctions:GradleModuleEntityImpl.kt:GradleModuleEntityData : WorkspaceEntityDataSoftLinkable</ID>
+    <ID>TooManyFunctions:GradleNewProjectWizardStep.kt:GradleNewProjectWizardStep&lt;ParentStep> : MavenizedNewProjectWizardStepGradleNewProjectWizardData</ID>
+    <ID>TooManyFunctions:GradleOperationUtil.kt:org.jetbrains.plugins.gradle.util.GradleOperationUtil.kt</ID>
+    <ID>TooManyFunctions:GradleProgressEventConverter.kt:GradleProgressEventConverter</ID>
+    <ID>TooManyFunctions:GradleProjectAwareType.kt:GradleProjectAwareType : PsiClassType</ID>
+    <ID>TooManyFunctions:GradleProjectEntityImpl.kt:GradleProjectEntityData : WorkspaceEntityDataSoftLinkable</ID>
+    <ID>TooManyFunctions:GradleRunAnythingProvider.kt:GradleRunAnythingProvider : RunAnythingCommandLineProvider</ID>
+    <ID>TooManyFunctions:GradleScriptBuilderImpl.kt:GradleScriptBuilderImpl : GradleScriptBuilder</ID>
+    <ID>TooManyFunctions:GradleScriptElementBuilder.kt:GradleScriptElementBuilder</ID>
+    <ID>TooManyFunctions:GradleScriptTreeBuilderImpl.kt:GradleScriptTreeBuilderImpl : AbstractGradleScriptElementBuilderGradleScriptTreeBuilder</ID>
+    <ID>TooManyFunctions:GradleServerEnvironmentSetupImpl.kt:GradleServerEnvironmentSetupImpl : GradleServerEnvironmentSetup</ID>
+    <ID>TooManyFunctions:GradleSettingScriptBuilderCore.kt:GradleSettingScriptBuilderCore&lt;Self : GradleSettingScriptBuilderCore&lt;Self>> : GradleScriptElementBuilder</ID>
+    <ID>TooManyFunctions:GradleVersionCatalogEntityImpl.kt:GradleVersionCatalogEntityData : WorkspaceEntityData</ID>
     <ID>TooManyFunctions:GrammarCheckingStrategy.kt:GrammarCheckingStrategy</ID>
     <ID>TooManyFunctions:GrazieConfig.kt:GrazieConfig$State : VersionedState</ID>
     <ID>TooManyFunctions:GrazieDynamic.kt:GrazieDynamic : DynamicPluginListener</ID>
@@ -2498,9 +2745,11 @@
     <ID>TooManyFunctions:GroovyAnnotator40.kt:GroovyAnnotator40 : GroovyElementVisitor</ID>
     <ID>TooManyFunctions:GroovyAnnotatorPre30.kt:GroovyAnnotatorPre30 : GroovyElementVisitor</ID>
     <ID>TooManyFunctions:GroovyFileImportsImpl.kt:GroovyFileImportsImpl : GroovyFileImports</ID>
+    <ID>TooManyFunctions:GroovyGradleDslInspectionProvider.kt:GroovyGradleDslInspectionProvider : GradleDslInspectionProvider</ID>
     <ID>TooManyFunctions:GroovyImportCollector.kt:GroovyImportCollector</ID>
     <ID>TooManyFunctions:GroovyInferenceSessionBuilder.kt:org.jetbrains.plugins.groovy.lang.resolve.processors.inference.GroovyInferenceSessionBuilder.kt</ID>
     <ID>TooManyFunctions:GroovyPostfixTemplateUtils.kt:GroovyPostfixTemplateUtils</ID>
+    <ID>TooManyFunctions:GroovyRedundantKotlinStdLibInspectionVisitor.kt:GroovyRedundantKotlinStdLibInspectionVisitor : GroovyElementVisitor</ID>
     <ID>TooManyFunctions:HierarchicalTableResultPanel.kt:HierarchicalTableResultPanel : TableResultPanelDataGridWithNestedTables</ID>
     <ID>TooManyFunctions:HierarchyView.kt:HierarchyView : AbstractLightClass</ID>
     <ID>TooManyFunctions:HorizontalBarPresentation.kt:HorizontalBarPresentation : BasePresentation</ID>
@@ -2532,6 +2781,7 @@
     <ID>TooManyFunctions:KotlinDslUtil.kt:com.android.tools.idea.gradle.dsl.kotlin.KotlinDslUtil.kt</ID>
     <ID>TooManyFunctions:KotlinDslWriter.kt:KotlinDslWriter : KotlinDslNameConverterGradleDslWriter</ID>
     <ID>TooManyFunctions:LangTool.kt:LangTool : GrazieStateLifecycle</ID>
+    <ID>TooManyFunctions:LocalGradleExecutionAware.kt:LocalGradleExecutionAware : GradleExecutionAware</ID>
     <ID>TooManyFunctions:LocalSharedIndexExtension.kt:LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension</ID>
     <ID>TooManyFunctions:LogExtensions.kt:com.intellij.repository.search.completion.util.LogExtensions.kt</ID>
     <ID>TooManyFunctions:LogExtensions.kt:org.jetbrains.idea.reposearch.LogExtensions.kt</ID>
@@ -2563,6 +2813,7 @@
     <ID>TooManyFunctions:OfficeCanvas.kt:OfficeCanvas : JComponent</ID>
     <ID>TooManyFunctions:OfficeLayout.kt:OfficeLayout</ID>
     <ID>TooManyFunctions:OfficeRenderer.kt:OfficeRenderer</ID>
+    <ID>TooManyFunctions:PasteMvnDependencyPreProcessor.kt:PasteMvnDependencyPreProcessor : CopyPastePreProcessor</ID>
     <ID>TooManyFunctions:PhantomAiApiImpl.kt:PhantomAiApiImpl : PhantomAiApiDisposable</ID>
     <ID>TooManyFunctions:PhantomMcp.kt:PhantomMcp</ID>
     <ID>TooManyFunctions:ProbeInput.kt:ProbeInput</ID>
@@ -2580,6 +2831,7 @@
     <ID>TooManyFunctions:RemoteControlServer.kt:RemoteControlServer : Disposable</ID>
     <ID>TooManyFunctions:RemoteControlServer.kt:RemoteControlServer$Router : SimpleChannelInboundHandler</ID>
     <ID>TooManyFunctions:RemoteProtocol.kt:RemoteProtocol</ID>
+    <ID>TooManyFunctions:ReportDaemonStatusClient.kt:ReportDaemonStatusClient</ID>
     <ID>TooManyFunctions:RepositoryMethodInspection.kt:RepositoryMethodInspection$Visitor : AbstractUastNonRecursiveVisitor</ID>
     <ID>TooManyFunctions:ResolveUtil.kt:org.jetbrains.plugins.groovy.lang.resolve.ResolveUtil.kt</ID>
     <ID>TooManyFunctions:RulesConfigurable.kt:RulesConfigurable : BoundConfigurableDisposableNoScroll</ID>
@@ -2618,6 +2870,7 @@
     <ID>TooManyFunctions:TableModificationUtils.kt:TableModificationUtils</ID>
     <ID>TooManyFunctions:TableUtils.kt:TableUtils</ID>
     <ID>TooManyFunctions:TabsProbe.kt:TabsProbe</ID>
+    <ID>TooManyFunctions:TargetGradleConnector.kt:TargetGradleConnector : GradleConnectorProjectConnectionCloseListener</ID>
     <ID>TooManyFunctions:TemplateCommentPanel.kt:TemplateCommentPanel : SearchableConfigurable</ID>
     <ID>TooManyFunctions:TerminalAgentResolver.kt:TerminalAgentResolver</ID>
     <ID>TooManyFunctions:TerminalBlocksModelImpl.kt:TerminalBlocksModelImpl : TerminalBlocksModel</ID>
@@ -2661,8 +2914,8 @@
     <ID>TooManyFunctions:Utils.kt:Utils</ID>
     <ID>TooManyFunctions:VerticalBarPresentation.kt:VerticalBarPresentation : BasePresentation</ID>
     <ID>TooManyFunctions:WindowStack.kt:WindowStack</ID>
-    <ID>TooManyFunctions:WorkspacesScenario.kt:WorkspacesRun</ID>
     <ID>TooManyFunctions:WorkspaceBoardPanel.kt:WorkspaceBoardPanel : JPanelDisposable</ID>
+    <ID>TooManyFunctions:WorkspacesScenario.kt:WorkspacesRun</ID>
     <ID>TooManyFunctions:WorktreeTreePanel.kt:WorktreeTreePanel : JPanelDisposable</ID>
     <ID>TooManyFunctions:YAMLExpandCollectionIntentionAction.kt:YAMLExpandCollectionIntentionAction : PsiElementBaseIntentionAction</ID>
     <ID>TooManyFunctions:YAMLInlineCollectionIntentionAction.kt:YAMLInlineCollectionIntentionAction : PsiElementBaseIntentionActionLowPriorityAction</ID>
@@ -2681,7 +2934,9 @@
     <ID>TooManyFunctions:psiUtil.kt:org.jetbrains.plugins.groovy.lang.psi.util.psiUtil.kt</ID>
     <ID>TooManyFunctions:samConversion.kt:org.jetbrains.plugins.groovy.lang.sam.samConversion.kt</ID>
     <ID>TooManyFunctions:schemaParsingUtils.kt:JacksonSchemaNodeAccessor : RawJsonSchemaNodeAccessor</ID>
+    <ID>TooManyFunctions:taskDeclaration.kt:com.intellij.gradle.java.groovy.service.resolve.taskDeclaration.kt</ID>
     <ID>TooManyFunctions:terminalStartup.kt:org.jetbrains.plugins.terminal.terminalStartup.kt</ID>
+    <ID>TooManyFunctions:util.kt:com.intellij.gradle.java.toml.util.kt</ID>
     <ID>TopLevelPropertyNaming:AdditionalMermaidInfoStringValuesContributor.kt:private const val PatternSettingId = "mermaid.additional.code.fence.pattern.regex"</ID>
     <ID>TopLevelPropertyNaming:EditorConfigIndentOptionsProvider.kt:// Handles the following EditorConfig settings: internal const val indentSizeKey = "indent_size"</ID>
     <ID>TopLevelPropertyNaming:EditorConfigIndentOptionsProvider.kt:internal const val indentStyleKey = "indent_style"</ID>
@@ -2697,6 +2952,11 @@
     <ID>TopLevelPropertyNaming:GitExecutor.kt:private const val DefaultInitBranch = "master"</ID>
     <ID>TopLevelPropertyNaming:GitIgnoredCheckerTest.kt:private const val folderName = "new_folder"</ID>
     <ID>TopLevelPropertyNaming:GrReplaceMultiAssignmentFix.kt:internal const val defaultFixVariableName = "storedList"</ID>
+    <ID>TopLevelPropertyNaming:GradleJvmUpdateMatricesTest.kt:private const val endpoint = "/gradle/compatibility.json"</ID>
+    <ID>TopLevelPropertyNaming:GradleTomlCompletionProvider.kt:private const val artifactKey = "name"</ID>
+    <ID>TopLevelPropertyNaming:GradleTomlCompletionProvider.kt:private const val groupKey = "group"</ID>
+    <ID>TopLevelPropertyNaming:GradleTomlCompletionProvider.kt:private const val moduleKey = "module"</ID>
+    <ID>TopLevelPropertyNaming:GradleTomlCompletionProvider.kt:private const val versionKey = "version"</ID>
     <ID>TopLevelPropertyNaming:NestedCompletions.kt:private const val dummyString = "jsonRulezzz111"</ID>
     <ID>TopLevelPropertyNaming:NewifyMemberContributor.kt:@NlsSafe internal const val newifyAnnotationFqn = "groovy.lang.Newify"</ID>
     <ID>TopLevelPropertyNaming:NewifyMemberContributor.kt:@NonNls internal const val newifyOriginInfo = "by @Newify"</ID>
@@ -2719,6 +2979,12 @@
     <ID>UnusedParameter:DbDumpTest.kt:DbDumpTest$password: String? = null</ID>
     <ID>UnusedParameter:DbSchemaDiff.kt:DbSchemaDiff$dbms: Dbms</ID>
     <ID>UnusedParameter:DefaultMethodCallTypeCalculator.kt:context: PsiElement</ID>
+    <ID>UnusedParameter:GradleDaemonJvmHelper.kt:GradleDaemonJvmHelper$gradleVersion: GradleVersion</ID>
+    <ID>UnusedParameter:GradleReflectionUtilTest.kt:GradleReflectionUtilTest.GetMethodTestObject$long: Long</ID>
+    <ID>UnusedParameter:GradleReflectionUtilTest.kt:GradleReflectionUtilTest.GetMethodTestObject$string: String</ID>
+    <ID>UnusedParameter:GradleReflectionUtilTest.kt:GradleReflectionUtilTest.HasMethodTestObject$long: Long</ID>
+    <ID>UnusedParameter:GradleReflectionUtilTest.kt:GradleReflectionUtilTest.HasMethodTestObject$string: String</ID>
+    <ID>UnusedParameter:GradleReflectionUtilTest.kt:GradleReflectionUtilTest.SetValueTestObject$string: String</ID>
     <ID>UnusedParameter:GrazieDynamic.kt:GrazieDynamic$lang: Lang</ID>
     <ID>UnusedParameter:HorizontalBarPresentation.kt:HorizontalBarPresentation$event: MouseEvent</ID>
     <ID>UnusedParameter:JUnitMalformedDeclarationInspection.kt:JUnitMalformedSignatureVisitor$method: UMethod</ID>
@@ -2758,11 +3024,13 @@
     <ID>UnusedParameter:VerticalBarPresentation.kt:VerticalBarPresentation$translated: Point</ID>
     <ID>UnusedParameter:switch.kt:statements : Array&lt;GrStatement></ID>
     <ID>UnusedPrivateClass:CopyrightManager.kt:CopyrightManagerDocumentListener : BulkFileListenerBackgroundable</ID>
+    <ID>UnusedPrivateClass:GradleFileModificationTracker.kt:GradleFileModificationListener : FileDocumentManagerListenerBackgroundable</ID>
     <ID>UnusedPrivateClass:MarkdownDefaultFlavour.kt:MarkdownDefaultFlavour$ExcludedElementProvider : GeneratingProvider</ID>
     <ID>UnusedPrivateClass:RecentFilesEditorTypingListener.kt:RecentFilesEditorTypingListener : AnActionListener</ID>
     <ID>UnusedPrivateClass:RecentlyOpenedFileListener.kt:RecentlySelectedEditorListener : FileEditorManagerListener</ID>
     <ID>UnusedPrivateClass:RunDashboardConfigurationsListener.kt:RunDashboardConfigurationsListener : RunManagerListener</ID>
     <ID>UtilityClassWithPublicConstructor:BranchIconUtil.kt:BranchIconUtil</ID>
+    <ID>UtilityClassWithPublicConstructor:GradleExtensionsContributorUtil.kt:GradleExtensionsContributorUtil</ID>
     <ID>UtilityClassWithPublicConstructor:LobInfoHelper.kt:LobInfoHelper</ID>
     <ID>UtilityClassWithPublicConstructor:MarkdownHtmlAnchorPsiReferenceSearcher.kt:MarkdownHtmlAnchorPsiReferenceSearcher</ID>
     <ID>UtilityClassWithPublicConstructor:MermaidElementFactory.kt:MermaidElementFactory</ID>
@@ -2770,6 +3038,7 @@
     <ID>UtilityClassWithPublicConstructor:TerminalCommandCompletionActionOld.kt:TerminalCommandCompletionAction</ID>
     <ID>UtilityClassWithPublicConstructor:TextCheckerManager.kt:TextCheckerManager</ID>
     <ID>UtilityClassWithPublicConstructor:Utils.kt:Utils</ID>
+    <ID>VariableNaming:AbstractGradleBuildScriptBuilder.kt:AbstractGradleBuildScriptBuilder$private val PREDEFINED_TASKS = setOf("test", "compileJava", "compileTestJava")</ID>
     <ID>VariableNaming:AddServiceEmptyTreeSuggestion.kt:AddServiceEmptyTreeSuggestion$private val ADD_SERVICE_ACTION_ID: String = "ServiceView.AddService"</ID>
     <ID>VariableNaming:BlockTerminalTest.kt:BlockTerminalTest$val LOG = Logger.getInstance(BlockTerminalTest::class.java)</ID>
     <ID>VariableNaming:CaffeineCachingRegexProvider.kt:CachingRegexFactory$private val REGEX_CACHE: Cache&lt;CharSequence, RegexFacade> = Caffeine.newBuilder() .maximumSize(1000) .expireAfterAccess(1, TimeUnit.MINUTES) .removalListener { _: CharSequence?, v: RegexFacade?, _ -> v?.close() } .executor(Dispatchers.Default.asExecutor()) .build()</ID>
@@ -2826,6 +3095,22 @@
     <ID>VariableNaming:GitStageLineStatusTracker.kt:GitStageLineStatusTracker$private val LOCK: DocumentTracker.Lock = DocumentTracker.Lock()</ID>
     <ID>VariableNaming:GitUntrackedFilesHolder.kt:GitUntrackedFilesHolder$private val LOCK = Any()</ID>
     <ID>VariableNaming:GithubShareDialog.kt:GithubShareDialog$private val GITHUB_REPO_PATTERN = Pattern.compile("[a-zA-Z0-9_.-]+")</ID>
+    <ID>VariableNaming:GradleBuildEntityImpl.kt:GradleBuildEntityData$val externalProjectId_data = if (externalProjectId == oldLink) { changed = true newLink as ExternalProjectEntityId } else { null }</ID>
+    <ID>VariableNaming:GradleBuildEntityImpl.kt:GradleBuildEntityData$val removedItem_externalProjectId = mutablePreviousSet.remove(externalProjectId)</ID>
+    <ID>VariableNaming:GradleBuildEntityImpl.kt:GradleBuildEntityImpl.Builder$// List of non-abstract referenced types var _projects: List&lt;GradleProjectEntity>? = emptyList()</ID>
+    <ID>VariableNaming:GradleBuildEntityImpl.kt:GradleBuildEntityImpl.Builder$val _diff = diff</ID>
+    <ID>VariableNaming:GradleConnectorServiceImpl.kt:GradleConnectorServiceImpl$val gradleVersion_6_5 = GradleVersion.version("6.5")</ID>
+    <ID>VariableNaming:GradleExternalProjectEntityImpl.kt:GradleExternalProjectEntityImpl.Builder$val _diff = diff</ID>
+    <ID>VariableNaming:GradleInstallationManagerTest.kt:GradleInstallationManagerTest$val gradle_4_10 = GradleVersion.version("4.10")</ID>
+    <ID>VariableNaming:GradleInstallationManagerTest.kt:GradleInstallationManagerTest$val gradle_6_0 = GradleVersion.version("6.0")</ID>
+    <ID>VariableNaming:GradleModuleEntityImpl.kt:GradleModuleEntityData$val gradleProjectId_data = if (gradleProjectId == oldLink) { changed = true newLink as GradleProjectEntityId } else { null }</ID>
+    <ID>VariableNaming:GradleModuleEntityImpl.kt:GradleModuleEntityData$val removedItem_gradleProjectId = mutablePreviousSet.remove(gradleProjectId)</ID>
+    <ID>VariableNaming:GradleModuleEntityImpl.kt:GradleModuleEntityImpl.Builder$val _diff = diff</ID>
+    <ID>VariableNaming:GradleProjectEntityImpl.kt:GradleProjectEntityData$val buildId_data = if (buildId == oldLink) { changed = true newLink as GradleBuildEntityId } else { null }</ID>
+    <ID>VariableNaming:GradleProjectEntityImpl.kt:GradleProjectEntityData$val removedItem_buildId = mutablePreviousSet.remove(buildId)</ID>
+    <ID>VariableNaming:GradleProjectEntityImpl.kt:GradleProjectEntityImpl.Builder$val _diff = diff</ID>
+    <ID>VariableNaming:GradleTestEntityImpl.kt:GradleTestEntityImpl.Builder$val _diff = diff</ID>
+    <ID>VariableNaming:GradleVersionCatalogEntityImpl.kt:GradleVersionCatalogEntityImpl.Builder$val _diff = diff</ID>
     <ID>VariableNaming:Groovy5ScriptRunConfigurationTest.kt:Groovy5ScriptRunConfigurationTest$private val DESCRIPTOR = object : LibraryLightProjectDescriptor(GroovyProjectDescriptors.LIB_GROOVY_5_0) { override fun configureModule(module: Module, model: ModifiableRootModel, contentEntry: ContentEntry) { super.configureModule(module, model, contentEntry) val version = "5.13.0" MavenDependencyUtil.addFromMaven(model, "org.junit.jupiter:junit-jupiter-api:$version") MavenDependencyUtil.addFromMaven(model, "org.junit.jupiter:junit-jupiter-params:$version") } }</ID>
     <ID>VariableNaming:GroovyInferenceSession.kt:GroovyInferenceSession$val right_ = if (isErased) { val currentSubstitutor = resolveSubset(myInferenceVariables, contextSubstitutor) TypeConversionUtil.erasure(currentSubstitutor.substitute(right)) } else { substituteWithInferenceVariables(contextSubstitutor.substitute(right)) }</ID>
     <ID>VariableNaming:IdeaLogger.kt:IdeaLogger$@Suppress("SSBasedInspection") private val LOG = logger&lt;IdeaDecompiler>()</ID>
