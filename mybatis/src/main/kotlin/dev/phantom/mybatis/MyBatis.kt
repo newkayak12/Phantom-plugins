@@ -4,6 +4,8 @@ package dev.phantom.mybatis
 import com.intellij.DynamicBundle
 import com.intellij.ide.highlighter.XmlFileType
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.roots.ProjectRootManager
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.CommonClassNames
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
@@ -92,12 +94,18 @@ object MyBatis {
   }
 
   /**
-   * Kept until the next PSI change: the line markers and inspections ask for each method of every interface, which
-   * otherwise queried the index and loaded the XML once per method on every highlighting pass, also without MyBatis.
+   * Kept until the interface's own file, an XML file, or the files and roots of the project change: the line markers and
+   * inspections ask for each method of every interface, which otherwise queried the index and loaded the XML once per
+   * method on every highlighting pass, also without MyBatis. PsiModificationTracker.MODIFICATION_COUNT also moved on
+   * every keystroke in any other Java or Kotlin file.
    */
   fun mapperFiles(mapper: PsiClass): List<XmlFile> = CachedValuesManager.getCachedValue(mapper) {
-    val files = mapper.qualifiedName?.let { mapperFiles(mapper.project, it) }.orEmpty()
-    CachedValueProvider.Result.create(files, PsiModificationTracker.MODIFICATION_COUNT)
+    val project = mapper.project
+    val files = mapper.qualifiedName?.let { mapperFiles(project, it) }.orEmpty()
+    val deps = listOf<Any>(mapper.containingFile, PsiModificationTracker.getInstance(project).forLanguages { it.id == "XML" },
+                           VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS, ProjectRootManager.getInstance(project)) +
+               files.mapNotNull { it.virtualFile }
+    CachedValueProvider.Result.create(files, *deps.toTypedArray())
   }
 
   /** The interface named by the mapper's namespace. */

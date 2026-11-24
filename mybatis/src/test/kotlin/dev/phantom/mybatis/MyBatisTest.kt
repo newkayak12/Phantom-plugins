@@ -387,4 +387,25 @@ class MyBatisTest : LightJavaCodeInsightFixtureTestCase() {
     val runs = myFixture.findAllGutters().count { it.tooltipText == "Run in Phantom Database Console" }
     assertEquals(4, runs)
   }
+
+  fun testMapperFilesKeptAcrossOtherJavaEdits() {
+    val xml = addMapper("")
+    val mapper = myFixture.findClass("app.UserMapper")
+    // added before the first read: a new file is a structure change that rightly drops the cache
+    val other = myFixture.addFileToProject("app/Other.java", "package app; class Other { void m() { int x = 1; } }")
+    val files = MyBatis.mapperFiles(mapper)
+    assertEquals(listOf(xml), files)
+    typeIn(other.virtualFile, "int x = 1;", "int x = 2;")
+    assertSame(files, MyBatis.mapperFiles(mapper))
+    typeIn(xml.virtualFile, "namespace=\"app.UserMapper\"", "namespace=\"app.Other\"")
+    assertEmpty(MyBatis.mapperFiles(mapper))
+  }
+
+  private fun typeIn(file: com.intellij.openapi.vfs.VirtualFile, find: String, replace: String) {
+    val document = com.intellij.openapi.fileEditor.FileDocumentManager.getInstance().getDocument(file)!!
+    val offset = document.text.indexOf(find)
+    assertTrue(offset >= 0)
+    com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction(project) { document.replaceString(offset, offset + find.length, replace) }
+    com.intellij.psi.PsiDocumentManager.getInstance(project).commitAllDocuments()
+  }
 }
