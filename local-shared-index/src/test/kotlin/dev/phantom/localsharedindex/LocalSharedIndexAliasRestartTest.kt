@@ -236,7 +236,16 @@ class LocalSharedIndexAliasRestartTest {
     waitFor("the rebuild of IdIndex", a) { rebuilt().isNotEmpty() }
     assertTrue(trace.filter { it.index == "IdIndex" }.toString(), rebuilt().all { it.hit })
     waitFor("b to answer", b) { containing(b, "greet", main(rootB)) }
-    waitFor("a to answer", a) { containing(a, "greet", main(rootA)) }
+    val diagStart = System.currentTimeMillis()
+    println("DIAG before a: answers=" + containing(a, "greet", main(rootA)) + " donorOfA=" + AliasRegistry.of("IdIndex").donorOf(id(main(rootA))) +
+            " idA=" + id(main(rootA)) + " idB=" + id(main(rootB)) + " donorOfB=" + AliasRegistry.of("IdIndex").donorOf(id(main(rootB))) +
+            " events=" + rebuilt())
+    try {
+      waitFor("a to answer", a) { containing(a, "greet", main(rootA)) }
+    }
+    finally {
+      println("DIAG after a: " + (System.currentTimeMillis() - diagStart) + " ms, donorOfA=" + AliasRegistry.of("IdIndex").donorOf(id(main(rootA))) + " events=" + rebuilt())
+    }
     assertTrue(Files.exists(saved.resolveSibling(AliasRegistry.MARKER)))
   }
 
