@@ -1,6 +1,8 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.localsharedindex
 
+import com.intellij.psi.impl.cache.impl.id.IdEntryToScopeMapImpl
+import com.intellij.psi.search.UsageSearchContext
 import com.intellij.util.indexing.FileBasedIndexExtension
 import com.intellij.util.indexing.SingleEntryFileBasedIndexExtension
 import com.intellij.util.indexing.impl.storage.defaultMapExternalizerFor
@@ -32,8 +34,23 @@ internal interface EntryCodec<K, V> {
         }
 
         override fun decode(bytes: ByteArray, inputId: Int): Map<K, V> =
-          DataInputStream(ByteArrayInputStream(bytes)).use { externalizer.read(it) }
+          withUnsignedMasks(DataInputStream(ByteArrayInputStream(bytes)).use { externalizer.read(it) })
       }
+    }
+
+    /**
+     * IdIndexEntryMapExternalizer.read sign-extends the occurrence mask byte, so UsageSearchContext.ANY (255) comes back
+     * as -1. The platform reads that form only to diff it against new data; a cache hit is the new data. The same file
+     * served from the cache and mapped by the indexer would differ: a verified hit is reported as changed, and two
+     * projects indexing one library file at once (both scan it as unindexed) add different values for it.
+     */
+    private fun <K, V> withUnsignedMasks(data: Map<K, V>): Map<K, V> {
+      val ids = data as? IdEntryToScopeMapImpl ?: return data
+      if (ids.values.all { it >= 0 }) return data
+      val fixed = IdEntryToScopeMapImpl(ids.size)
+      for ((entry, mask) in ids) fixed.updateMask(entry.wordHashCode, mask and UsageSearchContext.ANY.toInt())
+      @Suppress("UNCHECKED_CAST")
+      return fixed as Map<K, V>
     }
 
     /**
