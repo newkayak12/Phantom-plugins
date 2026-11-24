@@ -2,7 +2,7 @@
 
 ## 미배포
 
-- 표시 이름을 바꿨다: Phantom for Git → Support for Git. 플러그인 id와 기능은 그대로다. (#?)
+- 표시 이름을 바꿨다: Phantom for Git → Support for Git. 플러그인 id와 기능은 그대로다. (#136)
 
 ## 0.2.2 (2026-11-23)
 
