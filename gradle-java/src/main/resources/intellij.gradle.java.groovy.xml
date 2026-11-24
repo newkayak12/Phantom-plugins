@@ -82,7 +82,7 @@
     <runLineMarkerContributor language="Groovy" id="gradleGroovyRunLineMarkerProvider"
                               implementationClass="com.intellij.gradle.java.groovy.execution.GradleGroovyRunLineMarkerProvider"/>
 
-    <fileTypeUsageSchemaDescriptor schema="Gradle" implementationClass="com.intellij.gradle.java.groovy.config.GradleScriptTypeDetector"/>
+    <!-- phantom-idea: no fileTypeUsageSchemaDescriptor (file type usage statistics) -->
     <psi.symbolReferenceProvider hostLanguage="Groovy"
                                  hostElementClass="org.jetbrains.plugins.groovy.lang.psi.api.statements.expressions.literals.GrLiteral"
                                  targetClass="org.jetbrains.plugins.gradle.service.resolve.GradleProjectSymbol"

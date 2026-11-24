@@ -1,8 +1,7 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package com.intellij.gradle.java.groovy.service.project.wizard
 
-import com.intellij.ide.projectWizard.NewProjectWizardCollector.Base.logAddSampleCodeChanged
-import com.intellij.ide.projectWizard.NewProjectWizardCollector.Base.logAddSampleCodeFinished
 import com.intellij.ide.projectWizard.NewProjectWizardConstants.BuildSystem.GRADLE
 import com.intellij.ide.wizard.NewProjectWizardChainStep.Companion.nextStep
 import com.intellij.ide.wizard.NewProjectWizardStep
@@ -13,7 +12,6 @@ import com.intellij.openapi.roots.ui.distribution.LocalDistributionInfo
 import com.intellij.ui.UIBundle
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.bindSelected
-import com.intellij.ui.dsl.builder.whenStateChangedFromUi
 import org.jetbrains.plugins.gradle.frameworkSupport.GradleDsl
 import org.jetbrains.plugins.gradle.service.project.wizard.GradleAssetsNewProjectWizardStep
 import org.jetbrains.plugins.gradle.service.project.wizard.GradleNewProjectWizardStep
@@ -54,8 +52,6 @@ class GradleGroovyNewProjectWizard : BuildSystemGroovyNewProjectWizard {
       builder.row {
         checkBox(UIBundle.message("label.project.wizard.new.project.add.sample.code"))
           .bindSelected(addSampleCodeProperty)
-          .whenStateChangedFromUi { logAddSampleCodeChanged(it) }
-          .onApply { logAddSampleCodeFinished(addSampleCode) }
       }
     }
 

@@ -1,8 +1,7 @@
 // Copyright 2000-2022 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package org.jetbrains.plugins.gradle.service.project.wizard
 
-import com.intellij.ide.projectWizard.NewProjectWizardCollector.Base.logAddSampleCodeChanged
-import com.intellij.ide.projectWizard.NewProjectWizardCollector.Base.logAddSampleCodeFinished
 import com.intellij.ide.projectWizard.NewProjectWizardConstants.BuildSystem.GRADLE
 import com.intellij.ide.projectWizard.generators.BuildSystemJavaNewProjectWizard
 import com.intellij.ide.projectWizard.generators.BuildSystemJavaNewProjectWizardData
@@ -16,7 +15,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.ui.UIBundle
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.bindSelected
-import com.intellij.ui.dsl.builder.whenStateChangedFromUi
 
 internal class GradleJavaNewProjectWizard : BuildSystemJavaNewProjectWizard {
 
@@ -42,8 +40,6 @@ internal class GradleJavaNewProjectWizard : BuildSystemJavaNewProjectWizard {
       builder.row {
         checkBox(UIBundle.message("label.project.wizard.new.project.add.sample.code"))
           .bindSelected(addSampleCodeProperty)
-          .whenStateChangedFromUi { logAddSampleCodeChanged(it) }
-          .onApply { logAddSampleCodeFinished(addSampleCode) }
       }
     }
 

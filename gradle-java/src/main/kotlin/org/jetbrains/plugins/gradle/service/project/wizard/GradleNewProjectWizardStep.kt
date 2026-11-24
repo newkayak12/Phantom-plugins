@@ -1,10 +1,9 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package org.jetbrains.plugins.gradle.service.project.wizard
 
 import com.intellij.CommonBundle
 import com.intellij.ide.JavaUiBundle
-import com.intellij.ide.projectWizard.NewProjectWizardCollector.BuildSystem.logSdkChanged
-import com.intellij.ide.projectWizard.NewProjectWizardCollector.BuildSystem.logSdkFinished
 import com.intellij.ide.projectWizard.ProjectWizardJdkIntent
 import com.intellij.ide.projectWizard.ProjectWizardJdkPredicate
 import com.intellij.ide.projectWizard.generators.JdkDownloadService
@@ -12,7 +11,6 @@ import com.intellij.ide.projectWizard.projectWizardJdkComboBox
 import com.intellij.ide.wizard.NewProjectWizardBaseData
 import com.intellij.ide.wizard.NewProjectWizardStep
 import com.intellij.ide.wizard.setupProjectFromBuilder
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationNamesInfo
 import com.intellij.openapi.components.service
 import com.intellij.openapi.externalSystem.model.project.ProjectData
@@ -46,7 +44,6 @@ import com.intellij.openapi.util.registry.Registry
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.BottomGap
 import com.intellij.ui.dsl.builder.COLUMNS_SHORT
-import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.SegmentedButton
 import com.intellij.ui.dsl.builder.bindItem
@@ -54,7 +51,6 @@ import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.columns
 import com.intellij.ui.dsl.builder.trimmedTextValidation
-import com.intellij.ui.dsl.builder.whenItemSelectedFromUi
 import com.intellij.ui.dsl.listCellRenderer.textListCellRenderer
 import com.intellij.ui.layout.ValidationInfoBuilder
 import com.intellij.ui.util.minimumWidth
@@ -73,12 +69,6 @@ import org.jetbrains.plugins.gradle.service.execution.GradleDaemonJvmHelper
 import org.jetbrains.plugins.gradle.service.project.open.suggestGradleHome
 import org.jetbrains.plugins.gradle.service.project.wizard.GradleNewProjectWizardStep.DistributionTypeItem.LOCAL
 import org.jetbrains.plugins.gradle.service.project.wizard.GradleNewProjectWizardStep.DistributionTypeItem.WRAPPER
-import org.jetbrains.plugins.gradle.service.project.wizard.statistics.GradleNewProjectWizardCollector.logGradleDistributionChanged
-import org.jetbrains.plugins.gradle.service.project.wizard.statistics.GradleNewProjectWizardCollector.logGradleDistributionFinished
-import org.jetbrains.plugins.gradle.service.project.wizard.statistics.GradleNewProjectWizardCollector.logGradleDslChanged
-import org.jetbrains.plugins.gradle.service.project.wizard.statistics.GradleNewProjectWizardCollector.logGradleDslFinished
-import org.jetbrains.plugins.gradle.service.project.wizard.statistics.GradleNewProjectWizardCollector.logGradleVersionChanged
-import org.jetbrains.plugins.gradle.service.project.wizard.statistics.GradleNewProjectWizardCollector.logGradleVersionFinished
 import org.jetbrains.plugins.gradle.service.settings.PlaceholderGroup.Companion.placeholderGroup
 import org.jetbrains.plugins.gradle.settings.DistributionType
 import org.jetbrains.plugins.gradle.settings.GradleDefaultProjectSettings
@@ -150,8 +140,6 @@ abstract class GradleNewProjectWizardStep<ParentStep>(parent: ParentStep) :
                                                                                                        maxKotlinJvmTarget, kotlinVersion)
           else null
         }
-        .whenItemSelectedFromUi { jdkIntent.javaVersion?.let { logSdkChanged(it.feature) } }
-        .onApply { jdkIntent.javaVersion?.let { logSdkFinished(it.feature) } }
     }.bottomGap(BottomGap.SMALL)
   }
 
@@ -165,9 +153,7 @@ abstract class GradleNewProjectWizardStep<ParentStep>(parent: ParentStep) :
       }
       segmentedButton(listOf(GradleDsl.KOTLIN, GradleDsl.GROOVY), renderer)
         .bind(gradleDslProperty)
-        .whenItemSelectedFromUi { logGradleDslChanged(gradleDsl) }
     }.bottomGap(BottomGap.SMALL)
-    builder.onApply { logGradleDslFinished(gradleDsl) }
   }
 
   protected open val distributionTypes: List<DistributionTypeItem> = listOf(WRAPPER, LOCAL)
@@ -180,8 +166,6 @@ abstract class GradleNewProjectWizardStep<ParentStep>(parent: ParentStep) :
         comboBox(distributionTypes, textListCellRenderer { it?.text })
           .columns(COLUMNS_SHORT)
           .bindItem(distributionTypeProperty)
-          .whenItemSelectedFromUi { logGradleDistributionChanged(distributionType.value) }
-          .onApply { logGradleDistributionFinished(distributionType.value) }
       }.visibleIf(parentProperty.transform { distributionTypes.size > 1 })
       row {
         placeholderGroup {
@@ -198,8 +182,6 @@ abstract class GradleNewProjectWizardStep<ParentStep>(parent: ParentStep) :
                 .validationOnApply { validateGradleVersion(gradleVersion, withDialog = true) }
                 .validationRequestor(WHEN_GRAPH_PROPAGATION_FINISHED(propertyGraph))
                 .enabledIf(autoSelectGradleVersionProperty.not())
-                .whenItemChangedFromUi { logGradleVersionChanged(gradleVersion) }
-                .onApply { logGradleVersionFinished(gradleVersion) }
               checkBox(GradleBundle.message("gradle.project.settings.distribution.wrapper.version.auto.select"))
                 .bindSelected(autoSelectGradleVersionProperty)
             }
@@ -235,15 +217,6 @@ abstract class GradleNewProjectWizardStep<ParentStep>(parent: ParentStep) :
           }
       }.bottomGap(BottomGap.SMALL)
     }.visibleIf(parentProperty.transform { !it.isPresent })
-  }
-
-  private fun <T, C : TextCompletionComboBox<T>> Cell<C>.whenItemChangedFromUi(
-    parentDisposable: Disposable? = null,
-    listener: (T) -> Unit
-  ): Cell<C> {
-    return applyToComponent {
-      whenItemChangedFromUi(parentDisposable, listener)
-    }
   }
 
   private fun getDefaultProjectSettings(): GradleDefaultProjectSettings {
