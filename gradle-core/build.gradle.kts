@@ -49,7 +49,16 @@ val toolingJars by configurations.creating {
   isCanBeConsumed = true
   isCanBeResolved = false
 }
+// The test classes for gradle-java's tests, which build on them (intellij.gradle.java.tests depends on intellij.gradle.tests)
+val testClasses by configurations.creating {
+  isCanBeConsumed = true
+  isCanBeResolved = false
+}
 artifacts {
+  sourceSets.test.get().output.classesDirs.forEach { add("testClasses", it) { builtBy(tasks.named("testClasses")) } }
+  add("testClasses", tasks.named<ProcessResources>("processTestResources").map { it.destinationDir }) {
+    builtBy(tasks.named("processTestResources"))
+  }
   add("toolingJars", toolingExtensionJar)
   add("toolingJars", toolingExtensionImplJar)
   add("toolingJars", toolingProxyJar)

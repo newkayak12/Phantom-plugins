@@ -134,6 +134,8 @@ dependencies {
     bundledPlugin("org.jetbrains.idea.reposearch")
     bundledPlugin("com.jetbrains.performancePlugin")
     localPlugin(project(":groovy"))
+    // What gradle-core and groovy depend on; a local plugin's own local plugins don't come with it
+    localPlugin(project(":groovy-scripting"))
     localPlugin(project(":gradle-dsl"))
     testFramework(TestFrameworkType.Plugin.Java, providers.gradleProperty("platformTestBuild"))
     testFramework(TestFrameworkType.JUnit5, providers.gradleProperty("platformTestBuild"))
@@ -163,17 +165,171 @@ dependencies {
   testRuntimeOnly("org.junit.platform:junit-platform-launcher")
   testImplementation("org.assertj:assertj-core:3.27.6")
   testImplementation("org.mockito:mockito-core:5.20.0")
+  testImplementation("org.mockito.kotlin:mockito-kotlin:6.1.0")
+  testImplementation("org.junit-pioneer:junit-pioneer:2.3.0")
+  // gradle-core's tests, which these build on, and what they compile against
+  testImplementation(project(":gradle-core", "testClasses"))
+  testImplementation(project(":gradle-core", "toolingJars"))
+  testImplementation(gradleApi) { isTransitive = false }
+  testImplementation("com.jetbrains.intellij.platform:external-system-test-framework:${providers.gradleProperty("platformTestBuild").get()}") {
+    isTransitive = false
+  }
 }
 
 // IntelliJ compiles intellij.gradle.jps for Java 11, the oldest JDK the build process runs on
 tasks.named<JavaCompile>("compileJpsJava") { options.release = 11 }
 
-tasks.test {
-  useJUnitPlatform()
+// Upstream tests that are not compiled: they need IntelliJ test sources which are not published as artifacts (the
+// external system and Groovy test bases, gradle-core's importing and code insight test bases, which are left out there
+// for the same reason, the IDE metrics benchmark)
+val testsNeedingUnpublishedTestSources = listOf<String>(
+  "com/intellij/gradle/java/toml/tests/service/GradleTomlVersionCatalogEntrySearcherTest.kt",
+  "org/jetbrains/jps/gradle/GradleJavaClasspathTest.java",
+  "org/jetbrains/plugins/gradle/compiler/GradleCompilingTestCase.java",
+  "org/jetbrains/plugins/gradle/compiler/GradleDelegatedBuildTest.java",
+  "org/jetbrains/plugins/gradle/compiler/GradleDelegatedBuildTestCase.java",
+  "org/jetbrains/plugins/gradle/compiler/GradleImprovedHotswapDetectionTest.java",
+  "org/jetbrains/plugins/gradle/compiler/GradleJpsCompilingTestCase.java",
+  "org/jetbrains/plugins/gradle/compiler/GradleJpsJavaCompilationTest.java",
+  "org/jetbrains/plugins/gradle/compiler/GradleJpsResourceFilteringTest.java",
+  "org/jetbrains/plugins/gradle/compiler/GradleJpsResourceProcessingTest.java",
+  "org/jetbrains/plugins/gradle/compiler/GradleRelativeConfigCalculatingTest.kt",
+  "org/jetbrains/plugins/gradle/compiler/GradleRelativeConfigCalculatingTestCase.kt",
+  "org/jetbrains/plugins/gradle/dependencyAnalyzer/GradleDependencyNodeIndexTest.kt",
+  "org/jetbrains/plugins/gradle/dependencyAnalyzer/GradleDependencyNodeIndexTestCase.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleActionTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleArtifactsTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleCompletionTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleConfigurationsTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleConventionsTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleDependenciesTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleDistributionsTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleDslPropertiesFileTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleExtensionsTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleHighlightingPerformanceTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleIdeaPluginTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleJavaExtensionsTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradlePluginDslStructureTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleProjectTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradlePublishingTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleRepositoriesTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleResolveTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleSourceSetsTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleTaskHighlightingTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleTasksTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/GradleWithGroovyTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/inspections/GradleAvoidDependencyNamedArgumentsNotationInspectionTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/inspections/GradleConfigurationAvoidanceInspectionTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/inspections/GradleDeprecatedConfigurationInspectionTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/inspections/GradleForeignDelegateInspectionTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/inspections/GradleLatestMinorVersionInspectionTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/inspections/GradleRedundantKotlinStdLibInspectionTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/inspections/GradleUnusedVersionCatalogInspectionTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/notations/GradleDependencyNotationTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/versionCatalogs/GradleVersionCatalogFixtures.kt",
+  "org/jetbrains/plugins/gradle/dsl/versionCatalogs/GradleVersionCatalogsCompletionTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/versionCatalogs/GradleVersionCatalogsFindUsagesTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/versionCatalogs/GradleVersionCatalogsRenameTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/versionCatalogs/GradleVersionCatalogsResolveTest.kt",
+  "org/jetbrains/plugins/gradle/dsl/versionCatalogs/TomlVersionCatalogCompletionTest.kt",
+  "org/jetbrains/plugins/gradle/editor/GradleAttachSourcesProviderFilterTest.kt",
+  "org/jetbrains/plugins/gradle/execution/GradleDebuggingIntegrationTestCase.kt",
+  "org/jetbrains/plugins/gradle/execution/GradleGroovyScriptRunConfigurationProducerTest.kt",
+  "org/jetbrains/plugins/gradle/execution/GradleGroovyScriptRunConfigurationProducerTestCase.kt",
+  "org/jetbrains/plugins/gradle/execution/GradleRunConfigurationProducerTestCase.kt",
+  "org/jetbrains/plugins/gradle/execution/GradleTasksExecutionTest.kt",
+  "org/jetbrains/plugins/gradle/execution/build/GradleApplicationEnvironmentProviderTestCase.kt",
+  "org/jetbrains/plugins/gradle/execution/build/GradleBuildOutputTest.kt",
+  "org/jetbrains/plugins/gradle/execution/build/GradleExecutionOutputTest.kt",
+  "org/jetbrains/plugins/gradle/execution/build/GradleProjectTaskRunnerTest.kt",
+  "org/jetbrains/plugins/gradle/execution/build/GradleProjectTaskRunnerTestCase.kt",
+  "org/jetbrains/plugins/gradle/execution/build/GradleSyncOutputTest.kt",
+  "org/jetbrains/plugins/gradle/execution/build/GroovyGradleApplicationEnvironmentProviderTest.kt",
+  "org/jetbrains/plugins/gradle/execution/build/GroovyGradleProjectTaskRunnerTest.kt",
+  "org/jetbrains/plugins/gradle/execution/inspections/GradleLatestMinorVersionBuildIssueImportTest.kt",
+  "org/jetbrains/plugins/gradle/execution/inspections/GradleLatestMinorVersionBuildIssueTaskExecutionTest.kt",
+  "org/jetbrains/plugins/gradle/execution/test/ExternalTestsModelCompatibilityTest.kt",
+  "org/jetbrains/plugins/gradle/execution/test/events/GradleRerunFailedTestsTest.kt",
+  "org/jetbrains/plugins/gradle/execution/test/events/GradleRerunFailedTestsTestCase.kt",
+  "org/jetbrains/plugins/gradle/execution/test/events/GradleSuiteWallTimeTest.kt",
+  "org/jetbrains/plugins/gradle/execution/test/events/GradleTestAssertionTest.kt",
+  "org/jetbrains/plugins/gradle/execution/test/events/GradleTestEventTest.kt",
+  "org/jetbrains/plugins/gradle/execution/test/events/GradleTestExecutionTest.kt",
+  "org/jetbrains/plugins/gradle/execution/test/events/GradleTestNavigationTest.kt",
+  "org/jetbrains/plugins/gradle/execution/test/events/RobolectricGradleTestFilterTest.kt",
+  "org/jetbrains/plugins/gradle/execution/test/events/SpockGradleTestNavigationTest.kt",
+  "org/jetbrains/plugins/gradle/execution/test/producer/GradleTestRunConfigurationProducerTest.kt",
+  "org/jetbrains/plugins/gradle/execution/test/producer/GradleTestRunConfigurationProducerTestCase.kt",
+  "org/jetbrains/plugins/gradle/execution/test/producer/TestMethodGradleConfigurationProducerTest.kt",
+  "org/jetbrains/plugins/gradle/execution/test/producer/TestMethodGradleConfigurationProducerTestCase.kt",
+  "org/jetbrains/plugins/gradle/importing/AnnotationProcessorConfigImportingTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleBuildSrcImportingTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleClassFinderTest.java",
+  "org/jetbrains/plugins/gradle/importing/GradleExtensionsImportingTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleExternalProjectImportingTest.java",
+  "org/jetbrains/plugins/gradle/importing/GradleFindUsagesTest.java",
+  "org/jetbrains/plugins/gradle/importing/GradleImportActionTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleJavaCompilerSettingsImportingTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleJavaCompilerSettingsImportingTestCase.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleJavaImportingTestCase.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleJavaOutputParsersMessagesImportingTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleJavaProjectResolverPerformanceTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleJavaProjectResolverTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleJavaSettingsImportingTest.java",
+  "org/jetbrains/plugins/gradle/importing/GradleJavaSyncPerformanceTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleMavenRepositoriesImportTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleMiscImportingTest.java",
+  "org/jetbrains/plugins/gradle/importing/GradleModulesInProjectViewTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleProjectRepositoriesImportingTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleToolWindowTest.kt",
+  "org/jetbrains/plugins/gradle/importing/TestGradleConfigurationProducerUtilTest.kt",
+  "org/jetbrains/plugins/gradle/quarantine/dsl/GradleHighlightingTest.kt",
+  "org/jetbrains/plugins/gradle/quarantine/dsl/GradleManagedPropertyTest.kt",
+  "org/jetbrains/plugins/gradle/quarantine/dsl/GradleProjectReferenceTest.kt",
+  "org/jetbrains/plugins/gradle/quarantine/execution/GradleDebuggingIntegrationTest.kt",
+  "org/jetbrains/plugins/gradle/quarantine/execution/build/GradleApplicationEnvironmentProviderTest.java",
+  "org/jetbrains/plugins/gradle/service/project/GradleTasksIndicesTest.kt",
+  "org/jetbrains/plugins/gradle/service/project/GradleTasksIndicesTestCase.kt",
+  "org/jetbrains/plugins/gradle/service/project/workspace/ExternalProjectsWorkspaceIntegrationTestCase.kt",
+  "org/jetbrains/plugins/gradle/service/project/workspace/GradleMavenProjectsWorkspaceIntegrationTest.kt",
+  "org/jetbrains/plugins/gradle/service/project/workspace/GradleProjectsWorkspaceIntegrationTest.kt",
+  "org/jetbrains/plugins/gradle/service/project/workspace/MavenProjectsWorkspaceIntegrationTest.kt",
+  "org/jetbrains/plugins/gradle/service/resolve/GradleClosureResolveTest.kt",
+  "org/jetbrains/plugins/gradle/service/resolve/GradlePluginReferenceResolveTest.kt",
+  "org/jetbrains/plugins/gradle/setup/GradleJavaNewProjectWizardTest.kt",
+  "org/jetbrains/plugins/gradle/setup/GradleJavaNewProjectWizardTestCase.kt",
+  "org/jetbrains/plugins/gradle/setup/GradleNewProjectWizardTestCase.kt",
+  "org/jetbrains/plugins/gradle/setup/GradleOpenProjectTest.kt",
+  "org/jetbrains/plugins/gradle/setup/GradleOpenProjectTestCase.kt",
+  "org/jetbrains/plugins/gradle/setup/GradleUntrustedProjectTest.kt",
+  "org/jetbrains/plugins/gradle/setup/GradleUntrustedProjectTestCase.kt",
+  "org/jetbrains/plugins/gradle/testFramework/GradleTestExecutionBaseTestCase.kt",
+  "org/jetbrains/plugins/gradle/testFramework/GradleTestExecutionTestCase.kt",
+  "org/jetbrains/plugins/gradle/testFramework/util/GradleTestConsoleUtil.kt",
+  "org/jetbrains/plugins/gradle/testFramework/util/TestProxyUtil.kt",
+)
+sourceSets.test {
+  java.exclude(testsNeedingUnpublishedTestSources)
+  kotlin.exclude(testsNeedingUnpublishedTestSources)
 }
 
-// The IDE the tests run in still bundles IntelliJ's Gradle plugins, which claim the ids these plugins keep as aliases
+tasks.test {
+  useJUnitPlatform()
+  filter {
+    // They resolve JUnit from the IntelliJ project files of an IntelliJ checkout (IntelliJProjectConfiguration)
+    excludeTest("org.jetbrains.plugins.gradle.util.GradleExecutionSettingsUtilTest", "test filter generation for the Junit 5 parametrized tests")
+    excludeTest("org.jetbrains.plugins.gradle.util.GradleExecutionSettingsUtilTest", "test filter generation for the Junit 4 parametrized tests")
+  }
+}
+
+// The IDE the tests run in still bundles IntelliJ's Gradle, Gradle DSL API, Groovy and Groovy Scripting, which claim the
+// ids this plugin, gradle-core, gradle-dsl, groovy and groovy-scripting keep as aliases
 tasks.prepareTestSandbox {
-  disabledPlugins.add("com.intellij.gradle")
-  disabledPlugins.add("org.jetbrains.plugins.gradle")
+  disabledPlugins.addAll(
+    "com.intellij.gradle",
+    "org.jetbrains.plugins.gradle",
+    "org.jetbrains.idea.gradle.dsl",
+    "org.intellij.groovy",
+    "com.intellij.groovy.scripting",
+  )
 }
