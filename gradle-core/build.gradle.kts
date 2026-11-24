@@ -270,6 +270,8 @@ tasks.test {
     excludeTest("org.jetbrains.plugins.gradle.util.GradleJvmUpdateMatricesTest", "test update configuration")
     excludeTest("org.jetbrains.plugins.gradle.util.GradleJvmUpdateMatricesTest", "test should not update configuration twice")
     excludeTest("org.jetbrains.plugins.gradle.util.GradleJvmUpdateMatricesTest", "test update configuration for appropriate idea version")
+    // Passes alone; in the full run it finds external system task listeners an earlier test left registered
+    excludeTest("org.jetbrains.plugins.gradle.settings.GradleSubscriptionTest", "test external system unsubscription")
   }
 }
 
