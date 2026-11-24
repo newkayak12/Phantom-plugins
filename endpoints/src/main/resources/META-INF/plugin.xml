@@ -18,7 +18,7 @@
   <resource-bundle>messages.EndpointsBundle</resource-bundle>
 
   <extensions defaultExtensionNs="com.intellij">
-    <toolWindow id="Endpoints" anchor="bottom" secondary="false" icon="AllIcons.Webreferences.Server"
+    <toolWindow id="Endpoints" anchor="bottom" secondary="false" icon="/icons/phantom/toolwindow/endpoints.svg"
                 doNotActivateOnStart="true" factoryClass="dev.phantom.endpoints.EndpointsToolWindowFactory"/>
   </extensions>
 </idea-plugin>

@@ -5,7 +5,7 @@ This repository builds Phantom IDE plugins with Gradle. Read the affected plugin
 ## Find the source owner
 
 - Plugin features belong here. Platform behavior, product branding, and the IDE bundle selection belong in the separate Phantom repository.
-- Some plugins are adapted upstream sources. Preserve their plugin ID aliases, content module names, package compatibility, and license notices. A `bundledPlugin(...)` dependency uses the original IntelliJ ID; the shared convention resolves Phantom aliases for the installed IDE.
+- Some plugins are adapted upstream sources. Preserve their plugin ID aliases, content module names, package compatibility, and license notices. A `bundledPlugin(...)` dependency uses the original IntelliJ ID; the IntelliJ Platform Gradle Plugin resolves it to the Phantom plugin that carries it as an alias.
 - Before fixing a bundled plugin, check which repository supplies the shipped source. Editing `plugins/<name>` in Phantom does not update a plugin built from this repository. When both repositories need changes, describe and validate each part explicitly.
 
 ## Implementation

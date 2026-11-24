@@ -10,6 +10,7 @@ import com.intellij.util.ui.JBUI
 import dev.phantom.ai.core.PhantomAiBundle
 import dev.phantom.ai.core.SessionListener
 import dev.phantom.ai.core.SessionStore
+import dev.phantom.ai.core.WhenShown
 import org.jetbrains.annotations.TestOnly
 import java.awt.BorderLayout
 import java.awt.Cursor
@@ -40,6 +41,9 @@ class MemoListPanel(
     addActionListener { MemoSendPopup.show(project, this) }
   }
   private val rowTexts = mutableListOf<String>()
+  // session events come several a second while agents work and only rename queued batches: not while hidden. Memo and
+  // queue events still refresh at once, as they are what makes this panel visible
+  private val whenShown = WhenShown(this, ::refreshLater)
   private val cancelButtons = mutableListOf<JButton>()
 
   init {
@@ -48,7 +52,7 @@ class MemoListPanel(
     add(scroll, BorderLayout.CENTER)
     val connection = project.messageBus.connect(this)
     connection.subscribe(AiMemoStore.TOPIC, AiMemoListener { refreshLater() })
-    connection.subscribe(SessionStore.TOPIC, SessionListener { _, _ -> refreshLater() })
+    connection.subscribe(SessionStore.TOPIC, SessionListener { _, _ -> whenShown.request() })
     connection.subscribe(MemoSender.TOPIC, MemoQueueListener { refreshLater() })
     refresh()
   }

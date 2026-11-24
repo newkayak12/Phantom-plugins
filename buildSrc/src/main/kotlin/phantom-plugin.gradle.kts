@@ -1,6 +1,7 @@
 // Shared setup for every plugin in this repository: Kotlin, and the installed Phantom as the platform.
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask
 import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask.FailureLevel
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -38,7 +39,6 @@ dependencies {
     }
     else {
       local(installedPhantom)
-      resolveBundledPhantomPluginsByAlias()
     }
     // Phantom is a fork of this IntelliJ build, whose test framework is published
     testFramework(TestFrameworkType.Platform, providers.gradleProperty("platformTestBuild"))
@@ -46,25 +46,6 @@ dependencies {
   }
   testImplementation("junit:junit:4.13.2")
   testRuntimeOnly("org.opentest4j:opentest4j:1.3.0")
-}
-
-// The installed Phantom bundles plugins of this repository (dev.phantom.properties, ...) in place of IntelliJ's, with
-// IntelliJ's ids as aliases. The Gradle plugin describes an alias (bundledPlugin("com.intellij.properties")) as
-// depending on the plugin's own id, which it never describes ("Could not find bundledPlugin:dev.phantom.properties").
-// Both name the same jars, so the plugin's own id is resolved by its alias: the alias then depends on itself, as
-// bundledPlugin("com.intellij.java") does. So build scripts ask for these plugins by their IntelliJ ids, never dev.phantom.*.
-fun resolveBundledPhantomPluginsByAlias() {
-  val aliasOf = rootDir.listFiles().orEmpty().mapNotNull { dir ->
-    val descriptor = dir.resolve("src/main/resources/META-INF/plugin.xml").takeIf { it.isFile }?.readText() ?: return@mapNotNull null
-    val id = Regex("<id>\\s*([^<\\s]+)\\s*</id>").find(descriptor)?.groupValues?.get(1)
-    val alias = Regex("<module\\s+value=\"([^\"]+)\"").find(descriptor)?.groupValues?.get(1)
-    if (id != null && alias != null) id to alias else null
-  }.toMap()
-  configurations.configureEach {
-    resolutionStrategy.eachDependency {
-      if (requested.group == "bundledPlugin") aliasOf[requested.name]?.let { useTarget("bundledPlugin:$it:${requested.version}") }
-    }
-  }
 }
 
 // Libraries from Maven that a plugin packs into lib/ by other means than runtimeClasspath (repackaged into a jar of its
@@ -150,6 +131,9 @@ intellijPlatform {
     // unresolved. The check against a Phantom build, which bundles them, still covers those references.
     if (!verifyIde.isPresent && providers.gradleProperty("platformFromRepository").isPresent) {
       externalPrefixes.add("dev.phantom")
+      // Ported plugins still carry IntelliJ's FUS collectors and Groovy's optional library references, which the verifier
+      // reports against IntelliJ Community; config/verifier/ignored-problems.txt names them per plugin.
+      freeArgs = listOf("-ignored-problems", rootProject.file("config/verifier/ignored-problems.txt").path)
     }
     ides {
       when {
@@ -159,5 +143,15 @@ intellijPlatform {
         else -> local(installedPhantom)
       }
     }
+  }
+}
+
+// A plugin that needs a Phantom build (since-build 262.261123) cannot install in IntelliJ Community, and the verifier
+// rejects a build component over 99999 as an invalid descriptor. Only the check against a Phantom build applies to it.
+tasks.named<VerifyPluginTask>("verifyPlugin") {
+  val againstCommunity = !providers.gradleProperty("verifyIde").isPresent && providers.gradleProperty("platformFromRepository").isPresent
+  val sinceBuild = intellijPlatform.pluginConfiguration.ideaVersion.sinceBuild
+  onlyIf("since-build is a Phantom build") {
+    !againstCommunity || (sinceBuild.orNull?.substringAfter('.', "")?.toIntOrNull() ?: 0) <= 99999
   }
 }

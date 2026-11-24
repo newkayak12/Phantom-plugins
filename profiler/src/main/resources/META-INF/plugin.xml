@@ -31,7 +31,7 @@
     <programRunner implementation="dev.phantom.profiler.ProfileProgramRunner"/>
     <fileType name="JFR" implementationClass="dev.phantom.profiler.JfrFileType" fieldName="INSTANCE" extensions="jfr"/>
     <fileEditorProvider implementation="dev.phantom.profiler.JfrEditorProvider"/>
-    <toolWindow id="Profiler" anchor="bottom" secondary="false" icon="AllIcons.Actions.Profile" doNotActivateOnStart="true"
+    <toolWindow id="Profiler" anchor="bottom" secondary="false" icon="AllIcons.Toolwindows.ToolWindowProfiler" doNotActivateOnStart="true"
                 factoryClass="dev.phantom.profiler.ProfilerToolWindowFactory"/>
     <notificationGroup id="Phantom Profiler" displayType="BALLOON" key="notification.group"/>
   </extensions>

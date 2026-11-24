@@ -77,7 +77,8 @@ class DbToolWindowFactory : ToolWindowFactory, DumbAware {
     fun show(project: Project, focus: Boolean = true) {
       val manager = ToolWindowManager.getInstance(project)
       val toolWindow = manager.getToolWindow(ID) ?: manager.registerToolWindow(
-        RegisterToolWindowTask(ID, ToolWindowAnchor.RIGHT, contentFactory = DbToolWindowFactory(), icon = AllIcons.Nodes.DataTables,
+        RegisterToolWindowTask(ID, ToolWindowAnchor.RIGHT, contentFactory = DbToolWindowFactory(),
+                               icon = PhantomDbIcons.DATABASE_TOOL_WINDOW,
                                stripeTitle = Supplier { PhantomDbBundle.message("toolwindow.stripe.Database") }))
       if (focus) toolWindow.activate(null) else toolWindow.show()
     }

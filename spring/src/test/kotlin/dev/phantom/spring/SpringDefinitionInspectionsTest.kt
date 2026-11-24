@@ -2,6 +2,9 @@
 package dev.phantom.spring
 
 import com.intellij.codeInspection.LocalInspectionTool
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import dev.phantom.spring.core.PhantomSpringBundle
 import dev.phantom.spring.core.ide.*
@@ -19,7 +22,7 @@ class SpringDefinitionInspectionsTest : LightJavaCodeInsightFixtureTestCase() {
       "package org.springframework.stereotype; $runtime @Component public @interface Controller { String value() default \"\"; }",
       "package org.springframework.stereotype; $runtime @Component public @interface Repository { String value() default \"\"; }",
       "package org.springframework.beans.factory.annotation; $runtime public @interface Lookup { String value() default \"\"; }",
-      "package org.springframework.context.annotation; $runtime public @interface ComponentScan { String[] value() default {}; String[] basePackages() default {}; }",
+      "package org.springframework.context.annotation; $runtime public @interface ComponentScan { String[] value() default {}; String[] basePackages() default {}; @interface Filter {} }",
       "package org.springframework.context.annotation; $runtime public @interface PropertySource { String[] value(); boolean ignoreResourceNotFound() default false; }",
       "package org.springframework.context.annotation; $runtime public @interface ImportResource { String[] value() default {}; String[] locations() default {}; }",
       "package org.springframework.context.annotation; $runtime public @interface Import { Class<?>[] value(); }",
@@ -140,6 +143,24 @@ class SpringDefinitionInspectionsTest : LightJavaCodeInsightFixtureTestCase() {
       msg("inspection.autowired.outside.bean.message", "Helper"),
       msg("inspection.autowired.outside.bean.message", "Manual"),
     ).sorted(), problems(SpringAutowiredOutsideBeanInspection()))
+  }
+
+  /** A scan filter added to an existing class makes any class a possible component: the cached lookup sees it. */
+  fun testScanFilterAddedLaterSilencesAutowiredOutsideBean() {
+    val scan = myFixture.addFileToProject("app/Scan.java", "package app; class Scan {}")
+    myFixture.configureByText("Helper.java", "package app; class Helper { @org.springframework.beans.factory.annotation.Autowired Foo foo; }")
+    assertEquals(listOf(msg("inspection.autowired.outside.bean.message", "Helper")), problems(SpringAutowiredOutsideBeanInspection()))
+    edit(scan, "class Scan", "@org.springframework.context.annotation.ComponentScan.Filter class Scan")
+    assertEmpty(problems(SpringAutowiredOutsideBeanInspection()))
+  }
+
+  private fun edit(file: PsiFile, from: String, to: String) {
+    val document = PsiDocumentManager.getInstance(project).getDocument(file)!!
+    WriteCommandAction.runWriteCommandAction(project) {
+      val at = document.text.indexOf(from)
+      document.replaceString(at, at + from.length, to)
+    }
+    PsiDocumentManager.getInstance(project).commitAllDocuments()
   }
 
   fun testResourceLocations() {

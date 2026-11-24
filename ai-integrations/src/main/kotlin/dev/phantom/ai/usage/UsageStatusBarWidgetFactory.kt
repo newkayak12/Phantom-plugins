@@ -69,7 +69,8 @@ class UsageWidget(private val poller: UsagePoller) : StatusBarWidget, StatusBarW
   override fun getText(): String = UsageText.text(poller.snapshot)
   override fun getTooltipText(): String = UsageText.tooltip(poller.snapshot)
   override fun getAlignment(): Float = 0f
-  override fun getClickConsumer(): Consumer<MouseEvent>? = null
+  // Codex is looked at on a click too, for a user who wants its numbers before running a Codex session here
+  override fun getClickConsumer(): Consumer<MouseEvent> = Consumer { poller.refreshNow() }
 
   companion object {
     const val ID = "dev.phantom.ai.usage"

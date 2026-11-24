@@ -16,7 +16,6 @@ import com.intellij.psi.search.searches.AnnotatedElementsSearch
 import com.intellij.psi.search.searches.ClassInheritorsSearch
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import org.jetbrains.uast.UAnnotated
 import org.jetbrains.uast.UAnnotation
 import org.jetbrains.uast.UCallExpression
@@ -43,7 +42,7 @@ class SpringEndpoint(
  * Finds Spring MVC handlers: methods annotated with `@RequestMapping` or one of its `@GetMapping`-style shortcuts, in
  * classes that are `@Controller`s (directly or through a meta annotation such as `@RestController`). Mappings declared
  * on an interface count when a controller implements it. Reads annotations through UAST, so Java and Kotlin
- * controllers are found the same way. Results are cached until the next PSI change.
+ * controllers are found the same way. Results are cached until declarations change ([SpringStructureTracker]).
  */
 object SpringMvcEndpoints {
   private const val PACKAGE = "org.springframework.web.bind.annotation"
@@ -62,7 +61,9 @@ object SpringMvcEndpoints {
 
   fun all(project: Project): List<SpringEndpoint> =
     CachedValuesManager.getManager(project).getCachedValue(project) {
-      CachedValueProvider.Result.create(find(project), PsiModificationTracker.getInstance(project))
+      // Mappings, controllers and the constants their paths use are declarations: typing in a method body or in a
+      // non-JVM file keeps the list, where PsiModificationTracker reran the project-wide search on every keystroke.
+      CachedValueProvider.Result.create(find(project), *SpringStructureTracker.deps(project))
     }
 
   private fun find(project: Project): List<SpringEndpoint> {

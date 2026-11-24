@@ -3,8 +3,12 @@ package dev.phantom.jpa
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import dev.phantom.jpa.core.JpaEntityInspection
+import dev.phantom.jpa.core.JpaMapping
 import dev.phantom.jpa.core.JpaRepositoryLineMarkerProvider
 import dev.phantom.jpa.core.ModifyingQueryInspection
 
@@ -84,5 +88,34 @@ class JpaMappingTest : LightJavaCodeInsightFixtureTestCase() {
     myFixture.doHighlighting()
     val gutters = myFixture.findAllGutters().map { it.tooltipText }
     assertTrue(gutters.toString(), "Navigate to entity Seat" in gutters)
+  }
+
+  /** Auto-applied converter types follow Java edits; typing in a file of another language keeps them. */
+  fun testAutoAppliedTypesFollowJavaEditsOnly() {
+    myFixture.addClass("package app; public enum Color { RED }")
+    val converter = myFixture.addFileToProject("app/ColorConverter.java", """
+      package app;
+      @jakarta.persistence.Converter(autoApply = true)
+      public class ColorConverter implements jakarta.persistence.AttributeConverter<Color, String> {
+        public String convertToDatabaseColumn(Color a) { return null; }
+        public Color convertToEntityAttribute(String d) { return null; }
+      }
+    """.trimIndent())
+    val notes = myFixture.addFileToProject("notes.txt", "hello")
+    val first = JpaMapping.autoAppliedTypes(module)
+    assertEquals(setOf("app.Color"), first)
+    edit(notes, "hello", "hello there")
+    assertSame(first, JpaMapping.autoAppliedTypes(module))
+    edit(converter, "autoApply = true", "autoApply = false")
+    assertEmpty(JpaMapping.autoAppliedTypes(module))
+  }
+
+  private fun edit(file: PsiFile, from: String, to: String) {
+    val document = PsiDocumentManager.getInstance(project).getDocument(file)!!
+    WriteCommandAction.runWriteCommandAction(project) {
+      val at = document.text.indexOf(from)
+      document.replaceString(at, at + from.length, to)
+    }
+    PsiDocumentManager.getInstance(project).commitAllDocuments()
   }
 }

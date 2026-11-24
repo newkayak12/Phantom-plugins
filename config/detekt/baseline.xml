@@ -227,7 +227,6 @@
     <ID>ConstructorParameterNaming:YAMLlInspectionSuppressor.kt:YAMLSuppressKeyQuickFix$ID: String</ID>
     <ID>CyclomaticComplexMethod:AccountHome.kt:AccountHome$private fun mergeSettings</ID>
     <ID>CyclomaticComplexMethod:AccountsConfigurable.kt:AccountsConfigurable$private fun rebuild</ID>
-    <ID>CyclomaticComplexMethod:AgentDashboardPanel.kt:AgentDashboardPanel$private fun cardView: JComponent</ID>
     <ID>CyclomaticComplexMethod:AgentTerminalService.kt:AgentTerminalService$@RequiresEdt fun reattach: String?</ID>
     <ID>CyclomaticComplexMethod:AgentTerminalService.kt:AgentTerminalService$private fun show: Boolean</ID>
     <ID>CyclomaticComplexMethod:AggregateView.kt:AggregateView$override fun update</ID>
@@ -463,7 +462,7 @@
     <ID>CyclomaticComplexMethod:LanguageToolChecker.kt:private fun isKnownLTBug: Boolean</ID>
     <ID>CyclomaticComplexMethod:LightGitPresentation.kt:@Nls private fun LightFileStatus.StatusRecord.getPresentation: String</ID>
     <ID>CyclomaticComplexMethod:LightOverlay.kt:LightOverlay$fun apply</ID>
-    <ID>CyclomaticComplexMethod:LiquibaseProperties.kt:LiquibaseProperties.Companion$fun of: LiquibaseProperties</ID>
+    <ID>CyclomaticComplexMethod:LiquibaseProperties.kt:LiquibaseProperties.Companion$private fun fromFiles: LiquibaseProperties</ID>
     <ID>CyclomaticComplexMethod:LogConsole.kt:LogInputFilter$override fun applyFilter: List&lt;Pair&lt;String, ConsoleViewContentType>>?</ID>
     <ID>CyclomaticComplexMethod:LogbackDelegateMemberContributor.kt:LogbackDelegateMemberContributor.ComponentProcessor$override fun execute: Boolean</ID>
     <ID>CyclomaticComplexMethod:MapConstructorAttributesFix.kt:MapConstructorAttributesFix.Companion$private fun processLabel: Unit</ID>
@@ -2344,7 +2343,6 @@
     <ID>TooManyFunctions:AbstractSortPropertiesSession.kt:AbstractSortPropertiesSession&lt;TObj : PsiElement, TProp : PsiElement></ID>
     <ID>TooManyFunctions:AccountsService.kt:AccountsService</ID>
     <ID>TooManyFunctions:ActuatorTab.kt:ActuatorTab : AdditionalTabComponent</ID>
-    <ID>TooManyFunctions:AgentDashboardPanel.kt:AgentDashboardPanel : JPanelDisposable</ID>
     <ID>TooManyFunctions:AgentTerminalService.kt:AgentTerminalService</ID>
     <ID>TooManyFunctions:AgentToolWindowPanel.kt:AgentToolWindowPanel : JPanel</ID>
     <ID>TooManyFunctions:AiOfficeEditor.kt:AiOfficeEditor : UserDataHolderBaseFileEditor</ID>
@@ -2660,6 +2658,7 @@
     <ID>TooManyFunctions:VerticalBarPresentation.kt:VerticalBarPresentation : BasePresentation</ID>
     <ID>TooManyFunctions:WindowStack.kt:WindowStack</ID>
     <ID>TooManyFunctions:WorkspacesScenario.kt:WorkspacesRun</ID>
+    <ID>TooManyFunctions:WorkspaceBoardPanel.kt:WorkspaceBoardPanel : JPanelDisposable</ID>
     <ID>TooManyFunctions:WorktreeTreePanel.kt:WorktreeTreePanel : JPanelDisposable</ID>
     <ID>TooManyFunctions:YAMLExpandCollectionIntentionAction.kt:YAMLExpandCollectionIntentionAction : PsiElementBaseIntentionAction</ID>
     <ID>TooManyFunctions:YAMLInlineCollectionIntentionAction.kt:YAMLInlineCollectionIntentionAction : PsiElementBaseIntentionActionLowPriorityAction</ID>

@@ -155,7 +155,11 @@ class RedisPanel(private val project: Project, parent: Disposable) : JPanel(Bord
     val dialog = RedisServerDialog(project, server)
     if (!dialog.showAndGet()) return
     val (edited, password) = dialog.result()
-    RedisServers.getInstance(project).save(edited, password)
+    val servers = RedisServers.getInstance(project)
+    servers.save(edited)
+    // The password safe may block on the OS keychain. On the connection executor the write also lands before the
+    // connection that reloadServers opens reads the password.
+    if (password != null) executor.execute { servers.storePassword(edited.id, String(password)) }
     reloadServers(edited.id)
   }
 
@@ -163,7 +167,10 @@ class RedisPanel(private val project: Project, parent: Disposable) : JPanel(Bord
     val server = servers.selectedItem as? RedisServer ?: return
     if (server.id == RedisServers.LOCAL_ID) return
     if (Messages.showYesNoDialog(project, "Remove ${server}?", "Remove Redis Server", null) != Messages.YES) return
-    RedisServers.getInstance(project).remove(server.id)
+    val servers = RedisServers.getInstance(project)
+    servers.remove(server.id)
+    // The password safe may block on the OS keychain.
+    executor.execute { servers.storePassword(server.id, null) }
     reloadServers(null)
   }
 

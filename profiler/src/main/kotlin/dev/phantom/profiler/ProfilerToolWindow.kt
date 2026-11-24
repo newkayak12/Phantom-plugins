@@ -26,12 +26,10 @@ import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.event.MouseEvent
 import java.nio.file.Files
-import java.nio.file.Path
 import javax.swing.DefaultListModel
 import javax.swing.JComponent
 import javax.swing.JList
 import javax.swing.JPanel
-import kotlin.io.path.getLastModifiedTime
 import kotlin.io.path.name
 
 class ProfilerToolWindowFactory : ToolWindowFactory, DumbAware {
@@ -47,7 +45,7 @@ class ProfilerToolWindowFactory : ToolWindowFactory, DumbAware {
 class ProfilerPanel(private val project: Project) : JPanel(BorderLayout()) {
   private val jvms = DefaultListModel<LocalJvm>()
   private val jvmList = JBList(jvms)
-  private val recordings = DefaultListModel<Path>()
+  private val recordings = DefaultListModel<SavedRecording>()
   private val recordingList = JBList(recordings)
 
   init {
@@ -61,18 +59,20 @@ class ProfilerPanel(private val project: Project) : JPanel(BorderLayout()) {
       }
     }
     recordingList.emptyText.text = PhantomProfilerBundle.message("toolwindow.no.recordings")
-    recordingList.cellRenderer = object : ColoredListCellRenderer<Path>() {
-      override fun customizeCellRenderer(list: JList<out Path>, value: Path, index: Int, selected: Boolean, hasFocus: Boolean) {
+    recordingList.cellRenderer = object : ColoredListCellRenderer<SavedRecording>() {
+      override fun customizeCellRenderer(
+        list: JList<out SavedRecording>, value: SavedRecording, index: Int, selected: Boolean, hasFocus: Boolean,
+      ) {
         icon = AllIcons.Actions.Profile
-        append(value.name)
-        val size = runCatching { StringUtil.formatFileSize(Files.size(value)) }.getOrDefault("")
-        val time = runCatching { DateFormatUtil.formatPrettyDateTime(value.getLastModifiedTime().toMillis()) }.getOrDefault("")
-        append("  $size  $time", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+        append(value.path.name)
+        // size and time come from the background refresh; this runs on the EDT for every cell on each paint
+        val time = DateFormatUtil.formatPrettyDateTime(value.modified)
+        append("  ${StringUtil.formatFileSize(value.size)}  $time", SimpleTextAttributes.GRAYED_ATTRIBUTES)
       }
     }
     object : DoubleClickListener() {
       override fun onDoubleClick(event: MouseEvent): Boolean {
-        Recordings.open(project, recordingList.selectedValue ?: return false)
+        Recordings.open(project, recordingList.selectedValue?.path ?: return false)
         return true
       }
     }.installOn(recordingList)
@@ -159,7 +159,7 @@ class ProfilerPanel(private val project: Project) : JPanel(BorderLayout()) {
       e.presentation.isEnabled = recordingList.selectedValue != null
     }
     override fun actionPerformed(e: AnActionEvent) {
-      Recordings.open(project, recordingList.selectedValue ?: return)
+      Recordings.open(project, recordingList.selectedValue?.path ?: return)
     }
   }
 
@@ -169,7 +169,7 @@ class ProfilerPanel(private val project: Project) : JPanel(BorderLayout()) {
     }
     override fun actionPerformed(e: AnActionEvent) {
       val files = recordingList.selectedValuesList
-      inBackground { files.forEach { Files.deleteIfExists(it) } }
+      inBackground { files.forEach { Files.deleteIfExists(it.path) } }
     }
   }
 }

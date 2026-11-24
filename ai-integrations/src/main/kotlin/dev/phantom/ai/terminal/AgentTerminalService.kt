@@ -1,11 +1,11 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.ai.terminal
 
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.RegisterToolWindowTask
 import com.intellij.openapi.wm.ToolWindow
@@ -32,6 +32,7 @@ import dev.phantom.ai.mcp.McpConfigFiles
 import org.jetbrains.annotations.TestOnly
 import java.nio.file.Path
 import java.util.UUID
+import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
 /**
@@ -97,23 +98,16 @@ class AgentTerminalService(private val project: Project) {
    * can bring the conversation back).
    */
   @RequiresEdt
-  fun reattach(tabId: String, activate: Boolean = true): String? {
+  fun reattach(tabId: String, activate: Boolean = true): String? = reattach(tabId, activate, probed = false)
+
+  /** [probed]: [probe] said true just before, off the EDT, so tmux is not asked again here. */
+  private fun reattach(tabId: String, activate: Boolean, probed: Boolean): String? {
     val store = SessionStore.getInstance()
     val session = store.get(tabId)?.takeIf { it.detached } ?: return null
     // a closing window would dispose the tab at once, killing the agent: leave it for the next window
     if (project.isDisposed || host.isClosed) return null
+    if (!probed && probe(session) != true) return null
     val name = session.tmuxSession
-    val exists = if (name == null) false else Tmux.sessions.exists(name) ?: return null
-    if (!exists) {
-      // tmux said it is gone; ended anyway, in case its name was reused
-      name?.let {
-        Tmux.sessions.kill(it)
-        DetachedSessions.disown(it)
-      }
-      store.remove(tabId)
-      McpConfigFiles.delete(tabId)
-      return null
-    }
     // claimed before the terminal starts: one window at most attaches a session
     var claimed = false
     store.update(tabId) { s -> if (s.detached) s.copy(detached = false, detachedFrom = null).also { claimed = true } else s }
@@ -132,12 +126,37 @@ class AgentTerminalService(private val project: Project) {
   }
 
   /**
-   * Reattaches, without activating the tool window, every session that detached from a window of the project at
-   * [basePath]: reopening a window brings back the agents it had.
+   * Whether the tmux session of the detached [session] still runs; null when tmux could not tell (it stays detached).
+   * One that has ended is dropped here, its name killed anyway in case it was reused. Runs tmux: may block for seconds.
+   */
+  private fun probe(session: AgentSession): Boolean? {
+    val name = session.tmuxSession
+    val exists = if (name == null) false else Tmux.sessions.exists(name) ?: return null
+    if (!exists) {
+      name?.let {
+        Tmux.sessions.kill(it)
+        DetachedSessions.disown(it)
+      }
+      SessionStore.getInstance().remove(session.tabId)
+      McpConfigFiles.delete(session.tabId)
+    }
+    return exists
+  }
+
+  /**
+   * Off the EDT: the tab ids of the sessions that detached from a window of the project at [basePath] and still run in
+   * tmux, for [reattachDetached]. Ended ones are dropped; ones tmux could not tell about stay detached.
+   */
+  fun liveDetached(basePath: String): List<String> =
+    DetachedSessions.detachedFrom(SessionStore.getInstance().all(), basePath).filter { probe(it) == true }.map { it.tabId }
+
+  /**
+   * Reattaches, without activating the tool window, the detached sessions [tabIds] that [liveDetached] found running:
+   * reopening a window brings back the agents it had, and tmux is not asked on the EDT.
    */
   @RequiresEdt
-  fun reattachDetached(basePath: String) {
-    DetachedSessions.detachedFrom(SessionStore.getInstance().all(), basePath).forEach { reattach(it.tabId, activate = false) }
+  fun reattachDetached(tabIds: Collection<String>) {
+    tabIds.forEach { reattach(it, activate = false, probed = true) }
   }
 
   /** Resume target of [session]: its hook id, else Claude's earliest-created .jsonl that no other session of the worktree owns. */
@@ -182,29 +201,6 @@ class AgentTerminalService(private val project: Project) {
   private fun bindOnClose(tabId: String) {
     if (SessionStore.getInstance().get(tabId)?.sessionId != null) return
     bindOpenSessions()
-  }
-
-  /**
-   * While a hook-less tab is open, looks for its .jsonl every few seconds; stops once bound, when the tab is disposed or
-   * when the plugin unloads (which cancels it: no task may keep this plugin's code referenced).
-   */
-  private fun pollBinding(tabId: String, parent: Disposable) {
-    lateinit var future: java.util.concurrent.ScheduledFuture<*>
-    future = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({
-      if (DetachedSessions.unloading()) {
-        future.cancel(false)
-        return@scheduleWithFixedDelay
-      }
-      val session = SessionStore.getInstance().get(tabId)
-      if (session == null) return@scheduleWithFixedDelay
-      // bound: no more directory scans for this tab
-      if (session.sessionId != null) future.cancel(false) else bindOpenSessions()
-    }, POLL_MS, POLL_MS, TimeUnit.MILLISECONDS)
-    DetachedSessions.track(future)
-    Disposer.register(parent) {
-      future.cancel(false)
-      DetachedSessions.untrack(future)
-    }
   }
 
   /** The account [session] ran under (null = System default), not the one active now; a removed account counts as default. */
@@ -266,7 +262,7 @@ class AgentTerminalService(private val project: Project) {
     }
     tabId?.let {
       if (tmux != null) SessionStore.getInstance().update(it) { s -> s.copy(tmuxSession = tmux) }
-      if (SessionStore.getInstance().get(it)?.sessionId == null) pollBinding(it, disposable)
+      if (SessionStore.getInstance().get(it)?.let(::needsBinding) == true) pollBindings()
       // closing the tab (or the project, outside tmux) disposes it: the session goes with it. Unloading, the plugin did
       // all of that already (DetachedSessions.unload) and no service may be looked up any more
       Disposer.register(disposable) {
@@ -327,5 +323,50 @@ class AgentTerminalService(private val project: Project) {
     const val TOOL_WINDOW_ID = "Phantom AI Integration"
 
     fun getInstance(project: Project): AgentTerminalService = project.getService(AgentTerminalService::class.java)
+
+    private val binderLock = Any()
+    private var binder: ScheduledFuture<*>? = null
+
+    /** A Claude tab open without a hook session id: only its .jsonl can tell which conversation it is. */
+    fun needsBinding(s: AgentSession): Boolean = s.kind == AgentKind.CLAUDE && s.sessionId == null && !s.detached
+
+    /**
+     * Starts the one poller that looks for the .jsonl of every hook-less Claude tab, of all windows, every few seconds,
+     * unless it runs. It stops once none is pending and is cancelled when the plugin unloads (no task may keep this
+     * plugin's code referenced). One per tab scanned the same directories once per tab.
+     */
+    internal fun pollBindings() {
+      synchronized(binderLock) {
+        if (binder?.isDone == false) return
+        lateinit var future: ScheduledFuture<*>
+        future = AppExecutorUtil.getAppScheduledExecutorService()
+          .scheduleWithFixedDelay({ bindTick(future) }, POLL_MS, POLL_MS, TimeUnit.MILLISECONDS)
+        binder = future
+        DetachedSessions.track(future)
+      }
+    }
+
+    private fun bindTick(future: ScheduledFuture<*>) {
+      // checked and stopped under the lock: a tab registered meanwhile either is seen here or starts a new poller
+      synchronized(binderLock) {
+        if (DetachedSessions.unloading() || SessionStore.getInstance().all().none(::needsBinding)) {
+          future.cancel(false)
+          DetachedSessions.untrack(future)
+          return
+        }
+      }
+      bestEffort { ProjectManager.getInstance().openProjects.firstOrNull { !it.isDisposed }?.let { getInstance(it).bindOpenSessions() } }
+        .onFailure { LOG.debug("binding the session files failed", it) }
+    }
+
+    @TestOnly fun bindingPollerRunning(): Boolean = synchronized(binderLock) { binder?.isDone == false }
+
+    @TestOnly fun bindTickForTest() {
+      synchronized(binderLock) { binder }?.let(::bindTick)
+    }
+
+    @TestOnly fun stopBindingPoller() {
+      synchronized(binderLock) { binder?.let { it.cancel(false); DetachedSessions.untrack(it) } }
+    }
   }
 }

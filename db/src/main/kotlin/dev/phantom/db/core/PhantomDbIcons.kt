@@ -2,12 +2,17 @@
 package dev.phantom.db.core
 
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.util.IconLoader
 import dev.phantom.db.core.drivers.DbDriverDefinition
 import javax.swing.Icon
 
 /** Vendor icons, looked up by the key stored in [DbDriverDefinition.icon]. Resolved lazily; nothing loads at startup. */
 object PhantomDbIcons {
   val GENERIC: Icon get() = AllIcons.Nodes.DataTables
+
+  /** Stripe icons of the Database and Database Changes tool windows, also used when they are registered from code. */
+  val DATABASE_TOOL_WINDOW: Icon get() = IconLoader.getIcon("/icons/phantom/toolwindow/database.svg", PhantomDbIcons::class.java)
+  val CHANGES_TOOL_WINDOW: Icon get() = IconLoader.getIcon("/icons/phantom/toolwindow/databaseChanges.svg", PhantomDbIcons::class.java)
 
   /** Platform vendor icons by key; the keys a driver can pick. */
   private val platform: Map<String, () -> Icon> = linkedMapOf(
