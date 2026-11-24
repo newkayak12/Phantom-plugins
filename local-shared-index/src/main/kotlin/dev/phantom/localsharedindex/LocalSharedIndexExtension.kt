@@ -122,7 +122,8 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
   // Ids of the saved list are only meaningful in the VFS they come from; a rebuilt VFS also drops all indexes.
   private fun vfsStamp(): Long = ManagingFS.getInstance().creationTimestamp
 
-  private fun isLiveFile(fileId: Int): Boolean = PersistentFS.getInstance().findFileById(fileId)?.isValid == true
+  // A donor inside an archive, recorded by an earlier build of this plugin, counts as gone: it gets no new aliases.
+  private fun isLiveFile(fileId: Int): Boolean = PersistentFS.getInstance().findFileById(fileId)?.let { it.isValid && it.isInLocalFileSystem } == true
 
   /**
    * Restores the aliases saved by the last session. Files whose alias was not restored are still marked indexed and

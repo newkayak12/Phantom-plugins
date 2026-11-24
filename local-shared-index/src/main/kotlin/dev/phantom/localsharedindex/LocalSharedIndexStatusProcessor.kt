@@ -32,7 +32,8 @@ internal class LocalSharedIndexStatusProcessor(private val project: Project) : F
     val aliases = AliasRegistry.of(indexId.name)
     if (!aliases.hasDonors) return false
     val vFile = file.file
-    if (vFile !is VirtualFileWithId) return false
+    // Archive entries are never aliases nor donors (CachingIndex.aliasOnUpdate).
+    if (vFile !is VirtualFileWithId || !vFile.isInLocalFileSystem) return false
     if (indexId.name == LocalSharedIndexAllowlist.STUBS && !mayAliasStubs(file, vFile)) return false
     val extension = FileBasedIndexExtension.EXTENSION_POINT_NAME.extensionList.firstOrNull { it.name == indexId } ?: return false
     val donor = findDonor(aliases, file, vFile, extension) ?: return false
