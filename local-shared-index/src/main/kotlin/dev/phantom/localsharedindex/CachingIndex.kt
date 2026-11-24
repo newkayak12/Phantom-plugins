@@ -8,11 +8,13 @@ import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.vfs.VirtualFileWithId
+import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.stubs.StubUpdatingIndexStorage
 import com.intellij.util.indexing.FileBasedIndexExtension
 import com.intellij.util.indexing.FileBasedIndexInfrastructureExtensionUpdatableIndex
 import com.intellij.util.indexing.FileContent
 import com.intellij.util.indexing.FileContentImpl
+import com.intellij.util.indexing.IdFilter
 import com.intellij.util.indexing.IndexInfrastructureExtensionUpdate
 import com.intellij.util.indexing.IndexExtension
 import com.intellij.util.indexing.IndexedFile
@@ -27,6 +29,7 @@ import com.intellij.openapi.vfs.newvfs.persistent.PersistentFS
 import com.intellij.util.indexing.FileBasedIndex
 import com.intellij.util.indexing.impl.MapReduceIndex
 import com.intellij.util.indexing.impl.MapReduceIndexMappingException
+import com.intellij.util.Processor
 import dev.phantom.localsharedindex.store.LocalSharedIndexStore
 import dev.phantom.localsharedindex.store.StoreHeader
 import java.util.concurrent.CancellationException
@@ -87,6 +90,10 @@ internal class CachingIndex<K, V, D>(
     if (!completed || borrowed.size() == 0) return completed
     return processor.process(borrowed)
   }
+
+  // Keys only a donor has, of an alias the filter accepts (Goto Class, completion over the Kotlin name indexes).
+  override fun processAllKeys(processor: Processor<in K>, scope: GlobalSearchScope, idFilter: IdFilter?): Boolean =
+    base.processAllKeys(processor, scope, aliases?.widen(idFilter) ?: idFilter)
 
   override fun getIndexedFileData(fileId: Int): Map<K, V> = base.getIndexedFileData(aliases?.donorOf(fileId) ?: fileId)
 

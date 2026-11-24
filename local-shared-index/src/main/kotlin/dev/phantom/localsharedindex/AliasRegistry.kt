@@ -2,6 +2,7 @@
 package dev.phantom.localsharedindex
 
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.util.indexing.IdFilter
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.nio.file.Files
@@ -78,6 +79,19 @@ internal class IndexAliases {
   fun aliasesOf(donor: Int): Set<Int> = aliasesOfDonor[donor].orEmpty()
 
   val hasAliases: Boolean get() = donorOfAlias.isNotEmpty()
+
+  /**
+   * [filter] that also accepts a donor when it accepts one of the donor's aliases. MapReduceIndexBase.processAllKeys of an
+   * index that traces key hashes (KeyHashLog) keeps only keys logged for files the filter accepts, and only donors are
+   * logged. The result keeps the default filter scope type OTHER, so that KeyHashLog does not cache it per project: an
+   * alias added later does not change the log, and a cached result would go on missing its keys.
+   */
+  fun widen(filter: IdFilter?): IdFilter? {
+    if (filter == null || !hasAliases) return filter
+    return object : IdFilter() {
+      override fun containsFileId(id: Int): Boolean = filter.containsFileId(id) || aliasesOf(id).any(filter::containsFileId)
+    }
+  }
 
   /** [fileId] is indexed on its own now (changed or removed): it neither borrows nor lends data any more. */
   fun forgetFile(fileId: Int) {

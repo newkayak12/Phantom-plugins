@@ -35,6 +35,7 @@ tasks.named<Test>("test") {
       excludeTestsMatching("dev.phantom.localsharedindex.LocalSharedIndexAllowlistKotlinTest")
       excludeTestsMatching("dev.phantom.localsharedindex.LocalSharedIndexStubsKotlinTest")
       excludeTestsMatching("dev.phantom.localsharedindex.LocalSharedIndexKotlinTest")
+      excludeTestsMatching("dev.phantom.localsharedindex.LocalSharedIndexAliasKotlinTest")
     }
   }
 }
