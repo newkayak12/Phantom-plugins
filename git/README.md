@@ -1,10 +1,10 @@
-# Phantom for Git
+# Support for Git
 
 `dev.phantom.git` · [한국어](./KOR.md)
 
 Git in the IDE: clone, commit (with GPG signing), push, pull, fetch, merge, rebase and interactive rebase, cherry-pick,
 revert and reset, branches and the branch widget, the Git log and file history, annotations, stash and shelf, the
-staging area, conflicts, worktrees, and Git settings under Version Control | Git. Phantom for GitHub, Modal Commit and other
+staging area, conflicts, worktrees, and Git settings under Version Control | Git. Support for GitHub, Modal Commit and other
 plugins build on it.
 
 Based on the IntelliJ Community Git plugin (`plugins/git4idea`, Apache 2.0), under Phantom's own id. `Git4Idea` stays as an

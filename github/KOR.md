@@ -1,4 +1,4 @@
-# Phantom for GitHub
+# Support for GitHub
 `dev.phantom.github` · [English](./README.md)
 
 IDE 안의 GitHub: GitHub와 GitHub Enterprise 계정(OAuth 또는 토큰), 클론, GitHub에 프로젝트 공유, 풀 리퀘스트(목록, diff와 에디터에서 코멘트를 다는 리뷰, 생성, 병합), Gist, GitHub에서 열기, GitHub Actions 워크플로 스키마.

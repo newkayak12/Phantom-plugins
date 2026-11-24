@@ -1,10 +1,10 @@
-# Phantom for Git
+# Support for Git
 
 `dev.phantom.git` · [English](./README.md)
 
 IDE 안의 Git: 클론, 커밋(GPG 서명 포함), 푸시, 풀, 페치, 병합, 리베이스와 대화형 리베이스, 체리픽, 되돌리기와 리셋, 브랜치와
 브랜치 위젯, Git 로그와 파일 이력, 어노테이션, 스태시와 셸프, 스테이징 영역, 충돌 해결, 워크트리, 그리고 Version Control | Git의
-Git 설정. Phantom for GitHub, Modal Commit 등 다른 플러그인이 이것을 바탕으로 동작합니다.
+Git 설정. Support for GitHub, Modal Commit 등 다른 플러그인이 이것을 바탕으로 동작합니다.
 
 IntelliJ Community의 Git 플러그인(`plugins/git4idea`, Apache 2.0)을 바탕으로 Phantom의 id로 만든 플러그인입니다. `Git4Idea`는
 별칭으로 남겨 두고 콘텐츠 모듈 이름도 IntelliJ 것을 그대로 써서, 이것에 의존하는 플러그인과 번들 모듈이 그대로 동작합니다.

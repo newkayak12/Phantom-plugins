@@ -1,4 +1,4 @@
-# Phantom for GitHub
+# Support for GitHub
 `dev.phantom.github` · [한국어](./KOR.md)
 
 GitHub in the IDE: GitHub and GitHub Enterprise accounts (OAuth or token), clone, Share Project on GitHub, pull requests (list, review with comments in the diff and editor, create, merge), gists, Open on GitHub, and the GitHub Actions workflow schemas.

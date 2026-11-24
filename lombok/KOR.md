@@ -1,4 +1,4 @@
-# Phantom for Lombok
+# Support for Lombok
 `dev.phantom.lombok` · [English](./README.md)
 
 에디터의 Project Lombok: Lombok이 만드는 멤버(getter, setter, 생성자, 빌더, `@Data`, `@Value`, 로거, `val`/`var` 등)가 참조·자동완성·이동됩니다. lombok.config를 읽고, 인스펙션·빠른 수정·Delombok·리팩터링이 Lombok을 이해합니다.
