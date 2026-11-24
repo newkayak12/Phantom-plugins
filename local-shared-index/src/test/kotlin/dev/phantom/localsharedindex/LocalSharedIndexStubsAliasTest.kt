@@ -25,6 +25,8 @@ import com.intellij.testFramework.rules.TempDirectory
 import com.intellij.util.indexing.FileBasedIndex
 import com.intellij.util.indexing.FileBasedIndexImpl
 import com.intellij.util.indexing.IndexedFileImpl
+import com.intellij.util.indexing.FileBasedIndexExtension
+import com.intellij.util.indexing.FileContentImpl
 import com.intellij.psi.impl.cache.impl.id.IdIndex
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -164,6 +166,28 @@ class LocalSharedIndexStubsAliasTest {
     val processor = LocalSharedIndexStatusProcessor(b)
     assertFalse(processor.tryIndexFileWithoutContent(IndexedFileImpl(greeterB, b), id(greeterB), StubUpdatingIndex.INDEX_ID))
     assertTrue(processor.tryIndexFileWithoutContent(IndexedFileImpl(greeterB, b), id(greeterB), IdIndex.NAME))
+  }
+
+  @Test
+  fun `test scanning does not alias the stubs of a class file`() {
+    val (b, _) = open("b")
+    val repo = tempDir.newDirectory("repo").toPath()
+    val bytes = javaClass.getResourceAsStream("${javaClass.simpleName}.class")!!.readAllBytes()
+    val path = GitBlobsTest.committed(repo, "out/Foo.class", "")
+    java.nio.file.Files.write(path, bytes)
+    java.nio.file.Files.setLastModifiedTime(path, java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis() - 10_000))
+    GitBlobsTest.git(repo, "add", "out/Foo.class")
+    GitBlobs.clear()
+    val classFile = CheckoutFixture.virtualFile(path)
+    assertNotNull(GitBlobs.blobOf(classFile))
+    // A donor with the same content key and one by blob id: either would make scanning mark the class file indexed.
+    val stubs = FileBasedIndexExtension.EXTENSION_POINT_NAME.extensionList.first { it.name == StubUpdatingIndex.INDEX_ID }
+    val key = CacheKeys.keyFor(FileContentImpl.createByFile(classFile, b) as FileContentImpl, stubs.indexer)
+    AliasRegistry.of("Stubs").recordDonor(key, Int.MAX_VALUE, classFile.length, classFile.name)
+    AliasRegistry.of("Stubs").recordBlobDonor(ByteArray(20), Int.MAX_VALUE)
+    // StubTreeBuilder.getStubBuilderType throws ClassCastException for a class file without content (IndexedFileImpl),
+    // in the blob key and in the platform's setIndexedState of a file reported indexed.
+    assertFalse(LocalSharedIndexStatusProcessor(b).tryIndexFileWithoutContent(IndexedFileImpl(classFile, b), id(classFile), StubUpdatingIndex.INDEX_ID))
   }
 
   @Test
