@@ -9,6 +9,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.stubs.StubIndexExtension
 import com.intellij.psi.stubs.StubIndexKey
 import com.intellij.psi.stubs.StubUpdatingIndex
+import com.intellij.util.concurrency.AppExecutorUtil
 import com.intellij.openapi.vfs.newvfs.ManagingFS
 import com.intellij.openapi.vfs.newvfs.persistent.PersistentFS
 import com.intellij.util.indexing.FileBasedIndex
@@ -128,7 +129,9 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
   /**
    * Restores the aliases saved by the last session. Files whose alias was not restored are still marked indexed and
    * would answer nothing: they are indexed again. When aliases may be missing altogether, which files that concerns is
-   * unknown, so the aliased indexes are rebuilt.
+   * unknown, so the aliased indexes are rebuilt. The returned future completes once that rebuild is requested, so a
+   * caller waiting for the indexes after it waits for the scan the request queued; before that scan clears the index
+   * (RebuildStatus), FileBasedIndexImpl.ensureUpToDate throws ServiceNotReadyException.
    */
   internal fun restoreAliases(
     file: Path = donorsFile(),
@@ -136,11 +139,8 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
     donorExists: (Int) -> Boolean = ::isLiveFile,
   ): CompletableFuture<*> {
     val started = System.nanoTime()
-    return AliasRegistry.loadInBackground { AliasRegistry.load(file, vfsStamp) }.thenAccept { restored ->
-      if (!restored.trusted) {
-        rebuildAliasedIndexes()
-        return@thenAccept
-      }
+    return AliasRegistry.loadInBackground { AliasRegistry.load(file, vfsStamp) }.thenCompose { restored ->
+      if (!restored.trusted) return@thenCompose rebuildAliasedIndexes()
       val read = System.nanoTime()
       // Until here an alias of a donor deleted in an earlier session answers that file id's data, which the platform
       // removed with the file: nothing. Its file is indexed right after.
@@ -148,6 +148,7 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
       reindexLater(orphans)
       LOG.info("Phantom local shared index: donor list read in ${(read - started) / 1_000_000} ms, donors with aliases checked in " +
                "${(System.nanoTime() - read) / 1_000_000} ms, ${orphans.size} files to index again")
+      CompletableFuture.completedFuture<Void>(null)
     }
   }
 
@@ -165,9 +166,9 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
    * (StubIndexImpl.forceRebuild), which also clears every stub index (StubUpdatingIndexStorage.doClear). The cached
    * maps stay: they do not depend on the aliases.
    */
-  private fun rebuildAliasedIndexes() {
+  private fun rebuildAliasedIndexes(): CompletableFuture<Void> {
     LOG.info("Phantom local shared index: the last session ended without saving its aliases, rebuilding ${LocalSharedIndexAllowlist.ALIASED.sorted()}")
-    afterInitialization {
+    return afterInitialization {
       for (name in LocalSharedIndexAllowlist.ALIASED) {
         val id = ID.findByName<Any, Any>(name) ?: continue
         rebuildsKeepingCache += name
@@ -177,12 +178,11 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
   }
 
   // FileBasedIndex calls need an initialized index; this runs inside its initialization.
-  private fun afterInitialization(action: () -> Unit) {
-    ApplicationManager.getApplication().executeOnPooledThread {
+  private fun afterInitialization(action: () -> Unit): CompletableFuture<Void> =
+    CompletableFuture.runAsync({
       (FileBasedIndex.getInstance() as FileBasedIndexImpl).waitUntilIndicesAreInitialized()
       action()
-    }
-  }
+    }, AppExecutorUtil.getAppExecutorService())
 
   // -1 so that this extension never changes the version of the indexes it does not wrap
   override fun getVersion(): Int = -1
