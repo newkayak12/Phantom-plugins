@@ -133,11 +133,26 @@ internal class IndexAliases {
     aliases
   }
 
-  /** Drops the donors [isGone] names (their aliases would borrow nothing) and returns their aliases. */
+  /**
+   * Drops the donors with aliases that [isGone] names (the aliases would borrow nothing) and returns those aliases. A
+   * donor without aliases is checked when an alias for it is created instead ([isLive]): most donors never get one.
+   */
   fun dropDonorsWhere(isGone: (Int) -> Boolean): Set<Int> = ready {
     val aliases = HashSet<Int>()
-    for (donor in keyOfDonor.keys.toList()) if (isGone(donor)) aliases += dropDonor(donor)
+    for (donor in aliasesOfDonor.keys.toList()) if (isGone(donor)) aliases += dropDonor(donor)
     aliases
+  }
+
+  /**
+   * Whether [donor] still exists, checked before a file becomes its alias (one VFS lookup per new alias). A donor that is
+   * gone, as one deleted in an earlier session can be, is dropped, and aliases it still had are indexed again.
+   */
+  fun isLive(donor: Int): Boolean {
+    val liveness = AliasRegistry.liveness ?: return true
+    if (liveness.exists(donor)) return true
+    val orphans = dropDonor(donor)
+    if (orphans.isNotEmpty()) liveness.reindex(orphans)
+    return false
   }
 
   fun clear(): Unit = ready {
@@ -293,9 +308,19 @@ internal object AliasRegistry {
     return Restored(emptySet(), trusted = false)
   }
 
+  /** How [IndexAliases.isLive] checks a donor and reindexes files; set by the extension, unset in unit tests. */
+  interface Liveness {
+    fun exists(fileId: Int): Boolean
+
+    fun reindex(fileIds: Set<Int>)
+  }
+
+  @Volatile
+  var liveness: Liveness? = null
+
   /**
-   * Drops donors that no longer exist ([exists] is false) from every index and returns their aliases. Every index lists
-   * mostly the same files, so each is checked once.
+   * Drops donors with aliases that no longer exist ([exists] is false) from every index and returns their aliases.
+   * Every index lists mostly the same files, so each is checked once.
    */
   fun dropGoneDonors(exists: (Int) -> Boolean): Set<Int> {
     val checked = HashMap<Int, Boolean>()

@@ -78,7 +78,14 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
     store?.close()
     val maxBytes = AdvancedSettings.getInt(MAX_SIZE_SETTING).coerceAtLeast(1).toLong() shl 20
     store = LocalSharedIndexStore.open(PathManager.getIndexRoot().resolve(ROOT), maxBytes)
-    if (store != null) restoreAliases()
+    if (store != null) {
+      AliasRegistry.liveness = object : AliasRegistry.Liveness {
+        override fun exists(fileId: Int) = isLiveFile(fileId)
+
+        override fun reindex(fileIds: Set<Int>) = reindexLater(fileIds)
+      }
+      restoreAliases()
+    }
     if (store == null) LOG.warn("Phantom Local Shared Index: the cache at ${PathManager.getIndexRoot().resolve(ROOT)} is locked by another IDE process or unreadable; indexes are not cached in this process")
     return InitializationResult.SUCCESSFULLY
   }
@@ -138,7 +145,7 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
       // removed with the file: nothing. Its file is indexed right after.
       val orphans = restored.orphans + AliasRegistry.dropGoneDonors(donorExists)
       reindexLater(orphans)
-      LOG.info("Phantom local shared index: donor list read in ${(read - started) / 1_000_000} ms, donors checked in " +
+      LOG.info("Phantom local shared index: donor list read in ${(read - started) / 1_000_000} ms, donors with aliases checked in " +
                "${(System.nanoTime() - read) / 1_000_000} ms, ${orphans.size} files to index again")
     }
   }
