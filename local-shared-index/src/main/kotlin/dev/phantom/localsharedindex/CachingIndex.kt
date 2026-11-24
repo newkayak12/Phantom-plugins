@@ -140,7 +140,10 @@ internal class CachingIndex<K, V, D>(
     aliases.forgetFile(inputId)
     val orphans = aliases.dropDonor(inputId)
     if (orphans.isNotEmpty()) reindex(orphans)
-    if (content !is FileContentImpl || !isCacheable(content, stubs)) return null
+    // A file inside an archive (jar, jrt) has one id for every project using that library (PersistentFSImpl.findRoot
+    // keys roots by path, not project): it is indexed once and never needs a stand-in, and as a donor it only grows the
+    // saved list.
+    if (content !is FileContentImpl || !isCacheable(content, stubs) || !content.file.isInLocalFileSystem) return null
     val key = CacheKeys.keyFor(content, base.extension.indexer)
     val donor = aliases.donorFor(key)
     if (donor == null || donor == inputId || !aliases.isLive(donor)) {
