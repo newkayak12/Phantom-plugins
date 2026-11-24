@@ -41,7 +41,7 @@
     {
       "id": "dev.phantom.spring",
       "name": "Phantom for Spring",
-      "version": "0.9.6",
+      "version": "0.9.7",
       "source": "spring",
       "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, Spring MVC handlers for the Endpoints tool window, Spring Security path and expression support, and Kafka/RabbitMQ/JMS sender-receiver navigation. 0.4.0: proxy pitfalls (self-invocation of @Transactional/@Cacheable/@Async, private/final/static proxied methods, Kotlin classes not opened by kotlin-spring), @Scheduled/@Async/@EventListener contracts, field and static injection, duplicate bean names, @Scope values, @Sql paths, @DirtiesContext, publishEvent ↔ listener gutters, @Qualifier/@DependsOn bean name completion and Ctrl+B. Wave 6: @Value placeholders (follows spring.config.import), SpEL syntax, cache names, caching on interfaces, @Qualifier/@DependsOn near-miss names, MVC path variables, endpoint and AOP advice gutters, method security not enabled, pointcut syntax. Wave 7: @Cacheable+@CachePut, abstract beans, @Value literal types, @Bean method shape, scan packages, AspectJ autoproxy, @Autowired outside beans, resource locations, @TestBean factories, @Around/pointcut/argNames/@DeclareParents, Security debug/self-invocation/bean refs. Wave 8: @Bean init/destroy methods, @Lookup, Resource @Value, @Profile expressions and unknown profiles, bean name convention, argNames bindings; cache, @Scheduled and @Import gutters. Waves 9-10: @Transactional/@Async, component scan and advised-method gutters; Spring 7 API versioning checks; HTTP header and media type typos; broken @Value placeholders; JDK proxy injection. Wave 11: test transaction pitfalls, @Value with @Qualifier/@Resource, removed @Required, @Qualifier bean type, ROLE_ prefix misuse.",
       "vendor": "Phantom",
@@ -52,7 +52,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-0.9.6/spring-0.9.6.zip",
+      "download": "spring-0.9.7/spring-0.9.7.zip",
       "detect": [
         "org.springframework:spring-context",
         "org.springframework:spring-web",
@@ -105,7 +105,7 @@
     {
       "id": "dev.phantom.mybatis",
       "name": "Phantom for MyBatis",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "source": "mybatis",
       "description": "MyBatis mapper support (what MyBatisX does): interface ↔ XML statement gutters, statement id / resultMap / refid / resultType / property references with completion, rename and errors, mapper methods without a statement with a quick fix that writes it, #{...} parameter completion, and SQL highlighting and completion in mapper XML and @Select/@Insert/@Update/@Delete with Phantom Database Console. 0.1.1: Go to Implementation from mapper method calls opens the XML statement; Cmd+click on #{a.b}, <if test>, <foreach collection> and @Select placeholders goes to the parameter, property or foreach item. 0.2.0 (with Phantom Database Console 0.25.2): dynamic tags read as MyBatis builds them (<where> AND/OR, <set> commas, <trim>, <include>), syntax errors in whole statements, a run icon on each statement that runs it in the console asking for #{} values, and Reformat Code formats the SQL of plain statements. 0.3.0 (with Phantom Database Console 0.25.3): syntax errors in each <choose> branch and with ${}, Run asks which <if> parts and <choose> branches to take and builds <where>/<set>/<trim> by MyBatis rules, and Reformat Code formats statements with dynamic tags. 0.3.1: loads in Phantom again (Java classes come from the Java plugin modules), so mapper SQL highlights and the inspections run.",
       "vendor": "Phantom",
@@ -116,7 +116,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "mybatis-0.3.3/mybatis-0.3.3.zip",
+      "download": "mybatis-0.3.4/mybatis-0.3.4.zip",
       "detect": [
         "org.mybatis:mybatis",
         "org.mybatis.spring.boot:mybatis-spring-boot-starter",
