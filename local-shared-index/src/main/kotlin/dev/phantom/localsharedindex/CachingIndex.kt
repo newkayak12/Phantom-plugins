@@ -78,9 +78,13 @@ internal class CachingIndex<K, V, D>(
   override fun <E : Exception> withData(key: K & Any, processor: ValueContainerProcessor<V, E>): Boolean =
     withAliasData(base, aliases, key, processor)
 
-  // Keys only a donor has, of an alias the filter accepts (Goto Class, completion over the Kotlin name indexes).
+  // Only indexes whose key listing honors the IdFilter (KeyHashLog) need the keys borrowed through aliases.
+  private val borrowedKeys: BorrowedKeys<K>? = aliases?.takeIf { base.extension.let { it is FileBasedIndexExtension && it.traceKeyHashToVirtualFileMapping() } }
+    ?.let { BorrowedKeys(it) { donor -> base.getIndexedFileData(donor).keys } }
+
+  // Keys only a donor has, of an alias the filter accepts (completion over the Kotlin name indexes).
   override fun processAllKeys(processor: Processor<in K>, scope: GlobalSearchScope, idFilter: IdFilter?): Boolean =
-    base.processAllKeys(processor, scope, aliases?.widen(idFilter) ?: idFilter)
+    processWithBorrowedKeys(borrowedKeys, idFilter, processor) { base.processAllKeys(processor, scope, idFilter) }
 
   override fun getIndexedFileData(fileId: Int): Map<K, V> = base.getIndexedFileData(aliases?.donorOf(fileId) ?: fileId)
 
