@@ -2,7 +2,7 @@
 
 `dev.phantom.endpoints` · [English](./README.md)
 
-Endpoints 도구 창: 설치된 플러그인(Phantom for Spring, Phantom for Ktor 등)이 `com.intellij.microservices.endpointsProvider`로 알려 주는
+Endpoints 도구 창: 설치된 플러그인(Support for Spring, Support for Ktor 등)이 `com.intellij.microservices.endpointsProvider`로 알려 주는
 HTTP 엔드포인트를 모듈별로 모아 보여 주고, 메서드·경로·핸들러로 걸러 볼 수 있습니다.
 
 - Enter나 더블클릭으로 핸들러를 엽니다. 컨텍스트 메뉴에는 Go to Handler와 Copy URL이 있습니다.
