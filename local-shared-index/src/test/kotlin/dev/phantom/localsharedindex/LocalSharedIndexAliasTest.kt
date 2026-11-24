@@ -125,6 +125,25 @@ class LocalSharedIndexAliasTest {
   }
 
   @Test
+  fun `test scanning does not alias a file that still has its own data`() {
+    val text = "zzsharedword appears in both checkouts\n"
+    val rootA = tempDir.newDirectory("a").toPath()
+    CheckoutFixture.writeJavaCheckout(rootA)
+    Files.writeString(rootA.resolve("notes.txt"), text)
+    val a = CheckoutFixture.openCheckout(rootA, disposable.disposable)
+    val rootC = tempDir.newDirectory("c").toPath()
+    CheckoutFixture.writeJavaCheckout(rootC)
+    Files.writeString(rootC.resolve("notes.txt"), "zzstaleword was indexed for this file\n")
+    val c = CheckoutFixture.openCheckout(rootC, disposable.disposable)
+    val notesC = CheckoutFixture.virtualFile(rootC.resolve("notes.txt"))
+    assertTrue(containing(c, "zzstaleword", notesC))
+    // The content now matches the donor, as after an edit while the IDE was closed; the old data is still indexed.
+    WriteAction.runAndWait<Exception> { VfsUtil.saveText(notesC, text) }
+    assertFalse(LocalSharedIndexStatusProcessor(a).tryIndexFileWithoutContent(IndexedFileImpl(notesC, c), id(notesC), IdIndex.NAME))
+    assertEquals(null, AliasRegistry.of("IdIndex").donorOf(id(notesC)))
+  }
+
+  @Test
   fun `test changed donor leaves the alias with its own content`() {
     val (a, rootA) = open("a")
     val (b, rootB) = open("b")

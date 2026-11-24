@@ -5,11 +5,15 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileWithId
+import com.intellij.util.indexing.FileBasedIndex
+import com.intellij.util.indexing.FileBasedIndexEx
 import com.intellij.util.indexing.FileBasedIndexExtension
 import com.intellij.util.indexing.FileBasedIndexInfrastructureExtension.FileIndexingStatusProcessor
+import com.intellij.util.indexing.FileBasedIndexInfrastructureExtensionUpdatableIndex
 import com.intellij.util.indexing.FileContentImpl
 import com.intellij.util.indexing.ID
 import com.intellij.util.indexing.IndexedFile
+import com.intellij.util.indexing.StorageException
 import java.io.IOException
 
 /**
@@ -41,9 +45,28 @@ internal class LocalSharedIndexStatusProcessor(private val project: Project) : F
       if (!aliases.mayHaveDonor(vFile.length, vFile.name)) return false
       aliases.donorFor(keyOf(vFile, extension) ?: return false) ?: return false
     }
-    if (donor == inputId) return false
+    if (donor == inputId || hasOwnData(inputId, indexId)) return false
     aliases.alias(inputId, donor)
     return true
+  }
+
+  /**
+   * Scanning marks a file it was told about here indexed without removing the data indexed for it before
+   * (UnindexedFilesFinder.tryIndexWithoutContentViaInfrastructureExtension). A file changed while the IDE was closed would
+   * keep its old keys besides the donor's, so such a file is indexed instead; indexing still makes it an alias without
+   * mapping it (CachingIndex.aliasOnUpdate). Only files with a donor get here, and a fresh checkout's files have no data.
+   */
+  private fun hasOwnData(inputId: Int, indexId: ID<*, *>): Boolean {
+    @Suppress("UNCHECKED_CAST")
+    val index = (FileBasedIndex.getInstance() as FileBasedIndexEx).getIndex(indexId as ID<Any, Any>)
+    val base = (index as? FileBasedIndexInfrastructureExtensionUpdatableIndex<*, *, *, *>)?.baseIndex ?: index
+    return try {
+      base.getIndexedFileData(inputId).isNotEmpty()
+    }
+    catch (e: StorageException) {
+      LOG.debug("Cannot read the indexed data of $inputId in $indexId", e)
+      true
+    }
   }
 
   override fun hasIndexForFile(file: VirtualFile, inputId: Int, extension: FileBasedIndexExtension<*, *>): Boolean =
