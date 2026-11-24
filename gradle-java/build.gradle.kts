@@ -65,6 +65,11 @@ dependencies {
   }
   // localPlugin doesn't put a local plugin's libraries on the compile classpath: the Gradle API gradle-core packs
   compileOnly(gradleApi) { isTransitive = false }
+  compileOnly(project(":gradle-core", "toolingJars"))
+  // intellij.gradle.java.groovy's JPS extension builds on Groovy's JPS builder (groovy-jps.jar)
+  compileOnly(project(":groovy", "jpsJars"))
+  // Groovy (intellij.libraries.groovy) comes from Groovy Scripting at runtime; the same Groovy, compile only
+  compileOnly("org.codehaus.groovy:groovy:3.0.25") { isTransitive = false }
   implementation(files(jpsJar))
 
   // The JPS builder compiles against the platform's and the Java plugin's JPS classes, which the build process has, and

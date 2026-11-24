@@ -42,6 +42,18 @@ val toolingExtensionJar = toolingJar("gradle-tooling-extension-api.jar", "toolin
 val toolingExtensionImplJar = toolingJar("gradle-tooling-extension-impl.jar", "toolingExtensionImpl")
 val toolingProxyJar = toolingJar("gradle-tooling-proxy.jar", "toolingProxy")
 
+// The tooling jars for gradle-java to compile against: localPlugin puts only a local plugin's own jar on the compile
+// classpath, not the other jars in its lib/
+val toolingJars by configurations.creating {
+  isCanBeConsumed = true
+  isCanBeResolved = false
+}
+artifacts {
+  add("toolingJars", toolingExtensionJar)
+  add("toolingJars", toolingExtensionImplJar)
+  add("toolingJars", toolingProxyJar)
+}
+
 // The Gradle API and Tooling API IntelliJ builds against (the project library "Gradle"), published by JetBrains in the
 // IntelliJ dependencies repository. Packed into lib/ as gradle-api-<version>.jar, as in IntelliJ.
 val gradleApi = "org.jetbrains.intellij.deps:gradle-api:9.6.0"

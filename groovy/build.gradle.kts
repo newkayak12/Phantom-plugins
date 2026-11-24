@@ -62,6 +62,14 @@ val rtClassLoaderJar = rtJar("groovy-rt-class-loader.jar", "rtClassLoader")
 val spockRtJar = rtJar("groovy-spock-rt.jar", "spockRt")
 val jpsJar = rtJar("groovy-jps.jar", "jps")
 
+// groovy-jps.jar for gradle-java to compile against (its Groovy resources JPS extension): localPlugin puts only a local
+// plugin's own jar on the compile classpath, not the other jars in its lib/
+val jpsJars by configurations.creating {
+  isCanBeConsumed = true
+  isCanBeResolved = false
+}
+artifacts { add("jpsJars", jpsJar) }
+
 // The content modules with a jar of their own in lib/modules (their classes and descriptor, out of the plugin jar)
 val separateModules = mapOf(
   "intellij.groovy.ant" to "com/intellij/groovy/ant",
