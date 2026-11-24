@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.localsharedindex
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.util.indexing.IdFilter
 import java.io.DataInputStream
@@ -8,6 +9,7 @@ import java.io.DataOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
@@ -34,23 +36,30 @@ internal class IndexAliases {
   private val epoch = AtomicLong()
 
   /** Changes whenever an alias is added or removed; mixed into the index's modification stamp. */
-  val modificationCount: Long get() = epoch.get()
+  val modificationCount: Long get() = ready { epoch.get() }
 
-  val hasDonors: Boolean get() = donorByKey.isNotEmpty()
+  val hasDonors: Boolean get() = ready { donorByKey.isNotEmpty() }
 
-  val hasBlobDonors: Boolean get() = donorByBlobKey.isNotEmpty()
+  val hasBlobDonors: Boolean get() = ready { donorByBlobKey.isNotEmpty() }
+
+  // Every public member waits for the saved list being read in the background (AliasRegistry.loadInBackground): answering
+  // or changing aliases before it is in would answer nothing for restored aliases, or let it restore stale ones.
+  private inline fun <T> ready(action: () -> T): T {
+    AliasRegistry.awaitLoaded()
+    return action()
+  }
 
   /** [fileId], already recorded as a donor, has git blob key [blobKey]. */
-  fun recordBlobDonor(blobKey: ByteArray, fileId: Int) {
+  fun recordBlobDonor(blobKey: ByteArray, fileId: Int): Unit = ready {
     val key = ContentKey(blobKey)
     donorByBlobKey.put(key, fileId)?.let { old -> if (old != fileId) blobKeyOfDonor.remove(old, key) }
     blobKeyOfDonor[fileId] = key
   }
 
-  fun donorForBlob(blobKey: ByteArray): Int? = donorByBlobKey[ContentKey(blobKey)]
+  fun donorForBlob(blobKey: ByteArray): Int? = ready { donorByBlobKey[ContentKey(blobKey)] }
 
   /** The platform indexed [fileId] with content [key]: it can stand in for other files with the same key. */
-  fun recordDonor(key: ByteArray, fileId: Int, length: Long, name: CharSequence) {
+  fun recordDonor(key: ByteArray, fileId: Int, length: Long, name: CharSequence): Unit = ready {
     val contentKey = ContentKey(key)
     forgetDonorKey(fileId)
     val signature = signature(length, name)
@@ -63,9 +72,9 @@ internal class IndexAliases {
   }
 
   /** Whether some donor has this length and name; cheap, no file access. */
-  fun mayHaveDonor(length: Long, name: CharSequence): Boolean = signatures.containsKey(signature(length, name))
+  fun mayHaveDonor(length: Long, name: CharSequence): Boolean = ready { signatures.containsKey(signature(length, name)) }
 
-  fun donorFor(key: ByteArray): Int? = donorByKey[ContentKey(key)]?.fileId
+  fun donorFor(key: ByteArray): Int? = ready { donorByKey[ContentKey(key)]?.fileId }
 
   private fun forgetDonorKey(fileId: Int) {
     blobKeyOfDonor.remove(fileId)?.let { donorByBlobKey.remove(it, fileId) }
@@ -77,7 +86,7 @@ internal class IndexAliases {
     signatures.computeIfPresent(donor.signature) { _, n -> if (n <= 1) null else n - 1 }
   }
 
-  fun alias(fileId: Int, donor: Int) {
+  fun alias(fileId: Int, donor: Int): Unit = ready {
     link(fileId, donor)
     epoch.incrementAndGet()
     AliasRegistry.changed()
@@ -89,11 +98,11 @@ internal class IndexAliases {
     aliasesOfDonor.computeIfAbsent(donor) { ConcurrentHashMap.newKeySet() }.add(fileId)
   }
 
-  fun donorOf(fileId: Int): Int? = donorOfAlias[fileId]
+  fun donorOf(fileId: Int): Int? = ready { donorOfAlias[fileId] }
 
-  fun aliasesOf(donor: Int): Set<Int> = aliasesOfDonor[donor].orEmpty()
+  fun aliasesOf(donor: Int): Set<Int> = ready { aliasesOfDonor[donor].orEmpty() }
 
-  val hasAliases: Boolean get() = donorOfAlias.isNotEmpty()
+  val hasAliases: Boolean get() = ready { donorOfAlias.isNotEmpty() }
 
   /**
    * [filter] that also accepts a donor when it accepts one of the donor's aliases. MapReduceIndexBase.processAllKeys of an
@@ -109,7 +118,7 @@ internal class IndexAliases {
   }
 
   /** [fileId] is indexed on its own now (changed or removed): it neither borrows nor lends data any more. */
-  fun forgetFile(fileId: Int) {
+  fun forgetFile(fileId: Int): Unit = ready {
     donorOfAlias.remove(fileId)?.let { donor ->
       aliasesOfDonor[donor]?.remove(fileId)
       epoch.incrementAndGet()
@@ -119,7 +128,7 @@ internal class IndexAliases {
   }
 
   /** The donor's data changes: its aliases must be indexed themselves. Returns them. */
-  fun dropDonor(donor: Int): Set<Int> {
+  fun dropDonor(donor: Int): Set<Int> = ready {
     forgetDonorKey(donor)
     val aliases = aliasesOfDonor.remove(donor).orEmpty()
     aliases.forEach { donorOfAlias.remove(it) }
@@ -127,10 +136,17 @@ internal class IndexAliases {
       epoch.incrementAndGet()
       AliasRegistry.changed()
     }
-    return aliases
+    aliases
   }
 
-  fun clear() {
+  /** Drops the donors [isGone] names (their aliases would borrow nothing) and returns their aliases. */
+  fun dropDonorsWhere(isGone: (Int) -> Boolean): Set<Int> = ready {
+    val aliases = HashSet<Int>()
+    for (donor in keyOfDonor.keys.toList()) if (isGone(donor)) aliases += dropDonor(donor)
+    aliases
+  }
+
+  fun clear(): Unit = ready {
     donorByKey.clear()
     keyOfDonor.clear()
     signatures.clear()
@@ -139,10 +155,11 @@ internal class IndexAliases {
     donorOfAlias.clear()
     aliasesOfDonor.clear()
     epoch.incrementAndGet()
+    Unit
   }
 
   /** Donors and aliases; scanning does not visit an aliased file again in a later session, so its alias must be kept. */
-  fun writeDonors(out: DataOutputStream) {
+  fun writeDonors(out: DataOutputStream): Unit = ready {
     val snapshot = donorByKey.entries.toList()
     out.writeInt(snapshot.size)
     for ((key, donor) in snapshot) {
@@ -165,14 +182,14 @@ internal class IndexAliases {
   }
 
   /**
-   * Reads what [writeDonors] wrote, without donors that no longer exist ([donorExists]). Returns the aliases of such
-   * donors: they are not restored, and their files must be indexed again, since the platform keeps them marked indexed.
+   * Reads what [writeDonors] wrote; runs while the other members wait (see [ready]). Returns the aliases whose donor is
+   * not in the list: they are not restored, and their files must be indexed again, since the platform keeps them marked
+   * indexed. Whether each donor still exists is checked later ([dropDonorsWhere]), off the index initialization.
    */
-  fun readDonors(input: DataInputStream, donorExists: (Int) -> Boolean): List<Int> {
+  fun readDonors(input: DataInputStream): List<Int> {
     repeat(input.readInt()) {
       val key = ContentKey(ByteArray(KEY_SIZE).also(input::readFully))
       val donor = Donor(input.readInt(), input.readLong())
-      if (!donorExists(donor.fileId)) return@repeat // its aliases would borrow nothing
       donorByKey[key] = donor
       keyOfDonor[donor.fileId] = key
       signatures.merge(donor.signature, 1, Int::plus)
@@ -190,6 +207,7 @@ internal class IndexAliases {
       val donor = input.readInt()
       if (keyOfDonor.containsKey(donor)) link(alias, donor) else orphans += alias
     }
+    epoch.incrementAndGet()
     return orphans
   }
 }
@@ -256,7 +274,7 @@ internal object AliasRegistry {
    * marker is there (it ended without saving) or the list cannot be read (damaged, or written by a release that did not
    * save aliases). The registry is then empty, and the platform's indexed state of the aliased indexes cannot be trusted.
    */
-  fun load(file: Path, vfsStamp: Long, donorExists: (Int) -> Boolean): Restored {
+  fun load(file: Path, vfsStamp: Long): Restored {
     val marker = file.resolveSibling(MARKER).also { marker = it }
     if (Files.exists(marker)) {
       clearAll()
@@ -271,9 +289,7 @@ internal object AliasRegistry {
         check(input.readInt() == FORMAT) { "another format" }
         // Another VFS: its file ids mean nothing here, and a new VFS comes with empty indexes.
         if (input.readLong() != vfsStamp) return Restored(emptySet(), trusted = true)
-        // Every index lists mostly the same files: each is looked up in the VFS once.
-        val exists = HashMap<Int, Boolean>()
-        repeat(input.readInt()) { orphans += of(input.readUTF()).readDonors(input) { exists.getOrPut(it) { donorExists(it) } } }
+        repeat(input.readInt()) { orphans += of(input.readUTF()).readDonors(input) }
       }
     }
     if (read.isSuccess) return Restored(orphans, trusted = true)
@@ -281,6 +297,50 @@ internal object AliasRegistry {
     clearAll()
     changed()
     return Restored(emptySet(), trusted = false)
+  }
+
+  /**
+   * Drops donors that no longer exist ([exists] is false) from every index and returns their aliases. Every index lists
+   * mostly the same files, so each is checked once.
+   */
+  fun dropGoneDonors(exists: (Int) -> Boolean): Set<Int> {
+    val checked = HashMap<Int, Boolean>()
+    return byIndex.values.flatMapTo(HashSet()) { aliases -> aliases.dropDonorsWhere { !checked.getOrPut(it) { exists(it) } } }
+  }
+
+  // Set while the saved list is read in the background; every IndexAliases member waits for it (IndexAliases.ready).
+  @Volatile
+  private var loading: CompletableFuture<Restored>? = null
+  @Volatile
+  private var loader: Thread? = null
+
+  /**
+   * Runs [read] (normally [load]) on a pooled thread and returns at once: reading a list of a few hundred thousand donors
+   * takes about half a second warm and two cold, which in FileBasedIndexInfrastructureExtension.initialize delayed the
+   * index initialization until the project's first scanning request came too late and a full scan replaced the
+   * dirty-files scan (unindexedFilesScannerStartup.kt, invalidateProjectFilterIfFirstScanningNotRequested).
+   */
+  fun loadInBackground(read: () -> Restored): CompletableFuture<Restored> {
+    val future = CompletableFuture<Restored>()
+    loading = future
+    ApplicationManager.getApplication().executeOnPooledThread {
+      loader = Thread.currentThread()
+      try {
+        runCatching(read).fold(future::complete, future::completeExceptionally)
+      }
+      finally {
+        loader = null
+        if (loading === future) loading = null
+      }
+    }
+    return future
+  }
+
+  /** Waits until a [loadInBackground] read finished, unless called by that read itself. */
+  fun awaitLoaded() {
+    val future = loading ?: return
+    if (future.isDone || Thread.currentThread() === loader) return
+    runCatching { future.join() }
   }
 
   /** [orphans]: files of aliases that could not be restored (see [IndexAliases.readDonors]). */
