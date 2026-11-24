@@ -45,6 +45,11 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
     baseIndex: UpdatableIndex<K, V, FileContent, *>,
   ): UpdatableIndex<K, V, FileContent, *>? {
     val store = store ?: return null
+    // StubIndexImpl.registerIndexer passes each stub index here; it runs after initialize (StubUpdatingIndex creates the
+    // stub indexes while FileBasedIndex registers its indexes), so the store is open by then.
+    if (indexExtension.name is StubIndexKey<*, *>) {
+      return if (LocalSharedIndexAllowlist.aliasable(LocalSharedIndexAllowlist.STUBS)) StubAliasIndex(baseIndex, AliasRegistry.of(LocalSharedIndexAllowlist.STUBS)) else null
+    }
     if (!LocalSharedIndexAllowlist.accepts(indexExtension)) return null
     return wrapInCache(indexExtension, baseIndex, store, layoutId)
   }

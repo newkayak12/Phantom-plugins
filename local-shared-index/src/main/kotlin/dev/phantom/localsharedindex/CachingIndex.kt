@@ -23,7 +23,6 @@ import com.intellij.util.indexing.StorageUpdate
 import com.intellij.util.indexing.UpdatableIndex
 import com.intellij.util.indexing.ValueContainer
 import com.intellij.util.indexing.impl.InputData
-import com.intellij.util.indexing.impl.ValueContainerImpl
 import com.intellij.util.indexing.impl.ValueContainerProcessor
 import com.intellij.openapi.vfs.newvfs.persistent.PersistentFS
 import com.intellij.util.indexing.FileBasedIndex
@@ -76,24 +75,8 @@ internal class CachingIndex<K, V, D>(
     }
   }
 
-  /**
-   * The base containers first, then one more container with the aliases of every donor seen in them, carrying the
-   * donor's value. [InvertedIndex.withData] allows several containers per key (sharded storages pass one per shard).
-   */
-  override fun <E : Exception> withData(key: K & Any, processor: ValueContainerProcessor<V, E>): Boolean {
-    val aliases = aliases
-    if (aliases == null || !aliases.hasAliases) return base.withData(key, processor)
-    val borrowed = ValueContainerImpl.createNewValueContainer<V>()
-    val completed = base.withData<E>(key) { container ->
-      container.forEach { id, value ->
-        for (alias in aliases.aliasesOf(id)) borrowed.addValue(alias, value)
-        true
-      }
-      processor.process(container)
-    }
-    if (!completed || borrowed.size() == 0) return completed
-    return processor.process(borrowed)
-  }
+  override fun <E : Exception> withData(key: K & Any, processor: ValueContainerProcessor<V, E>): Boolean =
+    withAliasData(base, aliases, key, processor)
 
   // Keys only a donor has, of an alias the filter accepts (Goto Class, completion over the Kotlin name indexes).
   override fun processAllKeys(processor: Processor<in K>, scope: GlobalSearchScope, idFilter: IdFilter?): Boolean =
@@ -227,16 +210,7 @@ internal class CachingIndex<K, V, D>(
   override fun canUpdate(): Boolean = base.canUpdate()
 
   @Deprecated("Deprecated in the platform; answered through withData so that aliases are included")
-  override fun getData(key: K & Any): ValueContainer<V> {
-    val copy = ValueContainerImpl.createNewValueContainer<V>()
-    withData<RuntimeException>(key) { container ->
-      container.forEach { id, value ->
-        copy.addValue(id, value)
-        true
-      }
-    }
-    return copy
-  }
+  override fun getData(key: K & Any): ValueContainer<V> = copyOfData(this, key)
 }
 
 private fun isCacheable(content: FileContentImpl, stubs: Boolean): Boolean =
