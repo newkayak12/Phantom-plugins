@@ -332,5 +332,8 @@ tasks.prepareTestSandbox {
     "org.jetbrains.idea.gradle.dsl",
     "org.intellij.groovy",
     "com.intellij.groovy.scripting",
+    // Phantom bundles no Kotlin. With IntelliJ's Kotlin in the test IDE, its Kotlin DSL sync contributor waits for smart
+    // mode inside a modal Gradle import and the Kotlin DSL import test never finishes
+    "org.jetbrains.kotlin",
   )
 }
