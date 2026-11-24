@@ -76,6 +76,11 @@ dependencies {
     "${set}CompileOnly"(gradleApi) { isTransitive = false }
     "${set}CompileOnly"(platformJars("lib"))
   }
+  // Groovy and groovy-ant are provided by Gradle inside the daemon (IntelliJ: intellij.libraries.groovy and
+  // intellij.libraries.groovy.ant, scope PROVIDED); groovy-xml holds MarkupBuilder
+  listOf("toolingExtension", "toolingExtensionImpl", "toolingProxy").forEach { set ->
+    listOf("groovy", "groovy-xml", "groovy-ant").forEach { "${set}CompileOnly"("org.codehaus.groovy:$it:3.0.25") { isTransitive = false } }
+  }
   "toolingExtensionImplCompileOnly"(sourceSets["toolingExtension"].output)
   "toolingProxyCompileOnly"(sourceSets["toolingExtension"].output)
   "toolingProxyCompileOnly"(sourceSets["toolingExtensionImpl"].output)
