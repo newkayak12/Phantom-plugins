@@ -23,6 +23,7 @@ import com.intellij.util.indexing.IndexInfrastructure
 import com.intellij.util.indexing.UpdatableIndex
 import dev.phantom.localsharedindex.store.LocalSharedIndexStore
 import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * Wraps the content-only map-reduce indexes with a [CachingIndex] backed by an on-disk store under the index root.
@@ -71,7 +72,7 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
     store?.close()
     val maxBytes = AdvancedSettings.getInt(MAX_SIZE_SETTING).coerceAtLeast(1).toLong() shl 20
     store = LocalSharedIndexStore.open(PathManager.getIndexRoot().resolve(ROOT), maxBytes)
-    if (store != null) reindexLater(AliasRegistry.load(donorsFile(), vfsStamp(), ::isLiveFile))
+    if (store != null) restoreAliases()
     if (store == null) LOG.warn("Phantom Local Shared Index: the cache at ${PathManager.getIndexRoot().resolve(ROOT)} is locked by another IDE process or unreadable; indexes are not cached in this process")
     return InitializationResult.SUCCESSFULLY
   }
@@ -111,15 +112,45 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
   private fun isLiveFile(fileId: Int): Boolean = PersistentFS.getInstance().findFileById(fileId)?.isValid == true
 
   /**
-   * Files whose alias was not restored are still marked indexed and would answer nothing: they are indexed again once
-   * the indexes are up (requestReindex needs an initialized FileBasedIndex; this runs inside its initialization).
+   * Restores the aliases saved by the last session. Files whose alias was not restored are still marked indexed and
+   * would answer nothing: they are indexed again. When aliases may be missing altogether, which files that concerns is
+   * unknown, so the aliased indexes are rebuilt.
    */
+  internal fun restoreAliases(file: Path = donorsFile(), vfsStamp: Long = vfsStamp(), donorExists: (Int) -> Boolean = ::isLiveFile) {
+    val restored = AliasRegistry.load(file, vfsStamp, donorExists)
+    if (restored.trusted) reindexLater(restored.orphans) else rebuildAliasedIndexes()
+  }
+
   private fun reindexLater(fileIds: Set<Int>) {
     if (fileIds.isEmpty()) return
-    ApplicationManager.getApplication().executeOnPooledThread {
-      (FileBasedIndex.getInstance() as FileBasedIndexImpl).waitUntilIndicesAreInitialized()
+    afterInitialization {
       val fs = PersistentFS.getInstance()
       for (id in fileIds) fs.findFileById(id)?.let { FileBasedIndex.getInstance().requestReindex(it) }
+    }
+  }
+
+  /**
+   * FileBasedIndex.requestRebuild clears the index before its next use and advances its version
+   * (FileBasedIndexImpl.clearIndex), so every file is indexed again; for Stubs it is the platform's own rebuild path
+   * (StubIndexImpl.forceRebuild), which also clears every stub index (StubUpdatingIndexStorage.doClear). The cached
+   * maps stay: they do not depend on the aliases.
+   */
+  private fun rebuildAliasedIndexes() {
+    LOG.info("Phantom local shared index: the last session ended without saving its aliases, rebuilding ${LocalSharedIndexAllowlist.ALIASED.sorted()}")
+    afterInitialization {
+      for (name in LocalSharedIndexAllowlist.ALIASED) {
+        val id = ID.findByName<Any, Any>(name) ?: continue
+        rebuildsKeepingCache += name
+        FileBasedIndex.getInstance().requestRebuild(id)
+      }
+    }
+  }
+
+  // FileBasedIndex calls need an initialized index; this runs inside its initialization.
+  private fun afterInitialization(action: () -> Unit) {
+    ApplicationManager.getApplication().executeOnPooledThread {
+      (FileBasedIndex.getInstance() as FileBasedIndexImpl).waitUntilIndicesAreInitialized()
+      action()
     }
   }
 

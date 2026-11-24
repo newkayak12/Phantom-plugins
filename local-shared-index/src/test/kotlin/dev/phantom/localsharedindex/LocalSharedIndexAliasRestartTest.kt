@@ -14,6 +14,7 @@ import com.intellij.testFramework.ApplicationRule
 import com.intellij.testFramework.DisposableRule
 import com.intellij.testFramework.EdtRule
 import com.intellij.testFramework.IndexingTestUtil
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.RunsInEdt
 import com.intellij.testFramework.rules.TempDirectory
 import com.intellij.util.indexing.FileBasedIndex
@@ -113,7 +114,7 @@ class LocalSharedIndexAliasRestartTest {
     val vfs = ManagingFS.getInstance().creationTimestamp
     AliasRegistry.save(saved, vfs)
     AliasRegistry.clearAll()
-    assertEquals(emptySet<Int>(), AliasRegistry.load(saved, vfs) { true })
+    assertEquals(emptySet<Int>(), AliasRegistry.load(saved, vfs) { true }.orphans)
     assertTrue(containing(b, "greet", main(rootB)))
     assertEquals(id(main(rootA)), AliasRegistry.of("IdIndex").donorOf(id(main(rootB))))
     assertEquals(greeterB, JavaPsiFacade.getInstance(b).findClass("p.Greeter", GlobalSearchScope.projectScope(b))?.containingFile?.virtualFile)
@@ -141,12 +142,12 @@ class LocalSharedIndexAliasRestartTest {
     AliasRegistry.save(saved, vfs)
     AliasRegistry.clearAll()
     val mainA = id(main(rootA))
-    val orphans = AliasRegistry.load(saved, vfs) { it != mainA }
+    val orphans = AliasRegistry.load(saved, vfs) { it != mainA }.orphans
     assertTrue(orphans.toString(), orphans.isNotEmpty())
     assertTrue(AliasRegistry.of("IdIndex").aliasesOf(mainA).isEmpty())
     // Another VFS: nothing of the saved list applies.
     AliasRegistry.clearAll()
-    assertEquals(emptySet<Int>(), AliasRegistry.load(saved, vfs + 1) { true })
+    assertEquals(emptySet<Int>(), AliasRegistry.load(saved, vfs + 1) { true }.orphans)
     assertFalse(AliasRegistry.of("IdIndex").hasDonors)
   }
 
@@ -190,5 +191,89 @@ class LocalSharedIndexAliasRestartTest {
     assertNull(AliasRegistry.of("IdIndex").donorOf(id(mainB)))
     val nullArgs = com.intellij.util.indexing.ID.findByName<Any, Any>("java.null.method.argument")!!
     assertTrue(FileBasedIndex.getInstance().getFileData(nullArgs, mainB, b).isNotEmpty())
+  }
+
+  private val ext get() = LocalSharedIndexExtension.getInstance()
+
+  /** Waits for work the extension hands to a pooled thread and the indexing it requests. */
+  private fun waitFor(what: String, project: Project, condition: () -> Boolean) {
+    val deadline = System.currentTimeMillis() + 60_000
+    while (System.currentTimeMillis() < deadline) {
+      PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+      IndexingTestUtil.waitUntilIndexesAreReady(project)
+      FileBasedIndex.getInstance().ensureUpToDate(IdIndex.NAME, project, null) // a requested rebuild starts on use
+      if (condition()) return
+      Thread.sleep(100)
+    }
+    throw AssertionError("timed out waiting for $what")
+  }
+
+  @Test
+  fun `test a file whose alias is not restored is indexed with its own data`() {
+    val (_, rootA) = open("a")
+    val (b, rootB) = open("b")
+    val saved = tempDir.newDirectory("saved").toPath().resolve("donors.bin")
+    val vfs = ManagingFS.getInstance().creationTimestamp
+    AliasRegistry.save(saved, vfs)
+    AliasRegistry.clearAll()
+    val mainA = id(main(rootA))
+    ext.restoreAliases(saved, vfs) { it != mainA }
+    waitFor("b's Main to be indexed", b) { containing(b, "greet", main(rootB)) }
+    assertNull(AliasRegistry.of("IdIndex").donorOf(id(main(rootB))))
+  }
+
+  private fun assertRebuiltAndAnswering(saved: Path, vfs: Long, a: Project, rootA: Path, b: Project, rootB: Path) {
+    val trace = LocalSharedIndexStatistics.getInstance().startTrace()
+    ext.restoreAliases(saved, vfs)
+    assertFalse(AliasRegistry.of("IdIndex").hasAliases)
+    // The rebuild maps a's files again, from the cache it kept.
+    waitFor("the rebuild of IdIndex", a) { trace.any { it.index == "IdIndex" && "/a/" in it.path } }
+    assertTrue(trace.filter { it.index == "IdIndex" }.toString(), trace.filter { it.index == "IdIndex" && "/a/" in it.path }.all { it.hit })
+    waitFor("b to answer", b) { containing(b, "greet", main(rootB)) }
+    assertTrue(containing(a, "greet", main(rootA)))
+    assertTrue(Files.exists(saved.resolveSibling(AliasRegistry.MARKER)))
+  }
+
+  @Test
+  fun `test change marker left by a crash rebuilds the aliased indexes`() {
+    val (a, rootA) = open("a")
+    val (b, rootB) = open("b")
+    val saved = tempDir.newDirectory("saved").toPath().resolve("donors.bin")
+    val vfs = ManagingFS.getInstance().creationTimestamp
+    AliasRegistry.save(saved, vfs)
+    Files.createFile(saved.resolveSibling(AliasRegistry.MARKER))
+    assertRebuiltAndAnswering(saved, vfs, a, rootA, b, rootB)
+  }
+
+  @Test
+  fun `test unreadable donor list rebuilds the aliased indexes`() {
+    val (a, rootA) = open("a")
+    val (b, rootB) = open("b")
+    val saved = tempDir.newDirectory("saved").toPath().resolve("donors.bin")
+    Files.write(saved, byteArrayOf(0, 0, 0, 4, 1, 2, 3))
+    assertRebuiltAndAnswering(saved, ManagingFS.getInstance().creationTimestamp, a, rootA, b, rootB)
+  }
+
+  @Test
+  fun `test clean save leaves no marker and needs no rebuild`() {
+    val (_, rootA) = open("a")
+    val (b, rootB) = open("b")
+    val saved = tempDir.newDirectory("saved").toPath().resolve("donors.bin")
+    val vfs = ManagingFS.getInstance().creationTimestamp
+    AliasRegistry.save(saved, vfs)
+    AliasRegistry.load(saved, vfs) { true } // the marker now lives next to saved
+    AliasRegistry.of("IdIndex").alias(id(main(rootB)), id(main(rootA))) // a change after the save
+    val marker = saved.resolveSibling(AliasRegistry.MARKER)
+    assertTrue(Files.exists(marker))
+    AliasRegistry.save(saved, vfs)
+    assertFalse(Files.exists(marker))
+    AliasRegistry.clearAll()
+    val trace = LocalSharedIndexStatistics.getInstance().startTrace()
+    ext.restoreAliases(saved, vfs)
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    Thread.sleep(500)
+    IndexingTestUtil.waitUntilIndexesAreReady(b)
+    assertTrue(containing(b, "greet", main(rootB)))
+    assertEquals(emptyList<TraceEvent>(), trace.filter { it.index == "IdIndex" })
   }
 }

@@ -33,6 +33,7 @@ import com.intellij.util.Processor
 import dev.phantom.localsharedindex.store.LocalSharedIndexStore
 import dev.phantom.localsharedindex.store.StoreHeader
 import java.util.concurrent.CancellationException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
@@ -66,8 +67,11 @@ internal class CachingIndex<K, V, D>(
       base.clear()
     }
     finally {
-      store.clear(indexName)
-      store.ensureHeader(indexName, header) // the index lives on after a clear and keeps using the cache
+      // A rebuild requested for lost aliases (LocalSharedIndexExtension.rebuildAliasedIndexes) leaves the cached maps valid.
+      if (!rebuildsKeepingCache.remove(indexName)) {
+        store.clear(indexName)
+        store.ensureHeader(indexName, header) // the index lives on after a clear and keeps using the cache
+      }
       AliasRegistry.clear(indexName)
     }
   }
@@ -259,6 +263,9 @@ private fun <K, V> mapLikePlatform(extension: IndexExtension<K, V, FileContent>,
   ProgressManager.checkCanceled()
   return data
 }
+
+/** Indexes whose next clear comes from a rebuild this plugin requested only to drop its aliases. */
+internal val rebuildsKeepingCache: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
 private const val VERIFY_KEY = "phantom.localsharedindex.verify.one.in"
 

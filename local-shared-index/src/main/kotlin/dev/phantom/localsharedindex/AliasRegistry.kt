@@ -9,6 +9,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -77,9 +78,16 @@ internal class IndexAliases {
   }
 
   fun alias(fileId: Int, donor: Int) {
+    link(fileId, donor)
+    epoch.incrementAndGet()
+    AliasRegistry.changed()
+  }
+
+  // Restoring a saved alias goes through here only: it is no change against the saved list.
+  private fun link(fileId: Int, donor: Int) {
     donorOfAlias[fileId] = donor
     aliasesOfDonor.computeIfAbsent(donor) { ConcurrentHashMap.newKeySet() }.add(fileId)
-    epoch.incrementAndGet()  }
+  }
 
   fun donorOf(fileId: Int): Int? = donorOfAlias[fileId]
 
@@ -105,6 +113,7 @@ internal class IndexAliases {
     donorOfAlias.remove(fileId)?.let { donor ->
       aliasesOfDonor[donor]?.remove(fileId)
       epoch.incrementAndGet()
+      AliasRegistry.changed()
     }
     forgetDonorKey(fileId)
   }
@@ -114,7 +123,10 @@ internal class IndexAliases {
     forgetDonorKey(donor)
     val aliases = aliasesOfDonor.remove(donor).orEmpty()
     aliases.forEach { donorOfAlias.remove(it) }
-    if (aliases.isNotEmpty()) epoch.incrementAndGet()
+    if (aliases.isNotEmpty()) {
+      epoch.incrementAndGet()
+      AliasRegistry.changed()
+    }
     return aliases
   }
 
@@ -153,14 +165,14 @@ internal class IndexAliases {
   }
 
   /**
-   * Reads what [writeDonors] wrote. Returns the aliases whose donor is no longer a donor or no longer exists
-   * ([donorExists]): they are not restored, and their files must be indexed again, since the platform keeps them
-   * marked indexed.
+   * Reads what [writeDonors] wrote, without donors that no longer exist ([donorExists]). Returns the aliases of such
+   * donors: they are not restored, and their files must be indexed again, since the platform keeps them marked indexed.
    */
   fun readDonors(input: DataInputStream, donorExists: (Int) -> Boolean): List<Int> {
     repeat(input.readInt()) {
       val key = ContentKey(ByteArray(KEY_SIZE).also(input::readFully))
       val donor = Donor(input.readInt(), input.readLong())
+      if (!donorExists(donor.fileId)) return@repeat // its aliases would borrow nothing
       donorByKey[key] = donor
       keyOfDonor[donor.fileId] = key
       signatures.merge(donor.signature, 1, Int::plus)
@@ -168,6 +180,7 @@ internal class IndexAliases {
     repeat(input.readInt()) {
       val key = ContentKey(ByteArray(KEY_SIZE).also(input::readFully))
       val fileId = input.readInt()
+      if (!keyOfDonor.containsKey(fileId)) return@repeat
       donorByBlobKey[key] = fileId
       blobKeyOfDonor[fileId] = key
     }
@@ -175,7 +188,7 @@ internal class IndexAliases {
     repeat(input.readInt()) {
       val alias = input.readInt()
       val donor = input.readInt()
-      if (keyOfDonor.containsKey(donor) && donorExists(donor)) alias(alias, donor) else orphans += alias
+      if (keyOfDonor.containsKey(donor)) link(alias, donor) else orphans += alias
     }
     return orphans
   }
@@ -192,6 +205,23 @@ internal object AliasRegistry {
 
   fun clearAll() = byIndex.values.forEach { it.clear() }
 
+  // Exists while an alias was added or dropped after the last save. A process that ends without saving (a crash) leaves
+  // it behind: the next one cannot tell which files the platform marked indexed without data (see [load]).
+  @Volatile
+  private var marker: Path? = null
+  private val dirty = AtomicBoolean()
+  private val markerLock = Any()
+
+  /** An alias was added or dropped; the saved list is out of date until the next [save]. */
+  fun changed() {
+    if (!dirty.compareAndSet(false, true)) return
+    val marker = marker ?: return
+    synchronized(markerLock) {
+      runCatching { if (!Files.exists(marker)) Files.createFile(marker) }
+        .onFailure { LOG.warn("Phantom local shared index: cannot create $marker", it) }
+    }
+  }
+
   /**
    * Donors are kept across restarts so that a checkout opened in a later session finds them, and aliases because the
    * platform keeps aliased files marked indexed (IndexingStamp): scanning in the next session does not ask about them
@@ -199,6 +229,7 @@ internal object AliasRegistry {
    */
   @Synchronized
   fun save(file: Path, vfsStamp: Long) {
+    dirty.set(false) // a change from here on is either in the snapshot below or sets it again
     runCatching {
       val tmp = file.resolveSibling(file.fileName.toString() + ".tmp")
       DataOutputStream(Files.newOutputStream(tmp).buffered()).use { out ->
@@ -212,24 +243,50 @@ internal object AliasRegistry {
         }
       }
       Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
-    }.onFailure { LOG.warn("Phantom local shared index: cannot save the donor list", it) }
+    }.onSuccess {
+      synchronized(markerLock) { if (!dirty.get()) runCatching { Files.deleteIfExists(file.resolveSibling(MARKER)) } }
+    }.onFailure {
+      dirty.set(true)
+      LOG.warn("Phantom local shared index: cannot save the donor list", it)
+    }
   }
 
-  /** Returns the files of aliases that could not be restored (see [IndexAliases.readDonors]). */
-  fun load(file: Path, vfsStamp: Long, donorExists: (Int) -> Boolean): Set<Int> {
-    if (!Files.isRegularFile(file)) return emptySet()
-    val orphans = HashSet<Int>()
-    runCatching {
-      DataInputStream(Files.newInputStream(file).buffered()).use { input ->
-        if (input.readInt() != FORMAT || input.readLong() != vfsStamp) return emptySet()
-        repeat(input.readInt()) { orphans += of(input.readUTF()).readDonors(input, donorExists) }
-      }
-    }.onFailure {
-      LOG.warn("Phantom local shared index: cannot read the donor list, starting without it", it)
+  /**
+   * Restores the saved list. [Restored.trusted] is false when aliases of the last session may be missing: the change
+   * marker is there (it ended without saving) or the list cannot be read (damaged, or written by a release that did not
+   * save aliases). The registry is then empty, and the platform's indexed state of the aliased indexes cannot be trusted.
+   */
+  fun load(file: Path, vfsStamp: Long, donorExists: (Int) -> Boolean): Restored {
+    val marker = file.resolveSibling(MARKER).also { marker = it }
+    if (Files.exists(marker)) {
       clearAll()
+      dirty.set(true)
+      return Restored(emptySet(), trusted = false)
     }
-    return orphans
+    dirty.set(false)
+    if (!Files.isRegularFile(file)) return Restored(emptySet(), trusted = true)
+    val orphans = HashSet<Int>()
+    val read = runCatching {
+      DataInputStream(Files.newInputStream(file).buffered()).use { input ->
+        check(input.readInt() == FORMAT) { "another format" }
+        // Another VFS: its file ids mean nothing here, and a new VFS comes with empty indexes.
+        if (input.readLong() != vfsStamp) return Restored(emptySet(), trusted = true)
+        // Every index lists mostly the same files: each is looked up in the VFS once.
+        val exists = HashMap<Int, Boolean>()
+        repeat(input.readInt()) { orphans += of(input.readUTF()).readDonors(input) { exists.getOrPut(it) { donorExists(it) } } }
+      }
+    }
+    if (read.isSuccess) return Restored(orphans, trusted = true)
+    LOG.warn("Phantom local shared index: cannot read the donor list, starting without it", read.exceptionOrNull())
+    clearAll()
+    changed()
+    return Restored(emptySet(), trusted = false)
   }
+
+  /** [orphans]: files of aliases that could not be restored (see [IndexAliases.readDonors]). */
+  class Restored(val orphans: Set<Int>, val trusted: Boolean)
+
+  const val MARKER = "aliases.dirty"
 
   private const val FORMAT = 4
   private val LOG = logger<AliasRegistry>()
