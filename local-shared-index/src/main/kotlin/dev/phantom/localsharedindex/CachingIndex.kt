@@ -147,6 +147,9 @@ internal class CachingIndex<K, V, D>(
       return null
     }
     val removal = base.mapInputAndPrepareUpdate(inputId, null)
+      // The Stubs storage records the indexed length of a file only from content (StubUpdatingIndexStorage); the length
+      // of the old content would make StubTreeLoaderImpl report the borrowed stub tree as outdated.
+      .let { if (stubs) StubUpdatingIndexStorage.withStubIndexingDiagnosticUpdate(inputId, content, it) else it }
     aliases.alias(inputId, donor)
     stats.hit(content.project, indexName, content.file, 0)
     return IndexInfrastructureExtensionUpdate(removal, true)

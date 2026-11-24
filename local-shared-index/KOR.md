@@ -37,5 +37,5 @@
 ## 진단
 
 - 프로젝트 인덱싱이 끝날 때마다 IDE 로그(`idea.log`)에 한 줄이 남습니다. 예: `Phantom local shared index: demo: 190 of 200 index updates from cache (IdIndex 100/100, Stubs 90/100), about 2000 ms of indexing saved`. 절약 시간은 재사용한 데이터를 처음 계산하는 데 걸렸던 시간입니다.
-- 레지스트리 키 `phantom.localsharedindex.alias`(기본값 켬): 다른 체크아웃이 이미 인덱싱한 내용의 파일은 내용 전용 인덱스를 다시 만들지 않습니다. 스캔에서 건너뛰고 조회는 그 체크아웃의 데이터를 읽습니다. git에서 바뀌지 않은 파일은 `.git/index`의 blob id로 찾아 파일을 읽지 않습니다. 스텁은 아직 대상이 아닙니다.
+- 레지스트리 키 `phantom.localsharedindex.alias`(기본값 켬): 다른 체크아웃이 이미 인덱싱한 내용의 파일은 내용 전용 인덱스와 스텁(위 파일 타입, `.kts`는 제외)을 다시 만들지 않습니다. 스캔에서 건너뛰고 조회는 스텁 인덱스 조회를 포함해 그 체크아웃의 데이터를 읽습니다. git에서 바뀌지 않은 파일은 `.git/index`의 blob id로 찾아 파일을 읽지 않습니다.
 - 레지스트리 키 `phantom.localsharedindex.verify.one.in`(기본값 0 = 끔): N > 0이면 캐시 적중 N번마다 한 번씩 다시 계산해 비교합니다. 다르면 오류를 기록하고 해당 인덱스는 재시작 전까지 캐시를 쓰지 않습니다.

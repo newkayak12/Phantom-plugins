@@ -5,6 +5,7 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileWithId
+import com.intellij.psi.stubs.StubTreeLoader
 import com.intellij.util.indexing.FileBasedIndex
 import com.intellij.util.indexing.FileBasedIndexEx
 import com.intellij.util.indexing.FileBasedIndexExtension
@@ -32,22 +33,23 @@ internal class LocalSharedIndexStatusProcessor(private val project: Project) : F
     if (!aliases.hasDonors) return false
     val vFile = file.file
     if (vFile !is VirtualFileWithId) return false
+    if (indexId.name == LocalSharedIndexAllowlist.STUBS && !mayAliasStubs(file, vFile)) return false
     val extension = FileBasedIndexExtension.EXTENSION_POINT_NAME.extensionList.firstOrNull { it.name == indexId } ?: return false
-    // A file clean in its git work tree is matched by blob id, which costs no read of the file: reading and hashing every
-    // file of a fresh checkout made scanning slower than the indexing it saved. Such a file without a blob donor is not
-    // read either; only files git cannot vouch for fall back to the content key.
-    val blobKey = if (aliases.hasBlobDonors) blobHashOf(file)?.let { CacheKeys.blobKeyFor(it, file, extension.indexer) } else null
-    val donor = if (blobKey != null) {
-      aliases.donorForBlob(blobKey) ?: return false
-    }
-    else {
-      // VFS attributes only: a file no donor could match is not read.
-      if (!aliases.mayHaveDonor(vFile.length, vFile.name)) return false
-      aliases.donorFor(keyOf(vFile, extension) ?: return false) ?: return false
-    }
+    val donor = findDonor(aliases, file, vFile, extension) ?: return false
     if (donor == inputId || hasOwnData(inputId, indexId)) return false
     aliases.alias(inputId, donor)
     return true
+  }
+
+  // A file clean in its git work tree is matched by blob id, which costs no read of the file: reading and hashing every
+  // file of a fresh checkout made scanning slower than the indexing it saved. Such a file without a blob donor is not
+  // read either; only files git cannot vouch for fall back to the content key.
+  private fun findDonor(aliases: IndexAliases, file: IndexedFile, vFile: VirtualFile, extension: FileBasedIndexExtension<*, *>): Int? {
+    val blobKey = if (aliases.hasBlobDonors) blobHashOf(file)?.let { CacheKeys.blobKeyFor(it, file, extension.indexer) } else null
+    if (blobKey != null) return aliases.donorForBlob(blobKey)
+    // VFS attributes only: a file no donor could match is not read.
+    if (!aliases.mayHaveDonor(vFile.length, vFile.name)) return null
+    return aliases.donorFor(keyOf(vFile, extension) ?: return null)
   }
 
   /**
@@ -67,6 +69,18 @@ internal class LocalSharedIndexStatusProcessor(private val project: Project) : F
       LOG.debug("Cannot read the indexed data of $inputId in $indexId", e)
       true
     }
+  }
+
+  /**
+   * Stubs only of the file types whose stubs depend on the file alone ([LocalSharedIndexAllowlist.cachesStubsFor]; a
+   * `.kts` script never). StubTreeLoaderImpl.readFromVFile compares the length a Stubs update recorded for the file
+   * (IndexingStampInfo) with its loaded text and reports a mismatch as an error. Aliasing here records nothing, so a file
+   * whose recorded length is from other content is indexed instead.
+   */
+  private fun mayAliasStubs(file: IndexedFile, vFile: VirtualFile): Boolean {
+    if (!LocalSharedIndexAllowlist.cachesStubsFor(file.fileType, file.fileName)) return false
+    val recorded = StubTreeLoader.getInstance().getIndexingStampInfo(vFile) ?: return true
+    return recorded.indexingByteLength == vFile.length
   }
 
   override fun hasIndexForFile(file: VirtualFile, inputId: Int, extension: FileBasedIndexExtension<*, *>): Boolean =

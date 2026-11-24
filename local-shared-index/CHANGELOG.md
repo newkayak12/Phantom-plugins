@@ -2,7 +2,7 @@
 
 ## 미배포
 
-- 같은 컴퓨터의 다른 체크아웃이 이미 인덱싱한 파일은 내용 전용 인덱스(IdIndex, Trigram, Java 식 인덱스, Kotlin 소스 이름 인덱스)를 아예 다시 만들지 않고, 조회할 때 그 체크아웃 파일의 데이터를 쓴다. git으로 받은 파일은 git 인덱스의 blob id로 찾아 파일을 읽지 않는다. 새 클론에서 인덱싱 시간이 절반 이하로 줄었다. 레지스트리 `phantom.localsharedindex.alias`로 끌 수 있다. (#122)
+- 같은 컴퓨터의 다른 체크아웃이 이미 인덱싱한 파일은 내용 전용 인덱스(IdIndex, Trigram, Java 식 인덱스, Kotlin 소스 이름 인덱스)와 스텁(Java, Kotlin .kt; .kts 제외)을 아예 다시 만들지 않고, 조회할 때 그 체크아웃 파일의 데이터를 쓴다. git으로 받은 파일은 git 인덱스의 blob id로 찾아 파일을 읽지 않는다. 새 클론에서 인덱싱 시간이 절반 이하로 줄었다. 레지스트리 `phantom.localsharedindex.alias`로 끌 수 있다. (#122)
 
 ## 0.1.1 (2026-11-20)
 
