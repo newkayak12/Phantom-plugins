@@ -12,7 +12,7 @@ Shows in the status bar whether the IDE or something else is using the CPU, and 
 Every 2 seconds, on its own daemon thread `Phantom CPU Indicator`:
 
 - IDE: the process CPU time (`OperatingSystemMXBean.getProcessCpuTime`) over wall time and cores. System: `getCpuLoad()`.
-- Only while the popup is open or the IDE is busy: CPU time of every thread (`ThreadMXBean`), and the stacks of the threads that ran. Thread names rarely say what the work is (most runs on `DefaultDispatcher-worker-N` / `ApplicationImpl pooled thread N`), so the outermost recognised frame decides: indexer and scanner classes in `com.intellij.util.indexing` are indexing, the daemon, inspections, completion, inlay hints and Kotlin analysis API/FIR are code analysis. The index writer threads are indexing by name.
+- Only while the popup is open: CPU time of every thread (`ThreadMXBean`), and the stacks (at most 256 frames) of the threads that ran. Thread names rarely say what the work is (most runs on `DefaultDispatcher-worker-N` / `ApplicationImpl pooled thread N`), so the outermost recognised frame decides: indexer and scanner classes in `com.intellij.util.indexing` are indexing, the daemon, inspections, completion, inlay hints and Kotlin analysis API/FIR are code analysis. The index writer threads are indexing by name.
 - GC and JIT run on VM threads that `ThreadMXBean` does not list. The process time not on Java threads is split between them by the GC and compilation time the MXBeans report; what is left is other.
 - `ps -Ao pcpu,comm -r` only while the popup is open.
 

@@ -47,7 +47,8 @@ private const val TOP_PROCESSES = 3
  * only while a status bar widget listens.
  *
  * Normally a sample is two numbers: the process CPU time and the system load. Per-thread CPU, stacks and `ps` run
- * only while a popup is open ([detailRequests]) or the IDE is [CpuSnapshot.high].
+ * only while a popup is open ([detailRequests]): taking stacks stops every thread at a safepoint, which a busy IDE
+ * ([CpuSnapshot.high]) can afford least, so the popup measures from the moment it opens.
  */
 @Service(Service.Level.APP)
 class CpuSampler : Disposable {
@@ -173,7 +174,7 @@ class CpuSampler : Disposable {
 
     var breakdown: DoubleArray? = null
     var top = emptyList<TopProcess>()
-    if (detailRequests > 0 || high) {
+    if (detailRequests > 0) {
       val d = sampleDetail(wall)
       breakdown = d.breakdown()
       top = d.topProcesses
@@ -206,7 +207,7 @@ class CpuSampler : Disposable {
 
     if (d.process > 0) {
       val byWork = LongArray(Work.entries.size)
-      val infos = threads.getThreadInfo(busyIds.toLongArray(), Int.MAX_VALUE)
+      val infos = threads.getThreadInfo(busyIds.toLongArray(), MAX_STACK_DEPTH)
       for (i in infos.indices) {
         val info = infos[i] ?: continue
         byWork[WorkClassifier.classify(info.threadName, info.stackTrace).ordinal] += busyNs[i]
@@ -257,6 +258,13 @@ class CpuSampler : Disposable {
 
   companion object {
     const val THREAD_NAME = "Phantom CPU Indicator"
+
+    /**
+     * Frames read per busy thread: the cost of a stack grows with its depth. The JVM keeps the innermost frames, so in a deeper
+     * stack [WorkClassifier.classify] decides by the outermost recognised frame that is left; indexing and analysis frames run
+     * through the whole stack of such a thread.
+     */
+    private const val MAX_STACK_DEPTH = 256
     private val LOG = logger<CpuSampler>()
 
     private fun percent(fraction: Double): Int = (fraction * 100).roundToInt().coerceIn(0, 100)

@@ -15,9 +15,9 @@ import dev.phantom.ai.core.SessionStore
 import dev.phantom.ai.core.Unloading
 import dev.phantom.ai.core.bestEffort
 import dev.phantom.ai.sidebar.GitProjectRepos
-import dev.phantom.ai.sidebar.GitWorktreeSource
 import dev.phantom.ai.sidebar.PrTitles
 import dev.phantom.ai.sidebar.ProjectRepos
+import dev.phantom.ai.sidebar.SharedWorktrees
 import dev.phantom.ai.sidebar.SidebarModel
 import dev.phantom.ai.sidebar.WorktreeSource
 import dev.phantom.ai.terminal.AgentTerminalService
@@ -27,16 +27,18 @@ import java.util.concurrent.TimeUnit
 
 /**
  * [PhantomAiApi] over [SessionStore], [AiState], [AgentTerminalService] and the sidebar's worktree model. Worktrees are
- * built with a no-PR [PrTitles] (as RemoteApi does), so nothing here touches the network.
+ * built with a no-PR [PrTitles] (as RemoteApi does), so nothing here touches the network, and listed through [SharedWorktrees]:
+ * a client that reloads on every session event would otherwise run `git worktree list` per repository several times a second.
  *
  * The worktree watcher polls the worktrees of open projects every [pollIntervalMs] on a pooled thread, only while a listener
- * exists, and fires the listeners once per poll that saw a difference; the first poll only takes the baseline.
+ * exists and the IDE is the active application, and fires the listeners once per poll that saw a difference; the first poll only
+ * takes the baseline.
  * [pollIntervalMs] <= 0 schedules nothing: tests call [pollWorktreesNow].
  */
 @Service(Service.Level.APP)
 internal class PhantomAiApiImpl(
   private val reposOf: (Project) -> ProjectRepos = { GitProjectRepos(it) },
-  private val sourceOf: (Project) -> WorktreeSource = { GitWorktreeSource(it) },
+  private val sourceOf: (Project) -> WorktreeSource = { SharedWorktrees },
   private val projects: () -> List<Project> = { ProjectManager.getInstance().openProjects.filter { !it.isDisposed && !it.isDefault } },
   private val pollIntervalMs: Long = DEFAULT_POLL_MS,
 ) : PhantomAiApi, Disposable {
@@ -111,7 +113,8 @@ internal class PhantomAiApiImpl(
   private fun startWatcher() {
     if (watcher != null || pollIntervalMs <= 0) return
     watcher = AppExecutorUtil.getAppScheduledExecutorService()
-      .scheduleWithFixedDelay({ if (!Unloading.inProgress) bestEffort { pollWorktreesNow() } }, 0, pollIntervalMs, TimeUnit.MILLISECONDS)
+      .scheduleWithFixedDelay({ if (!Unloading.inProgress && ApplicationManager.getApplication().isActive) bestEffort { pollWorktreesNow() } },
+                              0, pollIntervalMs, TimeUnit.MILLISECONDS)
   }
 
   @Synchronized

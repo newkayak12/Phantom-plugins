@@ -169,7 +169,7 @@ object ActuatorClient {
 /**
  * The "Actuator" tab of a running Spring Boot application, next to its console in Run and Services. It waits for the
  * startup log line with the port, then reads `/actuator/health`, `beans`, `mappings` and `env`. Requests go out only
- * while the tab is on screen; health refreshes every five seconds, the others on demand.
+ * while the tab is on screen; health refreshes every five seconds while its sub-tab is selected, the others on demand.
  */
 class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent(BorderLayout()) {
   private val servers = ArrayList<ActuatorAddress.Server>()
@@ -188,7 +188,10 @@ class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent
     tabs.addTab("Beans", beans)
     tabs.addTab("Mappings", mappings)
     tabs.addTab("Environment", env)
-    tabs.addChangeListener { if (isShowing) load(tabs.selectedIndex, force = false) }
+    tabs.addChangeListener {
+      if (tabs.selectedIndex != HEALTH) poll.cancelAllRequests()
+      if (isShowing) load(tabs.selectedIndex, force = false)
+    }
     add(status, BorderLayout.NORTH)
     add(tabs, BorderLayout.CENTER)
     process?.addProcessListener(object : ProcessListener {
@@ -249,7 +252,9 @@ class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent
         }
       })
     }, ModalityState.any())
-    if (tab == 0 && isShowing && process?.isProcessTerminated != true) poll.addRequest({ fetch(base, 0) }, HEALTH_PERIOD_MS)
+    if (tab == HEALTH && pollsHealth(tabs.selectedIndex, isShowing, process?.isProcessTerminated == true)) {
+      poll.addRequest({ fetch(base, HEALTH) }, HEALTH_PERIOD_MS)
+    }
   }
 
   private fun show(tab: Int, json: JsonElement) {
@@ -338,6 +343,11 @@ class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent
 
   companion object {
     private val ENDPOINTS = listOf("health", "beans", "mappings", "env")
+    private const val HEALTH = 0
+
+    /** Health is read again only while its sub-tab is selected, the Actuator tab is on screen and the application runs. */
+    internal fun pollsHealth(selectedTab: Int, showing: Boolean, terminated: Boolean): Boolean =
+      selectedTab == HEALTH && showing && !terminated
     private const val HEALTH_PERIOD_MS = 5_000
   }
 }
