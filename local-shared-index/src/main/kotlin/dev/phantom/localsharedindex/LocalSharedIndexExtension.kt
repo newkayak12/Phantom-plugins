@@ -9,7 +9,11 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.stubs.StubIndexExtension
 import com.intellij.psi.stubs.StubIndexKey
 import com.intellij.psi.stubs.StubUpdatingIndex
+import com.intellij.openapi.vfs.newvfs.ManagingFS
+import com.intellij.openapi.vfs.newvfs.persistent.PersistentFS
+import com.intellij.util.indexing.FileBasedIndex
 import com.intellij.util.indexing.FileBasedIndexExtension
+import com.intellij.util.indexing.FileBasedIndexImpl
 import com.intellij.util.indexing.FileBasedIndexInfrastructureExtension
 import com.intellij.util.indexing.FileBasedIndexInfrastructureExtension.FileIndexingStatusProcessor
 import com.intellij.util.indexing.FileBasedIndexInfrastructureExtension.InitializationResult
@@ -45,14 +49,18 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
   }
 
   // The index's version changed: its cached entries were written by the old indexer.
+  // Its data is dropped and every file indexed again (all indexing stamps are outdated), so aliases restored from the
+  // previous session would point at donors that have no data yet.
   override fun onFileBasedIndexVersionChanged(indexId: ID<*, *>) {
     store?.clear(indexId.name)
+    AliasRegistry.clear(indexId.name)
   }
 
   // A stub index changed its version: every cached stub tree carries its old indexed-stub bytes.
   override fun onStubIndexVersionChanged(indexId: StubIndexKey<*, *>) {
     val store = store ?: return
     store.clear(LocalSharedIndexAllowlist.STUBS)
+    AliasRegistry.clear(LocalSharedIndexAllowlist.STUBS)
     // Without a header Stubs would stay uncached for the rest of the session.
     FileBasedIndexExtension.EXTENSION_POINT_NAME.extensionList.firstOrNull { it.name.name == LocalSharedIndexAllowlist.STUBS }
       ?.let { store.ensureHeader(LocalSharedIndexAllowlist.STUBS, headerFor(it, layoutId)) }
@@ -63,7 +71,7 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
     store?.close()
     val maxBytes = AdvancedSettings.getInt(MAX_SIZE_SETTING).coerceAtLeast(1).toLong() shl 20
     store = LocalSharedIndexStore.open(PathManager.getIndexRoot().resolve(ROOT), maxBytes)
-    if (store != null) AliasRegistry.load(donorsFile())
+    if (store != null) reindexLater(AliasRegistry.load(donorsFile(), vfsStamp(), ::isLiveFile))
     if (store == null) LOG.warn("Phantom Local Shared Index: the cache at ${PathManager.getIndexRoot().resolve(ROOT)} is locked by another IDE process or unreadable; indexes are not cached in this process")
     return InitializationResult.SUCCESSFULLY
   }
@@ -84,7 +92,7 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
   }
 
   override fun shutdown() {
-    if (store != null) AliasRegistry.save(donorsFile())
+    if (store != null) AliasRegistry.save(donorsFile(), vfsStamp())
     store?.close()
     store = null
   }
@@ -94,7 +102,25 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
   /** Writes the donor list now, off the calling thread (indexing listeners run on the indexing thread). */
   fun saveDonors() {
     if (store == null) return
-    ApplicationManager.getApplication().executeOnPooledThread { if (store != null) AliasRegistry.save(donorsFile()) }
+    ApplicationManager.getApplication().executeOnPooledThread { if (store != null) AliasRegistry.save(donorsFile(), vfsStamp()) }
+  }
+
+  // Ids of the saved list are only meaningful in the VFS they come from; a rebuilt VFS also drops all indexes.
+  private fun vfsStamp(): Long = ManagingFS.getInstance().creationTimestamp
+
+  private fun isLiveFile(fileId: Int): Boolean = PersistentFS.getInstance().findFileById(fileId)?.isValid == true
+
+  /**
+   * Files whose alias was not restored are still marked indexed and would answer nothing: they are indexed again once
+   * the indexes are up (requestReindex needs an initialized FileBasedIndex; this runs inside its initialization).
+   */
+  private fun reindexLater(fileIds: Set<Int>) {
+    if (fileIds.isEmpty()) return
+    ApplicationManager.getApplication().executeOnPooledThread {
+      (FileBasedIndex.getInstance() as FileBasedIndexImpl).waitUntilIndicesAreInitialized()
+      val fs = PersistentFS.getInstance()
+      for (id in fileIds) fs.findFileById(id)?.let { FileBasedIndex.getInstance().requestReindex(it) }
+    }
   }
 
   // -1 so that this extension never changes the version of the indexes it does not wrap

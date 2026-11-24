@@ -79,8 +79,7 @@ internal class IndexAliases {
   fun alias(fileId: Int, donor: Int) {
     donorOfAlias[fileId] = donor
     aliasesOfDonor.computeIfAbsent(donor) { ConcurrentHashMap.newKeySet() }.add(fileId)
-    epoch.incrementAndGet()
-  }
+    epoch.incrementAndGet()  }
 
   fun donorOf(fileId: Int): Int? = donorOfAlias[fileId]
 
@@ -130,6 +129,7 @@ internal class IndexAliases {
     epoch.incrementAndGet()
   }
 
+  /** Donors and aliases; scanning does not visit an aliased file again in a later session, so its alias must be kept. */
   fun writeDonors(out: DataOutputStream) {
     val snapshot = donorByKey.entries.toList()
     out.writeInt(snapshot.size)
@@ -144,9 +144,20 @@ internal class IndexAliases {
       out.write(key.bytes)
       out.writeInt(fileId)
     }
+    val aliases = donorOfAlias.entries.toList()
+    out.writeInt(aliases.size)
+    for ((alias, donor) in aliases) {
+      out.writeInt(alias)
+      out.writeInt(donor)
+    }
   }
 
-  fun readDonors(input: DataInputStream) {
+  /**
+   * Reads what [writeDonors] wrote. Returns the aliases whose donor is no longer a donor or no longer exists
+   * ([donorExists]): they are not restored, and their files must be indexed again, since the platform keeps them
+   * marked indexed.
+   */
+  fun readDonors(input: DataInputStream, donorExists: (Int) -> Boolean): List<Int> {
     repeat(input.readInt()) {
       val key = ContentKey(ByteArray(KEY_SIZE).also(input::readFully))
       val donor = Donor(input.readInt(), input.readLong())
@@ -160,6 +171,13 @@ internal class IndexAliases {
       donorByBlobKey[key] = fileId
       blobKeyOfDonor[fileId] = key
     }
+    val orphans = ArrayList<Int>()
+    repeat(input.readInt()) {
+      val alias = input.readInt()
+      val donor = input.readInt()
+      if (keyOfDonor.containsKey(donor) && donorExists(donor)) alias(alias, donor) else orphans += alias
+    }
+    return orphans
   }
 }
 
@@ -174,13 +192,18 @@ internal object AliasRegistry {
 
   fun clearAll() = byIndex.values.forEach { it.clear() }
 
-  // Donors are kept across restarts so that a checkout opened in a later session finds them; aliases are rebuilt by scanning.
+  /**
+   * Donors are kept across restarts so that a checkout opened in a later session finds them, and aliases because the
+   * platform keeps aliased files marked indexed (IndexingStamp): scanning in the next session does not ask about them
+   * again. File ids are only valid for the VFS they were taken from ([vfsStamp], its creation timestamp).
+   */
   @Synchronized
-  fun save(file: Path) {
+  fun save(file: Path, vfsStamp: Long) {
     runCatching {
       val tmp = file.resolveSibling(file.fileName.toString() + ".tmp")
       DataOutputStream(Files.newOutputStream(tmp).buffered()).use { out ->
         out.writeInt(FORMAT)
+        out.writeLong(vfsStamp)
         val indexes = byIndex.entries.toList()
         out.writeInt(indexes.size)
         for ((name, aliases) in indexes) {
@@ -192,20 +215,23 @@ internal object AliasRegistry {
     }.onFailure { LOG.warn("Phantom local shared index: cannot save the donor list", it) }
   }
 
-  fun load(file: Path) {
-    if (!Files.isRegularFile(file)) return
+  /** Returns the files of aliases that could not be restored (see [IndexAliases.readDonors]). */
+  fun load(file: Path, vfsStamp: Long, donorExists: (Int) -> Boolean): Set<Int> {
+    if (!Files.isRegularFile(file)) return emptySet()
+    val orphans = HashSet<Int>()
     runCatching {
       DataInputStream(Files.newInputStream(file).buffered()).use { input ->
-        if (input.readInt() != FORMAT) return
-        repeat(input.readInt()) { of(input.readUTF()).readDonors(input) }
+        if (input.readInt() != FORMAT || input.readLong() != vfsStamp) return emptySet()
+        repeat(input.readInt()) { orphans += of(input.readUTF()).readDonors(input, donorExists) }
       }
     }.onFailure {
       LOG.warn("Phantom local shared index: cannot read the donor list, starting without it", it)
       clearAll()
     }
+    return orphans
   }
 
-  private const val FORMAT = 3
+  private const val FORMAT = 4
   private val LOG = logger<AliasRegistry>()
 }
 
