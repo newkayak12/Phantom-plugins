@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.kubernetes</id>
-  <name>Phantom for Kubernetes</name>
+  <name>Support for Kubernetes</name>
   <vendor>Phantom</vendor>
   <category>Cloud</category>
   <description><![CDATA[

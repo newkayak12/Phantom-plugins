@@ -1,4 +1,4 @@
-# Phantom for Testcontainers
+# Support for Testcontainers
 `dev.phantom.testcontainers` · [한국어](./KOR.md)
 
 Checks for Testcontainers tests in Java and Kotlin, each one a mistake that otherwise shows only when the tests run.

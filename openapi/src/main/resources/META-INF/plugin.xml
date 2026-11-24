@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.openapi</id>
-  <name>Phantom for OpenAPI</name>
+  <name>Support for OpenAPI</name>
   <vendor>Phantom</vendor>
   <category>Microservices</category>
   <description><![CDATA[

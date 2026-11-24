@@ -1,4 +1,4 @@
-# Phantom for WebP
+# Support for WebP
 `dev.phantom.webp` · [한국어](./KOR.md)
 
 [WebP](https://developers.google.com/speed/webp) images (lossy, lossless, with alpha) open in the image editor and show

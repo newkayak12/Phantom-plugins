@@ -1,4 +1,4 @@
-# Phantom for WebP
+# Support for WebP
 `dev.phantom.webp` · [English](./README.md)
 
 [WebP](https://developers.google.com/speed/webp) 이미지(손실, 무손실, 알파 포함)를 PNG처럼 이미지 에디터와 썸네일로 엽니다.

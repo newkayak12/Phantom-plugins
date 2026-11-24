@@ -1,4 +1,4 @@
-# Phantom for Kubernetes
+# Support for Kubernetes
 `dev.phantom.kubernetes` · [한국어](./KOR.md)
 
 Helm chart support. It works inside chart templates (`<chart>/templates/…` next to `<chart>/Chart.yaml`) and nowhere else.

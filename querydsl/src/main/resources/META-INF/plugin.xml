@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.querydsl</id>
-  <name>Phantom for QueryDSL</name>
+  <name>Support for QueryDSL</name>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>JVM Frameworks</category>
   <description><![CDATA[

@@ -1,4 +1,4 @@
-# Phantom for OpenAPI
+# Support for OpenAPI
 `dev.phantom.openapi` · [English](./README.md)
 
 YAML과 JSON으로 쓴 OpenAPI 3, Swagger 2 스펙을 지원합니다.

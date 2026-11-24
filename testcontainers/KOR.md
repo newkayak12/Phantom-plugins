@@ -1,4 +1,4 @@
-# Phantom for Testcontainers
+# Support for Testcontainers
 `dev.phantom.testcontainers` · [English](./README.md)
 
 Java·Kotlin의 Testcontainers 테스트를 검사합니다. 모두 테스트를 돌려 봐야 드러나는 실수입니다.

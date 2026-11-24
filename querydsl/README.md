@@ -1,4 +1,4 @@
-# Phantom for QueryDSL
+# Support for QueryDSL
 `dev.phantom.querydsl` · [한국어](./KOR.md)
 
 QueryDSL's generated Q classes, followed back to the entities they come from.
