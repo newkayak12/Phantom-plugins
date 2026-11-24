@@ -227,9 +227,14 @@ class LocalSharedIndexAliasRestartTest {
     val trace = LocalSharedIndexStatistics.getInstance().startTrace()
     ext.restoreAliases(saved, vfs).join()
     assertFalse(AliasRegistry.of("IdIndex").hasAliases)
-    // The rebuild maps a's files again, from the cache it kept.
-    waitFor("the rebuild of IdIndex", a) { trace.any { it.index == "IdIndex" && "/a/" in it.path } }
-    assertTrue(trace.filter { it.index == "IdIndex" }.toString(), trace.filter { it.index == "IdIndex" && "/a/" in it.path }.all { it.hit })
+    // The rebuild maps the files again, from the cache it kept. Both projects are scanned at once after the rebuild
+    // (FileBasedIndexImpl.scheduleIndexRescanningForAllProjects): the checkout indexed first becomes the donor, and
+    // scanning marks the other checkout's files its aliases without mapping them. Which one comes first is up to the
+    // scheduler, so either checkout's files count.
+    val checkouts = listOf(rootA, rootB).map { CheckoutFixture.virtualFile(it).path + "/" }
+    fun rebuilt() = trace.filter { event -> event.index == "IdIndex" && checkouts.any { event.path.startsWith(it) } }
+    waitFor("the rebuild of IdIndex", a) { rebuilt().isNotEmpty() }
+    assertTrue(trace.filter { it.index == "IdIndex" }.toString(), rebuilt().all { it.hit })
     waitFor("b to answer", b) { containing(b, "greet", main(rootB)) }
     assertTrue(containing(a, "greet", main(rootA)))
     assertTrue(Files.exists(saved.resolveSibling(AliasRegistry.MARKER)))
