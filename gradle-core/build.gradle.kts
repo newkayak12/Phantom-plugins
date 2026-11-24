@@ -71,6 +71,8 @@ dependencies {
     bundledPlugin("com.intellij.properties")
     bundledPlugin("org.toml.lang")
     bundledPlugin("org.jetbrains.idea.reposearch")
+    // The upstream tests import Java projects (intellij.gradle.tests depends on the Java plugin); the plugin itself doesn't
+    testBundledPlugin("com.intellij.java")
     testFramework(TestFrameworkType.Plugin.Java, providers.gradleProperty("platformTestBuild"))
     testFramework(TestFrameworkType.JUnit5, providers.gradleProperty("platformTestBuild"))
   }
@@ -104,6 +106,12 @@ dependencies {
   testRuntimeOnly("org.junit.platform:junit-platform-launcher")
   testImplementation("org.assertj:assertj-core:3.27.6")
   testImplementation("org.mockito:mockito-core:5.20.0")
+  testImplementation("org.mockito.kotlin:mockito-kotlin:6.1.0")
+  testImplementation("org.junit-pioneer:junit-pioneer:2.3.0")
+  // ExternalSystemTestCase and the external system test fixtures the Gradle tests build on
+  testImplementation("com.jetbrains.intellij.platform:external-system-test-framework:${providers.gradleProperty("platformTestBuild").get()}") {
+    isTransitive = false
+  }
 }
 
 // Java 8 bytecode for the jars that run inside the Gradle daemon (IntelliJ: jvmTarget 1.8 for these modules)
@@ -112,6 +120,104 @@ listOf("toolingExtension", "toolingExtensionImpl", "toolingProxy").forEach { set
   tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compile${set.replaceFirstChar { it.uppercase() }}Kotlin") {
     compilerOptions.jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
   }
+}
+
+// Upstream tests that are not compiled: they need IntelliJ test sources which are not published as artifacts (the
+// external system data index and environment test bases, the Groovy and code insight test bases, the multi-project
+// fixtures, the IDE metrics benchmark), or classes of Gradle for Java (gradle-java), which builds on this plugin
+val testsNeedingUnpublishedTestSources = listOf<String>(
+  "com/intellij/gradle/completion/toml/tests/GradleTomlCompletionFusPositionTest.kt",
+  "com/intellij/gradle/completion/toml/tests/GradleTomlDependenciesAutoPopupHandlerTest.kt",
+  "com/intellij/gradle/completion/toml/tests/GradleTomlInsertionTest.kt",
+  "org/jetbrains/plugins/gradle/daemon/GradleDaemonActionTest.kt",
+  "org/jetbrains/plugins/gradle/execution/GradleOperationDescriptorPropagationTest.kt",
+  "org/jetbrains/plugins/gradle/execution/GradleRunAnythingProviderTestCase.kt",
+  "org/jetbrains/plugins/gradle/importing/BuildViewMessagesImportingTestCase.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleActionWithImportTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleActionWithImportTestCase.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleAutoImportAwareTest.java",
+  "org/jetbrains/plugins/gradle/importing/GradleAuxiliaryDependencyImportingTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleAuxiliaryDependencyImportingTestCase.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleBuildIssueImportingTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleBuildIssuesMiscImportingTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleCompositeImportingTest.java",
+  "org/jetbrains/plugins/gradle/importing/GradleConnectorServiceIntegrationTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleDCLImportingTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleDaemonJvmCriteriaTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleDependenciesImportingTest.java",
+  "org/jetbrains/plugins/gradle/importing/GradleEnvironmentTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleFoldersImportingTest.java",
+  "org/jetbrains/plugins/gradle/importing/GradleImportingTestCase.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleOutputParsersMessagesImportingTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleOutputParsersMessagesImportingTestCase.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleProjectSdkResolverTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleProjectSdkResolverTestCase.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleSettingsImportingTest.java",
+  "org/jetbrains/plugins/gradle/importing/GradleSettingsImportingTestCase.java",
+  "org/jetbrains/plugins/gradle/importing/GradleSyncOutputFailureTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleSystemPropertiesTest.kt",
+  "org/jetbrains/plugins/gradle/importing/GradleTasksImportingTest.kt",
+  "org/jetbrains/plugins/gradle/importing/LegacyGradleAuxiliaryDependencyImportingTest.kt",
+  "org/jetbrains/plugins/gradle/importing/UnsupportedGradleImportingTest.kt",
+  "org/jetbrains/plugins/gradle/importing/syncAction/GradleContentRootSyncContributorTest.kt",
+  "org/jetbrains/plugins/gradle/importing/syncAction/GradlePartialSyncTest.kt",
+  "org/jetbrains/plugins/gradle/importing/syncAction/GradlePartialSyncTestCase.kt",
+  "org/jetbrains/plugins/gradle/importing/syncAction/GradlePhasedSyncTestCase.kt",
+  "org/jetbrains/plugins/gradle/importing/syncAction/GradleProjectResolverTestCase.kt",
+  "org/jetbrains/plugins/gradle/importing/syncAction/GradleProjectRootSyncContributorTest.kt",
+  "org/jetbrains/plugins/gradle/importing/syncAction/GradleResilientSyncTest.kt",
+  "org/jetbrains/plugins/gradle/importing/syncAction/GradleSourceRootSyncContributorTest.kt",
+  "org/jetbrains/plugins/gradle/importing/syncAction/GradleVersionCatalogSyncContributorTest.kt",
+  "org/jetbrains/plugins/gradle/issue/GradleBuildCancelledIssueCheckerTest.kt",
+  "org/jetbrains/plugins/gradle/issue/GradleDaemonStartupIssueCheckerTest.kt",
+  "org/jetbrains/plugins/gradle/issue/GradleInvalidDaemonJvmCriteriaIssueCheckerTest.kt",
+  "org/jetbrains/plugins/gradle/issue/GradleOutOfMemoryIssueCheckerTest.kt",
+  "org/jetbrains/plugins/gradle/issue/GradleToolchainDownloadedMismatchCriteriaIssueCheckerTest.kt",
+  "org/jetbrains/plugins/gradle/issue/GradleToolchainDownloadingErrorIssueCheckerTest.kt",
+  "org/jetbrains/plugins/gradle/issue/GradleToolchainInstalledNotFoundMatchingCriteriaIssueCheckerTest.kt",
+  "org/jetbrains/plugins/gradle/quarantine/execution/GradleRunAnythingProviderTest.kt",
+  "org/jetbrains/plugins/gradle/quarantine/importing/syncAction/GradlePhasedSyncTest.kt",
+  "org/jetbrains/plugins/gradle/service/GradleInstallationManagerIoTest.kt",
+  "org/jetbrains/plugins/gradle/service/GradleInstallationManagerTest.kt",
+  "org/jetbrains/plugins/gradle/service/GradleInstallationManagerTestCase.kt",
+  "org/jetbrains/plugins/gradle/service/cache/GradleLocalCacheTest.kt",
+  "org/jetbrains/plugins/gradle/service/execution/GradleExecutionReporterTest.kt",
+  "org/jetbrains/plugins/gradle/service/execution/helper/GradleExecutionHelperJvmArgumentsTest.kt",
+  "org/jetbrains/plugins/gradle/service/execution/helper/GradleExecutionHelperJvmArgumentsTestCase.kt",
+  "org/jetbrains/plugins/gradle/service/project/GradleModuleDataIndexPerformanceTest.kt",
+  "org/jetbrains/plugins/gradle/service/project/GradleModuleDataIndexTest.kt",
+  "org/jetbrains/plugins/gradle/service/project/GradleModuleDataIndexTestCase.kt",
+  "org/jetbrains/plugins/gradle/service/task/GradleTaskManagerTest.kt",
+  "org/jetbrains/plugins/gradle/testFramework/GradleCodeInsightBaseTestCase.kt",
+  "org/jetbrains/plugins/gradle/testFramework/GradleCodeInsightTestCase.kt",
+  "org/jetbrains/plugins/gradle/testFramework/GradleExecutionBaseTestCase.kt",
+  "org/jetbrains/plugins/gradle/testFramework/GradleExecutionTestCase.kt",
+  "org/jetbrains/plugins/gradle/testFramework/GradleProjectBaseTestCase.kt",
+  "org/jetbrains/plugins/gradle/testFramework/GradleProjectTestCase.kt",
+  "org/jetbrains/plugins/gradle/testFramework/GradleTestCase.kt",
+  "org/jetbrains/plugins/gradle/testFramework/GradleTestFixtureBuilder.kt",
+  "org/jetbrains/plugins/gradle/testFramework/fixtures/fixtures.kt",
+  "org/jetbrains/plugins/gradle/testFramework/fixtures/impl/FileTestFixtureImpl.kt",
+  "org/jetbrains/plugins/gradle/testFramework/fixtures/impl/GradleProjectTestFixtureImpl.kt",
+  "org/jetbrains/plugins/gradle/testFramework/fixtures/impl/GradleTestFixtureImpl.kt",
+  "org/jetbrains/plugins/gradle/testFramework/projectInfo/GradleProjectInfoUtil.kt",
+  "org/jetbrains/plugins/gradle/testFramework/util/GradleFileTestUtil.kt",
+  "org/jetbrains/plugins/gradle/testFramework/util/GradleImportingFileTestUtil.kt",
+  "org/jetbrains/plugins/gradle/tooling/serialization/ToolingSerializerTest.kt",
+  "org/jetbrains/plugins/gradle/util/GradleBuildScriptFileTest.kt",
+  "org/jetbrains/plugins/gradle/util/GradleContentRootContributorTest.java",
+  "org/jetbrains/plugins/gradle/util/GradleDirectoryCompletionContributorTest.java",
+  "org/jetbrains/plugins/gradle/util/GradleJdkComboBoxUtilTest.kt",
+  "org/jetbrains/plugins/gradle/util/GradleJdkComboBoxUtilTestCase.kt",
+  "org/jetbrains/plugins/gradle/util/GradleJdkNonblockingUtilTest.kt",
+  "org/jetbrains/plugins/gradle/util/GradleJdkNonblockingUtilTestCase.kt",
+  "org/jetbrains/plugins/gradle/util/GradleJdkResolutionTest.kt",
+  "org/jetbrains/plugins/gradle/util/GradleJdkResolutionTestCase.kt",
+  "org/jetbrains/plugins/gradle/util/RichTextControlBuilderTest.java",
+)
+sourceSets.test {
+  java.exclude(testsNeedingUnpublishedTestSources)
+  kotlin.exclude(testsNeedingUnpublishedTestSources)
 }
 
 tasks.test {
