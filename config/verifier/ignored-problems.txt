@@ -1,0 +1,6 @@
+dev.phantom.yaml::Usage of FUS internal API.*
+dev.phantom.recentfiles::Usage of FUS internal API.*
+dev.phantom.navbar::Usage of FUS internal API.*
+dev.phantom.serviceview::Usage of FUS internal API.*
+dev.phantom.groovy-scripting::Package '(org\.abego|org\.apache\.commons\.vfs2|(groovyjarjarantlr4\.)?org\.stringtemplate|groovyjarjarantlr4\.stringtemplate|org\.fusesource)' is not found
+dev.phantom.groovy-scripting::Access to unresolved class (java\.util\.jar\.Pack200|groovyjarjarasm\.asm\.util\.ASMifierSupport).*

@@ -18,6 +18,7 @@ import java.awt.Frame
 import java.awt.GraphicsEnvironment
 import java.lang.reflect.Proxy
 import java.awt.Rectangle
+import java.awt.Toolkit
 import javax.swing.JFrame
 import javax.swing.SwingUtilities
 
@@ -67,7 +68,10 @@ class FrameWindowTest {
     SwingUtilities.invokeAndWait {
       val frame = frame(Rectangle(120, 130, 640, 480))
       FrameWindow(frame, null).apply(WindowState(Rectangle(0, 0, 1920, 1080), maximized = true, fullScreen = false))
-      assertEquals(Frame.MAXIMIZED_BOTH, frame.extendedState and Frame.MAXIMIZED_BOTH)
+      // Without a window manager (xvfb in CI) AWT cannot maximize a frame and leaves its state unchanged
+      if (Toolkit.getDefaultToolkit().isFrameStateSupported(Frame.MAXIMIZED_BOTH)) {
+        assertEquals(Frame.MAXIMIZED_BOTH, frame.extendedState and Frame.MAXIMIZED_BOTH)
+      }
       assertEquals(Rectangle(120, 130, 640, 480), frame.bounds)
     }
   }
