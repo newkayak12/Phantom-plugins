@@ -3,6 +3,14 @@ package dev.phantom.localsharedindex
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.logger
+import it.unimi.dsi.fastutil.bytes.ByteArrays
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap
+import it.unimi.dsi.fastutil.ints.Int2LongOpenHashMap
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
+import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap
+import it.unimi.dsi.fastutil.objects.Object2IntOpenCustomHashMap
+import it.unimi.dsi.fastutil.objects.ObjectOpenCustomHashSet
+import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.nio.file.Files
@@ -12,24 +20,36 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.concurrent.read
+import kotlin.concurrent.write
 
 /**
  * Per index: which file id was indexed for a content key (the donor), and which files were skipped because their key
  * matched a donor (the aliases). Queries of an alias are answered with the donor's data, which the platform already
  * holds because file-based indexes live in one storage per IDE.
+ *
+ * A large project has a few hundred thousand donors per index, so the maps are fastutil primitive maps (no boxed file
+ * ids, no entry objects) guarded by one read-write lock; key arrays are kept as given, without a wrapper. Callbacks run
+ * outside the lock.
  */
+@Suppress("TooManyFunctions") // the alias operations plus the unlocked helpers they share
 internal class IndexAliases {
-  private val donorByKey = ConcurrentHashMap<ContentKey, Donor>()
+  private val lock = ReentrantReadWriteLock()
+  private val donorByKey = Object2IntOpenCustomHashMap<ByteArray>(ByteArrays.HASH_STRATEGY).apply { defaultReturnValue(NONE) }
   // Reverse of donorByKey, so that forgetting a donor is not a scan of every key.
-  private val keyOfDonor = ConcurrentHashMap<Int, ContentKey>()
-  private val donorOfAlias = ConcurrentHashMap<Int, Int>()
-  private val aliasesOfDonor = ConcurrentHashMap<Int, MutableSet<Int>>()
-  // Length and name of every donor: scanning reads and hashes a file only when a donor could match it.
-  private val signatures = ConcurrentHashMap<Long, Int>()
+  private val keyOfDonor = Int2ObjectOpenHashMap<ByteArray>()
+  private val signatureOfDonor = Int2LongOpenHashMap()
+  private val donorOfAlias = Int2IntOpenHashMap().apply { defaultReturnValue(NONE) }
+  // Copied on change, so a caller may iterate an array it got without the lock. Most donors have one or two aliases.
+  private val aliasesOfDonor = Int2ObjectOpenHashMap<IntArray>()
+  // Length and name of every donor, with the number of donors per signature: scanning reads and hashes a file only when
+  // a donor could match it.
+  private val signatures = Long2IntOpenHashMap()
   // The same donors keyed by their git blob id instead of a hash of their content (see GitBlobs): scanning a git checkout
   // finds a donor without reading the file.
-  private val donorByBlobKey = ConcurrentHashMap<ContentKey, Int>()
-  private val blobKeyOfDonor = ConcurrentHashMap<Int, ContentKey>()
+  private val donorByBlobKey = Object2IntOpenCustomHashMap<ByteArray>(ByteArrays.HASH_STRATEGY).apply { defaultReturnValue(NONE) }
+  private val blobKeyOfDonor = Int2ObjectOpenHashMap<ByteArray>()
   // Bumped whenever the set of aliases changes: aliasing changes query results without a platform index update, which is
   // what moves the index's own modification stamp.
   private val epoch = AtomicLong()
@@ -37,9 +57,9 @@ internal class IndexAliases {
   /** Changes whenever an alias is added or removed; mixed into the index's modification stamp. */
   val modificationCount: Long get() = ready { epoch.get() }
 
-  val hasDonors: Boolean get() = ready { donorByKey.isNotEmpty() }
+  val hasDonors: Boolean get() = read { donorByKey.isNotEmpty() }
 
-  val hasBlobDonors: Boolean get() = ready { donorByBlobKey.isNotEmpty() }
+  val hasBlobDonors: Boolean get() = read { donorByBlobKey.isNotEmpty() }
 
   // Every public member waits for the saved list being read in the background (AliasRegistry.loadInBackground): answering
   // or changing aliases before it is in would answer nothing for restored aliases, or let it restore stale ones.
@@ -48,99 +68,123 @@ internal class IndexAliases {
     return action()
   }
 
+  private inline fun <T> read(action: () -> T): T = ready { lock.read(action) }
+
+  private inline fun <T> write(action: () -> T): T = ready { lock.write(action) }
+
   /** [fileId], already recorded as a donor, has git blob key [blobKey]. */
-  fun recordBlobDonor(blobKey: ByteArray, fileId: Int): Unit = ready {
-    val key = ContentKey(blobKey)
-    donorByBlobKey.put(key, fileId)?.let { old -> if (old != fileId) blobKeyOfDonor.remove(old, key) }
-    blobKeyOfDonor[fileId] = key
+  fun recordBlobDonor(blobKey: ByteArray, fileId: Int): Unit = write {
+    val old = donorByBlobKey.put(blobKey, fileId)
+    if (old != NONE && old != fileId) removeIfSame(blobKeyOfDonor, old, blobKey)
+    blobKeyOfDonor.put(fileId, blobKey)
   }
 
-  fun donorForBlob(blobKey: ByteArray): Int? = ready { donorByBlobKey[ContentKey(blobKey)] }
+  fun donorForBlob(blobKey: ByteArray): Int? = read { donorByBlobKey.getInt(blobKey).orNull() }
 
   /** The platform indexed [fileId] with content [key]: it can stand in for other files with the same key. */
-  fun recordDonor(key: ByteArray, fileId: Int, length: Long, name: CharSequence): Unit = ready {
-    val contentKey = ContentKey(key)
+  fun recordDonor(key: ByteArray, fileId: Int, length: Long, name: CharSequence): Unit = write {
     forgetDonorKey(fileId)
     val signature = signature(length, name)
-    donorByKey.put(contentKey, Donor(fileId, signature))?.let { old ->
+    val old = donorByKey.put(key, fileId)
+    if (old != NONE) {
       dropSignature(old)
-      keyOfDonor.remove(old.fileId, contentKey)
+      removeIfSame(keyOfDonor, old, key)
     }
-    keyOfDonor[fileId] = contentKey
-    signatures.merge(signature, 1, Int::plus)
+    keyOfDonor.put(fileId, key)
+    signatureOfDonor.put(fileId, signature)
+    signatures.addTo(signature, 1)
   }
 
   /** Whether some donor has this length and name; cheap, no file access. */
-  fun mayHaveDonor(length: Long, name: CharSequence): Boolean = ready { signatures.containsKey(signature(length, name)) }
+  fun mayHaveDonor(length: Long, name: CharSequence): Boolean = read { signatures.containsKey(signature(length, name)) }
 
-  fun donorFor(key: ByteArray): Int? = ready { donorByKey[ContentKey(key)]?.fileId }
+  fun donorFor(key: ByteArray): Int? = read { donorByKey.getInt(key).orNull() }
 
   private fun forgetDonorKey(fileId: Int) {
-    blobKeyOfDonor.remove(fileId)?.let { donorByBlobKey.remove(it, fileId) }
+    blobKeyOfDonor.remove(fileId)?.let { removeIfSame(donorByBlobKey, it, fileId) }
     val key = keyOfDonor.remove(fileId) ?: return
-    donorByKey.computeIfPresent(key) { _, donor -> if (donor.fileId == fileId) { dropSignature(donor); null } else donor }
+    if (removeIfSame(donorByKey, key, fileId)) dropSignature(fileId)
   }
 
-  private fun dropSignature(donor: Donor) {
-    signatures.computeIfPresent(donor.signature) { _, n -> if (n <= 1) null else n - 1 }
+  private fun dropSignature(donor: Int) {
+    if (!signatureOfDonor.containsKey(donor)) return
+    val signature = signatureOfDonor.remove(donor)
+    if (signatures.addTo(signature, -1) <= 1) signatures.remove(signature)
   }
 
-  fun alias(fileId: Int, donor: Int): Unit = ready {
-    link(fileId, donor)
+  fun alias(fileId: Int, donor: Int) {
+    write { link(fileId, donor) }
     epoch.incrementAndGet()
     AliasRegistry.changed()
   }
 
   // Restoring a saved alias goes through here only: it is no change against the saved list.
   private fun link(fileId: Int, donor: Int) {
-    donorOfAlias[fileId] = donor
-    aliasesOfDonor.computeIfAbsent(donor) { ConcurrentHashMap.newKeySet() }.add(fileId)
+    donorOfAlias.put(fileId, donor)
+    val aliases = aliasesOfDonor.get(donor)
+    if (aliases == null) aliasesOfDonor.put(donor, intArrayOf(fileId))
+    else if (fileId !in aliases) aliasesOfDonor.put(donor, aliases + fileId)
   }
 
-  fun donorOf(fileId: Int): Int? = ready { donorOfAlias[fileId] }
+  fun donorOf(fileId: Int): Int? = read { donorOfAlias.get(fileId).orNull() }
 
-  fun aliasesOf(donor: Int): Set<Int> = ready { aliasesOfDonor[donor].orEmpty() }
+  /** The aliases of [donor]; the array is not changed afterwards. */
+  fun aliasesOf(donor: Int): IntArray = read { aliasesOfDonor.get(donor) ?: EMPTY }
 
-  val hasAliases: Boolean get() = ready { donorOfAlias.isNotEmpty() }
+  val hasAliases: Boolean get() = read { donorOfAlias.isNotEmpty() }
 
   /** Calls [action] with every donor that has aliases, and those aliases. */
-  fun forEachAliased(action: (donor: Int, aliases: Set<Int>) -> Unit): Unit = ready {
-    for ((donor, aliases) in aliasesOfDonor) if (aliases.isNotEmpty()) action(donor, aliases)
+  fun forEachAliased(action: (donor: Int, aliases: IntArray) -> Unit) {
+    val snapshot = read { aliasesOfDonor.int2ObjectEntrySet().map { it.intKey to it.value } }
+    for ((donor, aliases) in snapshot) if (aliases.isNotEmpty()) action(donor, aliases)
   }
 
   /** Changes identity whenever [donor] is recorded with other content, so data read from it can be cached against it. */
-  fun donorToken(donor: Int): Any? = ready { keyOfDonor[donor] }
+  fun donorToken(donor: Int): Any? = read { keyOfDonor.get(donor) }
 
   /** [fileId] is indexed on its own now (changed or removed): it neither borrows nor lends data any more. */
-  fun forgetFile(fileId: Int): Unit = ready {
-    donorOfAlias.remove(fileId)?.let { donor ->
-      aliasesOfDonor[donor]?.remove(fileId)
+  fun forgetFile(fileId: Int) {
+    val unlinked = write {
+      val donor = donorOfAlias.remove(fileId)
+      if (donor != NONE) unlink(donor, fileId)
+      forgetDonorKey(fileId)
+      donor != NONE
+    }
+    if (unlinked) {
       epoch.incrementAndGet()
       AliasRegistry.changed()
     }
-    forgetDonorKey(fileId)
+  }
+
+  private fun unlink(donor: Int, fileId: Int) {
+    val aliases = aliasesOfDonor.get(donor) ?: return
+    val i = aliases.indexOf(fileId)
+    if (i >= 0) aliasesOfDonor.put(donor, aliases.copyOfRange(0, i) + aliases.copyOfRange(i + 1, aliases.size))
   }
 
   /** The donor's data changes: its aliases must be indexed themselves. Returns them. */
-  fun dropDonor(donor: Int): Set<Int> = ready {
-    forgetDonorKey(donor)
-    val aliases = aliasesOfDonor.remove(donor).orEmpty()
-    aliases.forEach { donorOfAlias.remove(it) }
+  fun dropDonor(donor: Int): Set<Int> {
+    val aliases = write {
+      forgetDonorKey(donor)
+      val aliases = aliasesOfDonor.remove(donor) ?: EMPTY
+      aliases.forEach { donorOfAlias.remove(it) }
+      aliases
+    }
     if (aliases.isNotEmpty()) {
       epoch.incrementAndGet()
       AliasRegistry.changed()
     }
-    aliases
+    return aliases.toSet()
   }
 
   /**
    * Drops the donors with aliases that [isGone] names (the aliases would borrow nothing) and returns those aliases. A
    * donor without aliases is checked when an alias for it is created instead ([isLive]): most donors never get one.
    */
-  fun dropDonorsWhere(isGone: (Int) -> Boolean): Set<Int> = ready {
+  fun dropDonorsWhere(isGone: (Int) -> Boolean): Set<Int> {
     val aliases = HashSet<Int>()
-    for (donor in aliasesOfDonor.keys.toList()) if (isGone(donor)) aliases += dropDonor(donor)
-    aliases
+    for (donor in read { aliasesOfDonor.keys.toIntArray() }) if (isGone(donor)) aliases += dropDonor(donor)
+    return aliases
   }
 
   /**
@@ -155,9 +199,10 @@ internal class IndexAliases {
     return false
   }
 
-  fun clear(): Unit = ready {
+  fun clear(): Unit = write {
     donorByKey.clear()
     keyOfDonor.clear()
+    signatureOfDonor.clear()
     signatures.clear()
     donorByBlobKey.clear()
     blobKeyOfDonor.clear()
@@ -168,25 +213,32 @@ internal class IndexAliases {
   }
 
   /** Donors and aliases; scanning does not visit an aliased file again in a later session, so its alias must be kept. */
-  fun writeDonors(out: DataOutputStream): Unit = ready {
-    val snapshot = donorByKey.entries.toList()
-    out.writeInt(snapshot.size)
-    for ((key, donor) in snapshot) {
-      out.write(key.bytes)
-      out.writeInt(donor.fileId)
-      out.writeLong(donor.signature)
+  fun writeDonors(out: DataOutputStream) {
+    // Encoded under the lock and written without it, so that indexing does not wait for the disk.
+    val bytes = read {
+      val buffer = ByteArrayOutputStream((donorByKey.size + donorByBlobKey.size) * (KEY_SIZE + Long.SIZE_BYTES) + donorOfAlias.size * 8 + 12)
+      DataOutputStream(buffer).use { encode(it) }
+      buffer
     }
-    val blobs = donorByBlobKey.entries.toList()
-    out.writeInt(blobs.size)
-    for ((key, fileId) in blobs) {
-      out.write(key.bytes)
-      out.writeInt(fileId)
+    bytes.writeTo(out)
+  }
+
+  private fun encode(out: DataOutputStream) {
+    out.writeInt(donorByKey.size)
+    for (entry in donorByKey.object2IntEntrySet()) {
+      out.write(entry.key)
+      out.writeInt(entry.intValue)
+      out.writeLong(signatureOfDonor.get(entry.intValue))
     }
-    val aliases = donorOfAlias.entries.toList()
-    out.writeInt(aliases.size)
-    for ((alias, donor) in aliases) {
-      out.writeInt(alias)
-      out.writeInt(donor)
+    out.writeInt(donorByBlobKey.size)
+    for (entry in donorByBlobKey.object2IntEntrySet()) {
+      out.write(entry.key)
+      out.writeInt(entry.intValue)
+    }
+    out.writeInt(donorOfAlias.size)
+    for (entry in donorOfAlias.int2IntEntrySet()) {
+      out.writeInt(entry.intKey)
+      out.writeInt(entry.intValue)
     }
   }
 
@@ -194,21 +246,24 @@ internal class IndexAliases {
    * Reads what [writeDonors] wrote; runs while the other members wait (see [ready]). Returns the aliases whose donor is
    * not in the list: they are not restored, and their files must be indexed again, since the platform keeps them marked
    * indexed. Whether each donor still exists is checked later ([dropDonorsWhere]), off the index initialization.
+   * [keys] hands out one array per distinct key, so the indexes of a file, which mostly have the same key, share it.
    */
-  fun readDonors(input: DataInputStream): List<Int> {
+  fun readDonors(input: DataInputStream, keys: KeyInterner): List<Int> = lock.write {
     repeat(input.readInt()) {
-      val key = ContentKey(ByteArray(KEY_SIZE).also(input::readFully))
-      val donor = Donor(input.readInt(), input.readLong())
-      donorByKey[key] = donor
-      keyOfDonor[donor.fileId] = key
-      signatures.merge(donor.signature, 1, Int::plus)
+      val key = keys.read(input)
+      val fileId = input.readInt()
+      val signature = input.readLong()
+      donorByKey.put(key, fileId)
+      keyOfDonor.put(fileId, key)
+      signatureOfDonor.put(fileId, signature)
+      signatures.addTo(signature, 1)
     }
     repeat(input.readInt()) {
-      val key = ContentKey(ByteArray(KEY_SIZE).also(input::readFully))
+      val key = keys.read(input)
       val fileId = input.readInt()
       if (!keyOfDonor.containsKey(fileId)) return@repeat
-      donorByBlobKey[key] = fileId
-      blobKeyOfDonor[fileId] = key
+      donorByBlobKey.put(key, fileId)
+      blobKeyOfDonor.put(fileId, key)
     }
     val orphans = ArrayList<Int>()
     repeat(input.readInt()) {
@@ -217,7 +272,7 @@ internal class IndexAliases {
       if (keyOfDonor.containsKey(donor)) link(alias, donor) else orphans += alias
     }
     epoch.incrementAndGet()
-    return orphans
+    orphans
   }
 }
 
@@ -298,7 +353,8 @@ internal object AliasRegistry {
         check(input.readInt() == FORMAT) { "another format" }
         // Another VFS: its file ids mean nothing here, and a new VFS comes with empty indexes.
         if (input.readLong() != vfsStamp) return Restored(emptySet(), trusted = true)
-        repeat(input.readInt()) { orphans += of(input.readUTF()).readDonors(input) }
+        val keys = KeyInterner()
+        repeat(input.readInt()) { orphans += of(input.readUTF()).readDonors(input, keys) }
       }
     }
     if (read.isSuccess) return Restored(orphans, trusted = true)
@@ -373,12 +429,28 @@ internal object AliasRegistry {
 
 private const val KEY_SIZE = 20
 
-private class Donor(val fileId: Int, val signature: Long)
+// Not a file id: VFS ids are positive.
+private const val NONE = Int.MIN_VALUE
+
+private val EMPTY = IntArray(0)
+
+private fun Int.orNull(): Int? = takeIf { it != NONE }
+
+private fun <V> removeIfSame(map: Int2ObjectOpenHashMap<V>, fileId: Int, value: V) {
+  if (map.get(fileId) == value) map.remove(fileId)
+}
+
+private fun removeIfSame(map: Object2IntOpenCustomHashMap<ByteArray>, key: ByteArray, fileId: Int): Boolean {
+  if (map.getInt(key) != fileId) return false
+  map.removeInt(key)
+  return true
+}
 
 private fun signature(length: Long, name: CharSequence): Long = length * 1_000_003L + name.toString().hashCode()
 
-private class ContentKey(val bytes: ByteArray) {
-  private val hash = bytes.contentHashCode()
-  override fun hashCode() = hash
-  override fun equals(other: Any?) = other is ContentKey && other.bytes.contentEquals(bytes)
+/** While the saved list is read: one array per distinct key across all indexes. */
+internal class KeyInterner {
+  private val keys = ObjectOpenCustomHashSet<ByteArray>(ByteArrays.HASH_STRATEGY)
+
+  fun read(input: DataInputStream): ByteArray = keys.addOrGet(ByteArray(KEY_SIZE).also(input::readFully))
 }
