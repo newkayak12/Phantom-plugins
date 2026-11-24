@@ -24,6 +24,7 @@ import com.intellij.util.indexing.UpdatableIndex
 import dev.phantom.localsharedindex.store.LocalSharedIndexStore
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.CompletableFuture
 
 /**
  * Wraps the content-only map-reduce indexes with a [CachingIndex] backed by an on-disk store under the index root.
@@ -121,9 +122,25 @@ class LocalSharedIndexExtension : FileBasedIndexInfrastructureExtension {
    * would answer nothing: they are indexed again. When aliases may be missing altogether, which files that concerns is
    * unknown, so the aliased indexes are rebuilt.
    */
-  internal fun restoreAliases(file: Path = donorsFile(), vfsStamp: Long = vfsStamp(), donorExists: (Int) -> Boolean = ::isLiveFile) {
-    val restored = AliasRegistry.load(file, vfsStamp, donorExists)
-    if (restored.trusted) reindexLater(restored.orphans) else rebuildAliasedIndexes()
+  internal fun restoreAliases(
+    file: Path = donorsFile(),
+    vfsStamp: Long = vfsStamp(),
+    donorExists: (Int) -> Boolean = ::isLiveFile,
+  ): CompletableFuture<*> {
+    val started = System.nanoTime()
+    return AliasRegistry.loadInBackground { AliasRegistry.load(file, vfsStamp) }.thenAccept { restored ->
+      if (!restored.trusted) {
+        rebuildAliasedIndexes()
+        return@thenAccept
+      }
+      val read = System.nanoTime()
+      // Until here an alias of a donor deleted in an earlier session answers that file id's data, which the platform
+      // removed with the file: nothing. Its file is indexed right after.
+      val orphans = restored.orphans + AliasRegistry.dropGoneDonors(donorExists)
+      reindexLater(orphans)
+      LOG.info("Phantom local shared index: donor list read in ${(read - started) / 1_000_000} ms, donors checked in " +
+               "${(System.nanoTime() - read) / 1_000_000} ms, ${orphans.size} files to index again")
+    }
   }
 
   private fun reindexLater(fileIds: Set<Int>) {
