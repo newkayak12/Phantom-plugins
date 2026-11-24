@@ -79,6 +79,10 @@ internal class LocalSharedIndexStatusProcessor(private val project: Project) : F
    */
   private fun mayAliasStubs(file: IndexedFile, vFile: VirtualFile): Boolean {
     if (!LocalSharedIndexAllowlist.cachesStubsFor(file.fileType, file.fileName)) return false
+    // A class file (binary) is never marked indexed without content: both the blob key here and the platform's own
+    // PersistentSubIndexerRetriever.setIndexedState ask StubUpdatingIndex for the sub-indexer, and
+    // StubTreeBuilder.getStubBuilderType casts the file to FileContent to pick the class file sub-builder from its bytes.
+    if (file.fileType.isBinary) return false
     val recorded = StubTreeLoader.getInstance().getIndexingStampInfo(vFile) ?: return true
     return recorded.indexingByteLength == vFile.length
   }
