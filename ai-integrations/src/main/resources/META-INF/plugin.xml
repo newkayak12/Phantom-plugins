@@ -53,7 +53,7 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <!-- ===== core (U1) ===== -->
-    <toolWindow id="Phantom AI Integration" anchor="right" icon="AllIcons.Toolwindows.ToolWindowMessages"
+    <toolWindow id="Phantom AI Integration" anchor="right" icon="/icons/phantom/toolwindow/aiIntegration.svg"
                 factoryClass="dev.phantom.ai.core.AiToolWindowFactory"/>
     <!-- ===== U3 accounts: applicationConfigurable (append here) ===== -->
     <applicationConfigurable parentId="tools" instance="dev.phantom.ai.accounts.AccountsConfigurable"

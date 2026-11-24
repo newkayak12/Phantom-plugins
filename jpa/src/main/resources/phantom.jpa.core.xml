@@ -95,7 +95,7 @@
                      bundle="messages.PhantomJpaBundle" key="jdbc.mapping.inspection.display.name"
                      groupBundle="messages.PhantomJpaBundle" groupKey="inspection.group.name"
                      implementationClass="dev.phantom.jpa.core.JdbcMappingInspection"/>
-    <toolWindow id="Entity Diagram" anchor="right" secondary="false" icon="AllIcons.Nodes.DataTables" doNotActivateOnStart="true"
+    <toolWindow id="Entity Diagram" anchor="right" secondary="false" icon="/icons/phantom/toolwindow/entityDiagram.svg" doNotActivateOnStart="true"
                 factoryClass="dev.phantom.jpa.core.EntityDiagramToolWindowFactory"/>
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.jpa.core.JpaRepositoryLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.jpa.core.JpaRepositoryLineMarkerProvider"/>

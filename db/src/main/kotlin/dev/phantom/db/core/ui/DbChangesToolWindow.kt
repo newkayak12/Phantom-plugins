@@ -54,7 +54,8 @@ class DbChangesToolWindowFactory : ToolWindowFactory, DumbAware {
     fun ensureRegistered(project: Project): ToolWindow {
       val manager = ToolWindowManager.getInstance(project)
       return manager.getToolWindow(ID) ?: manager.registerToolWindow(
-        RegisterToolWindowTask(ID, ToolWindowAnchor.BOTTOM, contentFactory = DbChangesToolWindowFactory(), icon = AllIcons.Vcs.Changelist,
+        RegisterToolWindowTask(ID, ToolWindowAnchor.BOTTOM, contentFactory = DbChangesToolWindowFactory(),
+                               icon = PhantomDbIcons.CHANGES_TOOL_WINDOW,
                                stripeTitle = Supplier { PhantomDbBundle.message("toolwindow.stripe.Database_Changes") }))
     }
   }
