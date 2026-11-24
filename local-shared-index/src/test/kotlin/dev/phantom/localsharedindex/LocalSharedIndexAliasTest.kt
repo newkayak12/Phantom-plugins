@@ -22,6 +22,7 @@ import com.intellij.util.indexing.IndexedFileImpl
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -107,6 +108,20 @@ class LocalSharedIndexAliasTest {
     val skipped = LocalSharedIndexStatusProcessor(a).tryIndexFileWithoutContent(IndexedFileImpl(notesB, a), id(notesB), IdIndex.NAME)
     assertTrue(skipped)
     assertEquals(id(CheckoutFixture.virtualFile(notesA)), aliases.donorOf(id(notesB)))
+  }
+
+  @Test
+  fun `test an alias added by scanning changes the index modification stamp`() {
+    val text = "zzstampword appears in both checkouts\n"
+    val rootA = tempDir.newDirectory("a").toPath()
+    CheckoutFixture.writeJavaCheckout(rootA)
+    Files.writeString(rootA.resolve("notes.txt"), text)
+    val a = CheckoutFixture.openCheckout(rootA, disposable.disposable)
+    val notesB = CheckoutFixture.virtualFile(Files.writeString(tempDir.newDirectory("b").toPath().resolve("notes.txt"), text))
+    val index = FileBasedIndex.getInstance()
+    val before = index.getIndexModificationStamp(IdIndex.NAME, a)
+    assertTrue(LocalSharedIndexStatusProcessor(a).tryIndexFileWithoutContent(IndexedFileImpl(notesB, a), id(notesB), IdIndex.NAME))
+    assertNotEquals(before, index.getIndexModificationStamp(IdIndex.NAME, a))
   }
 
   @Test

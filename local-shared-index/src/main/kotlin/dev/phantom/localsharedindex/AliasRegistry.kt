@@ -9,6 +9,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Per index: which file id was indexed for a content key (the donor), and which files were skipped because their key
@@ -27,6 +28,12 @@ internal class IndexAliases {
   // finds a donor without reading the file.
   private val donorByBlobKey = ConcurrentHashMap<ContentKey, Int>()
   private val blobKeyOfDonor = ConcurrentHashMap<Int, ContentKey>()
+  // Bumped whenever the set of aliases changes: aliasing changes query results without a platform index update, which is
+  // what moves the index's own modification stamp.
+  private val epoch = AtomicLong()
+
+  /** Changes whenever an alias is added or removed; mixed into the index's modification stamp. */
+  val modificationCount: Long get() = epoch.get()
 
   val hasDonors: Boolean get() = donorByKey.isNotEmpty()
 
@@ -72,6 +79,7 @@ internal class IndexAliases {
   fun alias(fileId: Int, donor: Int) {
     donorOfAlias[fileId] = donor
     aliasesOfDonor.computeIfAbsent(donor) { ConcurrentHashMap.newKeySet() }.add(fileId)
+    epoch.incrementAndGet()
   }
 
   fun donorOf(fileId: Int): Int? = donorOfAlias[fileId]
@@ -95,7 +103,10 @@ internal class IndexAliases {
 
   /** [fileId] is indexed on its own now (changed or removed): it neither borrows nor lends data any more. */
   fun forgetFile(fileId: Int) {
-    donorOfAlias.remove(fileId)?.let { donor -> aliasesOfDonor[donor]?.remove(fileId) }
+    donorOfAlias.remove(fileId)?.let { donor ->
+      aliasesOfDonor[donor]?.remove(fileId)
+      epoch.incrementAndGet()
+    }
     forgetDonorKey(fileId)
   }
 
@@ -104,6 +115,7 @@ internal class IndexAliases {
     forgetDonorKey(donor)
     val aliases = aliasesOfDonor.remove(donor).orEmpty()
     aliases.forEach { donorOfAlias.remove(it) }
+    if (aliases.isNotEmpty()) epoch.incrementAndGet()
     return aliases
   }
 
@@ -115,6 +127,7 @@ internal class IndexAliases {
     blobKeyOfDonor.clear()
     donorOfAlias.clear()
     aliasesOfDonor.clear()
+    epoch.incrementAndGet()
   }
 
   fun writeDonors(out: DataOutputStream) {

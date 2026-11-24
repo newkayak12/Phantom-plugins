@@ -99,6 +99,9 @@ internal class CachingIndex<K, V, D>(
 
   override fun getBaseIndex(): UpdatableIndex<K, V, FileContent, D> = base
 
+  // Caches keyed on FileBasedIndex.getIndexModificationStamp must also see aliases that scanning added.
+  override fun getModificationStamp(): Long = base.modificationStamp + (aliases?.modificationCount ?: 0)
+
   @Suppress("TooGenericExceptionCaught") // decoding a stale payload fails in any way, see the catch below
   override fun mapInputAndPrepareUpdate(inputId: Int, content: FileContent?): IndexInfrastructureExtensionUpdate {
     if (LocalSharedIndexAllowlist.aliases(indexName)) aliases?.let { aliases -> aliasOnUpdate(aliases, inputId, content)?.let { return it } }
