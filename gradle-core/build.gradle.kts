@@ -1,5 +1,6 @@
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.extensions.IntelliJPlatformExtension
+import org.jetbrains.intellij.platform.gradle.tasks.PrepareSandboxTask
 
 plugins {
   id("phantom-plugin")
@@ -57,6 +58,38 @@ artifacts {
 // The Gradle API and Tooling API IntelliJ builds against (the project library "Gradle"), published by JetBrains in the
 // IntelliJ dependencies repository. Packed into lib/ as gradle-api-<version>.jar, as in IntelliJ.
 val gradleApi = "org.jetbrains.intellij.deps:gradle-api:9.6.0"
+
+// The content modules with a class loader of their own: IntelliJ packs each into lib/modules/<module>.jar, and a module
+// without a package attribute can only tell its classes apart by jar. Each jar holds the module's packages (classes
+// directly in them; subpackages may belong to another module) and its descriptor, out of the plugin jar.
+val separateModules = mapOf(
+  "intellij.gradle.completion" to listOf(
+    "com.intellij.gradle.completion",
+    "com.intellij.gradle.completion.indexer",
+    "com.intellij.gradle.completion.lookup",
+  ),
+  "intellij.gradle.completion.toml" to listOf("com.intellij.gradle.completion.toml"),
+  "intellij.gradle.properties" to listOf("com.intellij.gradle.properties"),
+)
+val moduleJars = separateModules.map { (module, packages) ->
+  tasks.register<Jar>("${module.removePrefix("intellij.").replace('.', '_')}ModuleJar") {
+    archiveFileName = "$module.jar"
+    destinationDirectory = layout.buildDirectory.dir("moduleJars")
+    from(sourceSets.main.get().output.classesDirs) { packages.forEach { include("${it.replace('.', '/')}/*") } }
+    from(layout.projectDirectory.file("src/main/resources/$module.xml"))
+  }
+}
+tasks.jar {
+  separateModules.forEach { (module, packages) ->
+    packages.forEach { exclude("${it.replace('.', '/')}/*.class") }
+    exclude("$module.xml")
+  }
+}
+tasks.withType<PrepareSandboxTask>().configureEach {
+  from(moduleJars) {
+    into(pluginName.map { "$it/lib/modules" })
+  }
+}
 
 dependencies {
   intellijPlatform {

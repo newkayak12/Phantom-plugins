@@ -1,5 +1,6 @@
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.extensions.IntelliJPlatformExtension
+import org.jetbrains.intellij.platform.gradle.tasks.PrepareSandboxTask
 
 plugins {
   id("phantom-plugin")
@@ -42,6 +43,80 @@ val jpsJar = tasks.register<Jar>("jpsJar") {
 }
 
 val gradleApi = "org.jetbrains.intellij.deps:gradle-api:9.6.0"
+
+// The content modules with a class loader of their own: IntelliJ packs each into lib/modules/<module>.jar, and a module
+// without a package attribute can only tell its classes apart by jar. Each jar holds the module's packages (classes
+// directly in them; subpackages may belong to another module) and its descriptor, out of the plugin jar.
+val separateModules = mapOf(
+  "intellij.gradle.java.maven" to listOf(
+    "org.jetbrains.plugins.gradle.integrations.maven",
+    "org.jetbrains.plugins.gradle.integrations.maven.codeInsight.actions",
+    "org.jetbrains.plugins.gradle.integrations.maven.codeInsight.completion",
+  ),
+  "intellij.gradle.analysis" to listOf("org.jetbrains.plugins.gradle.service.resolve.static"),
+  "intellij.gradle.dependencyUpdater" to listOf("org.jetbrains.plugins.gradle.dsl"),
+  "intellij.gradle.java.performance" to listOf(
+    "com.intellij.gradle.java.performance",
+    "com.intellij.gradle.java.performance.dto",
+    "com.intellij.gradle.java.performance.util",
+  ),
+  "intellij.gradle.java.toml" to listOf(
+    "com.intellij.gradle.java.toml",
+    "com.intellij.gradle.java.toml.codeInspection",
+    "com.intellij.gradle.java.toml.completion",
+    "com.intellij.gradle.java.toml.findUsages",
+    "com.intellij.gradle.java.toml.navigation",
+    "com.intellij.gradle.java.toml.service",
+  ),
+  "intellij.gradle.java.groovy" to listOf(
+    "com.intellij.gradle.java.groovy",
+    "com.intellij.gradle.java.groovy.codeInsight",
+    "com.intellij.gradle.java.groovy.codeInsight.actions",
+    "com.intellij.gradle.java.groovy.codeInspection",
+    "com.intellij.gradle.java.groovy.codeInspection.fix",
+    "com.intellij.gradle.java.groovy.codeInspection.groovy",
+    "com.intellij.gradle.java.groovy.codeInspection.suppression",
+    "com.intellij.gradle.java.groovy.compiler",
+    "com.intellij.gradle.java.groovy.config",
+    "com.intellij.gradle.java.groovy.documentation",
+    "com.intellij.gradle.java.groovy.dsl",
+    "com.intellij.gradle.java.groovy.execution",
+    "com.intellij.gradle.java.groovy.execution.build",
+    "com.intellij.gradle.java.groovy.frameworkSupport",
+    "com.intellij.gradle.java.groovy.jps",
+    "com.intellij.gradle.java.groovy.service.completion",
+    "com.intellij.gradle.java.groovy.service.navigation",
+    "com.intellij.gradle.java.groovy.service.notification",
+    "com.intellij.gradle.java.groovy.service.project.wizard",
+    "com.intellij.gradle.java.groovy.service.resolve",
+    "com.intellij.gradle.java.groovy.service.resolve.dsl",
+  ),
+  "intellij.gradle.java.groovy.toml" to listOf("com.intellij.gradle.java.groovy.toml.service"),
+  "intellij.gradle.java.coverage" to listOf("com.intellij.gradle.java.coverage"),
+  "intellij.gradle.java.properties" to listOf(
+    "com.intellij.gradle.java.properties.findUsages",
+    "com.intellij.gradle.java.properties.util",
+  ),
+)
+val moduleJars = separateModules.map { (module, packages) ->
+  tasks.register<Jar>("${module.removePrefix("intellij.").replace('.', '_')}ModuleJar") {
+    archiveFileName = "$module.jar"
+    destinationDirectory = layout.buildDirectory.dir("moduleJars")
+    from(sourceSets.main.get().output.classesDirs) { packages.forEach { include("${it.replace('.', '/')}/*") } }
+    from(layout.projectDirectory.file("src/main/resources/$module.xml"))
+  }
+}
+tasks.jar {
+  separateModules.forEach { (module, packages) ->
+    packages.forEach { exclude("${it.replace('.', '/')}/*.class") }
+    exclude("$module.xml")
+  }
+}
+tasks.withType<PrepareSandboxTask>().configureEach {
+  from(moduleJars) {
+    into(pluginName.map { "$it/lib/modules" })
+  }
+}
 
 dependencies {
   intellijPlatform {
