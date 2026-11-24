@@ -10,6 +10,11 @@
     <module name="intellij.platform.testRunner"/>
   </dependencies>
   <!-- endregion -->
+  <!-- phantom-idea: the Groovy runtime for the tooling proxy (GRADLE_TOOLING_EXTENSION_PROXY_CLASSES) comes from Groovy
+       Scripting's module instead of a groovy.jar of this plugin's own (CommunityRepositoryModules) -->
+  <dependencies>
+    <module name="intellij.libraries.groovy"/>
+  </dependencies>
 
   <resource-bundle>messages.GradleBundle</resource-bundle>
 
@@ -216,7 +221,8 @@
                  description="Disable bridges for the phased Gradle sync execution"/>
     <registryKey defaultValue="https://download.jetbrains.com/resources/intellij/plugins/gradle/v1/compatibility.json"
                  description="URL to get updates for gradle/jvm compatibility matrix" key="gradle.compatibility.config.url"/>
-    <registryKey defaultValue="86400"
+    <!-- phantom-idea: Gradle/JVM compatibility feed update off by default (0; no automatic calls to JetBrains) -->
+    <registryKey defaultValue="0"
                  description="Time to check in seconds for gradle compatibility update. Set to 0 to disable updates"
                  key="gradle.compatibility.update.interval"/>
     <registryKey key="gradle.settings.showDeprecatedSettings" defaultValue="false"

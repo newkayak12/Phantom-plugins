@@ -48,6 +48,9 @@ dependencies {
     bundledModule("intellij.platform.smRunner")
     bundledModule("intellij.platform.testRunner")
     bundledModule("intellij.libraries.jspecify")
+    // Groovy (intellij.libraries.groovy, which intellij.gradle.xml depends on) comes from Groovy Scripting, as in Phantom:
+    // the tooling proxy's class path takes it from there instead of a groovy.jar of this plugin's own
+    localPlugin(project(":groovy-scripting"))
     // What the optional content modules build on (each switches off without it)
     bundledPlugin("com.intellij.properties")
     bundledPlugin("org.toml.lang")
@@ -56,6 +59,8 @@ dependencies {
     testFramework(TestFrameworkType.JUnit5, providers.gradleProperty("platformTestBuild"))
   }
   implementation(gradleApi) { isTransitive = false }
+  // localPlugin doesn't put the Groovy Scripting libraries on the compile classpath: the same Groovy, compile only
+  compileOnly("org.codehaus.groovy:groovy:3.0.25") { isTransitive = false }
   implementation(files(toolingExtensionJar, toolingExtensionImplJar, toolingProxyJar))
   compileOnly(sourceSets["toolingExtension"].output)
   compileOnly(sourceSets["toolingExtensionImpl"].output)
