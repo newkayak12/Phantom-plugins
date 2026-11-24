@@ -3,7 +3,7 @@
        to this one. The content module names stay the IntelliJ ones, as other plugins and bundled modules depend on them by
        name. The bundled IntelliJ Gradle plugin has to be gone, or both claim the same id and modules. -->
   <id>dev.phantom.gradle-core</id>
-  <name>Phantom for Gradle</name>
+  <name>Support for Gradle</name>
   <module value="com.intellij.gradle"/>
   <category>Build Tools</category>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
