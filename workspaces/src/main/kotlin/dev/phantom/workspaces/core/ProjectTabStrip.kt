@@ -275,8 +275,10 @@ class ProjectTabStrip(val project: Project) : JPanel(null) {
     init {
       isOpaque = false
       border = JBUI.Borders.empty(5, 10, 5, 4)
-      toolTipText = tab.tooltip
+      toolTipText = if (tab.isMainCheckout) PhantomWorkspacesBundle.message("tab.main.checkout.tooltip", tab.tooltip ?: "") else tab.tooltip
       val title = JBLabel(tab.title)
+      // the main checkout among the worktrees of its repository, all titled by their branch
+      if (tab.isMainCheckout) title.icon = AllIcons.Nodes.HomeFolder
       if (!tab.isCurrent && !tab.isSideBySide) title.foreground = UIUtil.getContextHelpForeground()
       add(title, BorderLayout.CENTER)
       val closeButton = InplaceButton(PhantomWorkspacesBundle.message("tab.close.tooltip"), AllIcons.Actions.Close) { close(tab) }
