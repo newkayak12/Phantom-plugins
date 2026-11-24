@@ -1,8 +1,12 @@
 <idea-plugin url="https://www.jetbrains.com/help/idea/gradle.html">
-  <name>Gradle</name>
-  <id>com.intellij.gradle</id>
+  <!-- phantom-idea: Phantom's own id; com.intellij.gradle stays as an alias, so plugins depending on the IntelliJ id resolve
+       to this one. The content module names stay the IntelliJ ones, as other plugins and bundled modules depend on them by
+       name. The bundled IntelliJ Gradle plugin has to be gone, or both claim the same id and modules. -->
+  <id>dev.phantom.gradle-core</id>
+  <name>Phantom for Gradle</name>
+  <module value="com.intellij.gradle"/>
   <category>Build Tools</category>
-  <vendor>JetBrains</vendor>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <description>
     <![CDATA[
       Provides integration with <a href="https://www.gradle.org">Gradle</a> for automation of building, testing, publishing, and deployment of software packages.
