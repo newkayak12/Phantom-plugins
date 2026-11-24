@@ -1,4 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package org.jetbrains.plugins.gradle.service.execution
 
 import com.intellij.build.FileNavigatable
@@ -16,7 +17,6 @@ import org.jetbrains.plugins.gradle.issue.GradleIssueData
 import org.jetbrains.plugins.gradle.issue.GradleIssueFailure
 import org.jetbrains.plugins.gradle.service.execution.GradleExecutionReporter.GradleExecutionFailureReport
 import org.jetbrains.plugins.gradle.service.project.BaseProjectImportErrorHandler.getErrorFilePosition
-import org.jetbrains.plugins.gradle.statistics.GradleModelBuilderMessageCollector
 import org.jetbrains.plugins.gradle.util.GradleConstants
 import java.nio.file.Path
 import kotlin.io.path.isRegularFile
@@ -43,21 +43,8 @@ class GradleExecutionReporterImpl(
     if (report.kind == MessageEvent.Kind.ERROR) {
       hasFailures.set(true)
     }
-    reportFusEvent(report)
     reportLoggerEvent(report)
     reportBuildEvent(report)
-  }
-
-  private fun reportFusEvent(report: GradleExecutionFailureReportImpl) {
-    val group = report.group ?: return
-    val kind = when (report.kind) {
-      MessageEvent.Kind.ERROR -> GradleModelBuilderMessageCollector.FailureKind.ERROR
-      MessageEvent.Kind.WARNING -> GradleModelBuilderMessageCollector.FailureKind.WARNING
-      MessageEvent.Kind.INFO -> GradleModelBuilderMessageCollector.FailureKind.INFO
-      MessageEvent.Kind.STATISTICS -> GradleModelBuilderMessageCollector.FailureKind.INFO
-      MessageEvent.Kind.SIMPLE -> GradleModelBuilderMessageCollector.FailureKind.INFO
-    }
-    GradleModelBuilderMessageCollector.logFailure(context.project, context.taskId.id, kind, group)
   }
 
   private fun reportLoggerEvent(report: GradleExecutionFailureReportImpl) {

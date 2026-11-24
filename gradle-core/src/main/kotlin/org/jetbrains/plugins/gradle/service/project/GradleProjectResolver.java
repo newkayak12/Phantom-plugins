@@ -1,4 +1,5 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package org.jetbrains.plugins.gradle.service.project;
 
 import com.intellij.execution.configurations.ParametersList;
@@ -25,8 +26,6 @@ import com.intellij.openapi.externalSystem.model.task.ExternalSystemTaskNotifica
 import com.intellij.openapi.externalSystem.service.execution.ExternalSystemExecutionAware;
 import com.intellij.openapi.externalSystem.service.project.ExternalSystemOperationDescriptor;
 import com.intellij.openapi.externalSystem.service.project.ExternalSystemProjectResolver;
-import com.intellij.openapi.externalSystem.statistics.ExternalSystemSyncActionsCollector;
-import com.intellij.openapi.externalSystem.statistics.Phase;
 import com.intellij.openapi.externalSystem.util.ExternalSystemTelemetryUtil;
 import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.util.Key;
@@ -44,8 +43,6 @@ import com.intellij.util.containers.MultiMap;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.context.Scope;
-import org.gradle.api.ProjectConfigurationException;
-import org.gradle.tooling.BuildActionFailureException;
 import org.gradle.tooling.CancellationTokenSource;
 import org.gradle.tooling.GradleConnector;
 import org.gradle.tooling.ProjectConnection;
@@ -188,11 +185,6 @@ public final class GradleProjectResolver implements ExternalSystemProjectResolve
   private @Nullable DataNode<ProjectData> resolveProjectInfo(
     @NotNull DefaultProjectResolverContext resolverContext
   ) {
-    var id = resolverContext.getExternalSystemTaskId();
-    var settings = resolverContext.getSettings();
-
-    ExternalSystemSyncActionsCollector.logSyncStarted(id.findProject(), id.getId(), settings.isParallelModelFetch());
-
     var gradleExecutionSpan = ExternalSystemTelemetryUtil.getTracer(GradleConstants.SYSTEM_ID)
       .spanBuilder("GradleExecution")
       .startSpan();
@@ -223,8 +215,6 @@ public final class GradleProjectResolver implements ExternalSystemProjectResolve
       throw ce;
     }
     catch (RuntimeException e) {
-      ExternalSystemSyncActionsCollector.logError(id.findProject(), id.getId(), extractCause(e));
-      ExternalSystemSyncActionsCollector.logSyncFinished(id.findProject(), id.getId(), false);
       throw e;
     }
     finally {
@@ -310,12 +300,6 @@ public final class GradleProjectResolver implements ExternalSystemProjectResolve
 
     ProgressManager.checkCanceled();
 
-    final long activityId = resolverContext.getExternalSystemTaskId().getId();
-
-    final long gradleCallStartTime = System.currentTimeMillis();
-
-    ExternalSystemSyncActionsCollector.logPhaseStarted(null, activityId, Phase.GRADLE_CALL);
-
     int gradleCallErrorsCount = 0;
 
     Span gradleCallSpan = ExternalSystemTelemetryUtil.getTracer(GradleConstants.SYSTEM_ID)
@@ -333,17 +317,12 @@ public final class GradleProjectResolver implements ExternalSystemProjectResolve
       throw t;
     }
     finally {
-      final long gradleCallTimeInMs = (System.currentTimeMillis() - gradleCallStartTime);
-      ExternalSystemSyncActionsCollector.logPhaseFinished(
-        null, activityId, Phase.GRADLE_CALL, gradleCallTimeInMs, gradleCallErrorsCount);
       gradleCallSpan.end();
     }
 
     ProgressManager.checkCanceled();
 
     final long projectResolversStartTime = System.currentTimeMillis();
-
-    ExternalSystemSyncActionsCollector.logPhaseStarted(null, activityId, Phase.PROJECT_RESOLVERS);
 
     int projectResolversErrorsCount = 0;
 
@@ -363,8 +342,6 @@ public final class GradleProjectResolver implements ExternalSystemProjectResolve
     finally {
       final long projectResolversTimeInMs = (System.currentTimeMillis() - projectResolversStartTime);
       LOG.debug(String.format("Project data resolved in %d ms", projectResolversTimeInMs));
-      ExternalSystemSyncActionsCollector.logPhaseFinished(
-        null, activityId, Phase.PROJECT_RESOLVERS, projectResolversTimeInMs, projectResolversErrorsCount);
       projectResolversSpan.end();
     }
   }
@@ -923,25 +900,6 @@ public final class GradleProjectResolver implements ExternalSystemProjectResolve
         moduleNode.createChild(ProjectKeys.CONTENT_ROOT, externalContentRootData);
       }
     }
-  }
-
-  private static Throwable extractCause(Throwable e) {
-    if (e instanceof BuildActionFailureException) {
-      return extractCause(e.getCause());
-    }
-    // Exceptions returned by Gradle TAPI have classes loaded by a separate classloader
-    Class<? extends Throwable> exceptionClass = e.getClass();
-    if (exceptionClass.getName().equals(ProjectConfigurationException.class.getName())) {
-      try {
-        //noinspection unchecked
-        List<Throwable> causes = (List<Throwable>)exceptionClass.getMethod("getCauses").invoke(e);
-        return causes.get(0);
-      }
-      catch (Throwable ignore) {
-        return e;
-      }
-    }
-    return e;
   }
 
   @ApiStatus.Experimental // chaining of resolver extensions complicates things and can be replaced in future

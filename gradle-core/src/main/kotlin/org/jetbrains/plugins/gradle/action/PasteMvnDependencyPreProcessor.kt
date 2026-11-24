@@ -1,4 +1,5 @@
 // Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package org.jetbrains.plugins.gradle.action
 
 import com.intellij.codeInsight.editorActions.CopyPastePreProcessor
@@ -9,8 +10,6 @@ import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.psi.PsiFile
 import com.intellij.util.createDocumentBuilder
 import org.jetbrains.annotations.ApiStatus
-import org.jetbrains.plugins.gradle.statistics.GradleActionsUsagesCollector
-import org.jetbrains.plugins.gradle.statistics.GradleActionsUsagesCollector.trigger
 import org.jetbrains.plugins.gradle.util.GradleConstants.EXTENSION
 import org.jetbrains.plugins.gradle.util.GradleConstants.KOTLIN_DSL_SCRIPT_EXTENSION
 import org.w3c.dom.Document
@@ -28,7 +27,6 @@ class PasteMvnDependencyPreProcessor : CopyPastePreProcessor {
 
   override fun preprocessOnPaste(project: Project?, file: PsiFile, editor: Editor?, text: String, rawText: RawText?): String {
     if (isApplicable(file) && isMvnDependency(text)) {
-      trigger(project, GradleActionsUsagesCollector.PASTE_MAVEN_DEPENDENCY)
       val isKotlinDsl: Boolean = file.extensionEquals(KOTLIN_DSL_SCRIPT_EXTENSION)
       return toGradleDependency(text, isKotlinDsl)
     }

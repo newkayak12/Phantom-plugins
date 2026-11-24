@@ -1,8 +1,8 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package org.jetbrains.plugins.gradle.service.modelAction
 
 import com.intellij.gradle.toolingExtension.impl.modelAction.GradleModelFetchAction
-import com.intellij.gradle.toolingExtension.modelAction.GradleModelFetchPhase
 import com.intellij.gradle.toolingExtension.util.GradleVersionUtil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.logger
@@ -17,7 +17,6 @@ import org.jetbrains.plugins.gradle.service.GradleFileModificationTracker
 import org.jetbrains.plugins.gradle.service.execution.GradleExecutionHelper
 import org.jetbrains.plugins.gradle.service.modelAction.GradleModelFetchActionRunner.Companion.runBuildAction
 import org.jetbrains.plugins.gradle.service.project.DefaultProjectResolverContext
-import org.jetbrains.plugins.gradle.statistics.GradleSyncCollector
 
 private val LOG = logger<GradleModelFetchActionRunner>()
 
@@ -126,20 +125,8 @@ class GradleModelFetchActionRunner private constructor(
       modelFetchAction: GradleModelFetchAction,
       modelFetchActionListener: GradleModelFetchActionListener,
     ) {
-      GradleSyncCollector.ModelFetchCollector(resolverContext).use { collector ->
-        val modelFetchActionListenerWithTrace = object : GradleModelFetchActionListener by modelFetchActionListener {
-          override suspend fun onModelFetchPhaseCompleted(phase: GradleModelFetchPhase) {
-            modelFetchActionListener.onModelFetchPhaseCompleted(phase)
-            collector.logModelFetchPhaseCompleted(phase)
-          }
-
-          override suspend fun onModelFetchFailed(exception: Throwable) {
-            modelFetchActionListener.onModelFetchFailed(exception)
-            collector.logModelFetchFailure(exception)
-          }
-        }
-        runBuildAction(connection, resolverContext, modelFetchAction, modelFetchActionListenerWithTrace)
-      }
+      // phantom-idea: no usage statistics (GradleSyncCollector.ModelFetchCollector timed the model fetch phases for it)
+      runBuildAction(connection, resolverContext, modelFetchAction, modelFetchActionListener)
     }
   }
 }

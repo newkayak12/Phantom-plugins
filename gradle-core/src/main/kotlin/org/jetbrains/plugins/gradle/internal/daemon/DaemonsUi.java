@@ -1,4 +1,5 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package org.jetbrains.plugins.gradle.internal.daemon;
 
 import com.intellij.icons.AllIcons;
@@ -24,7 +25,6 @@ import com.intellij.xml.util.XmlStringUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.plugins.gradle.connection.GradleConnectorService;
-import org.jetbrains.plugins.gradle.statistics.GradleActionsUsagesCollector;
 import org.jetbrains.plugins.gradle.util.GradleBundle;
 
 import javax.swing.AbstractAction;
@@ -244,7 +244,6 @@ public class DaemonsUi implements Disposable {
 
     @Override
     public void actionPerformed(@NotNull ActionEvent e) {
-      GradleActionsUsagesCollector.trigger(myProject, GradleActionsUsagesCollector.REFRESH_DAEMONS);
       updateDaemonsList();
     }
   }
@@ -262,7 +261,6 @@ public class DaemonsUi implements Disposable {
 
     @Override
     public void actionPerformed(@NotNull ActionEvent e) {
-      GradleActionsUsagesCollector.trigger(myProject, GradleActionsUsagesCollector.STOP_ALL_DAEMONS);
       ApplicationManager.getApplication().invokeLater(() -> {
         stopDaemons(GradleConnectorService.getInstance(myProject).getKnownGradleUserHomes());
         updateDaemonsList();
@@ -285,7 +283,6 @@ public class DaemonsUi implements Disposable {
 
     @Override
     public void actionPerformed(@NotNull ActionEvent e) {
-      GradleActionsUsagesCollector.trigger(myProject, GradleActionsUsagesCollector.STOP_SELECTED_DAEMONS);
       List<DaemonState> selectedObjects = myTable.getSelectedObjects();
       ApplicationManager.getApplication().invokeLater(() -> {
         stopDaemons(GradleConnectorService.getInstance(myProject).getKnownGradleUserHomes(), selectedObjects);
@@ -307,7 +304,6 @@ public class DaemonsUi implements Disposable {
 
     @Override
     public void actionPerformed(@NotNull ActionEvent e) {
-      GradleActionsUsagesCollector.trigger(myProject, GradleActionsUsagesCollector.GRACEFUL_STOP_ALL_DAEMONS);
       ApplicationManager.getApplication().invokeLater(() -> {
         gracefulStopDaemons(GradleConnectorService.getInstance(myProject).getKnownGradleUserHomes());
         updateDaemonsList();

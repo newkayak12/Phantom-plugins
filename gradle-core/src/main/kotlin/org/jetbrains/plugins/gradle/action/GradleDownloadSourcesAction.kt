@@ -1,12 +1,11 @@
 // Copyright 2000-2023 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package org.jetbrains.plugins.gradle.action
 
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.application.readAction
 import com.intellij.openapi.externalSystem.action.ExternalSystemAction
 import com.intellij.openapi.externalSystem.importing.ImportSpecBuilder
 import com.intellij.openapi.externalSystem.service.project.trusted.ExternalSystemTrustedProjectDialog
-import com.intellij.openapi.externalSystem.statistics.ExternalSystemActionsCollector
 import com.intellij.openapi.externalSystem.util.ExternalSystemUtil
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import kotlinx.coroutines.launch
@@ -24,9 +23,7 @@ class GradleDownloadSourcesAction : ExternalSystemAction() {
     FileDocumentManager.getInstance().saveAllDocuments()
     project.gradleCoroutineScope.launch {
       if (ExternalSystemTrustedProjectDialog.confirmLoadingUntrustedProjectAsync(project, GradleConstants.SYSTEM_ID)) {
-        readAction {
-          ExternalSystemActionsCollector.trigger(project, GradleConstants.SYSTEM_ID, this@GradleDownloadSourcesAction, event)
-        }
+        // phantom-idea: no usage statistics (ExternalSystemActionsCollector)
         val spec = ImportSpecBuilder(project, GradleConstants.SYSTEM_ID).withVmOptions("-Didea.gradle.download.sources.force=true")
         ExternalSystemUtil.refreshProjects(spec)
       }
