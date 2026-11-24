@@ -57,8 +57,8 @@ inside Phantom. Phantom bundles them from this repository (`PHANTOM_PLUGINS_BUND
   IntelliJ id (`bundledPlugin("com.intellij.properties")`), never `dev.phantom.*`.
 - Ported plugins lose JetBrains usage statistics (FUS collectors), plugin advertisements and Compose previews.
 - Names: Phantom's own plugins are `Phantom <Name>`. A plugin for another project, whose name is often a trademark, is
-  `Phantom for <X>` (Phantom for Spring, Phantom for Kafka): the name starts with Phantom and uses the other name only
-  to say what it supports. Java-only ones say `for Java`. Ids never change with a rename.
+  `Support for <X>` (Support for Spring, Support for Kafka): the other name comes only after "for", to say what the
+  plugin supports, and never leads the name. Java-only ones say `for Java`. Ids never change with a rename.
 - Every new source file starts with
   `// Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.`
   Code taken from IntelliJ keeps its JetBrains header; a folder with another license keeps its own `LICENSE`.
