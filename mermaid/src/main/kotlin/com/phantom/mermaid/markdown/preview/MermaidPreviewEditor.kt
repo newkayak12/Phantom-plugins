@@ -34,10 +34,14 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.awt.BorderLayout
+import java.awt.event.ComponentAdapter
+import java.awt.event.ComponentEvent
 import java.beans.PropertyChangeListener
 import javax.swing.JComponent
+import javax.swing.JPanel
 import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(FlowPreview::class)
@@ -55,7 +59,25 @@ internal class MermaidPreviewEditor(
 
   private val document = FileDocumentManager.getInstance().getDocument(file)!!
 
-  private val component by lazy { createComponent() }
+  // phantom-idea: the diagram, and with it the JCEF browser, is created when the preview is first shown, not when the
+  // file opens, so a tab that only shows the editor starts no JCEF.
+  private val diagram = lazy { createComponent() }
+  private val component by diagram
+
+  // TextEditorWithPreview makes this visible for the split and preview layouts; it starts hidden so that the first
+  // showing creates the diagram.
+  private val wrapper = JPanel(BorderLayout()).apply {
+    isVisible = false
+    addComponentListener(object: ComponentAdapter() {
+      override fun componentShown(event: ComponentEvent) {
+        // A show posted after dispose must not create a browser for a closed editor.
+        if (!diagram.isInitialized() && coroutineScope.isActive) {
+          add(component)
+          revalidate()
+        }
+      }
+    })
+  }
 
   init {
     document.addDocumentListener(UpdatePreviewDocumentListener(), this)
@@ -63,6 +85,8 @@ internal class MermaidPreviewEditor(
       // debounce to prevent JBCefQuery pool exhaustion; Phantom: long enough that a diagram is not laid out for every
       // keystroke, and text that did not change (undo back to it, a save) is not sent again
       updateViewRequests.debounce(PREVIEW_DEBOUNCE).collectLatest {
+        // phantom-idea: a diagram not created yet loads the current text when it is shown.
+        if (!diagram.isInitialized()) return@collectLatest
         val text = document.text
         if (text != lastSentText) {
           component.diagramComponent().update(text)
@@ -77,6 +101,8 @@ internal class MermaidPreviewEditor(
       override fun lookAndFeelChanged(source: LafManager) {
         if (source.currentUIThemeLookAndFeel != previousLaf) {
           previousLaf = source.currentUIThemeLookAndFeel
+          // phantom-idea: a diagram not created yet picks up the theme when it is shown.
+          if (!diagram.isInitialized()) return
           coroutineScope.launch(context = Dispatchers.Default) {
             val component = component.diagramComponent()
             component.load()
@@ -87,6 +113,8 @@ internal class MermaidPreviewEditor(
     })
 
     connection.subscribe(MermaidSettingsConfigurable.ChangeListener.TOPIC, MermaidSettingsConfigurable.ChangeListener {
+      // phantom-idea: a diagram not created yet picks up the settings when it is shown.
+      if (!diagram.isInitialized()) return@ChangeListener
       coroutineScope.launch(context = Dispatchers.Default) {
         val component = component.diagramComponent()
         component.load()
@@ -138,11 +166,11 @@ internal class MermaidPreviewEditor(
   }
 
   override fun getComponent(): JComponent {
-    return component
+    return wrapper
   }
 
   override fun getPreferredFocusedComponent(): JComponent {
-    return component
+    return wrapper
   }
 
   override fun getName(): String {
