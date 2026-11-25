@@ -28,6 +28,9 @@
   </content>
 
   <extensions defaultExtensionNs="com.intellij">
+    <!-- Home: the welcome screen opens as a project frame (IntelliJ's non-modal welcome screen above) -->
+    <welcomeScreenProjectProvider implementation="dev.phantom.workspaces.home.HomeProjectProvider"/>
+    <platform.ide.welcomeScreenContentProvider implementation="dev.phantom.workspaces.home.HomeTabContentProvider"/>
     <ideRootPaneNorth implementation="dev.phantom.workspaces.core.ProjectTabsNorthExtension" order="last"/>
     <advancedSetting id="phantom.workspaces.project.tabs" default="true"
                      bundle="messages.PhantomWorkspacesBundle" groupKey="advanced.settings.phantom.workspaces"/>
