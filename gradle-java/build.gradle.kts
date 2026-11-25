@@ -9,7 +9,7 @@ plugins {
 version = "0.1.0"
 
 // The IntelliJ sources keep Java next to Kotlin. src/main is intellij.gradle.java and the content modules (coverage,
-// groovy, groovy.toml, performance, properties, toml, analysis, dependencyUpdater, java.maven). src/jps is
+// groovy, groovy.toml, properties, toml, analysis, dependencyUpdater, java.maven). src/jps is
 // lib/gradle-jps.jar, the JPS builder, which the build process loads (compileServer.plugin in intellij.gradle.java.xml
 // names it; BuildProcessClasspathManager finds it in <plugin dir>/lib), as IntelliJ packs it.
 sourceSets {
@@ -56,11 +56,6 @@ val separateModules = mapOf(
   ),
   "intellij.gradle.analysis" to listOf("org.jetbrains.plugins.gradle.service.resolve.static"),
   "intellij.gradle.dependencyUpdater" to listOf("org.jetbrains.plugins.gradle.dsl"),
-  "intellij.gradle.java.performance" to listOf(
-    "com.intellij.gradle.java.performance",
-    "com.intellij.gradle.java.performance.dto",
-    "com.intellij.gradle.java.performance.util",
-  ),
   "intellij.gradle.java.toml" to listOf(
     "com.intellij.gradle.java.toml",
     "com.intellij.gradle.java.toml.codeInspection",
@@ -135,7 +130,6 @@ dependencies {
     // from there (as repository-search does)
     providers.gradleProperty("mavenPlugin").orNull?.let { localPlugin(it) } ?: bundledPlugin("org.jetbrains.idea.maven")
     bundledPlugin("org.jetbrains.idea.reposearch")
-    bundledPlugin("com.jetbrains.performancePlugin")
     localPlugin(project(":groovy"))
     // What gradle-core and groovy depend on; a local plugin's own local plugins don't come with it
     localPlugin(project(":groovy-scripting"))
