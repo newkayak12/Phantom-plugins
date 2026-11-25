@@ -91,7 +91,6 @@ jobs:
     timeout-minutes: 60
     strategy:
       fail-fast: false
-      max-parallel: 2
       matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
     steps:
       - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
