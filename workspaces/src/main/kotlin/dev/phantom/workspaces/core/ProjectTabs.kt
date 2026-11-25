@@ -131,7 +131,8 @@ object ProjectTabs {
   /** The strip is only worth its height when there is another project to switch to. */
   fun isStripVisible(enabled: Boolean, tabCount: Int): Boolean = enabled && tabCount > 1
 
-  private fun shortened(path: String, home: String): String {
+  /** [path] with the user's [home] written as ~. */
+  internal fun shortened(path: String, home: String): String {
     if (home.isEmpty() || !path.startsWith(home)) return path
     if (path.length == home.length) return "~"
     val next = path[home.length]
