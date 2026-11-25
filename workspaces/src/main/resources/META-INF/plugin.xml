@@ -18,6 +18,15 @@
     <plugin id="com.intellij.modules.platform"/>
   </dependencies>
 
+  <!-- IntelliJ's non-modal welcome screen, under its IntelliJ module names. Phantom does not bundle these modules, so
+       nothing else claims the names. One jar: the main module's package holds the packages of its frontend and backend
+       modules, so none of them can have a class loader filtered to a package of its own; all three load embedded. -->
+  <content namespace="jetbrains">
+    <module name="intellij.platform.ide.nonModalWelcomeScreen" loading="embedded"/>
+    <module name="intellij.platform.ide.nonModalWelcomeScreen.frontend" loading="embedded"/>
+    <module name="intellij.platform.ide.nonModalWelcomeScreen.backend" loading="embedded"/>
+  </content>
+
   <extensions defaultExtensionNs="com.intellij">
     <ideRootPaneNorth implementation="dev.phantom.workspaces.core.ProjectTabsNorthExtension" order="last"/>
     <advancedSetting id="phantom.workspaces.project.tabs" default="true"
