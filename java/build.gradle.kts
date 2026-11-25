@@ -20,14 +20,14 @@ plugins {
 
 group = "dev.phantom"
 
-// TBD: the <version> in java/lib/java-impl.jar's plugin.xml of the phantom-libs release; changes with libTag and libSha256
-version = "TBD"
+// The <version> in java/lib/java-impl.jar's plugin.xml of the phantom-libs release; changes with libTag and libSha256
+version = "262.261125.0"
 
-// TBD: the phantom-libs release (its tag, and the sha256 from its java-<version>.zip.sha256 asset) once it exists.
+// The pinned phantom-libs release: its tag, and the sha256 from its java-<version>.zip.sha256 asset.
 // -PjavaLibTag and -PjavaLibSha256 override them; -PjavaLibZip=<absolute path> takes a local zip instead of the download,
 // checked against the sha256 all the same.
-val libTag: Provider<String> = providers.gradleProperty("javaLibTag").orElse("java-TBD")
-val libSha256: Provider<String> = providers.gradleProperty("javaLibSha256").orElse("TBD")
+val libTag: Provider<String> = providers.gradleProperty("javaLibTag").orElse("java-262.261125.0")
+val libSha256: Provider<String> = providers.gradleProperty("javaLibSha256").orElse("4e0d9de395f643bc0e0da87ed25f6ad6fa6f098ccaa870284f5d9b5fed7c3124")
 val libZip: File? = providers.gradleProperty("javaLibZip").orNull?.let { file(it) }
 val pluginVersion = version.toString()
 

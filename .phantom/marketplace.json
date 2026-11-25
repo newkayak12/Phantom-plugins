@@ -1138,7 +1138,7 @@
     {
       "id": "dev.phantom.java",
       "name": "Support for Java",
-      "version": "TBD",
+      "version": "262.261125.0",
       "source": "java",
       "description": "Java language support: editing, completion, inspections and refactorings, JDKs and Java modules, compiling, running and debugging Java applications; the base of Support for Gradle (Java), Maven, JUnit and other Java plugins. IntelliJ Community's Java plugin (Apache 2.0), built by Phantom from its sources; not published by JetBrains. com.intellij.java stays as an alias, so plugins depending on it keep working. Not bundled from Phantom 262.261126 on; older Phantom builds bundle it and don't list it.",
       "vendor": "Phantom",
@@ -1148,7 +1148,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "java-TBD/java-TBD.zip",
+      "download": "java-262.261125.0/java-262.261125.0.zip",
       "detectFiles": [
         "pom.xml",
         "build.gradle",
