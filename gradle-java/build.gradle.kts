@@ -8,6 +8,17 @@ plugins {
 
 version = "0.1.0"
 
+// Phantom bundled IntelliJ's Gradle for Java plugin up to the Java- and Gradle-free release (build 262.261126 or later); on an earlier
+// build both would claim the same id and modules
+intellijPlatform {
+  pluginConfiguration {
+    ideaVersion {
+      sinceBuild = "262.261126"
+      untilBuild = "262.*"
+    }
+  }
+}
+
 // The IntelliJ sources keep Java next to Kotlin. src/main is intellij.gradle.java and the content modules (coverage,
 // groovy, groovy.toml, properties, toml, analysis, dependencyUpdater, java.maven). src/jps is
 // lib/gradle-jps.jar, the JPS builder, which the build process loads (compileServer.plugin in intellij.gradle.java.xml

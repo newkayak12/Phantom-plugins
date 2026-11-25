@@ -1093,6 +1093,51 @@
       "download": "maven-262.261119.1/Maven-262.261119.zip"
     },
     {
+      "id": "dev.phantom.gradle-core",
+      "name": "Support for Gradle",
+      "version": "0.1.0",
+      "source": "gradle-core",
+      "description": "Gradle projects: import and sync of the Gradle model, the Gradle tool window, Gradle run configurations and tasks, daemons, and editing help for Gradle files (completion in build scripts, version catalogs and gradle.properties). A fork of the IntelliJ Community Gradle plugin (Apache 2.0); com.intellij.gradle stays as an alias, so plugins depending on it keep working. Not bundled from Phantom 262.261126 on, which no longer bundles Gradle; older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Build Tools",
+      "since": "262.261126",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "gradle-core-0.1.0/gradle-core-0.1.0.zip",
+      "detectFiles": [
+        "build.gradle",
+        "build.gradle.kts",
+        "settings.gradle",
+        "settings.gradle.kts",
+        "gradlew"
+      ]
+    },
+    {
+      "id": "dev.phantom.gradle-java",
+      "name": "Support for Gradle (Java)",
+      "version": "0.1.0",
+      "source": "gradle-java",
+      "description": "Java support for Gradle projects: Java import, running and debugging tests and applications through Gradle, the Groovy DSL, the New Project wizard, coverage and the JPS builder. Needs Support for Java and Support for Gradle. A fork of the IntelliJ Community Gradle for Java plugin (Apache 2.0); org.jetbrains.plugins.gradle stays as an alias. Not bundled from Phantom 262.261126 on; older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
+      "vendor": "Phantom",
+      "category": "Build Tools",
+      "since": "262.261126",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.java",
+        "com.intellij.gradle"
+      ],
+      "download": "gradle-java-0.1.0/gradle-java-0.1.0.zip",
+      "detectFiles": [
+        "build.gradle",
+        "build.gradle.kts",
+        "settings.gradle",
+        "settings.gradle.kts",
+        "gradlew"
+      ]
+    },
+    {
       "id": "dev.phantom.navbar",
       "name": "Phantom Navigation Bar",
       "version": "0.1.0",
