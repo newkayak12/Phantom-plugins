@@ -68,7 +68,9 @@ jobs:
                   modules.add(module)
                   packaging.add(module)
           if shared:
-              modules.update(registered - {'strings'})
+              # only plugins with sources, as for changed files above: java has none (it repackages the Java plugin
+              # Phantom publishes, and its test runs in plugin-release.yml) and no verifyPlugin task
+              modules.update(m for m in registered - {'strings'} if not Path(m).is_symlink() and (Path(m) / 'src').is_dir())
               packaging.update(modules)
           plugins = sorted(modules)
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
