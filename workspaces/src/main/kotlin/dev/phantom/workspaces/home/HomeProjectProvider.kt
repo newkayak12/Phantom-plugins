@@ -1,9 +1,11 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.workspaces.home
 
+import com.intellij.ide.impl.OpenProjectTask
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ex.WelcomeScreenProjectProvider
+import com.intellij.platform.PlatformProjectOpenProcessor
 import com.intellij.platform.ide.nonModalWelcomeScreen.WelcomeScreenProjectActivity
 import java.nio.file.Path
 
@@ -31,9 +33,17 @@ internal class HomeProjectProvider : WelcomeScreenProjectProvider() {
   override fun canOpenFilesFromSystemFileManager(filePath: Path): Boolean = false
 
   // Every way Home opens comes through here (startup with nothing to reopen, the last project closed), so the welcome
-  // screen's setup runs here instead of in a postStartupActivity that every project would pay for.
-  override suspend fun doCreateOrOpenWelcomeScreenProject(path: Path, projectToClose: Project?): Project =
-    super.doCreateOrOpenWelcomeScreenProject(path, projectToClose).also { WelcomeScreenProjectActivity().execute(it) }
+  // screen's setup runs here instead of in a postStartupActivity that every project would pay for. With a project to
+  // close (HomeClosingTransitionHandler), Home takes that project's frame: the platform closes it and keeps the frame
+  // (ProjectManagerImpl.checkExistingProjectOnOpen with forceReuseFrame), so Home comes back in place.
+  override suspend fun doCreateOrOpenWelcomeScreenProject(path: Path, projectToClose: Project?): Project {
+    val home = if (projectToClose == null) super.doCreateOrOpenWelcomeScreenProject(path, null)
+    else PlatformProjectOpenProcessor.openProjectAsync(path, OpenProjectTask {
+      this.projectToClose = projectToClose
+      forceReuseFrame = true
+    }) ?: error("Cannot open Home at $path in the frame of $projectToClose")
+    return home.also { WelcomeScreenProjectActivity().execute(it) }
+  }
 
   companion object {
     const val NAME: String = "Home"

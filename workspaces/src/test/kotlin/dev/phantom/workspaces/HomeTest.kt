@@ -2,7 +2,9 @@
 package dev.phantom.workspaces
 
 import com.intellij.openapi.options.advanced.AdvancedSettings
+import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.wm.ex.WelcomeScreenProjectProvider
+import com.intellij.openapi.wm.ex.findProjectClosingTransitionHandler
 import com.intellij.openapi.wm.ex.getWelcomeScreenProjectProvider
 import com.intellij.platform.ide.nonModalWelcomeScreen.isNonModalWelcomeScreenEnabled
 import com.intellij.platform.ide.nonModalWelcomeScreen.rightTab.WelcomeRightTabContentProvider
@@ -22,11 +24,17 @@ class HomeTest : BasePlatformTestCase() {
     assertInstanceOf(WelcomeRightTabContentProvider.getSingleExtension(), HomeTabContentProvider::class.java)
   }
 
+  fun testClosingTheLastProjectBringsHomeBackInItsFrame() {
+    assertEquals(listOf(project), ProjectManager.getInstance().openProjects.toList())
+    assertNotNull(findProjectClosingTransitionHandler(project))
+  }
+
   fun testTurningProjectTabsOffBringsBackTheModalWelcomeFrame() {
     assertTrue(isNonModalWelcomeScreenEnabled)
     AdvancedSettings.setBoolean(ProjectTabs.SETTING_ID, false)
     try {
       assertFalse(isNonModalWelcomeScreenEnabled)
+      assertNull("closing the last project closes its frame as before", findProjectClosingTransitionHandler(project))
     }
     finally {
       AdvancedSettings.setBoolean(ProjectTabs.SETTING_ID, true)
