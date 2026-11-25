@@ -46,18 +46,19 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * The open project windows: their tab strips and the [WindowStack] that keeps the windows on top of each other.
- * A project window joins when its strip is added to the frame and leaves when the strip is removed. EDT only.
+ * The open project windows: their (hidden) tab strips and the [WindowStack] that keeps the windows on top of each other.
+ * A project window joins when its strip is added to the frame and leaves when the strip is removed. The Projects and
+ * Files lists ([addListener]) show the open projects. EDT only.
  *
  * The platform shows a new project frame at its own saved bounds and adds the strip only after that, once the project
  * is set. So a project frame about to be shown is put where the stack is when it gets its native window, right before
  * it is shown ([placeNewFrame]); it joins later, with its strip.
  *
  * A [detachProject]ed project leaves the stack and the tabs: its window is free (never hidden, moved or resized by the
- * stack) and its strip is hidden, until [attachProject] puts it back as the last tab.
+ * stack), until [attachProject] puts it back as the last tab.
  *
  * [openSideBySide] shows two project windows side by side over the stack's area ([WindowStack.split]); both of their
- * tabs are highlighted in every strip until it ends.
+ * tabs are marked side by side until it ends.
  *
  * The git checkout of each open project is read off the EDT ([readCheckouts]) when it opens, when a project window is
  * activated and when the HEAD file of one changes in the VFS: tabs of one repository are titled by their branch, and a
@@ -275,21 +276,6 @@ class ProjectTabsService(internal val scope: CoroutineScope) : Disposable {
     switchTo(open[Math.floorMod(index + offset, open.size)])
   }
 
-  /** Moves the tab of [project] to [gap] between the tabs (0 before the first), in every window. */
-  @RequiresEdt
-  fun move(project: Project, gap: Int) {
-    val open = openTabs()
-    val moved = ProjectTabs.moved(open, open.indexOfFirst { it === project }, gap)
-    if (moved == open) return
-    // a tab dragged stays where it is dropped
-    placing.removeIf { it === project }
-    val rest = openOrder.filter { p -> moved.none { it === p } }
-    openOrder.clear()
-    openOrder += moved
-    openOrder += rest
-    refresh()
-  }
-
   private fun openTabs(): List<Project> =
     openOrder.filter { p -> !p.isDisposed && strips.any { it.project === p } && !isDetached(p) }
 
@@ -428,16 +414,15 @@ class ProjectTabsService(internal val scope: CoroutineScope) : Disposable {
   @RequiresEdt
   private fun refresh() {
     val open = openTabs().map { OpenProject(it, it.name, it.presentableUrl, checkouts[it]) }
-    val visible = ProjectTabs.isStripVisible(isEnabled, open.size)
     val sideBySide = sideBySide()
     val home = SystemProperties.getUserHome()
     for (strip in strips) {
       if (isDetached(strip.project)) {
-        // a window of its own: no strip; Window | Attach to Project Tabs takes it back
-        strip.display(ProjectTabs.tabs(listOf(OpenProject(strip.project, strip.project.name, strip.project.presentableUrl)), strip.project, home), false)
+        // a window of its own, its only tab; Window | Attach to Project Tabs takes it back
+        strip.display(ProjectTabs.tabs(listOf(OpenProject(strip.project, strip.project.name, strip.project.presentableUrl)), strip.project, home))
       }
       else {
-        strip.display(ProjectTabs.tabs(open, strip.project, home, sideBySide), visible)
+        strip.display(ProjectTabs.tabs(open, strip.project, home, sideBySide))
       }
     }
     listeners.toList().forEach { it() }
