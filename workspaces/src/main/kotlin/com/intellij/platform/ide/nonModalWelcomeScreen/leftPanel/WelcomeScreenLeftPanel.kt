@@ -1,3 +1,4 @@
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package com.intellij.platform.ide.nonModalWelcomeScreen.leftPanel
 
 import com.intellij.icons.AllIcons.Actions.Search
@@ -47,7 +48,9 @@ class WelcomeScreenLeftPanel(private val project: Project) : ProjectViewPane(pro
 
   override fun getIcon(): Icon = IconManager.getInstance().getPlatformIcon(PlatformIcons.Folder)
 
-  override fun isInitiallyVisible(): Boolean = project.isWelcomeExperienceProjectSync() && isNonModalWelcomeScreenEnabled
+  // phantom-idea: selectable in every project frame, not only in the welcome project: Phantom Workspaces lists the open
+  // and recent projects here. The default pane stays Project everywhere but Home (isDefaultPane).
+  override fun isInitiallyVisible(): Boolean = isNonModalWelcomeScreenEnabled
 
   override fun isDefaultPane(project: Project): Boolean {
     return !Registry.`is`("ide.welcome.screen.change.project.view.depending.on.opened.file", false) && project.isWelcomeExperienceProjectSync()
