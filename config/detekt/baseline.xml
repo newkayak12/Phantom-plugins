@@ -122,7 +122,6 @@
     <ID>ComplexCondition:OpenWorkingTreeAction.kt:OpenWorkingTreeAction$project == null || trees == null || trees.size != 1 || trees[0].isCurrent</ID>
     <ID>ComplexCondition:ProjectConfigKeys.kt:ConfigText$c == '#' &amp;&amp; (i == 0 || line[i - 1] == ' ' || line[i - 1] == '\t')</ID>
     <ID>ComplexCondition:ProjectConfigKeys.kt:ConfigText$v.length >= 2 &amp;&amp; (v.first() == '"' &amp;&amp; v.last() == '"' || v.first() == '\'' &amp;&amp; v.last() == '\'')</ID>
-    <ID>ComplexCondition:ProjectTabs.kt:ProjectTabs$from !in order.indices || gap !in 0..order.size || gap == from || gap == from + 1</ID>
     <ID>ComplexCondition:PsiConditionsCoverageTest.kt:topOp == "" || topOp == newOp || newOp == "||" &amp;&amp; topOp == "&amp;&amp;"</ID>
     <ID>ComplexCondition:PsiUtils.kt:end >= 0 &amp;&amp; end !in this &amp;&amp; (skipWhitespace &amp;&amp; element.text[end].isWhitespace())</ID>
     <ID>ComplexCondition:PsiUtils.kt:start &lt; element.text.length &amp;&amp; start !in this &amp;&amp; (skipWhitespace &amp;&amp; element.text[start].isWhitespace())</ID>
@@ -214,6 +213,7 @@
     <ID>ComplexCondition:TomlVersionCatalogCompletionContributor.kt:EnableAutoPopupInTomlVersionCatalogCompletion$TOML_PLUGINS_TABLE_SYNTAX_PATTERN.accepts(contextElement) || TOML_LIBRARIES_TABLE_SYNTAX_PATTERN.accepts(contextElement) || TOML_VERSIONS_TABLE_SYNTAX_PATTERN.accepts(contextElement) || TOML_VERSIONS_SYNTAX_PATTERN.accepts(contextElement) || TOML_VERSION_DOT_SYNTAX_PATTERN_BEFORE.accepts(contextElement) || TOML_TABLE_SYNTAX_PATTERN.accepts(contextElement) || TOML_BUNDLE_SYNTAX_PATTERN.accepts(contextElement)</ID>
     <ID>ComplexCondition:ToolWindowLayoutSync.kt:ToolWindowLayoutSync$from === to || from.isDisposed || to.isDisposed || !AdvancedSettings.getBoolean(SETTING_ID)</ID>
     <ID>ComplexCondition:Validation.kt:Constraints$qn == CommonClassNames.JAVA_LANG_OBJECT || qn.startsWith("java.util.Optional") || qn == "java.io.Serializable" || qn == "java.lang.Comparable"</ID>
+    <ID>ComplexCondition:WelcomeScreenOpenFileNotificationProvider.kt:WelcomeScreenOpenFileNotificationProvider$file is LightVirtualFile || file.path in closedNotificationFiles || ScratchUtil.isScratch(file) || file.extension == "http"</ID>
     <ID>ComplexCondition:WindowStack.kt:WindowStack$front == null || window.isActive || single &amp;&amp; window.isShown</ID>
     <ID>ComplexCondition:WorkspaceBoardPanel.kt:WorkspaceBoardPanel$rendered &amp;&amp; nextCards == cards &amp;&amp; next.columns == boardLayout.columns &amp;&amp; next.placements() == boardLayout.placements()</ID>
     <ID>ComplexCondition:WorkspacesScenario.kt:WorkspacesRun$e is HierarchyEvent &amp;&amp; e.changeFlags and HierarchyEvent.DISPLAYABILITY_CHANGED.toLong() != 0L &amp;&amp; w is JFrame &amp;&amp; w.isDisplayable &amp;&amp; w !in known &amp;&amp; w !in atDisplayable</ID>
@@ -656,6 +656,8 @@
     <ID>CyclomaticComplexMethod:TomlJsonPsiWalker.kt:TomlJsonPsiWalker$override fun findPosition: JsonPointerPosition</ID>
     <ID>CyclomaticComplexMethod:Validation.kt:Constraints$fun accepts: Boolean</ID>
     <ID>CyclomaticComplexMethod:ValueParserWrapper.kt:ValueParserWrapper$override fun parse: Any</ID>
+    <ID>CyclomaticComplexMethod:WelcomeScreenCustomComboBox.kt:@OptIn(ExperimentalFoundationApi::class, ExperimentalJewelApi::class) @Composable internal fun WelcomeScreenCustomComboBox</ID>
+    <ID>CyclomaticComplexMethod:WelcomeScreenCustomListComboBox.kt:@OptIn(ExperimentalJewelApi::class) @Composable internal fun WelcomeScreenCustomListComboBox</ID>
     <ID>CyclomaticComplexMethod:WindowStack.kt:WindowStack$fun flush</ID>
     <ID>CyclomaticComplexMethod:WindowStack.kt:WindowStack$private fun flushSplit</ID>
     <ID>CyclomaticComplexMethod:WorkspacesScenario.kt:WorkspacesRun$fun editorText: Map&lt;String, Any?></ID>
@@ -716,6 +718,8 @@
     <ID>EmptyDefaultConstructor:SLRUTextMateCache.kt:SLRUTextMateCache.LRUSegment</ID>
     <ID>EmptyDefaultConstructor:ServiceViewDescriptorIdSerializer.kt:ServiceViewDescriptorIdsSerializer</ID>
     <ID>EmptyDefaultConstructor:UnsupportedGradleVersionIssueCheckerTest.kt:UnsupportedGradleVersionIssueCheckerTest</ID>
+    <ID>EmptyDefaultConstructor:WelcomeScreenRightTabComboBoxModel.kt:WelcomeScreenRightTabComboBoxModel.KeymapModel</ID>
+    <ID>EmptyDefaultConstructor:WelcomeScreenRightTabComboBoxModel.kt:WelcomeScreenRightTabComboBoxModel.ThemeModel</ID>
     <ID>EmptyElseBlock:AiIntegrationsScenario.kt:AiIntegrationsScenario$if (n &lt; 0) break</ID>
     <ID>EmptyElseBlock:AiIntegrationsScenario.kt:AiIntegrationsScenario$if (win.width != w || win.height != h) win.setSize(w, h)</ID>
     <ID>EmptyElseBlock:CodexUsageParseTest.kt:CodexUsageParseTest.FakeChannel$if (timeoutMs > 0) Thread.sleep(minOf(timeoutMs, 20))</ID>
@@ -979,6 +983,9 @@
     <ID>ForbiddenComment:TomlJsonPsiWalker.kt:TomlJsonPsiWalker$// TODO: Workaround, should be fixed in TOML grammar</ID>
     <ID>ForbiddenComment:TomlJsonSchemaValueCompletionTest.kt:TomlJsonSchemaValueCompletionTest$// TODO: Support value completion in inline tables</ID>
     <ID>ForbiddenComment:UnresolvedIdentifierSymbol.kt:UnresolvedIdentifierSymbol$// TODO: Split UnresolvedIdentifierSymbol and IdentifierSymbol</ID>
+    <ID>ForbiddenComment:WelcomeScreenLeftPanel.kt:WelcomeScreenLeftPanel$// TODO: Increase weight?</ID>
+    <ID>ForbiddenComment:WelcomeScreenLeftPanelActions.kt:WelcomeScreenLeftPanelActions$// TODO: Do something with the action group. Now it only is present in Rider</ID>
+    <ID>ForbiddenComment:WelcomeScreenPreventWelcomeTabFocusService.kt:WelcomeScreenPreventWelcomeTabFocusService$// TODO: Merge with WelcomeRightTabContentProvider?</ID>
     <ID>ForbiddenComment:YAMLInlineExpandTest.kt:YAMLInlineExpandTest$// FIXME: Is it possible to add beforeEach and afterEach cals of fixing indent?</ID>
     <ID>ForbiddenComment:serviceViewImplementationChooser.kt:// FIXME: When we consider client services stable enough, all usages of the method must be removed,</ID>
     <ID>ForbiddenComment:terminalStartup.kt:// TODO: this check is very fragile and should be replaced with a more robust solution.</ID>
@@ -991,6 +998,31 @@
     <ID>FunctionNaming:GradleModuleEntityModifications.kt:@JvmOverloads @JvmName("createGradleModuleEntity") fun GradleModuleEntity: GradleModuleEntityBuilder</ID>
     <ID>FunctionNaming:GradleProjectEntityModifications.kt:@JvmOverloads @JvmName("createGradleProjectEntity") fun GradleProjectEntity: GradleProjectEntityBuilder</ID>
     <ID>FunctionNaming:GradleVersionCatalogEntityModifications.kt:@JvmOverloads @JvmName("createGradleVersionCatalogEntity") fun GradleVersionCatalogEntity: GradleVersionCatalogEntityBuilder</ID>
+    <ID>FunctionNaming:WelcomeRightCustomTabProvider.kt:WelcomeRightCustomTabProvider$@Composable fun TabContent</ID>
+    <ID>FunctionNaming:WelcomeScreenCustomButton.kt:@Composable @ApiStatus.Internal fun WelcomeScreenCustomButton</ID>
+    <ID>FunctionNaming:WelcomeScreenCustomButton.kt:@Composable private fun ButtonImpl</ID>
+    <ID>FunctionNaming:WelcomeScreenCustomComboBox.kt:@Composable private fun Chevron</ID>
+    <ID>FunctionNaming:WelcomeScreenCustomComboBox.kt:@Composable private fun LabelIcon</ID>
+    <ID>FunctionNaming:WelcomeScreenCustomComboBox.kt:@OptIn(ExperimentalFoundationApi::class, ExperimentalJewelApi::class) @Composable internal fun WelcomeScreenCustomComboBox</ID>
+    <ID>FunctionNaming:WelcomeScreenCustomListComboBox.kt:@Composable private fun PopupContent</ID>
+    <ID>FunctionNaming:WelcomeScreenCustomListComboBox.kt:@OptIn(ExperimentalJewelApi::class) @Composable internal fun WelcomeScreenCustomListComboBox</ID>
+    <ID>FunctionNaming:WelcomeScreenRightTab.kt:WelcomeScreenRightTab$@Composable fun CustomButtonStyle: ButtonStyle</ID>
+    <ID>FunctionNaming:WelcomeScreenRightTab.kt:WelcomeScreenRightTab$@Composable fun CustomComboBoxStyle: ComboBoxStyle</ID>
+    <ID>FunctionNaming:WelcomeScreenRightTab.kt:WelcomeScreenRightTab$@Composable fun FeatureGrid</ID>
+    <ID>FunctionNaming:WelcomeScreenRightTab.kt:WelcomeScreenRightTab$@Composable fun InfoPanelButtonStyle: ButtonStyle</ID>
+    <ID>FunctionNaming:WelcomeScreenRightTab.kt:WelcomeScreenRightTab$@Composable fun SwitchPanel</ID>
+    <ID>FunctionNaming:WelcomeScreenRightTab.kt:WelcomeScreenRightTab$@Composable internal fun InfoPanelItem</ID>
+    <ID>FunctionNaming:WelcomeScreenRightTab.kt:WelcomeScreenRightTab$@Composable private fun AdditionalComponents</ID>
+    <ID>FunctionNaming:WelcomeScreenRightTab.kt:WelcomeScreenRightTab$@Composable private fun BoxScope.Footer</ID>
+    <ID>FunctionNaming:WelcomeScreenRightTab.kt:WelcomeScreenRightTab$@Composable private fun CustomContentBackButton</ID>
+    <ID>FunctionNaming:WelcomeScreenRightTab.kt:WelcomeScreenRightTab$@Composable private fun FeatureButton</ID>
+    <ID>FunctionNaming:WelcomeScreenRightTab.kt:WelcomeScreenRightTab$@Composable private fun Header</ID>
+    <ID>FunctionNaming:WelcomeScreenRightTab.kt:WelcomeScreenRightTab$@Composable private fun InfoPanelButton</ID>
+    <ID>FunctionNaming:WelcomeScreenRightTab.kt:WelcomeScreenRightTab$@Composable private fun WelcomeScreenLink</ID>
+    <ID>FunctionNaming:WelcomeScreenRightTab.kt:WelcomeScreenRightTab$@Composable private fun WelcomeScreenText</ID>
+    <ID>FunctionNaming:WelcomeScreenRightTab.kt:WelcomeScreenRightTab$@OptIn(ExperimentalComposeUiApi::class) @Composable fun WelcomeScreen</ID>
+    <ID>FunctionNaming:WelcomeScreenRightTabBannerProvider.kt:WelcomeScreenRightTabBannerProvider$@Composable fun Banner</ID>
+    <ID>FunctionNaming:WelcomeScreenRightTabBannerProvider.kt:WelcomeScreenRightTabBannerProvider.Companion$@Composable fun SingleBanner</ID>
     <ID>FunctionNaming:_Json5Lexer.kt:_Json5Lexer.Companion$@JvmStatic private fun zzUnpackcmap_blocks: Int</ID>
     <ID>FunctionNaming:_Json5Lexer.kt:_Json5Lexer.Companion$@JvmStatic private fun zzUnpackcmap_blocks: IntArray</ID>
     <ID>FunctionNaming:_Json5Lexer.kt:_Json5Lexer.Companion$@JvmStatic private fun zzUnpackcmap_top: Int</ID>
@@ -1287,6 +1319,10 @@
     <ID>LongMethod:TomlEscapeTextTest.kt:TomlEscapeTextTest.Companion$@Parameterized.Parameters(name = "{index}: (\"{0}\", \"{1}\") → \"{2}\"") @JvmStatic fun data: Collection&lt;Array&lt;Any>></ID>
     <ID>LongMethod:TomlJsonPsiWalker.kt:TomlJsonPsiWalker$override fun findPosition: JsonPointerPosition</ID>
     <ID>LongMethod:TransferableTerminalLifetimeTest.kt:TransferableTerminalLifetimeTest$@Test @Timeout(20) fun destinationCollectorReceivesStandardInitialStateForSameRuntime</ID>
+    <ID>LongMethod:WelcomeScreenCustomButton.kt:@Composable private fun ButtonImpl</ID>
+    <ID>LongMethod:WelcomeScreenCustomComboBox.kt:@OptIn(ExperimentalFoundationApi::class, ExperimentalJewelApi::class) @Composable internal fun WelcomeScreenCustomComboBox</ID>
+    <ID>LongMethod:WelcomeScreenCustomListComboBox.kt:@OptIn(ExperimentalJewelApi::class) @Composable internal fun WelcomeScreenCustomListComboBox</ID>
+    <ID>LongMethod:WelcomeScreenRightTab.kt:WelcomeScreenRightTab$@OptIn(ExperimentalComposeUiApi::class) @Composable fun WelcomeScreen</ID>
     <ID>LongMethod:WorkspacesScenario.kt:WorkspacesRun$private suspend fun body</ID>
     <ID>LongMethod:WorkspacesScenario.kt:WorkspacesRun$private suspend fun focusDiagnose</ID>
     <ID>LongMethod:WorkspacesScenario.kt:WorkspacesRun$suspend fun openProject: Project?</ID>
@@ -1340,6 +1376,7 @@
     <ID>MatchingDeclarationName:TomlJsonSchemaDocumentationProviderTest.kt:TomlSchemaDocumentationProviderTest : TomlJsonSchemaTestBase</ID>
     <ID>MatchingDeclarationName:TransformationData.kt:ImageTransformationData</ID>
     <ID>MatchingDeclarationName:UuidConvertor.kt:UuidConverters</ID>
+    <ID>MatchingDeclarationName:actions.kt:CreateEmptyFileAction : DumbAwareAction</ID>
     <ID>MatchingDeclarationName:editorInlays.kt:GHPREditorMappedComponentModel : Ranged</ID>
     <ID>MatchingDeclarationName:filters.kt:Filter</ID>
     <ID>MatchingDeclarationName:schemaParsingUtils.kt:JacksonSchemaNodeAccessor : RawJsonSchemaNodeAccessor</ID>
@@ -2515,6 +2552,7 @@
     <ID>TooGenericExceptionCaught:TransferableTerminalSession.kt:TransferableTerminalLifetime$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:TransferableTerminalSession.kt:TransferableTerminalSessionImpl$t: Throwable</ID>
     <ID>TooGenericExceptionCaught:Utils.kt:exception: Throwable</ID>
+    <ID>TooGenericExceptionCaught:WelcomeScreenNewFileHandler.kt:WelcomeScreenNewFileHandler$e: Exception</ID>
     <ID>TooGenericExceptionCaught:WindowsExecutableProblemHandler.kt:WindowsExecutableProblemHandler$e: Exception</ID>
     <ID>TooGenericExceptionCaught:WorkspacesScenario.kt:WorkspacesRun$e: Exception</ID>
     <ID>TooGenericExceptionCaught:WorkspacesScenario.kt:WorkspacesRun$e: Throwable</ID>
@@ -2913,6 +2951,9 @@
     <ID>TooManyFunctions:UseJunitEngineModelImpl.kt:UseJunitEngineModelImpl : GradleDslBlockModelUseJunitEngineModel</ID>
     <ID>TooManyFunctions:Utils.kt:Utils</ID>
     <ID>TooManyFunctions:VerticalBarPresentation.kt:VerticalBarPresentation : BasePresentation</ID>
+    <ID>TooManyFunctions:WelcomeScreenLeftPanel.kt:WelcomeScreenLeftPanel : ProjectViewPane</ID>
+    <ID>TooManyFunctions:WelcomeScreenRightTab.kt:WelcomeScreenRightTab</ID>
+    <ID>TooManyFunctions:WelcomeScreenRightTabVirtualFileEditor.kt:WelcomeScreenRightTabVirtualFileEditor : FileEditor</ID>
     <ID>TooManyFunctions:WindowStack.kt:WindowStack</ID>
     <ID>TooManyFunctions:WorkspaceBoardPanel.kt:WorkspaceBoardPanel : JPanelDisposable</ID>
     <ID>TooManyFunctions:WorkspacesScenario.kt:WorkspacesRun</ID>
@@ -3029,6 +3070,7 @@
     <ID>UnusedPrivateClass:RecentFilesEditorTypingListener.kt:RecentFilesEditorTypingListener : AnActionListener</ID>
     <ID>UnusedPrivateClass:RecentlyOpenedFileListener.kt:RecentlySelectedEditorListener : FileEditorManagerListener</ID>
     <ID>UnusedPrivateClass:RunDashboardConfigurationsListener.kt:RunDashboardConfigurationsListener : RunManagerListener</ID>
+    <ID>UnusedPrivateClass:WelcomeScreenCommandLineProjectOpenProcessor.kt:WelcomeScreenCommandLineProjectOpenProcessor : DummyProjectOpenProcessor</ID>
     <ID>UtilityClassWithPublicConstructor:BranchIconUtil.kt:BranchIconUtil</ID>
     <ID>UtilityClassWithPublicConstructor:GradleExtensionsContributorUtil.kt:GradleExtensionsContributorUtil</ID>
     <ID>UtilityClassWithPublicConstructor:LobInfoHelper.kt:LobInfoHelper</ID>
@@ -3143,5 +3185,6 @@
     <ID>VariableNaming:TextMateCachingSyntaxMatcher.kt:TextMateCachingSyntaxMatcher$private val CACHE = Caffeine.newBuilder() .maximumSize(10000) .expireAfterAccess(1, TimeUnit.MINUTES) .executor(Dispatchers.Default.asExecutor()) .build&lt;MatchKey, TextMateLexerState>()</ID>
     <ID>VariableNaming:TextMateLexerTestCase.kt:TextMateLexerTestCase$private val TEST_DATA_BASE_DIR: String = "${java.io.File("").absolutePath}/testData/lexer" // Phantom-plugins: the plugin folder, not the IDE home</ID>
     <ID>VariableNaming:TransformationContextImpl.kt:TransformationContextImpl$// Modifiers should be processed with care in transformation context to avoid recursion issues. // This code re-creates erasures computation to properly handle modifier querying private val AST_TRANSFORMATION_AWARE_METHOD_PARAMETERS_ERASURE_EQUALITY: Hash.Strategy&lt;MethodSignature> = object : Hash.Strategy&lt;MethodSignature> { override fun equals(a: MethodSignature?, b: MethodSignature?): Boolean { if (a === b) return true return (a != null &amp;&amp; b != null &amp;&amp; a.parameterTypes.map { erase(it) } == b.parameterTypes.map { erase(it) }) } override fun hashCode(signature: MethodSignature?): Int { return signature?.name?.hashCode() ?: 0 } }</ID>
+    <ID>VariableNaming:WelcomeScreenOpenFileNotificationProvider.kt:WelcomeScreenOpenFileNotificationProvider$private val PARENT_TRAVERSAL_LIMIT = 10</ID>
   </CurrentIssues>
 </SmellBaseline>
