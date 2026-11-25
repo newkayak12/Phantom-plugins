@@ -74,6 +74,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Support for JUnit | [junit](./junit/KOR.md) · [English](./junit/README.md) | JUnit 3~6 실행 구성, 거터 실행, 테스트 생성, 검사 (262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom Repository Search | [repository-search](./repository-search/KOR.md) · [English](./repository-search/README.md) | Maven·Gradle 빌드 파일의 의존성 자동 완성(로컬 인덱스·캐시 기반) (262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
 | Phantom JSON | [json](./json/KOR.md) · [English](./json/README.md) | JSON·JSON5·JSON Lines 편집과 JSON Schema 검증·자동 완성 (262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
+| Support for Java | [java](./java/KOR.md) · [English](./java/README.md) | Java 언어 지원, JDK, Java 컴파일·실행·디버깅. Phantom이 빌드한 IntelliJ Community의 Java 플러그인 (Phantom 262.261126부터 번들되지 않음) |
 | Support for Gradle | [gradle-core](./gradle-core/KOR.md) · [English](./gradle-core/README.md) | Gradle 프로젝트: 동기화, Gradle 도구 창, 실행 구성과 태스크, 데몬, Gradle 파일 편집 도움 |
 | Support for Gradle (Java) | [gradle-java](./gradle-java/KOR.md) · [English](./gradle-java/README.md) | Gradle 프로젝트의 Java 지원: Java 가져오기, Gradle로 실행과 디버깅, Groovy DSL, 새 프로젝트 마법사, JPS 빌더 |
 | Support for Gradle DSL | [gradle-dsl](./gradle-dsl/KOR.md) · [English](./gradle-dsl/README.md) | Gradle 빌드 파일(Groovy, Kotlin 스크립트, 버전 카탈로그)을 모델로 읽고 고치는 API (262.261116 빌드부터 Phantom에 기본 포함되고 업데이트는 마켓플레이스로) |
