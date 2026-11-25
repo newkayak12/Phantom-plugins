@@ -91,7 +91,7 @@ inside Phantom. Phantom bundles them from this repository (`PHANTOM_PLUGINS_BUND
 - Bump `version` in `<folder>/build.gradle.kts` for any change that ships. The marketplace entry's `version` and
   `download` (`<folder>-<version>/<folder>-<version>.zip`) change together; `DbDriverRegistryTest` checks db's.
 - A release is the tag `<folder>-<version>` on `main`; pushing it runs `.github/workflows/plugin-release.yml`, which
-  tests, builds and publishes the zip. At most three tags per push. `kotlin-*`, `maven-*` and `java-*` are released by Phantom's
+  tests, builds and publishes the zip. At most three tags per push. `kotlin-*` and `maven-*` are released by Phantom's
   `phantom-release.sh`, not here.
 - Never move or delete a released tag except to re-release the same version after a failed CI run.
 
