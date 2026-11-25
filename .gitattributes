@@ -1,0 +1,4 @@
+# gradle-core and gradle-java are forked IntelliJ code kept in its original form: whitespace checks
+# (git diff --check, tools/phantom-quality.mjs) skip them, as Spotless does
+gradle-core/** -whitespace
+gradle-java/** -whitespace
