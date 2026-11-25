@@ -46,6 +46,12 @@ def check_archive(path, plugin_id=None):
             main_jars = [n for n, jar in descriptors.items() if descriptor_id(jar) == plugin_id]
         for name in main_jars:
             jar = descriptors[name]
+            # A plugin Phantom builds in the IDE's own layout (java-<version>.zip from phantom-libs) carries LICENSE.txt
+            # and NOTICE.txt beside lib/, as IntelliJ lays out a plugin, instead of in its main JAR's META-INF.
+            beside = [name.split('/', 1)[0] + '/' + notice for notice in ('LICENSE.txt', 'NOTICE.txt')]
+            if 'META-INF/LICENSE' not in jar.namelist() and all(n in archive.namelist() for n in beside):
+                errors.extend(f'empty {n}' for n in beside if not archive.read(n).strip())
+                continue
             required = {'META-INF/LICENSE', 'META-INF/NOTICE', 'META-INF/THIRD-PARTY-NOTICES.txt'}
             notices = 'META-INF/THIRD-PARTY-NOTICES.txt'
             if notices in jar.namelist():
