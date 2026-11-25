@@ -1,3 +1,4 @@
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package com.intellij.platform.ide.nonModalWelcomeScreen.leftPanel
 
 import com.intellij.ide.IdeView
@@ -29,7 +30,7 @@ internal class WelcomeScreenLeftPanelActions(val project: Project) {
       actionManager.getAction("WelcomeScreen.OpenDirectoryProject")?.let { group.add(it) }
       actionManager.getAction("NonModalWelcomeScreen.LeftTabActions.New.Action")?.let { group.add(it) }
       actionManager.getAction("ProjectFromVersionControl")?.let { group.add(it) }
-      actionManager.getAction("NonModalWelcomeScreen.RemoteDevelopmentActions")?.let { group.add(it) }
+      // phantom-idea: no slot for JetBrains' remote development (Gateway) actions
     }
 
     val toolbar = createToolWindowWelcomeScreenVerticalToolbar(group)
