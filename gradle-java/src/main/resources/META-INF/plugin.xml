@@ -1,0 +1,34 @@
+<idea-plugin allow-bundled-update="true">
+  <!-- phantom-idea: Phantom's own id; org.jetbrains.plugins.gradle (IntelliJ's id for Gradle for Java) stays as an alias,
+       so plugins depending on the IntelliJ id resolve to this one. The content module names stay the IntelliJ ones. The
+       bundled IntelliJ Gradle for Java plugin has to be gone, or both claim the same id and modules. -->
+  <id>dev.phantom.gradle-java</id>
+  <name>Support for Gradle (Java)</name>
+  <module value="org.jetbrains.plugins.gradle"/>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Build Tools</category>
+  <description>
+    Provides Java Gradle projects import, run configuration and profiler integrations.
+  </description>
+
+  <module value="com.intellij.modules.gradle.java"/>
+  <module value="org.jetbrains.plugins.gradle.java"/>
+
+  <content namespace="jetbrains">
+    <module name="intellij.gradle.java" loading="embedded"/>
+    <!-- phantom-idea: no intellij.gradle.profiler (not in IntelliJ Community's sources) -->
+    <module name="intellij.gradle.java.maven"/>
+    <module name="intellij.gradle.analysis"/>
+    <module name="intellij.gradle.dependencyUpdater"/>
+    <!-- phantom-idea: no intellij.gradle.java.performance (Performance Testing plugin commands; Phantom doesn't bundle
+         com.jetbrains.performancePlugin) -->
+    <module name="intellij.gradle.java.toml"/>
+    <module name="intellij.gradle.java.groovy"/>
+    <module name="intellij.gradle.java.groovy.toml"/>
+    <!-- phantom-idea: no intellij.gradle.java.groovy.ml (ML completion ranking features; Phantom doesn't bundle
+         com.intellij.completion.ml.ranking) -->
+    <module name="intellij.gradle.java.coverage"/>
+    <module name="intellij.gradle.java.properties"/>
+  </content>
+
+</idea-plugin>

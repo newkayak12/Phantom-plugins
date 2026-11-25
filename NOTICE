@@ -9,6 +9,10 @@ licensed under the Apache License, Version 2.0; each such plugin's README names 
 Plugins based on IntelliJ Community code were modified by Phantom contributors: each changed file keeps its original
 copyright header, if it has one, and carries the line "Modified by Phantom contributors" below it (or as its first line),
 and the changes are recorded in this repository's Git history.
+The Gradle plugin (gradle-core/) packs the Gradle API and Tooling API (gradle-api-9.6.0.jar, JetBrains' repackaging
+published as org.jetbrains.intellij.deps:gradle-api) of Gradle (https://gradle.org), Copyright Gradle, Inc. and contributors, under the
+Apache License, Version 2.0. The Gradle for Java plugin (gradle-java/) packs Apache Ant 1.10.15 (https://ant.apache.org)
+in gradle-jps.jar, under the Apache License, Version 2.0, with Ant's NOTICE in that jar.
 The Gradle DSL plugin (gradle-dsl/) is based on code of the Android Open Source Project
 (https://source.android.com/), Copyright (C) The Android Open Source Project, under the Apache License, Version 2.0.
 The TOML plugin (toml/) includes code from the intellij-rust project under the MIT License (toml/LICENSE).

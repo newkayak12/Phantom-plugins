@@ -1,0 +1,18 @@
+<idea-plugin>
+  <!-- region Generated dependencies - run `Generate Product Layouts` to regenerate -->
+  <dependencies>
+    <module name="intellij.gradle"/>
+    <module name="intellij.gradle.completion"/>
+    <module name="intellij.repository.search.completion"/>
+    <module name="intellij.toml.core"/>
+  </dependencies>
+  <!-- endregion -->
+  <extensions defaultExtensionNs="com.intellij">
+    <completion.contributor language="TOML"
+                            id="KotlinGradleTomlCompletionContributor"
+                            implementationClass="com.intellij.gradle.completion.toml.GradleTomlCompletionContributor"/>
+    <!-- phantom-idea: no statistics.collectorExtension and lookup.usageDetails (completion usage statistics) -->
+    <typedHandler implementation="com.intellij.gradle.completion.toml.GradleTomlDependenciesAutoPopupHandler"
+                  id="GradleTomlDependenciesAutoPopupHandler"/>
+  </extensions>
+</idea-plugin>
