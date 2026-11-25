@@ -1,6 +1,8 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.workspaces.core
 
+import com.intellij.ide.impl.OpenProjectTask
+import com.intellij.ide.impl.ProjectUtil
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
@@ -18,6 +20,7 @@ import com.intellij.openapi.components.serviceIfCreated
 import com.intellij.openapi.options.advanced.AdvancedSettings
 import com.intellij.openapi.options.advanced.AdvancedSettingsChangeListener
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.project.ProjectCloseListener
 import com.intellij.openapi.project.ProjectNameListener
@@ -25,6 +28,7 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.openapi.wm.IdeFrame
+import com.intellij.openapi.wm.ex.WelcomeScreenProjectProvider
 import com.intellij.util.SystemProperties
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import java.awt.AWTEvent
@@ -60,7 +64,7 @@ import kotlinx.coroutines.withContext
  * project that opens is put next to the other tabs of its repository.
  */
 @Service(Service.Level.APP)
-class ProjectTabsService(private val scope: CoroutineScope) : Disposable {
+class ProjectTabsService(internal val scope: CoroutineScope) : Disposable {
   private val stack = WindowStack()
   private val strips = ArrayList<ProjectTabStrip>()
   private val openOrder = ArrayList<Project>()
@@ -69,6 +73,9 @@ class ProjectTabsService(private val scope: CoroutineScope) : Disposable {
   private val detached = ArrayList<Project>()
 
   private val checkouts = HashMap<Project, GitCheckout>()
+
+  // the Projects and Files lists, told whenever the strips are refreshed (projects opened, closed, reordered, renamed)
+  private val listeners = ArrayList<() -> Unit>()
 
   // projects opened whose checkout is not read yet: they move next to their repository's tabs once it is
   private val placing = ArrayList<Project>()
@@ -370,6 +377,31 @@ class ProjectTabsService(private val scope: CoroutineScope) : Disposable {
     refresh()
   }
 
+  /** Calls [listener] on the EDT whenever the open projects change, until [parent] is disposed. */
+  @RequiresEdt
+  internal fun addListener(parent: Disposable, listener: () -> Unit) {
+    listeners += listener
+    Disposer.register(parent) { listeners.remove(listener) }
+  }
+
+  /** The open projects in tab order, detached ones included; not Home, the welcome screen project. */
+  internal fun openProjects(): List<Project> =
+    openOrder.filter { !it.isDisposed && !WelcomeScreenProjectProvider.isWelcomeScreenProject(it) }
+
+  /**
+   * Opens the project at [path] as a tab of the window. From Home ([from] is the welcome screen project) the platform
+   * closes Home and the project takes its frame, as it does for every project opened from a welcome screen project.
+   */
+  fun open(path: Path, from: Project?) {
+    val home = from?.takeIf { WelcomeScreenProjectProvider.isWelcomeScreenProject(it) }
+    scope.launch {
+      ProjectUtil.openOrImportAsync(path, OpenProjectTask {
+        projectToClose = home
+        forceOpenInNewFrame = home == null
+      })
+    }
+  }
+
   /** Closes [project] the way File | Close Project does (the welcome screen comes back after the last one). */
   @RequiresEdt
   fun close(project: Project) {
@@ -408,6 +440,7 @@ class ProjectTabsService(private val scope: CoroutineScope) : Disposable {
         strip.display(ProjectTabs.tabs(open, strip.project, home, sideBySide), visible)
       }
     }
+    listeners.toList().forEach { it() }
   }
 
   companion object {

@@ -10,9 +10,6 @@ import com.intellij.ide.dnd.FileCopyPasteUtil
 import com.intellij.ide.projectView.impl.ProjectViewPane
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.registry.Registry
-import com.intellij.openapi.wm.impl.welcomeScreen.recentProjects.ProjectCollectors
-import com.intellij.openapi.wm.impl.welcomeScreen.recentProjects.RecentProjectFilteringTree
-import com.intellij.openapi.wm.impl.welcomeScreen.recentProjects.RecentProjectPanelComponentFactory
 import com.intellij.platform.ide.nonModalWelcomeScreen.DefaultFileDragAndDropHandler
 import com.intellij.platform.ide.nonModalWelcomeScreen.NonModalWelcomeScreenBundle
 import com.intellij.platform.ide.nonModalWelcomeScreen.isNonModalWelcomeScreenEnabled
@@ -30,6 +27,7 @@ import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.dsl.gridLayout.UnscaledGaps
 import com.intellij.ui.dsl.gridLayout.UnscaledGapsY
 import com.intellij.util.ui.JBUI
+import dev.phantom.workspaces.core.ProjectsList
 import org.jetbrains.annotations.ApiStatus
 import java.awt.BorderLayout
 import javax.swing.BoxLayout
@@ -93,8 +91,10 @@ class WelcomeScreenLeftPanel(private val project: Project) : ProjectViewPane(pro
       border = JBUI.Borders.empty()
     }
 
-    val projectFilteringTree = createRecentProjectTree()
-    setupDragAndDrop(projectFilteringTree.component)
+    // phantom-idea: Phantom Workspaces' list (ProjectsList) instead of the recent projects tree: open and recent projects
+    // grouped by repository with their worktrees, a click switches to an open project or opens one as a tab
+    val projectsList = ProjectsList(project, this)
+    setupDragAndDrop(projectsList.list)
 
     val topPanel = JBPanel<JBPanel<*>>().apply {
       layout = BoxLayout(this, BoxLayout.Y_AXIS)
@@ -102,11 +102,11 @@ class WelcomeScreenLeftPanel(private val project: Project) : ProjectViewPane(pro
     }
     topPanel.add(WelcomeScreenLeftPanelActions(project).createButtonsComponent())
     topPanel.add(separator { customize(UnscaledGapsY(top = 17)) })
-    topPanel.add(searchPanel(projectFilteringTree))
+    topPanel.add(searchPanel(projectsList))
     topPanel.add(separator())
 
     mainPanel.add(topPanel, BorderLayout.NORTH)
-    mainPanel.add(createScrollPane(projectFilteringTree.component, VERTICAL_SCROLLBAR_AS_NEEDED, HORIZONTAL_SCROLLBAR_NEVER),
+    mainPanel.add(createScrollPane(projectsList.list, VERTICAL_SCROLLBAR_AS_NEEDED, HORIZONTAL_SCROLLBAR_NEVER),
                   BorderLayout.CENTER)
 
     return mainPanel
@@ -121,9 +121,9 @@ class WelcomeScreenLeftPanel(private val project: Project) : ProjectViewPane(pro
     super.dispose()
   }
 
-  private fun searchPanel(recentProjectTree: RecentProjectFilteringTree) = panel {
+  private fun searchPanel(projectsList: ProjectsList) = panel {
     row {
-      val projectSearch = createProjectSearchField(recentProjectTree)
+      val projectSearch = createProjectSearchField(projectsList)
       searchField = projectSearch
       cell(projectSearch)
         .align(AlignX.FILL)
@@ -131,18 +131,8 @@ class WelcomeScreenLeftPanel(private val project: Project) : ProjectViewPane(pro
     }
   }
 
-  private fun createRecentProjectTree(): RecentProjectFilteringTree =
-    RecentProjectPanelComponentFactory.createComponent(
-      this,
-      collectors = listOf(ProjectCollectors.cloneableProjectsCollector, ProjectCollectors.createRecentProjectsWithoutCurrentCollector(project)),
-      treeBackground = null
-    ).apply {
-      tree.emptyText.text = NonModalWelcomeScreenBundle.message("welcome.screen.no.recent.projects")
-      selectLastOpenedProjectOrTheFirstInTree()
-    }
-
-  private fun createProjectSearchField(recentProjectTree: RecentProjectFilteringTree): SearchTextField =
-    recentProjectTree.installSearchField().apply {
+  private fun createProjectSearchField(projectsList: ProjectsList): SearchTextField =
+    projectsList.searchField.apply {
       if (ExperimentalUI.isNewUI()) {
         textEditor.putClientProperty("JTextField.Search.Icon", Search)
       }
