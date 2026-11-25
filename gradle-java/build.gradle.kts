@@ -131,7 +131,9 @@ dependencies {
     bundledPlugin("com.intellij.properties")
     bundledPlugin("org.toml.lang")
     bundledPlugin("Coverage")
-    bundledPlugin("org.jetbrains.idea.maven")
+    // phantom-compat.yml: Phantom publishes Maven as a plugin of its own; -PmavenPlugin=<Maven plugin zip or dir> takes it
+    // from there (as repository-search does)
+    providers.gradleProperty("mavenPlugin").orNull?.let { localPlugin(it) } ?: bundledPlugin("org.jetbrains.idea.maven")
     bundledPlugin("org.jetbrains.idea.reposearch")
     bundledPlugin("com.jetbrains.performancePlugin")
     localPlugin(project(":groovy"))
