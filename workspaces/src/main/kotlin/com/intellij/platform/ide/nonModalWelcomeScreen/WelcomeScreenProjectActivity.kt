@@ -2,25 +2,16 @@
 // Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package com.intellij.platform.ide.nonModalWelcomeScreen
 
-import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.extensions.ExtensionNotApplicableException
 import com.intellij.openapi.options.advanced.AdvancedSettingsChangeListener
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.wm.impl.CloseProjectWindowHelper
 import com.intellij.util.application
-import com.intellij.util.asSafely
+import dev.phantom.workspaces.core.ProjectTabs
 
-internal class WelcomeScreenProjectActivity : ProjectActivity {
-  init {
-    val app = ApplicationManager.getApplication()
-    val isNotAvailable = app.isCommandLine || app.isHeadlessEnvironment || app.isUnitTestMode
-    if (isNotAvailable) {
-      throw ExtensionNotApplicableException.create()
-    }
-  }
-
-  override suspend fun execute(project: Project) {
+// phantom-idea: not a postStartupActivity, which ran in every project opened only to find the welcome one (startup cost,
+// .ai/rules/startup.md). Phantom's HomeProjectProvider runs it right after it opens Home, the only welcome project.
+internal class WelcomeScreenProjectActivity {
+  suspend fun execute(project: Project) {
     if (project.isWelcomeExperienceProject()) {
       dropModalWelcomeScreenOnClose(project)
       // phantom-idea: no subscription to the welcome tab closing, it only fed WelcomeScreenTabUsageCollector (usage statistics)
@@ -41,9 +32,9 @@ internal class WelcomeScreenProjectActivity : ProjectActivity {
       .subscribe(AdvancedSettingsChangeListener.TOPIC,
                  object : AdvancedSettingsChangeListener {
                    override fun advancedSettingChanged(id: String, oldValue: Any, newValue: Any) {
-                     if (id == NON_MODAL_WELCOME_SCREEN_SETTING_ID) {
-                       val welcomeScreenEnabled = newValue.asSafely<Boolean>() ?: return
-                       CloseProjectWindowHelper.SHOW_WELCOME_FRAME_FOR_PROJECT.set(project, !welcomeScreenEnabled)
+                     // phantom-idea: Phantom Workspaces' project tabs setting turns the non-modal welcome screen off too
+                     if (id == NON_MODAL_WELCOME_SCREEN_SETTING_ID || id == ProjectTabs.SETTING_ID) {
+                       CloseProjectWindowHelper.SHOW_WELCOME_FRAME_FOR_PROJECT.set(project, !isNonModalWelcomeScreenEnabled)
                      }
                      // phantom-idea: the setting change is not logged (WelcomeScreenTabUsageCollector, usage statistics)
                    }

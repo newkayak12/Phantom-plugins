@@ -4,6 +4,7 @@ package dev.phantom.workspaces.home
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ex.WelcomeScreenProjectProvider
+import com.intellij.platform.ide.nonModalWelcomeScreen.WelcomeScreenProjectActivity
 import java.nio.file.Path
 
 /**
@@ -28,6 +29,11 @@ internal class HomeProjectProvider : WelcomeScreenProjectProvider() {
 
   // A file opened from the Finder or the command line opens the way it always has, not in Home.
   override fun canOpenFilesFromSystemFileManager(filePath: Path): Boolean = false
+
+  // Every way Home opens comes through here (startup with nothing to reopen, the last project closed), so the welcome
+  // screen's setup runs here instead of in a postStartupActivity that every project would pay for.
+  override suspend fun doCreateOrOpenWelcomeScreenProject(path: Path, projectToClose: Project?): Project =
+    super.doCreateOrOpenWelcomeScreenProject(path, projectToClose).also { WelcomeScreenProjectActivity().execute(it) }
 
   companion object {
     const val NAME: String = "Home"

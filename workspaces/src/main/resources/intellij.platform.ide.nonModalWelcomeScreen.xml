@@ -42,7 +42,7 @@
                     open="true"/>
     <projectFrameCapabilitiesProvider
       implementation="com.intellij.platform.ide.nonModalWelcomeScreen.NonModalWelcomeScreenProjectFrameCapabilitiesProvider"/>
-    <postStartupActivity implementation="com.intellij.platform.ide.nonModalWelcomeScreen.WelcomeScreenProjectActivity"/>
+    <!-- phantom-idea: WelcomeScreenProjectActivity is no postStartupActivity; Phantom's HomeProjectProvider runs it once Home is open -->
 
     <noProjectStateHandler implementation="com.intellij.platform.ide.nonModalWelcomeScreen.WelcomeScreenNoProjectStateHandler" order="first"/>
 
