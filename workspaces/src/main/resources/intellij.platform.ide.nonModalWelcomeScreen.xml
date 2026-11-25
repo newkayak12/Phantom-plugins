@@ -17,10 +17,11 @@
     <module name="intellij.platform.lang.core"/>
     <module name="intellij.platform.lang.impl"/>
     <module name="intellij.platform.projectModel"/>
-    <module name="intellij.platform.statistics"/>
     <module name="intellij.platform.util.ui"/>
   </dependencies>
   <!-- endregion -->
+  <!-- phantom-idea: no intellij.platform.statistics dependency and no counterUsagesCollector extensions below: Phantom
+       ports drop usage statistics (WelcomeScreenTabUsageCollector, WelcomeScreenSingleFileOpeningCollector) -->
   <resource-bundle>messages.NonModalWelcomeScreenBundle</resource-bundle>
 
   <extensionPoints>
@@ -56,8 +57,6 @@
     <advancedSetting id="welcome.screen.non.modal.enabled" default="true"
                      groupKey="group.advanced.settings.welcome.screen"
                      bundle="messages.NonModalWelcomeScreenBundle"/>
-    <statistics.counterUsagesCollector implementationClass="com.intellij.platform.ide.nonModalWelcomeScreen.WelcomeScreenTabUsageCollector"/>
-    <statistics.counterUsagesCollector implementationClass="com.intellij.platform.ide.nonModalWelcomeScreen.newProjectNotification.WelcomeScreenSingleFileOpeningCollector"/>
 
     <internalFileTemplate name="Generic Empty File"/>
     <editorSkeletonPolicy implementation="com.intellij.platform.ide.nonModalWelcomeScreen.WelcomeScreenEditorSkeletonPolicy"/>

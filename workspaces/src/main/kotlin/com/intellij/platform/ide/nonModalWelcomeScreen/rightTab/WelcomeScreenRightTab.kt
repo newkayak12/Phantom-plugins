@@ -1,3 +1,4 @@
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package com.intellij.platform.ide.nonModalWelcomeScreen.rightTab
 
 import androidx.compose.foundation.Image
@@ -61,8 +62,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.platform.ide.nonModalWelcomeScreen.NON_MODAL_WELCOME_SCREEN_SETTING_ID
 import com.intellij.platform.ide.nonModalWelcomeScreen.NonModalWelcomeScreenBundle
-import com.intellij.platform.ide.nonModalWelcomeScreen.WelcomeScreenComboBoxKind
-import com.intellij.platform.ide.nonModalWelcomeScreen.WelcomeScreenTabUsageCollector
 import com.intellij.platform.ide.nonModalWelcomeScreen.rightTab.WelcomeRightTabContentProvider.FeatureButtonModelWithBackend
 import com.intellij.platform.ide.nonModalWelcomeScreen.rightTab.WelcomeRightTabContentProvider.WelcomeContent
 import com.intellij.platform.ide.nonModalWelcomeScreen.rightTab.WelcomeScreenRightTabComboBoxModel.KeymapModel
@@ -397,7 +396,8 @@ class WelcomeScreenRightTab(
       Row(horizontalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(bottom = 12.dp)) {
         for (model in row) {
           when (model) {
-            is ComboBoxInfoPanelModel -> InfoPanelItem(model.iconKey, model.itemPrefix, model.model, project, getStatisticLogger(model))
+            // phantom-idea: no usage statistics; the theme, keymap and startup combo boxes log nothing
+            is ComboBoxInfoPanelModel -> InfoPanelItem(model.iconKey, model.itemPrefix, model.model, project, null)
             is ButtonInfoPanelModel -> InfoPanelButton(model.iconKey, model.itemPrefix, model.onClick, coroutineScope)
           }
         }
@@ -405,21 +405,6 @@ class WelcomeScreenRightTab(
     }
   }
 
-  private fun getStatisticLogger(comboBoxInfoPanelModel: ComboBoxInfoPanelModel): ((String, Int) -> Unit)? {
-    return when (comboBoxInfoPanelModel.model) {
-      is ThemeModel -> { _, _ ->
-        WelcomeScreenTabUsageCollector.logComboBoxValueChanged(WelcomeScreenComboBoxKind.THEME)
-      }
-      is KeymapModel -> { _, _ ->
-        WelcomeScreenTabUsageCollector.logComboBoxValueChanged(WelcomeScreenComboBoxKind.KEYMAP)
-      }
-      is StartupSwitchModel -> { _, index ->
-        WelcomeScreenTabUsageCollector.logComboBoxValueChanged(WelcomeScreenComboBoxKind.STARTUP)
-        WelcomeScreenTabUsageCollector.logStartupOptionChanged(comboBoxInfoPanelModel.model.items[index])
-      }
-      else -> null
-    }
-  }
 
 
   sealed interface InfoPanelModel {
@@ -745,7 +730,7 @@ class WelcomeScreenRightTab(
         val options = FileEditorOpenOptions(reuseOpen = true, isSingletonEditorInWindow = true,
                                             selectAsCurrent = contentProvider.shouldBeFocused(project))
         fileEditorManager.openFile(settingsFile, options)
-        WelcomeScreenTabUsageCollector.logWelcomeScreenTabOpened()
+        // phantom-idea: WelcomeScreenTabUsageCollector.logWelcomeScreenTabOpened() removed, no usage statistics
       }
     }
 

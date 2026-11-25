@@ -25,7 +25,6 @@ dependencies {
     bundledModule("intellij.platform.kernel")
     bundledModule("intellij.platform.projectFrame")
     bundledModule("intellij.platform.welcomeScreen")
-    bundledModule("intellij.platform.statistics")
     bundledModule("intellij.platform.backend")
     bundledModule("intellij.platform.kernel.backend")
     bundledModule("intellij.platform.rpc.backend")
