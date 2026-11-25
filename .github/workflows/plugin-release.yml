@@ -30,7 +30,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # groovy runs about 7,100 tests, a third of the time in its compiler tests (each starts a JPS build with groovyc or
     # Greclipse); they took 40 minutes on an 8-core Mac and didn't finish in 60 on the runner
     timeout-minutes: 150
@@ -127,7 +127,7 @@ jobs:
   publish:
     needs: build
     if: github.event_name == 'push' || !inputs.dry_run
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
