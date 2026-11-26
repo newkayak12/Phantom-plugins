@@ -36,7 +36,7 @@
     <welcomeScreenProjectProvider implementation="dev.phantom.workspaces.home.HomeProjectProvider"/>
     <platform.ide.welcomeScreenContentProvider implementation="dev.phantom.workspaces.home.HomeTabContentProvider"/>
     <projectClosingTransitionHandler implementation="dev.phantom.workspaces.home.HomeClosingTransitionHandler"/>
-    <toolWindow id="Projects and Files" anchor="left" secondary="false" icon="AllIcons.Nodes.Folder"
+    <toolWindow id="Projects and Files" anchor="left" secondary="false" icon="AllIcons.Vcs.Branch"
                 factoryClass="dev.phantom.workspaces.core.ProjectsToolWindowFactory"
                 bundle="messages.PhantomWorkspacesBundle" key="toolwindow.projects.and.files"/>
     <ideRootPaneNorth implementation="dev.phantom.workspaces.core.ProjectTabsNorthExtension" order="last"/>
