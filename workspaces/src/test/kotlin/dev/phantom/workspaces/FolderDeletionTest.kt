@@ -3,6 +3,7 @@ package dev.phantom.workspaces
 
 import dev.phantom.workspaces.core.FolderDeletion
 import dev.phantom.workspaces.core.WorkspaceRow
+import dev.phantom.workspaces.core.pruneWorktrees
 import dev.phantom.workspaces.core.removeWorktree
 import junit.framework.TestCase
 import java.nio.file.Files
@@ -27,6 +28,25 @@ class FolderDeletionTest : TestCase() {
   fun testOtherFoldersGoToTheTrash() {
     assertEquals(FolderDeletion.TRASH, FolderDeletion.of(row(isMain = true, repository = "/r/.git"), false))
     assertEquals(FolderDeletion.TRASH, FolderDeletion.of(row(), false))
+  }
+
+  fun testAFolderGoneFromDiskIsOnlyDroppedFromTheList() {
+    assertEquals(FolderDeletion.MISSING, FolderDeletion.of(row(), false, exists = false))
+    assertEquals(FolderDeletion.MISSING, FolderDeletion.of(row(isIndented = true, repository = "/r/.git"), true, exists = false))
+    assertEquals(FolderDeletion.NONE, FolderDeletion.of(row(key = Any()), false, exists = false))
+  }
+
+  fun testPruneForgetsAWorktreeWhoseFolderIsGone() {
+    val root = Files.createTempDirectory("folder-prune").toRealPath()
+    val main = Files.createDirectory(root.resolve("main"))
+    git(main, "init", "-q")
+    git(main, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "--allow-empty", "-m", "first")
+    val gone = root.resolve("gone")
+    git(main, "worktree", "add", "-q", "-b", "gone", gone.toString())
+    gone.toFile().deleteRecursively()
+    pruneWorktrees(main.resolve(".git").toString())
+    val list = ProcessBuilder("git", "-C", main.toString(), "worktree", "list").start().inputStream.bufferedReader().readText()
+    assertFalse(list.contains(gone.toString()))
   }
 
   private fun git(dir: Path, vararg args: String) {

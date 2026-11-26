@@ -18,13 +18,17 @@ enum class FolderDeletion {
   /** A worktree: `git worktree remove`, which refuses one with changes, then gone from the list. */
   WORKTREE,
 
+  /** Already gone from disk: only dropped from the list (and, for a worktree, from git's worktree list). */
+  MISSING,
+
   /** Any other folder (a main checkout without worktrees, a plain folder): to the Trash, so it can be put back. */
   TRASH,
   ;
 
   companion object {
-    fun of(row: WorkspaceRow, hasWorktrees: Boolean): FolderDeletion = when {
+    fun of(row: WorkspaceRow, hasWorktrees: Boolean, exists: Boolean = true): FolderDeletion = when {
       row.isOpen -> NONE
+      !exists -> MISSING
       row.isIndented && row.repository != null -> WORKTREE
       // the main checkout holds the repository its worktrees use
       row.isMain && hasWorktrees -> NONE
@@ -37,6 +41,16 @@ enum class FolderDeletion {
 @RequiresEdt
 internal fun deleteFolder(project: Project, row: WorkspaceRow, kind: FolderDeletion, done: () -> Unit) {
   if (kind == FolderDeletion.NONE) return
+  if (kind == FolderDeletion.MISSING) {
+    ApplicationManager.getApplication().executeOnPooledThread {
+      row.repository?.let(::pruneWorktrees)
+      ApplicationManager.getApplication().invokeLater {
+        RecentProjectsManager.getInstance().removePath(row.path)
+        done()
+      }
+    }
+    return
+  }
   val message = PhantomWorkspacesBundle.message(
     if (kind == FolderDeletion.WORKTREE) "list.delete.worktree.confirm" else "list.delete.folder.confirm", row.name, row.path)
   val title = PhantomWorkspacesBundle.message("list.delete.title")
@@ -44,7 +58,12 @@ internal fun deleteFolder(project: Project, row: WorkspaceRow, kind: FolderDelet
   ApplicationManager.getApplication().executeOnPooledThread {
     val error = when (kind) {
       FolderDeletion.WORKTREE -> removeWorktree(row.repository!!, row.path)
-      else -> if (Desktop.getDesktop().moveToTrash(File(row.path))) null else PhantomWorkspacesBundle.message("list.delete.trash.failed")
+      else -> try {
+        if (Desktop.getDesktop().moveToTrash(File(row.path))) null else PhantomWorkspacesBundle.message("list.delete.trash.failed")
+      }
+      catch (e: IllegalArgumentException) {
+        e.message
+      }
     }
     ApplicationManager.getApplication().invokeLater {
       if (error != null) {
@@ -59,6 +78,13 @@ internal fun deleteFolder(project: Project, row: WorkspaceRow, kind: FolderDelet
 }
 
 private const val GIT_TIMEOUT_SECONDS = 60L
+
+/** `git worktree prune`: forgets worktrees whose folders are gone. */
+internal fun pruneWorktrees(gitDir: String) {
+  val process = ProcessBuilder("git", "--git-dir=$gitDir", "worktree", "prune").redirectErrorStream(true).start()
+  process.inputStream.readAllBytes()
+  if (!process.waitFor(GIT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) process.destroy()
+}
 
 /** `git worktree remove` without --force: a worktree with changes or untracked files stays, and git says why. */
 internal fun removeWorktree(gitDir: String, path: String): String? {
