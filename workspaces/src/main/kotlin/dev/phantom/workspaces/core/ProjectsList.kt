@@ -162,7 +162,12 @@ class ProjectsList(private val project: Project, parent: Disposable) {
   private fun showMenu(point: Point) {
     val index = indexAt(point) ?: return
     list.selectedIndex = index
-    val other = model.getElementAt(index).key as? Project ?: return
+    val row = model.getElementAt(index)
+    val other = row.key as? Project
+    if (other == null) {
+      showDeleteMenu(row, point)
+      return
+    }
     val menu = JBPopupMenu()
     val detach = JBMenuItem(PhantomWorkspacesBundle.message("action.PhantomWorkspaces.DetachProject.text"))
     detach.isEnabled = service.canDetach(other)
@@ -179,6 +184,17 @@ class ProjectsList(private val project: Project, parent: Disposable) {
       exit.addActionListener { service.exitSideBySide(project) }
       menu.add(exit)
     }
+    menu.show(list, point.x, point.y)
+  }
+
+  // a folder that is not open: delete it (a worktree through git, anything else to the Trash)
+  private fun showDeleteMenu(row: WorkspaceRow, point: Point) {
+    val kind = FolderDeletion.of(row, row.repository in withWorktrees)
+    val menu = JBPopupMenu()
+    val delete = JBMenuItem(PhantomWorkspacesBundle.message(if (kind == FolderDeletion.WORKTREE) "list.delete.worktree" else "list.delete.folder"))
+    delete.isEnabled = kind != FolderDeletion.NONE
+    delete.addActionListener { deleteFolder(project, row, kind) { reload() } }
+    menu.add(delete)
     menu.show(list, point.x, point.y)
   }
 
