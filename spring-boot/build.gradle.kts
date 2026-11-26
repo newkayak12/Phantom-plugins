@@ -4,7 +4,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.8.4"
+version = "0.8.5"
 
 dependencies {
   intellijPlatform {
