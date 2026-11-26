@@ -647,7 +647,10 @@
         "com.intellij.modules.lang"
       ],
       "download": "toml-0.1.0/toml-0.1.0.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "org.toml.lang"
+      ]
     },
     {
       "id": "dev.phantom.yaml",
@@ -663,7 +666,10 @@
         "com.intellij.modules.json"
       ],
       "download": "yaml-0.1.0/yaml-0.1.0.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "org.jetbrains.plugins.yaml"
+      ]
     },
     {
       "id": "dev.phantom.sh",
@@ -679,7 +685,10 @@
         "com.intellij.modules.lang"
       ],
       "download": "sh-0.1.0/sh-0.1.0.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "com.jetbrains.sh"
+      ]
     },
     {
       "id": "dev.phantom.lombok",
@@ -697,6 +706,9 @@
       "download": "lombok-0.1.2/lombok-0.1.2.zip",
       "detect": [
         "org.projectlombok:lombok"
+      ],
+      "aliases": [
+        "Lombook Plugin"
       ]
     },
     {
@@ -720,6 +732,9 @@
         "build.gradle.kts",
         "settings.gradle",
         "settings.gradle.kts"
+      ],
+      "aliases": [
+        "org.jetbrains.java.decompiler"
       ]
     },
     {
@@ -743,6 +758,9 @@
         "build.gradle.kts",
         "settings.gradle",
         "settings.gradle.kts"
+      ],
+      "aliases": [
+        "Coverage"
       ]
     },
     {
@@ -759,7 +777,10 @@
         "com.intellij.modules.lang"
       ],
       "download": "textmate-0.1.5/textmate-0.1.5.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "org.jetbrains.plugins.textmate"
+      ]
     },
     {
       "id": "dev.phantom.markdown",
@@ -775,7 +796,10 @@
         "com.intellij.modules.lang"
       ],
       "download": "markdown-0.1.2/markdown-0.1.2.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "org.intellij.plugins.markdown"
+      ]
     },
     {
       "id": "dev.phantom.github",
@@ -791,7 +815,10 @@
         "Git4Idea"
       ],
       "download": "github-0.1.6/github-0.1.6.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "org.jetbrains.plugins.github"
+      ]
     },
     {
       "id": "dev.phantom.editorconfig",
@@ -807,7 +834,10 @@
         "com.intellij.modules.lang"
       ],
       "download": "editorconfig-0.1.3/editorconfig-0.1.3.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "org.editorconfig.editorconfigjetbrains"
+      ]
     },
     {
       "id": "dev.phantom.copyright",
@@ -824,7 +854,10 @@
         "com.intellij.modules.xml"
       ],
       "download": "copyright-0.1.0/copyright-0.1.0.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "com.intellij.copyright"
+      ]
     },
     {
       "id": "dev.phantom.htmltools",
@@ -840,7 +873,10 @@
         "com.intellij.platform.images"
       ],
       "download": "htmltools-0.1.0/htmltools-0.1.0.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "HtmlTools"
+      ]
     },
     {
       "id": "dev.phantom.testng",
@@ -858,6 +894,9 @@
       "download": "testng-0.1.4/testng-0.1.4.zip",
       "detect": [
         "org.testng:testng"
+      ],
+      "aliases": [
+        "TestNG-J"
       ]
     },
     {
@@ -882,6 +921,9 @@
         "build.gradle.kts",
         "settings.gradle",
         "settings.gradle.kts"
+      ],
+      "aliases": [
+        "com.intellij.java-i18n"
       ]
     },
     {
@@ -906,7 +948,10 @@
           "download": "terminal-0.2.0/terminal-0.2.0.zip"
         }
       ],
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "org.jetbrains.plugins.terminal"
+      ]
     },
     {
       "id": "dev.phantom.grammar",
@@ -922,7 +967,11 @@
         "com.intellij.modules.lang"
       ],
       "download": "grammar-0.2.4/grammar-0.2.4.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "tanvd.grazi",
+        "dev.phantom.grazie"
+      ]
     },
     {
       "id": "dev.phantom.properties",
@@ -938,7 +987,10 @@
         "com.intellij.modules.lang"
       ],
       "download": "properties-0.1.0/properties-0.1.0.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "com.intellij.properties"
+      ]
     },
     {
       "id": "dev.phantom.junit",
@@ -958,6 +1010,9 @@
         "junit:junit",
         "org.junit.jupiter:junit-jupiter-api",
         "org.junit.jupiter:junit-jupiter"
+      ],
+      "aliases": [
+        "JUnit"
       ]
     },
     {
@@ -974,7 +1029,10 @@
         "com.intellij.modules.lang"
       ],
       "download": "repository-search-0.1.2/repository-search-0.1.2.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "org.jetbrains.idea.reposearch"
+      ]
     },
     {
       "id": "dev.phantom.json",
@@ -990,7 +1048,10 @@
         "com.intellij.modules.lang"
       ],
       "download": "json-0.1.2/json-0.1.2.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "com.intellij.modules.json"
+      ]
     },
     {
       "id": "dev.phantom.gradle-dsl",
@@ -1014,6 +1075,9 @@
         "settings.gradle",
         "settings.gradle.kts",
         "gradle/libs.versions.toml"
+      ],
+      "aliases": [
+        "org.jetbrains.idea.gradle.dsl"
       ]
     },
     {
@@ -1030,7 +1094,10 @@
         "com.intellij.modules.platform"
       ],
       "download": "groovy-scripting-0.1.3/groovy-scripting-0.1.3.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "com.intellij.groovy.scripting"
+      ]
     },
     {
       "id": "dev.phantom.groovy",
@@ -1055,6 +1122,9 @@
       "detectFiles": [
         "build.gradle",
         "settings.gradle"
+      ],
+      "aliases": [
+        "org.intellij.groovy"
       ]
     },
     {
@@ -1071,7 +1141,10 @@
         "com.intellij.groovy.scripting"
       ],
       "download": "groovy-live-templates-0.1.2/groovy-live-templates-0.1.2.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "org.intellij.groovy.live.templates"
+      ]
     },
     {
       "id": "dev.phantom.images",
@@ -1087,7 +1160,10 @@
         "com.intellij.modules.lang"
       ],
       "download": "images-0.1.0/images-0.1.0.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "com.intellij.platform.images"
+      ]
     },
     {
       "id": "dev.phantom.local-shared-index",
@@ -1126,6 +1202,11 @@
         "build.gradle.kts",
         "settings.gradle",
         "settings.gradle.kts"
+      ],
+      "aliases": [
+        "com.intellij.modules.java",
+        "com.intellij.java",
+        "com.intellij.modules.java-capable"
       ]
     },
     {
@@ -1148,6 +1229,9 @@
         "settings.gradle",
         "settings.gradle.kts",
         "gradlew"
+      ],
+      "aliases": [
+        "com.intellij.gradle"
       ]
     },
     {
@@ -1171,6 +1255,11 @@
         "settings.gradle",
         "settings.gradle.kts",
         "gradlew"
+      ],
+      "aliases": [
+        "org.jetbrains.plugins.gradle",
+        "com.intellij.modules.gradle.java",
+        "org.jetbrains.plugins.gradle.java"
       ]
     },
     {
@@ -1187,7 +1276,10 @@
         "com.intellij.modules.lang"
       ],
       "download": "navbar-0.1.1/navbar-0.1.1.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "intellij.navbar.plugin"
+      ]
     },
     {
       "id": "dev.phantom.recentfiles",
@@ -1203,7 +1295,10 @@
         "com.intellij.modules.lang"
       ],
       "download": "recentfiles-0.1.1/recentfiles-0.1.1.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "intellij.recentFiles.plugin"
+      ]
     },
     {
       "id": "dev.phantom.serviceview",
@@ -1220,7 +1315,10 @@
         "intellij.navbar.plugin"
       ],
       "download": "serviceview-0.1.1/serviceview-0.1.1.zip",
-      "detect": []
+      "detect": [],
+      "aliases": [
+        "intellij.execution.serviceView.plugin"
+      ]
     },
     {
       "id": "dev.phantom.endpoints",
