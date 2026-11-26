@@ -4,7 +4,7 @@
 
 ## 0.1.1 (2026-11-26)
 
-- 마켓플레이스에서 설치하면 "Failed to load the plugin descriptor"로 실패하던 문제를 고쳤다. Gradle tooling 모듈의 설명 파일을 플러그인 jar에도 넣는다. (#PR)
+- 마켓플레이스에서 설치하면 "Failed to load the plugin descriptor"로 실패하던 문제를 고쳤다. Gradle tooling 모듈의 설명 파일을 플러그인 jar에도 넣는다. (#148)
 
 ## 0.1.0 (2026-11-25)
 
