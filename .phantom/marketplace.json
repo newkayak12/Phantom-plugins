@@ -424,7 +424,7 @@
     {
       "id": "dev.phantom.workspaces",
       "name": "Phantom Workspaces",
-      "version": "0.7.5",
+      "version": "0.7.6",
       "source": "workspaces",
       "description": "All open projects in one window. With no project open, Home opens as a project window (IntelliJ's non-modal welcome screen, without JetBrains content); the Projects and Files view, selectable in every project window, lists open and recent projects by repository, worktrees under their main checkout (also ones not opened yet), with × on open ones: click to switch or open as a tab. Only the project in front has a window on screen; projects share size, position, full screen and tool window layout; detach a project or show two side by side from the list's context menu. Closing the last project brings Home back in place. Off in Settings | Advanced Settings | Phantom Workspaces, which returns the modal welcome frame; installing or removing it needs a restart.",
       "vendor": "Phantom",
@@ -434,7 +434,7 @@
       "depends": [
         "com.intellij.modules.platform"
       ],
-      "download": "workspaces-0.7.5/workspaces-0.7.5.zip",
+      "download": "workspaces-0.7.6/workspaces-0.7.6.zip",
       "versions": [
         {
           "version": "0.6.3",

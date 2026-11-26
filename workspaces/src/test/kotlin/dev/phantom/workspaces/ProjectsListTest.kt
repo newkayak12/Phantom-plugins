@@ -52,6 +52,14 @@ class ProjectsListTest : BasePlatformTestCase() {
     assertEquals(known.first().repository, known.last().repository)
   }
 
+  fun testARecentFolderGoneFromDiskIsNotListed() {
+    val root = Files.createTempDirectory("projects-gone").toRealPath()
+    val kept = Files.createDirectory(root.resolve("kept"))
+    val gone = root.resolve("gone")
+    val known = ProjectsList.known(emptyList(), listOf(kept.toString() to "kept", gone.toString() to "gone"))
+    assertEquals(listOf("kept"), known.map { it.name })
+  }
+
   fun testTheCurrentProjectIsListedOpenAndSelected() {
     strip = (IdeRootPaneNorthExtension.EP_NAME.extensionList.single { it.key == ProjectTabs.EXTENSION_KEY }
       .createComponent(project, isDocked = false) as ProjectTabStrip).also { it.attach() }
