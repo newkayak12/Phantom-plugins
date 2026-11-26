@@ -249,11 +249,12 @@ class ProjectsList(private val project: Project, parent: Disposable) {
         result += KnownProject(real, name, git?.commonDir, git?.branch, git?.isMain == true, key)
       }
       for ((key, path, name) in open) add(path, name, key)
-      for ((path, name) in recent) add(path, name, null)
+      // a recent project or worktree whose folder is gone (deleted outside the IDE) is not listed
+      for ((path, name) in recent) if (Files.isDirectory(Path.of(path))) add(path, name, null)
       for (repository in result.mapNotNull { it.repository }.distinct()) {
         val dir = Path.of(repository)
         GitCheckouts.mainRoot(dir)?.takeIf { Files.isDirectory(it) }?.let { add(it.toString(), it.fileName.toString(), null) }
-        for (worktree in GitCheckouts.worktrees(dir)) add(worktree.root, Path.of(worktree.root).fileName.toString(), null)
+        for (worktree in GitCheckouts.worktrees(dir)) if (Files.isDirectory(Path.of(worktree.root))) add(worktree.root, Path.of(worktree.root).fileName.toString(), null)
       }
       return result
     }

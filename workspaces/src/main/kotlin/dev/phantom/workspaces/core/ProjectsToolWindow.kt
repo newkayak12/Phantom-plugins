@@ -7,6 +7,7 @@ import com.intellij.openapi.util.Key
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.openapi.wm.ToolWindowManager
+import com.intellij.openapi.wm.ex.ToolWindowManagerListener
 import com.intellij.openapi.wm.ex.WelcomeScreenProjectProvider
 import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.components.JBPanel
@@ -34,6 +35,19 @@ class ProjectsToolWindowFactory : ToolWindowFactory, DumbAware {
     val content = toolWindow.contentManager.factory.createContent(panel, null, false)
     content.preferredFocusableComponent = list.searchField.textEditor
     toolWindow.contentManager.addContent(content)
+    // the number of open projects beside the title; the list read again whenever the tool window is shown, so folders
+    // deleted outside the IDE drop out
+    val service = ProjectTabsService.getInstance()
+    fun count() {
+      toolWindow.setTitle(service.openProjects().size.toString())
+    }
+    count()
+    service.addListener(toolWindow.disposable) { count() }
+    project.messageBus.connect(toolWindow.disposable).subscribe(ToolWindowManagerListener.TOPIC, object : ToolWindowManagerListener {
+      override fun toolWindowShown(shown: ToolWindow) {
+        if (shown === toolWindow) list.reload()
+      }
+    })
   }
 }
 

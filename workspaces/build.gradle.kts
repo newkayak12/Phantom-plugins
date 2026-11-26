@@ -5,7 +5,7 @@ plugins {
   id("org.jetbrains.kotlin.plugin.compose")
 }
 
-version = "0.7.5"
+version = "0.7.6"
 
 dependencies {
   // Generates the RemoteApiDescriptor of the @Rpc interface WelcomeScreenFeatureApi and passes it to remoteApiDescriptor<T>()
