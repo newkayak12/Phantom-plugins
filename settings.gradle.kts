@@ -87,6 +87,8 @@ include("recentfiles")
 include("serviceview")
 include("gradle-core")
 include("gradle-java")
+// Not compiled here: packages the Java plugin Phantom publishes to newkayak12/phantom-libs (see java/build.gradle.kts)
+include("java")
 
 // Not plugins: Kotlin compiler plugins some plugins compile with
 include(":compiler-plugins:fleet-rpc")

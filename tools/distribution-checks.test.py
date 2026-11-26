@@ -98,6 +98,25 @@ class NoticeTests(unittest.TestCase):
         self.assertEqual(CHECK.plugin_id_for(ported), 'dev.phantom.groovy')
         self.assertIn('no plugin JAR', '\n'.join(CHECK.check_archive(ported, 'dev.phantom.other')))
 
+    def test_ide_layout_notices_beside_lib(self):
+        # java-<version>.zip from phantom-libs: java/lib/java-impl.jar without notices, java/LICENSE.txt and java/NOTICE.txt
+        data = io.BytesIO()
+        with zipfile.ZipFile(data, 'w') as jar:
+            jar.writestr('META-INF/plugin.xml', '<idea-plugin><id>dev.phantom.java</id></idea-plugin>')
+        java = Path(self.temp.name) / 'java-262.261126.zip'
+        def build(notice):
+            with zipfile.ZipFile(java, 'w') as archive:
+                archive.writestr('java/lib/java-impl.jar', data.getvalue())
+                archive.writestr('java/LICENSE.txt', 'Apache 2.0')
+                if notice is not None:
+                    archive.writestr('java/NOTICE.txt', notice)
+        build('Attribution')
+        self.assertEqual(CHECK.check_archive(java, 'dev.phantom.java'), [])
+        build(' \n')
+        self.assertIn('empty java/NOTICE.txt', '\n'.join(CHECK.check_archive(java, 'dev.phantom.java')))
+        build(None)
+        self.assertIn('missing META-INF/LICENSE', '\n'.join(CHECK.check_archive(java, 'dev.phantom.java')))
+
 
 class SourceTests(unittest.TestCase):
     def setUp(self):

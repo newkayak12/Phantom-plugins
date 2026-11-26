@@ -1136,6 +1136,28 @@
       "download": "maven-262.261119.1/Maven-262.261119.zip"
     },
     {
+      "id": "dev.phantom.java",
+      "name": "Support for Java",
+      "version": "262.261125.0",
+      "source": "java",
+      "description": "Java language support: editing, completion, inspections and refactorings, JDKs and Java modules, compiling, running and debugging Java applications; the base of Support for Gradle (Java), Maven, JUnit and other Java plugins. IntelliJ Community's Java plugin (Apache 2.0), built by Phantom from its sources; not published by JetBrains. com.intellij.java stays as an alias, so plugins depending on it keep working. Not bundled from Phantom 262.261126 on; older Phantom builds bundle it and don't list it.",
+      "vendor": "Phantom",
+      "category": "Languages",
+      "since": "262.261126",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "java-262.261125.0/java-262.261125.0.zip",
+      "detectFiles": [
+        "pom.xml",
+        "build.gradle",
+        "build.gradle.kts",
+        "settings.gradle",
+        "settings.gradle.kts"
+      ]
+    },
+    {
       "id": "dev.phantom.gradle-core",
       "name": "Support for Gradle",
       "version": "0.1.0",

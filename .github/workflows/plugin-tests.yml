@@ -68,7 +68,9 @@ jobs:
                   modules.add(module)
                   packaging.add(module)
           if shared:
-              modules.update(registered - {'strings'})
+              # only plugins with sources, as for changed files above: java has none (it repackages the Java plugin
+              # Phantom publishes, and its test runs in plugin-release.yml) and no verifyPlugin task
+              modules.update(m for m in registered - {'strings'} if not Path(m).is_symlink() and (Path(m) / 'src').is_dir())
               packaging.update(modules)
           plugins = sorted(modules)
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
@@ -91,7 +93,6 @@ jobs:
     timeout-minutes: 60
     strategy:
       fail-fast: false
-      max-parallel: 2
       matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
     steps:
       - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # v5.0.0
