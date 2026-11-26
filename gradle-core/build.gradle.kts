@@ -6,7 +6,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.0"
+version = "0.1.1"
 
 // Phantom bundled IntelliJ's Gradle plugin up to the Java- and Gradle-free release (build 262.261126 or later); on an earlier
 // build both would claim the same id and modules
@@ -104,6 +104,12 @@ tasks.jar {
     packages.forEach { exclude("${it.replace('.', '/')}/*.class") }
     exclude("$module.xml")
   }
+  // The embedded tooling modules have jars of their own but no lib/modules jar, so the IDE reads their descriptors from
+  // the plugin jar (PluginDescriptorLoader.loadPluginSubDescriptors). Without them there, installing the zip fails with
+  // "Failed to load the plugin descriptor". The tooling jars keep their copy for the Gradle daemon's class path.
+  from("src/toolingExtension/resources/intellij.gradle.toolingExtension.xml")
+  from("src/toolingExtensionImpl/resources/intellij.gradle.toolingExtension.impl.xml")
+  from("src/toolingProxy/resources/intellij.gradle.toolingProxy.xml")
 }
 tasks.withType<PrepareSandboxTask>().configureEach {
   from(moduleJars) {

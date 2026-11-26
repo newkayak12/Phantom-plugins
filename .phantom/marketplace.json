@@ -1168,7 +1168,7 @@
     {
       "id": "dev.phantom.gradle-core",
       "name": "Support for Gradle",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "gradle-core",
       "description": "Gradle projects: import and sync of the Gradle model, the Gradle tool window, Gradle run configurations and tasks, daemons, and editing help for Gradle files (completion in build scripts, version catalogs and gradle.properties). A fork of the IntelliJ Community Gradle plugin (Apache 2.0); com.intellij.gradle stays as an alias, so plugins depending on it keep working. Not bundled from Phantom 262.261126 on, which no longer bundles Gradle; older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -1178,7 +1178,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "gradle-core-0.1.0/gradle-core-0.1.0.zip",
+      "download": "gradle-core-0.1.1/gradle-core-0.1.1.zip",
       "detectFiles": [
         "build.gradle",
         "build.gradle.kts",
