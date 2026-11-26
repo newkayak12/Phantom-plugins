@@ -2,6 +2,8 @@
 
 ## 미배포
 
+## 0.1.3 (2026-11-26)
+
 - 표시 이름을 바꿨다: Phantom for Testcontainers → Support for Testcontainers. 플러그인 id와 기능은 그대로다. (#136)
 - Testcontainers가 클래스패스에 없는 모듈에서는 검사를 아예 돌리지 않는다. 전에는 이미지 태그 검사가 모든 Java·Kotlin 파일의 모든 호출을 해석했다. (#120)
 

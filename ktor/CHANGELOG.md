@@ -2,6 +2,8 @@
 
 ## 미배포
 
+## 0.1.4 (2026-11-26)
+
 - 표시 이름을 바꿨다: Phantom for Ktor → Support for Ktor. 플러그인 id와 기능은 그대로다. (#136)
 - Ktor 라우트 목록(Endpoints 보기)이 YAML 등 JVM 코드가 아닌 파일을 입력할 때마다 다시 계산되지 않는다. (#119)
 

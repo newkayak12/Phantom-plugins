@@ -9,7 +9,7 @@
     {
       "id": "dev.phantom.db",
       "name": "Phantom Database Console",
-      "version": "0.25.11",
+      "version": "0.25.12",
       "source": "db",
       "description": "Connect to MySQL, MariaDB, PostgreSQL, H2, AWS JDBC Wrapper, Redshift, Athena, Oracle, SQL Server, SQLite, ClickHouse, Snowflake or any JDBC driver you add, and run SQL from the editor: highlighting for .sql files, Ctrl+Enter to run the statement at the caret, results in a sortable grid, and a lazily loaded schema tree. Drivers are data you can edit: each is found in the project's own dependencies, the local Gradle/Maven cache or jars you choose, and is downloaded from Maven only when you ask (Download, Test Connection). Nothing runs at startup. A data source in manual-commit mode keeps changes in an open transaction: review them in the Database Changes tool window and commit or roll them back; closing the project asks first. A result from one table with its primary key can be edited in the grid, and Compare With on a schema diffs two schemas and writes the SQL to make them match. SQL in Spring Data `@Query(nativeQuery = true)`, `@NativeQuery` and JdbcTemplate / JdbcClient strings is highlighted and completed like a console. JPA entities are checked against the data source's schema (tables and columns that do not exist, nullable columns mapped to non-null attributes), and @Table / @Column names complete from it. A data source can have a color (as in DataGrip): its consoles and .sql files get it as editor background and tab color, its tree rows and result tabs too. A console or .sql file can run in a chosen schema (catalog in MySQL), which unqualified table names in completion and checks also resolve against. The Database tree groups each schema's tables, views, routines, triggers and sequences in folders, can be filtered by name, and Navigate → Database Object (a Database tab in Search Everywhere) finds loaded tables, views, routines and columns without connecting. A data source can have several consoles (New Console), kept in Scratches and Consoles. In the editor: after JOIN, completion offers the tables a foreign key links to the ones in FROM with their ON clause, and after ON whole join conditions from foreign keys (then by column name); SQL (Phantom) live templates sel, selc, selw, ins, upd, del, crt; Find Usages and Rename of tables, views and columns across .sql files, consoles and SQL strings (and JPA mappings), changing SQL text only, never the database; unknown tables and columns are reported with quick fixes. Connections can go through an SSH tunnel (password, key file or OpenSSH agent; unknown host keys confirmed and added to ~/.ssh/known_hosts) and use SSL (mode, CA, client certificate and key mapped to each driver's properties), set in the SSH/SSL tab. Diagram on a schema or selected tables draws them with their foreign keys (pan, zoom, drag, PNG export); Import Data from CSV on a table maps columns by header and inserts in batches in one transaction; Explain Plan shows the plan as a tree with cost, rows and time and the costliest step highlighted. Results grid: WHERE / ORDER BY fields with column completion and history, header clicks sorting a table on the server, a Value Viewer (JSON, XML, hex, images), Transpose, selection sum/avg/min/max, pinned result tabs, and Copy/Export as TSV, CSV, JSON, SQL INSERT, Markdown or HTML (a whole table streamed to a file). 0.17.0: unreachable routine code, cursor state, routine side effects vs. NO SQL/READS SQL DATA, invalid date/time literals, LOAD DATA paths, too many joins, SQL files without a data source; CREATE TABLE to entity marker. 0.17.1: a data source entry the IDE cannot read is skipped instead of breaking the Database Changes tool window and the JPA schema checks. 0.17.2: no completion right after a number (Enter no longer turns `id = 2` into `id = 2EMAIL`); opening a table no longer logs a read-access error. 0.18.0: as in DataGrip: Make Global keeps a data source (with its passwords) in the IDE for every project; passwords saved Forever, Until restart or Never, read once per IDE run, and asked again when the database refuses them; DataGrip's shortcuts in the tree, editor and grid; grid edits wait as changes until Submit (Cmd/Ctrl+Enter) or Submit and Commit, with Revert Selected and Submit Changes Immediately; Set NULL / Set DEFAULT, Select Row / Column, Edit Filter Criteria; SQL Generator and Copy DDL; data source groups, copy, paste and duplicate; single session mode or a session per console with a session switcher, Sessions and the Services tool window; schema scope and introspection levels. 0.18.1: Add Row and Clone Row in the grid, inserted on Submit; Preview Pending Changes. 0.18.2: dates and times in the grid show as stored and save as typed (east of UTC a TIMESTAMP or TIME showed hours early and a DATE the day before); changed, new and deleted cells are colored until Submit; a row inserted on Submit shows its generated key and defaults, so it can be edited again. 0.19.0: grid changes not yet submitted are asked about (Submit, Discard, Cancel) before the result is replaced or its tab closed; Add Row starts editing the new row and shows unfilled cells as <default>; Run 'file.sql' from the project view and editor tab; Dump to File and Restore from File with mysqldump / mysql and pg_dump / psql (not over SSH); TIMESTAMP fractional seconds show in the grid. 0.19.1: MySQL's DATETIME and TIMESTAMP(n) show their fraction and open the calendar on their value; dump and restore reach localhost over TCP; all data source passwords are kept in one keychain entry, so macOS asks once, not once per data source. 0.20.0: Copy As and the grid's Data Extractor list (used by Copy, Cmd/Ctrl+C) add SQL INSERT Multirow, SQL UPDATE, One-Row, XML and Pretty; Paste of copied rows into the grid fills the cells and adds rows. 0.21.0: Filter by on a cell (=, <>, LIKE, IS NULL, IN) adds to WHERE and runs; Column Statistics; pasted text takes the column's type; Copy Table To copies a table's rows into another schema or data source, creating the table when it is missing. 0.22.0: Full-text Search on a data source or schema finds a text (or number) in every table and opens the matching rows; Export saves Excel (.xlsx) workbooks, a whole table page by page too. 0.23.0: Quick Documentation on tables and columns in SQL; Structure view of SQL files; Run Again and Auto Refresh for query results; Compare Content of two tables, with the SQL that makes one match the other. 0.24.0: a join's result is editable: each cell updates its own table by that table's primary key. 0.24.1: the format picked in the result toolbar's Copy As stays what Copy (Cmd/Ctrl+C) uses, in new results too, and is checked in the list. 0.24.2: Cmd/Ctrl+Enter runs the statement in a console or .sql file again instead of splitting the line, and the Database tree's toolbar and commands no longer hold up the IDE by reading the clipboard. 0.25.0: ERD Design (.erd files kept in git): draw tables and relations, load a schema from a data source, and get CREATE or ALTER SQL against it; the SQL editor underlines misspelled keywords, missing commas, tables and conditions, clauses out of order and unclosed parentheses and quotes as you type, with quick fixes, and marks where a failed statement went wrong; completion by clause (keywords, functions, types, subquery and CTE columns) that opens after a dot and after FROM or JOIN; colors by what a name is (Color Scheme → SQL (Phantom)); parameter info for built-in functions, column names before INSERT values, Expand * to columns, folding, paired quotes, Extend Selection by clause and parentheses, Surround With, Complete Current Statement, and a Code Style page (indent, keyword case); the Database tree's toolbar keeps Add, Refresh, New Console and Data, the rest under More. 0.25.1: Diagram and ERD Design draw tables as cards (header band, key and link icons, types aligned right) on a dotted grid, with relations between the columns they join and a crow's foot on the many side. 0.25.2: SQL that MyBatis Support injects as a whole statement shows syntax errors. 0.25.3: the syntax check is open to MyBatis Support for statements with <choose> and ${}. 0.25.4: Run and Explain take only the statement at the caret when the one above has no ; and consoles open without the Non-Project Files Protection prompt. 0.25.5: the Java and Kotlin part (SQL in strings, JPA entities against the schema) loads in Phantom again. 0.25.6: Cmd/Ctrl+click on a table or column name in SQL selects it in the Database tree also when the tool window was not open yet, and says so when the tree does not show it. 0.25.7: Copy on a Database tree node puts its name on the clipboard, not the node object. 0.25.8: Modify Table shows and edits column comments and has room for long column and index names; changing a MySQL column keeps its comment and AUTO_INCREMENT (MODIFY COLUMN restated the column without them).",
       "vendor": "Phantom",
@@ -20,7 +20,7 @@
         "com.intellij.modules.lang",
         "intellij.grid.core.plugin"
       ],
-      "download": "db-0.25.11/db-0.25.11.zip",
+      "download": "db-0.25.12/db-0.25.12.zip",
       "detect": [
         "com.mysql:mysql-connector-j",
         "mysql:mysql-connector-java",
@@ -41,7 +41,7 @@
     {
       "id": "dev.phantom.spring",
       "name": "Support for Spring",
-      "version": "0.9.7",
+      "version": "0.9.8",
       "source": "spring",
       "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, Spring MVC handlers for the Endpoints tool window, Spring Security path and expression support, and Kafka/RabbitMQ/JMS sender-receiver navigation. 0.4.0: proxy pitfalls (self-invocation of @Transactional/@Cacheable/@Async, private/final/static proxied methods, Kotlin classes not opened by kotlin-spring), @Scheduled/@Async/@EventListener contracts, field and static injection, duplicate bean names, @Scope values, @Sql paths, @DirtiesContext, publishEvent ↔ listener gutters, @Qualifier/@DependsOn bean name completion and Ctrl+B. Wave 6: @Value placeholders (follows spring.config.import), SpEL syntax, cache names, caching on interfaces, @Qualifier/@DependsOn near-miss names, MVC path variables, endpoint and AOP advice gutters, method security not enabled, pointcut syntax. Wave 7: @Cacheable+@CachePut, abstract beans, @Value literal types, @Bean method shape, scan packages, AspectJ autoproxy, @Autowired outside beans, resource locations, @TestBean factories, @Around/pointcut/argNames/@DeclareParents, Security debug/self-invocation/bean refs. Wave 8: @Bean init/destroy methods, @Lookup, Resource @Value, @Profile expressions and unknown profiles, bean name convention, argNames bindings; cache, @Scheduled and @Import gutters. Waves 9-10: @Transactional/@Async, component scan and advised-method gutters; Spring 7 API versioning checks; HTTP header and media type typos; broken @Value placeholders; JDK proxy injection. Wave 11: test transaction pitfalls, @Value with @Qualifier/@Resource, removed @Required, @Qualifier bean type, ROLE_ prefix misuse.",
       "vendor": "Phantom",
@@ -52,7 +52,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-0.9.7/spring-0.9.7.zip",
+      "download": "spring-0.9.8/spring-0.9.8.zip",
       "detect": [
         "org.springframework:spring-context",
         "org.springframework:spring-web",
@@ -62,7 +62,7 @@
     {
       "id": "dev.phantom.spring.boot",
       "name": "Support for Spring Boot",
-      "version": "0.8.4",
+      "version": "0.8.5",
       "source": "spring-boot",
       "description": "Spring Boot support: File → New → Project → Spring Boot generates projects with Spring Initializr, and application*.yml / application*.properties get completion and quick documentation for keys and values, from library metadata and the project's own @ConfigurationProperties, in Java and Kotlin. An Actuator tab beside the console of a running app (health, beans, mappings, environment, polled only while shown; only for modules with spring-boot-starter-actuator), and completion and Ctrl+B for ${...} placeholders in @Value from the project's application.yml/properties and Spring Boot metadata. Wave 7: datasource driver missing, config key <-> @Value/@ConfigurationProperties gutters, spring.config.import files count as config. Wave 8: profile override gutters between application-<profile> and base config, @SpringBootApplication -> config files. Wave 9: @ConditionalOnProperty, @EnableConfigurationProperties, test property, @ConfigurationProperties field and profile value gutters. Wave 11: unread bootstrap.yml, Spring Cloud Stream bindings without a function bean.",
       "vendor": "Phantom",
@@ -73,7 +73,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-boot-0.8.4/spring-boot-0.8.4.zip",
+      "download": "spring-boot-0.8.5/spring-boot-0.8.5.zip",
       "detect": [
         "org.springframework.boot:spring-boot",
         "org.springframework.boot:spring-boot-autoconfigure"
@@ -105,7 +105,7 @@
     {
       "id": "dev.phantom.mybatis",
       "name": "Support for MyBatis",
-      "version": "0.3.4",
+      "version": "0.3.5",
       "source": "mybatis",
       "description": "MyBatis mapper support (what MyBatisX does): interface ↔ XML statement gutters, statement id / resultMap / refid / resultType / property references with completion, rename and errors, mapper methods without a statement with a quick fix that writes it, #{...} parameter completion, and SQL highlighting and completion in mapper XML and @Select/@Insert/@Update/@Delete with Phantom Database Console. 0.1.1: Go to Implementation from mapper method calls opens the XML statement; Cmd+click on #{a.b}, <if test>, <foreach collection> and @Select placeholders goes to the parameter, property or foreach item. 0.2.0 (with Phantom Database Console 0.25.2): dynamic tags read as MyBatis builds them (<where> AND/OR, <set> commas, <trim>, <include>), syntax errors in whole statements, a run icon on each statement that runs it in the console asking for #{} values, and Reformat Code formats the SQL of plain statements. 0.3.0 (with Phantom Database Console 0.25.3): syntax errors in each <choose> branch and with ${}, Run asks which <if> parts and <choose> branches to take and builds <where>/<set>/<trim> by MyBatis rules, and Reformat Code formats statements with dynamic tags. 0.3.1: loads in Phantom again (Java classes come from the Java plugin modules), so mapper SQL highlights and the inspections run.",
       "vendor": "Phantom",
@@ -116,7 +116,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "mybatis-0.3.4/mybatis-0.3.4.zip",
+      "download": "mybatis-0.3.5/mybatis-0.3.5.zip",
       "detect": [
         "org.mybatis:mybatis",
         "org.mybatis.spring.boot:mybatis-spring-boot-starter",
@@ -127,7 +127,7 @@
     {
       "id": "dev.phantom.reactive",
       "name": "Support for Reactive Streams",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "source": "reactive-streams",
       "description": "Reactor and RxJava checks for Java and Kotlin: a Mono, Flux or RxJava source created and dropped without being subscribed, and blocking calls inside reactive operators.",
       "vendor": "Phantom",
@@ -138,7 +138,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "reactive-streams-0.1.3/reactive-streams-0.1.3.zip",
+      "download": "reactive-streams-0.1.4/reactive-streams-0.1.4.zip",
       "detect": [
         "io.projectreactor:reactor-core",
         "org.reactivestreams:reactive-streams",
@@ -149,7 +149,7 @@
     {
       "id": "dev.phantom.ktor",
       "name": "Support for Ktor",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "source": "ktor",
       "description": "Ktor server routes from the routing DSL, including routes in Route extension functions with the prefixes of their callers, in the Endpoints tool window.",
       "vendor": "Phantom",
@@ -161,7 +161,7 @@
         "com.intellij.java",
         "org.jetbrains.kotlin"
       ],
-      "download": "ktor-0.1.3/ktor-0.1.3.zip",
+      "download": "ktor-0.1.4/ktor-0.1.4.zip",
       "detect": [
         "io.ktor:ktor-server-core",
         "io.ktor:ktor-server-core-jvm"
@@ -170,7 +170,7 @@
     {
       "id": "dev.phantom.kubernetes",
       "name": "Support for Kubernetes",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "source": "kubernetes",
       "description": "Helm chart templates: .Values completion and navigation from values.yaml, .Release/.Chart fields, include/define navigation, and a warning for values that values.yaml does not define. 0.2.0: manifest checks for built-in kinds (removed API versions, unknown and missing keys with key completion, duplicate env vars, selector/template label mismatch); YAML in Markdown fences is skipped. Wave 7: unknown kinds, enum values, deprecated keys/resources, server-set fields, Chart.yaml. Wave 8: gutters Service <-> workloads, ConfigMap/Secret/ServiceAccount references, Ingress backends. Wave 10: kinds that are not stored (reviews, Binding, Eviction). Wave 11: deprecated labels/annotations, required list-item keys, unknown Helm templates, risky whitespace trimming, define to include markers.",
       "vendor": "Phantom",
@@ -181,7 +181,7 @@
         "com.intellij.modules.lang",
         "org.jetbrains.plugins.yaml"
       ],
-      "download": "kubernetes-0.6.2/kubernetes-0.6.2.zip",
+      "download": "kubernetes-0.6.3/kubernetes-0.6.3.zip",
       "detectFiles": [
         "Chart.yaml"
       ]
@@ -189,7 +189,7 @@
     {
       "id": "dev.phantom.profiler",
       "name": "Phantom Profiler",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "source": "profiler",
       "description": "CPU and allocation profiling for Java and Kotlin with Java Flight Recorder: a Profile action next to Run and Debug, a Profiler tool window that records any running JVM, and a .jfr viewer with flame graph, call tree, hot methods, allocations and GC summary. Profile also works on Gradle run configurations: tests run by Gradle and applications delegated to Gradle, one recording per forked JVM.",
       "vendor": "Phantom",
@@ -200,12 +200,12 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "profiler-0.2.1/profiler-0.2.1.zip"
+      "download": "profiler-0.2.2/profiler-0.2.2.zip"
     },
     {
       "id": "dev.phantom.docker",
       "name": "Support for Docker",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "source": "docker",
       "description": "Docker Compose through the docker CLI: run icons on compose services, a Docker Compose run configuration shown in Services, and a Docker tool window listing containers by compose project with start, stop, restart, remove, logs and compose down. Polls only while open. 0.2.0: Compose checks (unknown keys and values, undefined services/networks/volumes with Ctrl+B and completion, missing image, unquoted base-60 ports, duplicate container names) and Dockerfile checks (continuations, argument counts, exec form, heredocs, stages, COPY/ADD paths). Wave 7: Compose pull_policy and network_mode values. Wave 8: Compose build -> Dockerfile and depends_on gutters, Dockerfile stage Ctrl+B. Wave 10: COPY/ADD here-documents BuildKit rejects. Wave 11: FROM ... AS stage to its usages marker.",
       "vendor": "Phantom",
@@ -216,7 +216,7 @@
         "com.intellij.modules.lang",
         "org.jetbrains.plugins.yaml"
       ],
-      "download": "docker-0.6.2/docker-0.6.2.zip",
+      "download": "docker-0.6.3/docker-0.6.3.zip",
       "detectFiles": [
         "compose.yaml",
         "compose.yml",
@@ -228,7 +228,7 @@
     {
       "id": "dev.phantom.redis",
       "name": "Phantom Key-Value Console",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "source": "redis",
       "description": "A key browser and console for Redis-compatible servers (Redis, Valkey, KeyDB…): keys by SCAN pattern, values of every type with JSON indented, delete, and a redis-cli style command line with history. Password, ACL user, database and TLS. Connects only while the Redis tool window is shown.",
       "vendor": "Phantom",
@@ -238,7 +238,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "redis-0.1.3/redis-0.1.3.zip",
+      "download": "redis-0.1.4/redis-0.1.4.zip",
       "detect": [
         "org.springframework.data:spring-data-redis",
         "io.lettuce:lettuce-core",
@@ -249,7 +249,7 @@
     {
       "id": "dev.phantom.kafka",
       "name": "Support for Kafka",
-      "version": "0.1.6",
+      "version": "0.1.7",
       "source": "kafka",
       "description": "An Apache Kafka browser: topics with partitions and offsets, latest/earliest/since-time messages read without joining a group, sending with key, headers and partition, consumer group lag, create and delete topics. SASL/SSL via client properties in the password safe.",
       "vendor": "Phantom",
@@ -259,7 +259,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "kafka-0.1.6/kafka-0.1.6.zip",
+      "download": "kafka-0.1.7/kafka-0.1.7.zip",
       "detect": [
         "org.apache.kafka:kafka-clients",
         "org.springframework.kafka:spring-kafka",
@@ -269,7 +269,7 @@
     {
       "id": "dev.phantom.validation",
       "name": "Support for Bean Validation",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "source": "validation",
       "description": "Bean Validation checks for Java and Kotlin: contradictory bounds (@Min above @Max, @Size min above max), constraints on types they cannot validate, Kotlin constructor properties whose constraint lands on the parameter (quick fix: @field:), nested objects with constraints but no @Valid, and Spring beans with method constraints but no @Validated. Wave 7: custom @Constraint definitions.",
       "vendor": "Phantom",
@@ -280,7 +280,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "validation-0.2.2/validation-0.2.2.zip",
+      "download": "validation-0.2.3/validation-0.2.3.zip",
       "detect": [
         "jakarta.validation:jakarta.validation-api",
         "javax.validation:validation-api",
@@ -291,7 +291,7 @@
     {
       "id": "dev.phantom.migrations",
       "name": "Phantom Migrations",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "source": "migrations",
       "description": "Flyway and Liquibase checks: migration names Flyway skips (single underscore, lower-case prefix, no description) and duplicate versions in db/migration and spring.flyway.locations; duplicate changeset id and author and missing include/includeAll paths in XML, YAML and formatted SQL changelogs. Wave 8: Flyway previous/next migration gutters, Liquibase include navigation. 0.3.0: unresolved Liquibase changelog properties.",
       "vendor": "Phantom",
@@ -302,7 +302,7 @@
         "com.intellij.modules.lang",
         "org.jetbrains.plugins.yaml"
       ],
-      "download": "migrations-0.3.1/migrations-0.3.1.zip",
+      "download": "migrations-0.3.2/migrations-0.3.2.zip",
       "detect": [
         "org.flywaydb:flyway-core",
         "org.liquibase:liquibase-core"
@@ -311,7 +311,7 @@
     {
       "id": "dev.phantom.openapi",
       "name": "Support for OpenAPI",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "source": "openapi",
       "description": "OpenAPI and Swagger specs in YAML and JSON: $ref navigation to local pointers and other files, #/components/... completion, unresolved $ref errors, and gutter links between a spec operation and its handler (Spring MVC and any framework in the Endpoints view). Wave 10: specs not recognized because of a misspelled version key, unsupported versions, unknown top-level keys.",
       "vendor": "Phantom",
@@ -323,7 +323,7 @@
         "org.jetbrains.plugins.yaml",
         "com.intellij.modules.json"
       ],
-      "download": "openapi-0.2.3/openapi-0.2.3.zip",
+      "download": "openapi-0.2.4/openapi-0.2.4.zip",
       "detect": [
         "org.springdoc:springdoc-openapi-starter-webmvc-ui",
         "org.springdoc:springdoc-openapi-starter-webflux-ui",
@@ -391,7 +391,7 @@
     {
       "id": "dev.phantom.ai.visualization",
       "name": "Phantom AI Visualization",
-      "version": "0.6.3",
+      "version": "0.6.4",
       "source": "ai-visualization",
       "description": "The agent sessions of Phantom AI Integration as an isometric pixel-art place (0.6.2): each worktree is a floor and an office: the first session opened in it is the CEO in an office of its own, a session leading subagents gets a team area with its subordinates seated by role, the rest share the open desks, and a session waiting for an answer lines up before the CEO for sign-off (결재); each live session is a cute big-eyed person drawn at twice the scene's pixel density: typing, waiting with a raised hand, holding a coffee or asleep. A label over every head says what the agent is doing right now (Edit Foo.kt, Bash: ./gradlew test, 권한 요청) and running subagents sit beside their lead as full-size subordinates, each with its own label. Click a person to focus its terminal, an empty desk to start Claude or Codex. Opens from its AI Visualization tool window icon or Tools | Open AI Visualization; six themes in Settings | Tools | Phantom AI Visualization: Warm Wood (A), Modern Bright (B), Night Shift (C), Restroom Cleaning (D, with a cat and a corgi), Kitchen (E) and Construction Site (F). Needs Phantom AI Integration 0.3.8.",
       "vendor": "Phantom",
@@ -402,13 +402,13 @@
         "com.intellij.modules.platform",
         "dev.phantom.ai"
       ],
-      "download": "ai-visualization-0.6.3/ai-visualization-0.6.3.zip",
+      "download": "ai-visualization-0.6.4/ai-visualization-0.6.4.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.tabs",
       "name": "Phantom Tab Groups",
-      "version": "0.2.9",
+      "version": "0.2.10",
       "source": "tabs",
       "description": "Editor tab groups, as in a web browser: from a tab's context menu put tabs into a named, colored group, collapse the group to its first tab (showing the group's name and size) and expand it again, rename, recolor, ungroup or close the group; drag tabs in and out. A group reads as one piece: a line in the group's color runs under all its tabs, they get a faint background in that color, and the group's name is a chip in that color on its first tab; a click on the chip collapses or opens the group and dragging it moves the whole group, as in Chrome. Groups belong to each editor split and are kept with the project; collapsing only hides tabs, files stay open and are never closed by the tab limit. Moved out of the Phantom bundle; uses only the public platform API. 0.2.8: the tab group code loads only once a project has tab groups.",
       "vendor": "Phantom",
@@ -418,7 +418,7 @@
       "depends": [
         "com.intellij.modules.platform"
       ],
-      "download": "tabs-0.2.9/tabs-0.2.9.zip",
+      "download": "tabs-0.2.10/tabs-0.2.10.zip",
       "detect": []
     },
     {
@@ -513,7 +513,7 @@
     {
       "id": "dev.phantom.webp",
       "name": "Support for WebP",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "source": "webp",
       "description": "WebP images (lossy, lossless, alpha) open in the image editor and as thumbnails, decoded in Java by the TwelveMonkeys ImageIO reader (BSD) with no native library. Reading only. Replaces the bundled WebP plugin; turn that one off if your Phantom still bundles it. 0.1.1: the WebP decoder loads when a WebP image is first opened, not at startup.",
       "vendor": "Phantom",
@@ -523,7 +523,7 @@
       "depends": [
         "com.intellij.platform.images"
       ],
-      "download": "webp-0.1.3/webp-0.1.3.zip",
+      "download": "webp-0.1.4/webp-0.1.4.zip",
       "detect": []
     },
     {
@@ -545,7 +545,7 @@
     {
       "id": "dev.phantom.cpu",
       "name": "Phantom CPU Indicator",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "source": "cpu",
       "description": "CPU use of the IDE and the whole machine in the status bar: a one-minute graph and the current numbers, highlighted while the IDE stays busy. Hover it to see what used the IDE's CPU in the last ten seconds (indexing, Kotlin/Java code analysis, GC, JIT, other), the three busiest processes and a thread dump link. Draws without offscreen images and repaints only on change; per-thread analysis and ps run only while hovered or busy. Replaces krasa.cpu.",
       "vendor": "Phantom",
@@ -555,7 +555,7 @@
       "depends": [
         "com.intellij.modules.platform"
       ],
-      "download": "cpu-0.1.1/cpu-0.1.1.zip"
+      "download": "cpu-0.1.2/cpu-0.1.2.zip"
     },
     {
       "id": "dev.phantom.logs",
@@ -576,7 +576,7 @@
     {
       "id": "dev.phantom.querydsl",
       "name": "Support for QueryDSL",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "source": "querydsl",
       "description": "QueryDSL Q classes followed back to their entities: Go to Declaration on a Q class path (order.customer.name, QOrder.order) goes to the entity property or entity, in Java and Kotlin code; Find Usages of a Java entity field also finds its QueryDSL paths; Java entities whose Q class is out of date (a field added or removed since the last build) are reported.",
       "vendor": "Phantom",
@@ -587,7 +587,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "querydsl-0.1.2/querydsl-0.1.2.zip",
+      "download": "querydsl-0.1.3/querydsl-0.1.3.zip",
       "detect": [
         "com.querydsl:querydsl-jpa",
         "com.querydsl:querydsl-core",
@@ -599,7 +599,7 @@
     {
       "id": "dev.phantom.testcontainers",
       "name": "Support for Testcontainers",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "source": "testcontainers",
       "description": "Testcontainers checks for Java and Kotlin tests: a @Container that never starts (no @Testcontainers on its class, or not a container), one started again for every test (an instance field), an image without a version tag or with :latest, and Spring's @DynamicPropertySource methods and @ServiceConnection fields that are not static and so are not found. Java fixes make them static.",
       "vendor": "Phantom",
@@ -610,7 +610,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "testcontainers-0.1.2/testcontainers-0.1.2.zip",
+      "download": "testcontainers-0.1.3/testcontainers-0.1.3.zip",
       "detect": [
         "org.testcontainers:testcontainers",
         "org.testcontainers:junit-jupiter",
@@ -620,7 +620,7 @@
     {
       "id": "com.phantom.mermaid",
       "name": "Support for Mermaid",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "source": "mermaid",
       "description": "Editing support and diagram preview for Mermaid in .mmd and .mermaid files and in Markdown code fences: highlighting, completion, formatting, folding, rename and Find Usages of node ids, inspections, and a preview next to the editor. The IntelliJ Community Mermaid plugin (Apache 2.0) under its own id, so Phantom can stop bundling the JetBrains copy (com.intellij.mermaid), which has to be disabled for this one to load. Faster: the preview draws only the latest text after typing pauses and skips text that did not change, Markdown diagrams that did not change are not drawn again (and replaced blocks no longer stay in memory), and mermaid.js is read once and no longer kept stale in the browser after an update.",
       "vendor": "Phantom",
@@ -630,7 +630,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "mermaid-0.1.4/mermaid-0.1.4.zip",
+      "download": "mermaid-0.1.5/mermaid-0.1.5.zip",
       "detect": []
     },
     {
@@ -684,7 +684,7 @@
     {
       "id": "dev.phantom.lombok",
       "name": "Support for Lombok",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "source": "lombok",
       "description": "Project Lombok in the editor: generated getters, setters, constructors, builders, loggers and more resolve and complete; lombok.config, inspections, quick fixes and Delombok. Based on the IntelliJ Community Lombok plugin (Apache 2.0); Lombook Plugin stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -694,7 +694,7 @@
       "depends": [
         "com.intellij.java"
       ],
-      "download": "lombok-0.1.1/lombok-0.1.1.zip",
+      "download": "lombok-0.1.2/lombok-0.1.2.zip",
       "detect": [
         "org.projectlombok:lombok"
       ]
@@ -748,7 +748,7 @@
     {
       "id": "dev.phantom.textmate",
       "name": "Support for TextMate Bundles",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "source": "textmate",
       "description": "Highlighting, brace matching, commenting and snippets from TextMate and VS Code grammars for file types no other plugin covers: 22 bundled grammars and any you add. Based on the IntelliJ Community TextMate Bundles plugin (Apache 2.0); org.jetbrains.plugins.textmate stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -758,13 +758,13 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "textmate-0.1.4/textmate-0.1.4.zip",
+      "download": "textmate-0.1.5/textmate-0.1.5.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.markdown",
       "name": "Support for Markdown",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "source": "markdown",
       "description": "Markdown files: highlighting, completion, navigation, inspections, table and list editing, images, language injection in code fences, front matter, and the JCEF preview; Shell Script, Kotlin and others build on it. Based on the IntelliJ Community Markdown plugin (Apache 2.0); org.intellij.plugins.markdown stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -774,13 +774,13 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "markdown-0.1.1/markdown-0.1.1.zip",
+      "download": "markdown-0.1.2/markdown-0.1.2.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.github",
       "name": "Support for GitHub",
-      "version": "0.1.4",
+      "version": "0.1.6",
       "source": "github",
       "description": "GitHub in the IDE: GitHub and GitHub Enterprise accounts (OAuth or token), cloning, Share Project on GitHub, pull requests (list, review with comments in the diff and editor, create, merge), gists, Open on GitHub, and GitHub Actions workflow schemas. Based on the IntelliJ Community GitHub plugin (Apache 2.0); org.jetbrains.plugins.github stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -790,13 +790,13 @@
       "depends": [
         "Git4Idea"
       ],
-      "download": "github-0.1.4/github-0.1.4.zip",
+      "download": "github-0.1.6/github-0.1.6.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.editorconfig",
       "name": "Support for EditorConfig",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "source": "editorconfig",
       "description": "EditorConfig files: properties from .editorconfig applied to the code style, indentation, encoding and trailing spaces of every supported language, plus editing support for the files themselves (highlighting, completion, inspections and quick fixes, navigation, rename, a preview of affected files, and code style scheme export). Based on the IntelliJ Community EditorConfig plugin (Apache 2.0); org.editorconfig.editorconfigjetbrains stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -806,7 +806,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "editorconfig-0.1.2/editorconfig-0.1.2.zip",
+      "download": "editorconfig-0.1.3/editorconfig-0.1.3.zip",
       "detect": []
     },
     {
@@ -845,7 +845,7 @@
     {
       "id": "dev.phantom.testng",
       "name": "Support for TestNG",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "source": "testng",
       "description": "TestNG for Java: run configurations for classes, methods, packages, groups, patterns and suite files with the test tree, forked runs and debugging; test generation; references from dataProvider, dependsOnMethods, groups and testng.xml; inspections and quick fixes such as converting JUnit tests to TestNG. Based on the IntelliJ Community TestNG plugin (Apache 2.0); TestNG-J stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261113 (Nov 13, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -855,7 +855,7 @@
       "depends": [
         "com.intellij.java"
       ],
-      "download": "testng-0.1.3/testng-0.1.3.zip",
+      "download": "testng-0.1.4/testng-0.1.4.zip",
       "detect": [
         "org.testng:testng"
       ]
@@ -911,7 +911,7 @@
     {
       "id": "dev.phantom.grammar",
       "name": "Phantom Grammar",
-      "version": "0.2.2",
+      "version": "0.2.4",
       "source": "grammar",
       "description": "Grammar, style and spelling checks for any text in the IDE: comments, string literals, documentation, commit messages, Markdown, XML, JSON, YAML, properties and plain text, with LanguageTool running locally; English is built in, other languages download when enabled; TOML, YAML, Markdown, Kotlin and others build on it. Built only on open-source code: the IDE layer of the IntelliJ Community Natural Languages plugin (Apache 2.0) and LanguageTool (LGPL 2.1), without JetBrains' closed-source Grazie libraries. Replaces Phantom Natural Languages (dev.phantom.grazie); tanvd.grazi and dev.phantom.grazie stay as aliases, so plugins depending on them keep working. Compared with it: no Grazie rule engine checks or writing style profiles, no auto-fix, no downloaded Hunspell dictionaries for German, Russian and Ukrainian.",
       "vendor": "Phantom",
@@ -921,7 +921,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "grammar-0.2.2/grammar-0.2.2.zip",
+      "download": "grammar-0.2.4/grammar-0.2.4.zip",
       "detect": []
     },
     {
@@ -943,7 +943,7 @@
     {
       "id": "dev.phantom.junit",
       "name": "Support for JUnit",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "source": "junit",
       "description": "JUnit 3, 4, 5 and 6 for Java: run configurations for a class, method, package, directory, pattern, tags or unique id, run from the gutter with the test tree, rerun of failed tests, forked runs and debugging; test generation and navigation between a test and its subject; references from @MethodSource, @FieldSource and @EnumSource to their targets; and inspections and quick fixes such as malformed test declarations and JUnit 4 to 5 migration. Based on the IntelliJ Community JUnit plugin (Apache 2.0); JUnit stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -953,7 +953,7 @@
       "depends": [
         "com.intellij.java"
       ],
-      "download": "junit-0.1.1/junit-0.1.1.zip",
+      "download": "junit-0.1.2/junit-0.1.2.zip",
       "detect": [
         "junit:junit",
         "org.junit.jupiter:junit-jupiter-api",
@@ -995,7 +995,7 @@
     {
       "id": "dev.phantom.gradle-dsl",
       "name": "Support for Gradle DSL",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "source": "gradle-dsl",
       "description": "A technical plugin with no UI of its own: an API that reads Gradle build files (Groovy, Kotlin script, version catalog TOML) as a model and edits them in place — dependencies, plugins, repositories, ext properties, Android blocks; Gradle-Java's dependency updater and build analysis use it. The Kotlin script parser switches on only with the Kotlin plugin installed. Based on the IntelliJ Community Gradle DSL API plugin (Apache 2.0); org.jetbrains.idea.gradle.dsl stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -1006,7 +1006,7 @@
         "com.intellij.java",
         "com.intellij.gradle"
       ],
-      "download": "gradle-dsl-0.1.2/gradle-dsl-0.1.2.zip",
+      "download": "gradle-dsl-0.1.3/gradle-dsl-0.1.3.zip",
       "detect": [],
       "detectFiles": [
         "build.gradle",
@@ -1019,7 +1019,7 @@
     {
       "id": "dev.phantom.groovy-scripting",
       "name": "Support for Groovy Scripting",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "source": "groovy-scripting",
       "description": "The Apache Groovy JSR223 engine for the IDE Scripting Console, and the Groovy 3 library (with Ivy for Grape) that Groovy, Groovy Live Templates and others load through intellij.libraries.groovy. Based on the IntelliJ Community Groovy Scripting plugin (Apache 2.0); com.intellij.groovy.scripting stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -1029,13 +1029,13 @@
       "depends": [
         "com.intellij.modules.platform"
       ],
-      "download": "groovy-scripting-0.1.2/groovy-scripting-0.1.2.zip",
+      "download": "groovy-scripting-0.1.3/groovy-scripting-0.1.3.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.groovy",
       "name": "Support for Groovy",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "source": "groovy",
       "description": "Apache Groovy: highlighting, completion, inspections and quick fixes, intentions, refactorings, formatting, structural search, GDSL scripts, Groovy and Gant run configurations with debugger hot swap, the Groovy console, Grape, compilation in the IDE build (Groovy or Eclipse compiler, stub generation), Spock and Geb support, and the Ant, Git and Copyright integrations; Gradle, Maven and others build on it. Based on the IntelliJ Community Groovy plugin (Apache 2.0); org.intellij.groovy stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -1047,7 +1047,7 @@
         "com.intellij.properties",
         "com.intellij.groovy.scripting"
       ],
-      "download": "groovy-0.1.3/groovy-0.1.3.zip",
+      "download": "groovy-0.1.4/groovy-0.1.4.zip",
       "detect": [
         "org.apache.groovy:groovy",
         "org.codehaus.groovy:groovy"
@@ -1060,7 +1060,7 @@
     {
       "id": "dev.phantom.groovy-live-templates",
       "name": "Support for Groovy Live Templates",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "source": "groovy-live-templates",
       "description": "The groovyScript() live template macro: a template variable computed by an Apache Groovy script, inline or from a file, with the macro's arguments and the editor at hand. Based on the IntelliJ Community Groovy Live Templates plugin (Apache 2.0); org.intellij.groovy.live.templates stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261116 (Nov 16, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -1070,7 +1070,7 @@
       "depends": [
         "com.intellij.groovy.scripting"
       ],
-      "download": "groovy-live-templates-0.1.1/groovy-live-templates-0.1.1.zip",
+      "download": "groovy-live-templates-0.1.2/groovy-live-templates-0.1.2.zip",
       "detect": []
     },
     {
@@ -1092,7 +1092,7 @@
     {
       "id": "dev.phantom.local-shared-index",
       "name": "Phantom Local Shared Index",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "source": "local-shared-index",
       "description": "Reuses index data between checkouts of the same project on this machine, so a new worktree or clone does not index files that another checkout already indexed. Nothing leaves the machine. Turn it off by disabling the plugin.",
       "vendor": "Phantom",
@@ -1102,7 +1102,7 @@
       "depends": [
         "com.intellij.modules.platform"
       ],
-      "download": "local-shared-index-0.1.1/local-shared-index-0.1.1.zip",
+      "download": "local-shared-index-0.1.2/local-shared-index-0.1.2.zip",
       "detect": []
     },
     {
@@ -1213,7 +1213,7 @@
     {
       "id": "dev.phantom.navbar",
       "name": "Phantom Navigation Bar",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "navbar",
       "description": "The navigation bar: the path of the current file above or below the editor, with popups to browse and open files. Based on the IntelliJ Community Navbar plugin (Apache 2.0); intellij.navbar.plugin stays as an alias and the content module names stay the IntelliJ ones. Bundled with Phantom from build 262.261120; older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -1223,13 +1223,13 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "navbar-0.1.0/navbar-0.1.0.zip",
+      "download": "navbar-0.1.1/navbar-0.1.1.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.recentfiles",
       "name": "Phantom Recent Files",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "recentfiles",
       "description": "Recent Files, Recent Locations and the Switcher (Ctrl+Tab). Based on the IntelliJ Community Recent Files plugin (Apache 2.0); intellij.recentFiles.plugin stays as an alias and the content module names stay the IntelliJ ones. Bundled with Phantom from build 262.261120; older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -1239,13 +1239,13 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "recentfiles-0.1.0/recentfiles-0.1.0.zip",
+      "download": "recentfiles-0.1.1/recentfiles-0.1.1.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.serviceview",
       "name": "Phantom Services View",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "serviceview",
       "description": "The Services tool window: run configurations, servers, databases, Docker and other services in one place, with the run dashboard. Based on the IntelliJ Community Services View plugin (Apache 2.0); intellij.execution.serviceView.plugin stays as an alias and the content module names stay the IntelliJ ones. Needs Phantom Navigation Bar. Bundled with Phantom from build 262.261120; older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -1256,13 +1256,13 @@
         "com.intellij.modules.lang",
         "intellij.navbar.plugin"
       ],
-      "download": "serviceview-0.1.0/serviceview-0.1.0.zip",
+      "download": "serviceview-0.1.1/serviceview-0.1.1.zip",
       "detect": []
     },
     {
       "id": "dev.phantom.endpoints",
       "name": "Phantom Endpoints",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "endpoints",
       "description": "The Endpoints tool window: every HTTP endpoint that installed plugins report (Spring MVC and WebFlux, Ktor, …), grouped by module, with a filter. Enter or double-click opens the handler; Generate HTTP Request adds a request for the endpoint to the scratch file generated-requests.http, with the host and port from the module's Spring Boot or Ktor configuration. Bundled with Phantom (it used to be part of the IDE).",
       "vendor": "Phantom",
@@ -1272,7 +1272,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "endpoints-0.1.0/endpoints-0.1.0.zip",
+      "download": "endpoints-0.1.1/endpoints-0.1.1.zip",
       "detect": []
     }
   ]

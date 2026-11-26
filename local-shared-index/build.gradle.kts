@@ -4,7 +4,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.1"
+version = "0.1.2"
 
 // Whether the IDE the plugin builds against still bundles the Kotlin plugin (IntelliJ Community from the repository does)
 val kotlinBundled = providers.gradleProperty("platformFromRepository").isPresent ||
