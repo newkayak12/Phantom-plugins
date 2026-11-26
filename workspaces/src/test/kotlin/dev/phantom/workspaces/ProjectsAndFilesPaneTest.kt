@@ -10,16 +10,17 @@ import dev.phantom.workspaces.core.ProjectTabs
 class ProjectsAndFilesPaneTest : BasePlatformTestCase() {
   private fun pane() = WelcomeScreenLeftPanel(project).also { Disposer.register(testRootDisposable, it) }
 
-  fun testSelectableInAnOrdinaryProjectButNotItsDefault() {
+  fun testTheDefaultPaneInAnOrdinaryProject() {
     val pane = pane()
     assertTrue(pane.isInitiallyVisible)
-    assertFalse(pane.isDefaultPane(project))
+    assertTrue(pane.isDefaultPane(project))
   }
 
   fun testGoneWithProjectTabsOff() {
     AdvancedSettings.setBoolean(ProjectTabs.SETTING_ID, false)
     try {
       assertFalse(pane().isInitiallyVisible)
+      assertFalse(pane().isDefaultPane(project))
     }
     finally {
       AdvancedSettings.setBoolean(ProjectTabs.SETTING_ID, true)

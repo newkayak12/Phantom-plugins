@@ -363,6 +363,21 @@ class ProjectTabsService(internal val scope: CoroutineScope) : Disposable {
     refresh()
   }
 
+  /** Moves the tab of [project] to [gap] between the tabs (0 before the first), in every window. */
+  @RequiresEdt
+  fun move(project: Project, gap: Int) {
+    val open = openTabs()
+    val moved = ProjectTabs.moved(open, open.indexOfFirst { it === project }, gap)
+    if (moved == open) return
+    // a tab dragged stays where it is dropped
+    placing.removeIf { it === project }
+    val rest = openOrder.filter { p -> moved.none { it === p } }
+    openOrder.clear()
+    openOrder += moved
+    openOrder += rest
+    refresh()
+  }
+
   /** Calls [listener] on the EDT whenever the open projects change, until [parent] is disposed. */
   @RequiresEdt
   internal fun addListener(parent: Disposable, listener: () -> Unit) {
@@ -416,13 +431,14 @@ class ProjectTabsService(internal val scope: CoroutineScope) : Disposable {
     val open = openTabs().map { OpenProject(it, it.name, it.presentableUrl, checkouts[it]) }
     val sideBySide = sideBySide()
     val home = SystemProperties.getUserHome()
+    val visible = ProjectTabs.isStripVisible(isEnabled, open.size)
     for (strip in strips) {
       if (isDetached(strip.project)) {
         // a window of its own, its only tab; Window | Attach to Project Tabs takes it back
-        strip.display(ProjectTabs.tabs(listOf(OpenProject(strip.project, strip.project.name, strip.project.presentableUrl)), strip.project, home))
+        strip.display(ProjectTabs.tabs(listOf(OpenProject(strip.project, strip.project.name, strip.project.presentableUrl)), strip.project, home), false)
       }
       else {
-        strip.display(ProjectTabs.tabs(open, strip.project, home, sideBySide))
+        strip.display(ProjectTabs.tabs(open, strip.project, home, sideBySide), visible)
       }
     }
     listeners.toList().forEach { it() }

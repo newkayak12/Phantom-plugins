@@ -47,11 +47,13 @@ class WelcomeScreenLeftPanel(private val project: Project) : ProjectViewPane(pro
   override fun getIcon(): Icon = IconManager.getInstance().getPlatformIcon(PlatformIcons.Folder)
 
   // phantom-idea: selectable in every project frame, not only in the welcome project: Phantom Workspaces lists the open
-  // and recent projects here. The default pane stays Project everywhere but Home (isDefaultPane).
+  // and recent projects here.
   override fun isInitiallyVisible(): Boolean = isNonModalWelcomeScreenEnabled
 
   override fun isDefaultPane(project: Project): Boolean {
-    return !Registry.`is`("ide.welcome.screen.change.project.view.depending.on.opened.file", false) && project.isWelcomeExperienceProjectSync()
+    // phantom-idea: the default pane in every project frame, not only in the welcome project: Phantom Workspaces shows the
+    // open and recent projects on the left of each project, not only on Home
+    return !Registry.`is`("ide.welcome.screen.change.project.view.depending.on.opened.file", false) && isNonModalWelcomeScreenEnabled
   }
 
   override fun getWeight(): Int = -10 // TODO: Increase weight?
