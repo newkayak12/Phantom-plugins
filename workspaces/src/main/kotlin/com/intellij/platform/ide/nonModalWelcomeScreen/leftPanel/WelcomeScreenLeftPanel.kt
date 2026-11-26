@@ -25,7 +25,6 @@ import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
 import com.intellij.ui.dsl.gridLayout.UnscaledGaps
-import com.intellij.ui.dsl.gridLayout.UnscaledGapsY
 import com.intellij.util.ui.JBUI
 import dev.phantom.workspaces.core.ProjectsList
 import org.jetbrains.annotations.ApiStatus
@@ -46,14 +45,12 @@ class WelcomeScreenLeftPanel(private val project: Project) : ProjectViewPane(pro
 
   override fun getIcon(): Icon = IconManager.getInstance().getPlatformIcon(PlatformIcons.Folder)
 
-  // phantom-idea: selectable in every project frame, not only in the welcome project: Phantom Workspaces lists the open
-  // and recent projects here.
-  override fun isInitiallyVisible(): Boolean = isNonModalWelcomeScreenEnabled
+  // phantom-idea: only in the welcome project (Home); a project window has the Projects and Files tool window of Phantom
+  // Workspaces instead of a pane in the Project view
+  override fun isInitiallyVisible(): Boolean = isNonModalWelcomeScreenEnabled && project.isWelcomeExperienceProjectSync()
 
   override fun isDefaultPane(project: Project): Boolean {
-    // phantom-idea: the default pane in every project frame, not only in the welcome project: Phantom Workspaces shows the
-    // open and recent projects on the left of each project, not only on Home
-    return !Registry.`is`("ide.welcome.screen.change.project.view.depending.on.opened.file", false) && isNonModalWelcomeScreenEnabled
+    return !Registry.`is`("ide.welcome.screen.change.project.view.depending.on.opened.file", false) && project.isWelcomeExperienceProjectSync()
   }
 
   override fun getWeight(): Int = -10 // TODO: Increase weight?
@@ -102,8 +99,7 @@ class WelcomeScreenLeftPanel(private val project: Project) : ProjectViewPane(pro
       layout = BoxLayout(this, BoxLayout.Y_AXIS)
       border = JBUI.Borders.empty()
     }
-    topPanel.add(WelcomeScreenLeftPanelActions(project).createButtonsComponent())
-    topPanel.add(separator { customize(UnscaledGapsY(top = 17)) })
+    // phantom-idea: no Open, New and Clone buttons; Home's editor tab has them
     topPanel.add(searchPanel(projectsList))
     topPanel.add(separator())
 
