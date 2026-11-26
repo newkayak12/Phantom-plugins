@@ -1120,6 +1120,7 @@
       ],
       "download": "java-262.261125.0/java-262.261125.0.zip",
       "detectFiles": [
+        "*.java",
         "pom.xml",
         "build.gradle",
         "build.gradle.kts",
