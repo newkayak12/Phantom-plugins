@@ -189,9 +189,14 @@ class ProjectsList(private val project: Project, parent: Disposable) {
 
   // a folder that is not open: delete it (a worktree through git, anything else to the Trash)
   private fun showDeleteMenu(row: WorkspaceRow, point: Point) {
-    val kind = FolderDeletion.of(row, row.repository in withWorktrees)
+    val kind = FolderDeletion.of(row, row.repository in withWorktrees, Files.isDirectory(Path.of(row.path)))
     val menu = JBPopupMenu()
-    val delete = JBMenuItem(PhantomWorkspacesBundle.message(if (kind == FolderDeletion.WORKTREE) "list.delete.worktree" else "list.delete.folder"))
+    val label = when (kind) {
+      FolderDeletion.WORKTREE -> "list.delete.worktree"
+      FolderDeletion.MISSING -> "list.delete.missing"
+      else -> "list.delete.folder"
+    }
+    val delete = JBMenuItem(PhantomWorkspacesBundle.message(label))
     delete.isEnabled = kind != FolderDeletion.NONE
     delete.addActionListener { deleteFolder(project, row, kind) { reload() } }
     menu.add(delete)
