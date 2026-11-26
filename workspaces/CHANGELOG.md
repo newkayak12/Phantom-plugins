@@ -4,9 +4,9 @@
 
 ## 0.7.6 (2026-11-26)
 
-- Projects and Files 제목 옆에 열린 프로젝트 수가 나온다. (#PR)
-- IDE 밖에서 지워진 폴더와 워크트리는 Projects and Files에 나오지 않고, 도구 창을 열 때마다 목록을 다시 읽는다. (#PR)
-- 프로젝트를 바꿀 때 도구 창 배치(위치, 크기, 열린 창)를 앞의 프로젝트에 맞추던 동작을 기본으로 끈다. Settings | Advanced Settings \| Phantom Workspaces에서 다시 켤 수 있다. (#PR)
+- Projects and Files 제목 옆에 열린 프로젝트 수가 나온다. (#156)
+- IDE 밖에서 지워진 폴더와 워크트리는 Projects and Files에 나오지 않고, 도구 창을 열 때마다 목록을 다시 읽는다. (#156)
+- 프로젝트를 바꿀 때 도구 창 배치(위치, 크기, 열린 창)를 앞의 프로젝트에 맞추던 동작을 기본으로 끈다. Settings | Advanced Settings \| Phantom Workspaces에서 다시 켤 수 있다. (#156)
 
 ## 0.7.5 (2026-11-26)
 
