@@ -14,7 +14,9 @@ import com.intellij.openapi.wm.StatusBar
 import com.intellij.ui.BalloonLayout
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import dev.phantom.workspaces.core.ProjectTab
 import dev.phantom.workspaces.core.ProjectTabStrip
+import com.intellij.ui.scale.JBUIScale
 import dev.phantom.workspaces.core.ProjectTabs
 import dev.phantom.workspaces.core.ProjectTabsService
 import dev.phantom.workspaces.core.Tiling
@@ -68,6 +70,21 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
     assertInstanceOf(extension().createComponent(project, isDocked = false), ProjectTabStrip::class.java)
   }
 
+  fun testTabsThatDoNotFitShrinkThenScrollWithTheCurrentOneInView() {
+    val strip = extension().createComponent(project, isDocked = false) as ProjectTabStrip
+    val tabs = (0 until 12).map { ProjectTab("p$it", "~/orca/workspaces/colo-backend/refactor-CL-55$it", null, isCurrent = it == 11) }
+    strip.display(tabs, visible = true)
+    strip.setSize(600, 30)
+    strip.doLayout()
+    val bounds = strip.components.map { it.bounds }
+    assertTrue("every tab at least the minimum width", bounds.all { it.width >= JBUIScale.scale(96) - 1 })
+    val last = bounds.last()
+    assertTrue("the current (last) tab is in view: $last", last.x >= 0 && last.x + last.width <= 600)
+    // the wheel scrolls back to the first tab
+    repeat(50) { strip.dispatchEvent(java.awt.event.MouseWheelEvent(strip, java.awt.event.MouseEvent.MOUSE_WHEEL, 0L, 0, 10, 10, 0, false, java.awt.event.MouseWheelEvent.WHEEL_UNIT_SCROLL, 1, -1)) }
+    assertEquals(0, strip.components.first().x)
+  }
+
   fun testNoStripInDetachedEditorWindows() {
     assertNull(extension().createComponent(project, isDocked = true))
   }
@@ -76,17 +93,24 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
     val strip = stripOf(project)
     assertEquals(listOf(project.name), strip.tabs.map { it.title })
     assertTrue(strip.tabs.single().isCurrent)
+    assertFalse(strip.isVisible)
   }
 
-  // the Projects and Files list shows the open projects; the strip only joins the window to the others
-  fun testTheStripStaysHiddenAndEmptyWithTwoProjects() {
+  // startup with one project: the hidden strip makes no tab components (labels, close buttons, the bundle) on the EDT
+  fun testTabComponentsAreMadeOnlyOnceTheStripShows() {
     val first = stripOf(project)
+    assertEquals(0, first.componentCount)
+
     val other = openSecondProject("shown")
     stripOf(other)
     settle()
-    assertEquals(2, first.tabs.size)
+    assertTrue(first.isVisible)
+    assertEquals(2, first.componentCount)
+
+    PlatformTestUtil.forceCloseProjectWithoutSaving(other)
+    settle()
     assertFalse(first.isVisible)
-    assertEquals(0, first.componentCount)
+    assertEquals(listOf(project.name), first.tabs.map { it.title })
   }
 
   fun testEveryFrameListsEveryOpenProjectAndHighlightsItsOwn() {
@@ -99,6 +123,8 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
     assertEquals(listOf(project.name, other.name), second.tabs.map { it.title })
     assertEquals(listOf(true, false), first.tabs.map { it.isCurrent })
     assertEquals(listOf(false, true), second.tabs.map { it.isCurrent })
+    assertTrue(first.isVisible)
+    assertTrue(second.isVisible)
   }
 
   fun testAClosedProjectLeavesTheStrip() {
@@ -111,6 +137,19 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
     PlatformTestUtil.forceCloseProjectWithoutSaving(other)
     settle()
     assertEquals(listOf(project.name), first.tabs.map { it.title })
+    assertFalse(first.isVisible)
+  }
+
+  fun testAMovedTabMovesInEveryFrame() {
+    val first = stripOf(project)
+    val other = openSecondProject("moving")
+    val second = stripOf(other)
+    settle()
+
+    ProjectTabsService.getInstance().move(other, 0)
+    assertEquals(listOf(other.name, project.name), first.tabs.map { it.title })
+    assertEquals(listOf(other.name, project.name), second.tabs.map { it.title })
+    assertEquals(listOf(false, true), first.tabs.map { it.isCurrent })
   }
 
   fun testARenamedProjectIsRenamedInTheStrip() {
@@ -138,7 +177,10 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
     assertTrue(ProjectTabsService.getInstance().isDetached(two))
     assertEquals(listOf(project.name, three.name), first.tabs.map { it.title })
     assertEquals(listOf(project.name, three.name), third.tabs.map { it.title })
+    assertTrue(first.isVisible)
+    assertTrue(third.isVisible)
     // its own window has no strip
+    assertFalse(second.isVisible)
   }
 
   fun testWithOneTabLeftAfterDetachingTheStripHides() {
@@ -150,6 +192,7 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
     val service = ProjectTabsService.getInstance()
     service.detachProject(other)
     assertEquals(listOf(project.name), first.tabs.map { it.title })
+    assertFalse(first.isVisible)
     // the last tab stays: nothing to detach it from
     assertFalse(service.canDetach(project))
     service.detachProject(project)
@@ -173,6 +216,7 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
     assertEquals(order, second.tabs.map { it.title })
     assertEquals(order, third.tabs.map { it.title })
     assertEquals(listOf(false, false, true), first.tabs.map { it.isCurrent })
+    assertTrue(first.isVisible)
   }
 
   fun testClosingADetachedProjectWorksAsUsual() {
@@ -204,6 +248,7 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
     AdvancedSettings.setBoolean(ProjectTabs.SETTING_ID, false)
     try {
       settle()
+      assertFalse(first.isVisible)
       assertFalse(service.canDetach(project))
     }
     finally {
@@ -212,6 +257,8 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
     settle()
     assertTrue(service.isDetached(other))
     assertEquals(listOf(project.name, third.name), first.tabs.map { it.title })
+    assertTrue(first.isVisible)
+    assertFalse(second.isVisible)
   }
 
   fun testDetachAndAttachAreInTheWindowMenu() {
@@ -226,15 +273,18 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
     val first = stripOf(project)
     stripOf(openSecondProject("off"))
     settle()
+    assertTrue(first.isVisible)
 
     AdvancedSettings.setBoolean(ProjectTabs.SETTING_ID, false)
     try {
       settle()
+      assertFalse(first.isVisible)
     }
     finally {
       AdvancedSettings.setBoolean(ProjectTabs.SETTING_ID, true)
     }
     settle()
+    assertTrue(first.isVisible)
   }
 
   // A toolkit hierarchy listener makes AWT create a HierarchyEvent for every subtree change in the IDE: only while it is on.

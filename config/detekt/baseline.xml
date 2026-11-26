@@ -2,6 +2,7 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
+    <ID>ComplexCondition:ProjectTabs.kt:ProjectTabs$from !in order.indices || gap !in 0..order.size || gap == from || gap == from + 1</ID>
     <ID>ClassNaming:_Json5Lexer.kt:_Json5Lexer : FlexLexer</ID>
     <ID>ClassNaming:_JsonLexer.kt:_JsonLexer : FlexLexer</ID>
     <ID>ComplexCondition:AiIntegrationsScenario.kt:AiIntegrationsScenario$card == null || label == null || body == null || !card.isShowing</ID>
