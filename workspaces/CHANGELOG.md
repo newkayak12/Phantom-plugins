@@ -4,8 +4,8 @@
 
 ## 0.7.2 (2026-11-26)
 
-- 위쪽 프로젝트 탭 줄을 다시 숨긴다. 열린 프로젝트는 Projects and Files에서 본다. (#PR)
-- Projects and Files가 Project 보기 안의 한 보기가 아니라 왼쪽의 별도 도구 창이 된다. 프로젝트 창을 열면 한 번 펼쳐진다. Open, New, Clone 버튼은 Home의 편집기 탭에만 있다. (#PR)
+- 위쪽 프로젝트 탭 줄을 다시 숨긴다. 열린 프로젝트는 Projects and Files에서 본다. (#150)
+- Projects and Files가 Project 보기 안의 한 보기가 아니라 왼쪽의 별도 도구 창이 된다. 프로젝트 창을 열면 한 번 펼쳐진다. Open, New, Clone 버튼은 Home의 편집기 탭에만 있다. (#150)
 
 ## 0.7.1 (2026-11-26)
 
