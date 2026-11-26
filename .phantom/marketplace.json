@@ -426,15 +426,23 @@
       "name": "Phantom Workspaces",
       "version": "0.7.0",
       "source": "workspaces",
-      "description": "All open projects as tabs of one window (0.6.1): a tab strip above the editor lists every open project (click to switch, middle-click or the close button to close, drag to reorder), and only the project in front has a window on screen, the others hidden behind it, so there is one window and a project you open comes in as a new tab. Project windows share one size, position and maximized state; a project switched to also takes full screen. Every project tab takes the tool window layout of the one in front (stripe sides and order, open tool windows, sizes). A tab can be detached into a window of its own (context menu or drag it out of the strip) and attached back from the Window menu, and two can be shown side by side (Open Side by Side), resizing together. Next/previous project: Window | Next Project Window. Works on every OS, no native window tabs; off in Settings | Advanced Settings | Phantom Workspaces. Moved out of the Phantom bundle so it updates like any other plugin. 0.6.2: with one project open, the hidden tab strip builds nothing at startup.",
+      "description": "All open projects in one window. With no project open, Home opens as a project window (IntelliJ's non-modal welcome screen, without JetBrains content); the Projects and Files view, selectable in every project window, lists open and recent projects by repository, worktrees under their main checkout (also ones not opened yet), with × on open ones: click to switch or open as a tab. Only the project in front has a window on screen; projects share size, position, full screen and tool window layout; detach a project or show two side by side from the list's context menu. Closing the last project brings Home back in place. Off in Settings | Advanced Settings | Phantom Workspaces, which returns the modal welcome frame; installing or removing it needs a restart.",
       "vendor": "Phantom",
       "category": "User Interface",
-      "since": "262",
+      "since": "262.261126",
       "until": "262.*",
       "depends": [
         "com.intellij.modules.platform"
       ],
       "download": "workspaces-0.7.0/workspaces-0.7.0.zip",
+      "versions": [
+        {
+          "version": "0.6.3",
+          "since": "262",
+          "until": "262.261125",
+          "download": "workspaces-0.6.3/workspaces-0.6.3.zip"
+        }
+      ],
       "detect": []
     },
     {
