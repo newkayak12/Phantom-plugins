@@ -82,7 +82,7 @@
     {
       "id": "dev.phantom.jpa",
       "name": "Support for JPA",
-      "version": "0.7.3",
+      "version": "0.7.4",
       "source": "jpa",
       "description": "JPA, Hibernate and Spring Data JPA for Java and Kotlin: JPQL in @Query with completion and errors, derived query method checks, a @Modifying check, entity mapping checks, and repository/entity gutter navigation. An Entity Diagram tool window: entities, columns and relations drawn from the code, copyable as a Mermaid erDiagram. 0.3.0: entity checks (several @Id, no-arg constructor, mappedBy, raw collections, converters), attribute checks (@Column on associations, LAZY on the inverse @OneToOne, @ManyToMany cascade REMOVE, unmapped entity fields, @Enumerated), Kotlin entity checks (kotlin-jpa/all-open, data class, val attributes, read-only collections), Lombok on entities, repository return and parameter types and Pageable. Wave 6: JPQL undeclared aliases and function arity, entity graph attributes, entity listener callback signatures. Wave 7: entity listener usage, named queries, JPQL in createQuery, Kotlin non-null vs nullable columns, Lombok @AllArgsConstructor without no-arg. Wave 9: derived query JPQL gutter, attribute <-> repository methods, @EntityGraph navigation. Wave 11: SQL injection through string-built JDBC/JPA queries, Criteria attribute names (check, completion, Ctrl+B), Jakarta Data repositories, Hibernate @Find, Spring Data JDBC aggregates and mappings.",
       "vendor": "Phantom",
@@ -93,7 +93,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "jpa-0.7.3/jpa-0.7.3.zip",
+      "download": "jpa-0.7.4/jpa-0.7.4.zip",
       "detect": [
         "org.springframework.data:spring-data-jpa",
         "org.hibernate.orm:hibernate-core",

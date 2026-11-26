@@ -2,6 +2,8 @@
 
 ## 미배포
 
+## 0.7.4 (2026-11-26)
+
 - 표시 이름을 바꿨다: Phantom for JPA → Support for JPA. 플러그인 id와 기능은 그대로다. (#136)
 - Entity Diagram 도구 창 아이콘을 Database와 같던 표 아이콘에서 선으로 이어진 엔티티 상자 두 개로 바꿨다. (#112)
 - `@Converter(autoApply = true)` 타입 목록과 Spring Data JDBC 애그리거트 루트·프로젝트 판별이 SQL·YAML·XML 입력마다 다시 계산되지 않는다. JVM 코드나 라이브러리가 바뀔 때만 다시 계산한다. (#119)
