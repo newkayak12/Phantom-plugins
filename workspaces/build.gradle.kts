@@ -1,8 +1,45 @@
 plugins {
   id("phantom-plugin")
+  // The IntelliJ welcome screen sources use @Serializable and @Composable
+  id("org.jetbrains.kotlin.plugin.serialization")
+  id("org.jetbrains.kotlin.plugin.compose")
 }
 
-version = "0.6.3"
+version = "0.7.0"
+
+dependencies {
+  // Generates the RemoteApiDescriptor of the @Rpc interface WelcomeScreenFeatureApi and passes it to remoteApiDescriptor<T>()
+  kotlinCompilerPluginClasspathMain(project(":compiler-plugins:fleet-rpc"))
+  intellijPlatform {
+    // What the IntelliJ module intellij.platform.ide.nonModalWelcomeScreen and its frontend and backend modules depend on
+    bundledModule("intellij.platform.compose")
+    bundledModule("intellij.libraries.compose.runtime.desktop")
+    bundledModule("intellij.libraries.compose.foundation.desktop")
+    bundledModule("intellij.platform.jewel.foundation")
+    bundledModule("intellij.platform.jewel.ui")
+    bundledModule("intellij.platform.jewel.ideLafBridge")
+    bundledModule("intellij.platform.jewel.markdown.ideLafBridgeStyling")
+    bundledModule("intellij.libraries.kotlinx.serialization.core")
+    bundledModule("fleet.rhizomedb")
+    bundledModule("fleet.rpc")
+    bundledModule("intellij.platform.kernel")
+    bundledModule("intellij.platform.projectFrame")
+    bundledModule("intellij.platform.welcomeScreen")
+    bundledModule("intellij.platform.backend")
+    bundledModule("intellij.platform.kernel.backend")
+    bundledModule("intellij.platform.rpc.backend")
+    bundledModule("intellij.platform.frontend")
+  }
+  // The welcome screen's IntelliJ test is JUnit Jupiter; the workspaces tests are JUnit 4, run by the vintage engine
+  testImplementation(platform("org.junit:junit-bom:6.0.3"))
+  testImplementation("org.junit.jupiter:junit-jupiter")
+  testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
+  testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+tasks.test {
+  useJUnitPlatform()
+}
 
 // Real-IDE probe: ./gradlew -PrealIde -PprobeScenario=smoke :workspaces:runIdeProbe [-PprobeOut=dir]; not part of CI or the zip
 if (providers.gradleProperty("realIde").isPresent) {

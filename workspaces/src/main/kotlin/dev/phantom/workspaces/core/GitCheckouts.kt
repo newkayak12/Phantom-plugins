@@ -12,11 +12,15 @@ import java.nio.file.Path
  */
 data class GitCheckout(val commonDir: String, val head: String, val branch: String?, val isMain: Boolean)
 
+/** A worktree a repository lists: the folder it is checked out in and its [branch]. */
+data class GitWorktree(val root: String, val branch: String?)
+
 /** Reads a project's git checkout from its `.git` entry without running git; worktrees have a `.git` file. */
 object GitCheckouts {
   private const val GITDIR = "gitdir:"
   private const val REF = "ref:"
   private const val SHORT_HASH = 7
+  private const val WORKTREES = "worktrees"
 
   /** The checkout at [root], or null when [root] has no `.git` or it cannot be read. Reads files: not on the EDT. */
   fun read(root: Path): GitCheckout? = try {
@@ -52,6 +56,35 @@ object GitCheckouts {
   catch (_: IOException) {
     path
   }
+
+  /**
+   * The worktrees of the repository whose `.git` directory is [commonDir], whether or not a project was ever opened in
+   * them (ones another tool created, say): git keeps a folder per worktree in `.git/worktrees`, whose `gitdir` file names
+   * the worktree's `.git` file (relative to that folder when git writes relative paths). A worktree whose folder is gone
+   * (prunable, in git's words) is left out. Reads files without running git: not on the EDT.
+   */
+  fun worktrees(commonDir: Path): List<GitWorktree> {
+    val folders = try {
+      Files.list(commonDir.resolve(WORKTREES)).use { s -> s.filter(Files::isDirectory).sorted().toList() }
+    }
+    catch (_: IOException) {
+      return emptyList()
+    }
+    return folders.mapNotNull { folder ->
+      try {
+        val gitdir = folder.resolve("gitdir").takeIf(Files::isRegularFile) ?: return@mapNotNull null
+        val root = folder.resolve(Files.readString(gitdir).trim()).normalize().parent?.takeIf(Files::isDirectory)
+        val head = folder.resolve("HEAD")
+        root?.let { GitWorktree(it.toString(), if (Files.isRegularFile(head)) branch(Files.readString(head)) else null) }
+      }
+      catch (_: IOException) {
+        null
+      }
+    }
+  }
+
+  /** The main checkout of the repository whose `.git` directory is [commonDir]; null for a bare repository. */
+  fun mainRoot(commonDir: Path): Path? = commonDir.takeIf { it.fileName?.toString() == ".git" }?.parent
 
   /** The branch a HEAD file's [text] names: `ref: refs/heads/main` is main, a detached commit its short hash. */
   fun branch(text: String): String? {

@@ -5,8 +5,6 @@ import dev.phantom.workspaces.core.GitCheckout
 import dev.phantom.workspaces.core.OpenProject
 import dev.phantom.workspaces.core.ProjectTabs
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ProjectTabsTest {
@@ -96,32 +94,6 @@ class ProjectTabsTest {
   }
 
   @Test
-  fun `a tab dropped at a gap moves there`() {
-    val order = listOf("a", "b", "c", "d")
-    assertEquals(listOf("b", "c", "a", "d"), ProjectTabs.moved(order, from = 0, gap = 3))
-    assertEquals(listOf("b", "c", "d", "a"), ProjectTabs.moved(order, from = 0, gap = 4))
-    assertEquals(listOf("d", "a", "b", "c"), ProjectTabs.moved(order, from = 3, gap = 0))
-    assertEquals(listOf("a", "c", "b", "d"), ProjectTabs.moved(order, from = 2, gap = 1))
-  }
-
-  @Test
-  fun `a tab dropped next to itself or out of range stays`() {
-    val order = listOf("a", "b", "c")
-    assertEquals(order, ProjectTabs.moved(order, from = 1, gap = 1))
-    assertEquals(order, ProjectTabs.moved(order, from = 1, gap = 2))
-    assertEquals(order, ProjectTabs.moved(order, from = 3, gap = 0))
-    assertEquals(order, ProjectTabs.moved(order, from = 0, gap = 4))
-  }
-
-  @Test
-  fun `the strip shows only when it is on and there is another project to switch to`() {
-    assertTrue(ProjectTabs.isStripVisible(enabled = true, tabCount = 2))
-    assertFalse(ProjectTabs.isStripVisible(enabled = true, tabCount = 1))
-    assertFalse(ProjectTabs.isStripVisible(enabled = true, tabCount = 0))
-    assertFalse(ProjectTabs.isStripVisible(enabled = false, tabCount = 3))
-  }
-
-  @Test
   fun `a project attached back comes in as the last tab`() {
     assertEquals(listOf("shop", "tools", "blog"), ProjectTabs.attached(listOf("shop", "blog", "tools"), "blog"))
     assertEquals(listOf("shop", "tools", "blog"), ProjectTabs.attached(listOf("shop", "tools"), "blog"))
@@ -138,44 +110,10 @@ class ProjectTabsTest {
   }
 
   @Test
-  fun `a tab is torn out only when dragged well beyond the strip's height, up or down`() {
-    assertFalse(ProjectTabs.isDetachDrag(dy = 30, stripHeight = 28, threshold = 5))
-    assertFalse(ProjectTabs.isDetachDrag(dy = 33, stripHeight = 28, threshold = 5))
-    assertTrue(ProjectTabs.isDetachDrag(dy = 34, stripHeight = 28, threshold = 5))
-    assertTrue(ProjectTabs.isDetachDrag(dy = -34, stripHeight = 28, threshold = 5))
-  }
-
-  @Test
   fun `both projects side by side are marked in the tabs`() {
     val tabs = ProjectTabs.tabs(listOf(shop, blog, tools), current = "blog", userHome = home, sideBySide = listOf("blog", "tools"))
     assertEquals(listOf(false, true, true), tabs.map { it.isSideBySide })
     assertEquals(listOf(false, true, false), tabs.map { it.isCurrent })
   }
 
-  @Test
-  fun `tabs that fit keep their width`() {
-    assertEquals(listOf(100, 200), ProjectTabs.fitted(listOf(100, 200), available = 400, minimum = 50))
-  }
-
-  @Test
-  fun `tabs that do not fit have the widest cut down to one width`() {
-    // 100 + 2 x 150 = 400
-    assertEquals(listOf(100, 150, 150), ProjectTabs.fitted(listOf(100, 300, 500), available = 400, minimum = 50))
-  }
-
-  @Test
-  fun `tabs never get narrower than the minimum, the rest scrolls`() {
-    val widths = ProjectTabs.fitted(listOf(300, 300, 300, 300), available = 200, minimum = 96)
-    assertEquals(listOf(96, 96, 96, 96), widths)
-    assertEquals(184, ProjectTabs.scrollOffset(500, total = widths.sum(), available = 200))
-    assertEquals(0, ProjectTabs.scrollOffset(-20, total = widths.sum(), available = 200))
-    assertEquals(0, ProjectTabs.scrollOffset(30, total = 150, available = 200))
-  }
-
-  @Test
-  fun `the current tab is scrolled into view, moving as little as needed`() {
-    assertEquals(300, ProjectTabs.reveal(0, start = 400, end = 500, available = 200))
-    assertEquals(100, ProjectTabs.reveal(300, start = 100, end = 200, available = 200))
-    assertEquals(50, ProjectTabs.reveal(50, start = 100, end = 200, available = 200))
-  }
 }

@@ -22,13 +22,15 @@ class GitCheckoutsTest {
     return path
   }
 
-  // what git worktree add writes: <worktree>/.git names the git dir, whose commondir points back to <repo>/.git
+  // what git worktree add writes: <worktree>/.git names the git dir, whose commondir points back to <repo>/.git and whose
+  // gitdir names <worktree>/.git
   private fun worktree(repo: Path, name: String, head: String, commondir: Boolean = true): Path {
     val gitDir = repo.resolve(".git/worktrees/$name")
     write(gitDir.resolve("HEAD"), head)
     if (commondir) write(gitDir.resolve("commondir"), "../..\n")
     val dir = temp.root.toPath().resolve("worktrees/$name")
     write(dir.resolve(".git"), "gitdir: $gitDir\n")
+    write(gitDir.resolve("gitdir"), "${dir.resolve(".git")}\n")
     return dir
   }
 
@@ -78,6 +80,43 @@ class GitCheckoutsTest {
     val checkout = GitCheckouts.read(tree)!!
     assertEquals("rel", checkout.branch)
     assertEquals(GitCheckouts.read(repo)!!.commonDir, checkout.commonDir)
+  }
+
+  @Test
+  fun `a repository lists its worktrees, opened or not, with their branches`() {
+    val repo = repository()
+    val feature = worktree(repo, "feature", "ref: refs/heads/feature\n")
+    val fix = worktree(repo, "fix", "3f2c1ab9d0e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8\n")
+    val listed = GitCheckouts.worktrees(repo.resolve(".git"))
+    assertEquals(listOf(feature.toString(), fix.toString()), listed.map { it.root })
+    assertEquals(listOf("feature", "3f2c1ab"), listed.map { it.branch })
+  }
+
+  @Test
+  fun `a worktree whose folder is gone is not listed, and a repository without worktrees lists none`() {
+    val repo = repository()
+    val gone = worktree(repo, "gone", "ref: refs/heads/gone\n")
+    temp.root.toPath().resolve("worktrees/gone").toFile().deleteRecursively()
+    assertTrue(gone.toString(), GitCheckouts.worktrees(repo.resolve(".git")).isEmpty())
+    assertTrue(GitCheckouts.worktrees(temp.newFolder("other", ".git").toPath()).isEmpty())
+  }
+
+  @Test
+  fun `a relative gitdir in the worktree folder is resolved against that folder`() {
+    val repo = repository()
+    val gitDir = repo.resolve(".git/worktrees/rel")
+    write(gitDir.resolve("HEAD"), "ref: refs/heads/rel\n")
+    val tree = repo.resolve("nested/rel")
+    write(tree.resolve(".git"), "gitdir: ../../.git/worktrees/rel\n")
+    write(gitDir.resolve("gitdir"), "../../../nested/rel/.git\n")
+    assertEquals(listOf(tree.toString()), GitCheckouts.worktrees(repo.resolve(".git")).map { it.root })
+  }
+
+  @Test
+  fun `the main checkout of a repository is the folder holding its git directory`() {
+    val repo = repository()
+    assertEquals(repo, GitCheckouts.mainRoot(repo.resolve(".git")))
+    assertNull(GitCheckouts.mainRoot(temp.newFolder("bare.git").toPath()))
   }
 
   @Test

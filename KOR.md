@@ -45,7 +45,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom HTTP Client | [http-client](./http-client/KOR.md) · [English](./http-client/README.md) | `.http` / `.rest` 요청을 에디터에서 실행: 환경 변수, `import` / `run`, 검사, 응답 창 |
 | Phantom Icon Pack | [icons](./icons/KOR.md) · [English](./icons/README.md) | Material 파일·폴더 아이콘; Java 파일은 찻잔, Kotlin 파일은 로고, Java 클래스는 종류별 |
 | Phantom Tab Groups | [tabs](./tabs/KOR.md) · [English](./tabs/README.md) | 브라우저처럼 에디터 탭 그룹: 이름, 색, 첫 탭으로 접기, 끌어서 넣고 빼기, 분할마다 |
-| Phantom Workspaces | [workspaces](./workspaces/KOR.md) · [English](./workspaces/README.md) | 열린 프로젝트를 한 창의 탭처럼: 에디터 위 프로젝트 탭 줄, 같은 크기·위치로 겹친 프로젝트 창 |
+| Phantom Workspaces | [workspaces](./workspaces/KOR.md) · [English](./workspaces/README.md) | 열린 프로젝트를 한 창의 탭처럼: Projects and Files에 저장소·worktree별 목록, 환영 창 대신 Home, 같은 크기·위치로 겹친 프로젝트 창 |
 | Phantom AI Integration | [ai-integrations](./ai-integrations/KOR.md) · [English](./ai-integrations/README.md) | 프로젝트 옆의 Claude Code와 Codex: 한 도구 창의 worktree·세션 트리와 에이전트 터미널, 보드 에디터 탭, 대시보드, 사용량, 다른 기기 브라우저에서의 원격 제어 |
 | Phantom AI Visualization | [ai-visualization](./ai-visualization/KOR.md) · [English](./ai-visualization/README.md) | Phantom AI Integration의 에이전트 세션을 아이소메트릭 픽셀 아트 사무실로: 프로젝트는 한 층, worktree는 책상 구역, 세션은 타이핑하고 기다리고 커피를 들고 자는 사람 한 명 |
 | Phantom Strings | [strings](./strings/KOR.md) · [English](./strings/README.md) | 선택 영역이나 캐럿의 단어에 대소문자 전환·변환, 이스케이프/인코딩, 줄 정렬·정리 (Alt+M) |

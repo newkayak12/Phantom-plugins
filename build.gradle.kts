@@ -12,8 +12,9 @@ spotless {
   providers.gradleProperty("spotlessRatchetFrom").getOrElse("origin/main").takeIf { it != "none" }?.let { ratchetFrom(it) }
   kotlin {
     target("*/src/**/*.kt")
-    // gradle-core and gradle-java are forks of IntelliJ's Gradle plugins, copied whole; their code keeps IntelliJ's form
-    targetExclude("**/build/**", "*/testData/**", "gradle-core/**", "gradle-java/**")
+    // gradle-core and gradle-java are forks of IntelliJ's Gradle plugins, copied whole; their code keeps IntelliJ's form, as
+    // does the IntelliJ welcome screen copied into workspaces (package com.intellij)
+    targetExclude("**/build/**", "*/testData/**", "gradle-core/**", "gradle-java/**", "workspaces/src/*/kotlin/com/intellij/**")
     ktlint("1.8.0")
   }
   kotlinGradle {

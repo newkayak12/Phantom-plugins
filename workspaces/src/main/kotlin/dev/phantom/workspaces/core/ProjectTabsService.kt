@@ -1,6 +1,8 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.workspaces.core
 
+import com.intellij.ide.impl.OpenProjectTask
+import com.intellij.ide.impl.ProjectUtil
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
@@ -18,6 +20,7 @@ import com.intellij.openapi.components.serviceIfCreated
 import com.intellij.openapi.options.advanced.AdvancedSettings
 import com.intellij.openapi.options.advanced.AdvancedSettingsChangeListener
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.project.ProjectCloseListener
 import com.intellij.openapi.project.ProjectNameListener
@@ -25,6 +28,7 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.openapi.wm.IdeFrame
+import com.intellij.openapi.wm.ex.WelcomeScreenProjectProvider
 import com.intellij.util.SystemProperties
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import java.awt.AWTEvent
@@ -42,25 +46,26 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * The open project windows: their tab strips and the [WindowStack] that keeps the windows on top of each other.
- * A project window joins when its strip is added to the frame and leaves when the strip is removed. EDT only.
+ * The open project windows: their (hidden) tab strips and the [WindowStack] that keeps the windows on top of each other.
+ * A project window joins when its strip is added to the frame and leaves when the strip is removed. The Projects and
+ * Files lists ([addListener]) show the open projects. EDT only.
  *
  * The platform shows a new project frame at its own saved bounds and adds the strip only after that, once the project
  * is set. So a project frame about to be shown is put where the stack is when it gets its native window, right before
  * it is shown ([placeNewFrame]); it joins later, with its strip.
  *
  * A [detachProject]ed project leaves the stack and the tabs: its window is free (never hidden, moved or resized by the
- * stack) and its strip is hidden, until [attachProject] puts it back as the last tab.
+ * stack), until [attachProject] puts it back as the last tab.
  *
  * [openSideBySide] shows two project windows side by side over the stack's area ([WindowStack.split]); both of their
- * tabs are highlighted in every strip until it ends.
+ * tabs are marked side by side until it ends.
  *
  * The git checkout of each open project is read off the EDT ([readCheckouts]) when it opens, when a project window is
  * activated and when the HEAD file of one changes in the VFS: tabs of one repository are titled by their branch, and a
  * project that opens is put next to the other tabs of its repository.
  */
 @Service(Service.Level.APP)
-class ProjectTabsService(private val scope: CoroutineScope) : Disposable {
+class ProjectTabsService(internal val scope: CoroutineScope) : Disposable {
   private val stack = WindowStack()
   private val strips = ArrayList<ProjectTabStrip>()
   private val openOrder = ArrayList<Project>()
@@ -69,6 +74,9 @@ class ProjectTabsService(private val scope: CoroutineScope) : Disposable {
   private val detached = ArrayList<Project>()
 
   private val checkouts = HashMap<Project, GitCheckout>()
+
+  // the Projects and Files lists, told whenever the strips are refreshed (projects opened, closed, reordered, renamed)
+  private val listeners = ArrayList<() -> Unit>()
 
   // projects opened whose checkout is not read yet: they move next to their repository's tabs once it is
   private val placing = ArrayList<Project>()
@@ -268,21 +276,6 @@ class ProjectTabsService(private val scope: CoroutineScope) : Disposable {
     switchTo(open[Math.floorMod(index + offset, open.size)])
   }
 
-  /** Moves the tab of [project] to [gap] between the tabs (0 before the first), in every window. */
-  @RequiresEdt
-  fun move(project: Project, gap: Int) {
-    val open = openTabs()
-    val moved = ProjectTabs.moved(open, open.indexOfFirst { it === project }, gap)
-    if (moved == open) return
-    // a tab dragged stays where it is dropped
-    placing.removeIf { it === project }
-    val rest = openOrder.filter { p -> moved.none { it === p } }
-    openOrder.clear()
-    openOrder += moved
-    openOrder += rest
-    refresh()
-  }
-
   private fun openTabs(): List<Project> =
     openOrder.filter { p -> !p.isDisposed && strips.any { it.project === p } && !isDetached(p) }
 
@@ -370,6 +363,31 @@ class ProjectTabsService(private val scope: CoroutineScope) : Disposable {
     refresh()
   }
 
+  /** Calls [listener] on the EDT whenever the open projects change, until [parent] is disposed. */
+  @RequiresEdt
+  internal fun addListener(parent: Disposable, listener: () -> Unit) {
+    listeners += listener
+    Disposer.register(parent) { listeners.remove(listener) }
+  }
+
+  /** The open projects in tab order, detached ones included; not Home, the welcome screen project. */
+  internal fun openProjects(): List<Project> =
+    openOrder.filter { !it.isDisposed && !WelcomeScreenProjectProvider.isWelcomeScreenProject(it) }
+
+  /**
+   * Opens the project at [path] as a tab of the window. From Home ([from] is the welcome screen project) the platform
+   * closes Home and the project takes its frame, as it does for every project opened from a welcome screen project.
+   */
+  fun open(path: Path, from: Project?) {
+    val home = from?.takeIf { WelcomeScreenProjectProvider.isWelcomeScreenProject(it) }
+    scope.launch {
+      ProjectUtil.openOrImportAsync(path, OpenProjectTask {
+        projectToClose = home
+        forceOpenInNewFrame = home == null
+      })
+    }
+  }
+
   /** Closes [project] the way File | Close Project does (the welcome screen comes back after the last one). */
   @RequiresEdt
   fun close(project: Project) {
@@ -396,18 +414,18 @@ class ProjectTabsService(private val scope: CoroutineScope) : Disposable {
   @RequiresEdt
   private fun refresh() {
     val open = openTabs().map { OpenProject(it, it.name, it.presentableUrl, checkouts[it]) }
-    val visible = ProjectTabs.isStripVisible(isEnabled, open.size)
     val sideBySide = sideBySide()
     val home = SystemProperties.getUserHome()
     for (strip in strips) {
       if (isDetached(strip.project)) {
-        // a window of its own: no strip; Window | Attach to Project Tabs takes it back
-        strip.display(ProjectTabs.tabs(listOf(OpenProject(strip.project, strip.project.name, strip.project.presentableUrl)), strip.project, home), false)
+        // a window of its own, its only tab; Window | Attach to Project Tabs takes it back
+        strip.display(ProjectTabs.tabs(listOf(OpenProject(strip.project, strip.project.name, strip.project.presentableUrl)), strip.project, home))
       }
       else {
-        strip.display(ProjectTabs.tabs(open, strip.project, home, sideBySide), visible)
+        strip.display(ProjectTabs.tabs(open, strip.project, home, sideBySide))
       }
     }
+    listeners.toList().forEach { it() }
   }
 
   companion object {
