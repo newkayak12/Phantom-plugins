@@ -185,6 +185,7 @@ class ProjectsList(private val project: Project, parent: Disposable) {
       exit.addActionListener { service.exitSideBySide(project) }
       menu.add(exit)
     }
+    addRename(menu, row)
     menu.show(list, point.x, point.y)
   }
 
@@ -201,7 +202,17 @@ class ProjectsList(private val project: Project, parent: Disposable) {
     delete.isEnabled = kind != FolderDeletion.NONE
     delete.addActionListener { deleteFolder(project, row, kind) { reload() } }
     menu.add(delete)
+    addRename(menu, row)
     menu.show(list, point.x, point.y)
+  }
+
+  // a linked worktree: its folder is renamed with git; an open one is refused with a message saying so
+  private fun addRename(menu: JBPopupMenu, row: WorkspaceRow) {
+    if (!row.isIndented || row.isMain || row.repository == null) return
+    val rename = JBMenuItem(PhantomWorkspacesBundle.message("list.rename.worktree"))
+    rename.addActionListener { WorktreeRename.rename(project, row.path) { reload() } }
+    menu.addSeparator()
+    menu.add(rename)
   }
 
   private inner class Renderer : ListCellRenderer<WorkspaceRow> {
