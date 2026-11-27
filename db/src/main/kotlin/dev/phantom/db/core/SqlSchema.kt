@@ -22,7 +22,10 @@ import dev.phantom.db.core.exec.DbSchemaChoice
 import dev.phantom.db.core.exec.DbSchemaRef
 import dev.phantom.db.core.exec.DbTableRef
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Job
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /**
  * What is known of a data source: its schema names, and the tables of the schemas loaded so far (always the current
@@ -220,14 +223,27 @@ class SqlSchema(private val project: Project) {
 
   private fun await(job: CompletableDeferred<Unit>) {
     if (ApplicationManager.getApplication().isDispatchThread) return
-    val deadline = System.currentTimeMillis() + WAIT_MS
-    while (!job.isCompleted && System.currentTimeMillis() < deadline) {
-      ProgressManager.checkCanceled()
-      Thread.sleep(10)
-    }
+    awaitCancellably(job, WAIT_MS)
   }
 
   companion object {
+    /**
+     * Blocks until [job] completes or [timeoutMs] pass, waking at once on completion instead of sleeping between polls.
+     * The timed waits let a canceled progress (the user typed on) end the wait with ProcessCanceledException.
+     */
+    internal fun awaitCancellably(job: Job, timeoutMs: Long) {
+      val done = CountDownLatch(1)
+      job.invokeOnCompletion { done.countDown() }
+      val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs)
+      while (true) {
+        ProgressManager.checkCanceled()
+        val left = deadline - System.nanoTime()
+        if (left <= 0 || done.await(minOf(left, CANCEL_CHECK_NS), TimeUnit.NANOSECONDS)) return
+      }
+    }
+
+    private val CANCEL_CHECK_NS = TimeUnit.MILLISECONDS.toNanos(20)
+
     /** The chosen schema if the data source lists it, else the default one, which the cache lists first. */
     private fun pick(schemas: List<DbSchemaRef>, chosen: DbSchemaChoice?): DbSchemaRef? {
       val named = chosen?.takeUnless { it.isDefault }?.let { c -> schemas.filter { SqlNames.same(it.name, c.name) } }.orEmpty()
