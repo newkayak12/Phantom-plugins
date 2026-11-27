@@ -1,6 +1,8 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.spring.core.ide
 
+import dev.phantom.spring.core.GhostMode
+import com.intellij.psi.PsiFile
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
 import com.intellij.codeInspection.AbstractBaseUastLocalInspectionTool
@@ -162,6 +164,7 @@ internal class PointcutReader(private val text: String) {
  * parameter of the advice method. Only expressions that are a single string literal are checked.
  */
 class AopPointcutInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!AopModel.isAopProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -229,6 +232,8 @@ class AopAdviceLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getIcon(): Icon = AllIcons.Nodes.Aspect
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+
+    if (GhostMode.enabled) return null
     if (element.firstChild != null) return null
     if ((element.parent as? PsiNameIdentifierOwner)?.nameIdentifier != element) return null
     if (!AopModel.isAopProject(element.project)) return null
@@ -251,6 +256,7 @@ private fun isType(type: com.intellij.psi.PsiType?, fqn: String): Boolean =
  * return value is lost), and a `ProceedingJoinPoint` parameter on any other advice (error).
  */
 class AopAdviceSignatureInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!AopModel.isAopProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -299,6 +305,7 @@ class AopAdviceSignatureInspection : AbstractBaseUastLocalInspectionTool() {
  * never runs. `if()` pointcuts, whose static boolean method is the condition, are left alone.
  */
 class AopPointcutMethodInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!AopModel.isAopProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -324,6 +331,7 @@ class AopPointcutMethodInspection : AbstractBaseUastLocalInspectionTool() {
  * `ProceedingJoinPoint` or `JoinPoint.StaticPart` may be left out. Any other count fails when the aspect is built.
  */
 class AopArgNamesInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!AopModel.isAopProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -345,6 +353,7 @@ class AopArgNamesInspection : AbstractBaseUastLocalInspectionTool() {
 
 /** `@DeclareParents` on a field whose type is not an interface, or with a `defaultImpl` that is abstract or does not implement it. */
 class AopDeclareParentsInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!AopModel.isAopProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {

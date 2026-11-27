@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.spring.core.ide
 
+import dev.phantom.spring.core.GhostMode
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
 import com.intellij.codeInsight.navigation.NavigationGutterIconBuilder
@@ -24,6 +25,8 @@ open class SpringBeanLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getIcon(): Icon = PhantomSpringIcons.Bean
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+
+    if (GhostMode.enabled) return null
     if (element.firstChild != null) return null
     val owner = element.parent as? PsiNameIdentifierOwner ?: return null
     if (owner.nameIdentifier != element) return null

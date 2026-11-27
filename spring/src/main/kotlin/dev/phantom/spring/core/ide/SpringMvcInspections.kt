@@ -1,6 +1,8 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.spring.core.ide
 
+import dev.phantom.spring.core.GhostMode
+import com.intellij.psi.PsiFile
 import com.intellij.codeInsight.daemon.GutterIconNavigationHandler
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
@@ -54,6 +56,7 @@ object SpringPathVariables {
  * or a command object may bind them by property name.
  */
 class SpringMvcPathVariableInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SpringProjectGate.isSpringProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -127,6 +130,8 @@ class SpringEndpointLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getIcon(): Icon = AllIcons.Webreferences.Server
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+
+    if (GhostMode.enabled) return null
     if (element.firstChild != null) return null
     if ((element.parent as? PsiNameIdentifierOwner)?.nameIdentifier != element) return null
     if (!SpringProjectGate.isSpringProject(element.project)) return null

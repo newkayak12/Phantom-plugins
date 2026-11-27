@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.spring.core.ide
 
+import dev.phantom.spring.core.GhostMode
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
 import com.intellij.codeInsight.navigation.NavigationGutterIconBuilder
@@ -88,6 +89,7 @@ class SpringEventLineMarkerProvider : LineMarkerProviderDescriptor() {
   // resolving publishEvent calls and the annotations of every method is too slow for the pass that runs on each
   // visible leaf while typing (LineMarkerProvider's contract); the slow pass runs once the file is highlighted
   override fun collectSlowLineMarkers(elements: List<PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
+    if (GhostMode.enabled) return
     for (element in elements) {
       ProgressManager.checkCanceled()
       markerFor(element)?.let(result::add)

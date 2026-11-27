@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.spring.messaging
 
+import dev.phantom.spring.core.GhostMode
 import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
@@ -314,6 +315,8 @@ class MessagingLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getIcon(): Icon = AllIcons.Gutter.ExtAnnotation
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+
+    if (GhostMode.enabled) return null
     // only the sites at this element; the project-wide list is read when the targets are shown
     val sites = sites(element, MessagingModel::localSitesAt).ifEmpty { return null }
     val sends = sites.first().sends

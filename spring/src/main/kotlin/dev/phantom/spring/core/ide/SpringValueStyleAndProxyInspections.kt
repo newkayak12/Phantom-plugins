@@ -26,6 +26,7 @@ import org.jetbrains.uast.visitor.AbstractUastNonRecursiveVisitor
  * the key), and a bare `{key}` that probably lost its `$`.
  */
 class SpringValueStyleInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SpringProjectGate.isSpringProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -79,6 +80,7 @@ class SpringValueStyleInspection : AbstractBaseUastLocalInspectionTool() {
  * of the `@Enable*` annotations must say `proxyTargetClass = false` with none saying `true`.
  */
 class SpringJdkProxyInjectionInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     val project = holder.project
     if (!SpringProjectGate.isSpringProject(project) || SpringBeans.isInTestSources(holder.file)) return PsiElementVisitor.EMPTY_VISITOR

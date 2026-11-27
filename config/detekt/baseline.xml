@@ -577,6 +577,7 @@
     <ID>CyclomaticComplexMethod:SpringMessaging.kt:MessagingModel$private fun refersTo: Boolean</ID>
     <ID>CyclomaticComplexMethod:SpringProxyLineMarkers.kt:AopAdviceMatching.Evaluator$private fun designator: Match</ID>
     <ID>CyclomaticComplexMethod:SpringProxyLineMarkers.kt:AopAdviceMatching.Evaluator$private fun execution: Match</ID>
+    <ID>CyclomaticComplexMethod:SpringProxyLineMarkers.kt:AopAdvisedMethodLineMarkerProvider$override fun getLineMarkerInfo: LineMarkerInfo&lt;*>?</ID>
     <ID>CyclomaticComplexMethod:SpringValueAndCacheInspections.kt:SpringElSyntaxInspection.Companion$fun expressionError: String?</ID>
     <ID>CyclomaticComplexMethod:SqlCompletionContext.kt:SqlCompletionKeywords.Companion$fun at: SqlCompletionKeywords</ID>
     <ID>CyclomaticComplexMethod:SqlDdlInspections.kt:SqlAddNotNullColumnInspection$override fun checkDdl</ID>

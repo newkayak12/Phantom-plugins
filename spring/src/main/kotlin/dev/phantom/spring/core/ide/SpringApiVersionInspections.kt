@@ -1,6 +1,8 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.spring.core.ide
 
+import dev.phantom.spring.core.GhostMode
+import com.intellij.psi.PsiFile
 import com.intellij.codeInspection.AbstractBaseUastLocalInspectionTool
 import com.intellij.codeInspection.LocalInspectionToolSession
 import com.intellij.codeInspection.ProblemsHolder
@@ -83,6 +85,7 @@ object SpringApiVersioning {
 
 /** A mapping with `version` in a project with no API versioning configured: the context fails at startup. */
 class SpringApiVersionNotConfiguredInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SpringApiVersioning.isAvailable(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -100,6 +103,7 @@ class SpringApiVersionNotConfiguredInspection : AbstractBaseUastLocalInspectionT
 
 /** A `version` the default semantic parser cannot read, such as `1.x` or `v1-beta`. */
 class SpringApiVersionSyntaxInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SpringApiVersioning.isAvailable(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
