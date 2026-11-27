@@ -1,10 +1,8 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package com.intellij.platform.recentFiles.frontend
 
 import com.intellij.ide.actions.OpenInRightSplitAction.Companion.openInRightSplit
-import com.intellij.ide.lightEdit.LightEdit
-import com.intellij.ide.lightEdit.LightEditFeatureUsagesUtil
-import com.intellij.ide.lightEdit.LightEditFeatureUsagesUtil.OpenPlace
 import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -78,9 +76,7 @@ internal fun openEditorForFile(
             window = null,
             options = FileEditorOpenOptions(requestFocus = true, reuseOpen = true, waitForCompositeOpen = false),
           )
-          if (LightEdit.owns(project)) {
-            LightEditFeatureUsagesUtil.logFileOpen(project, file, OpenPlace.RecentFiles)
-          }
+          // phantom-idea: a file opened from here in LightEdit is not logged to usage statistics (LightEditFeatureUsagesUtil.logFileOpen)
           if (oldValue) {
             settings.reuseNotModifiedTabs = true
           }
