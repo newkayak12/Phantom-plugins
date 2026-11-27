@@ -112,4 +112,59 @@ class KafkaSessionTest : TestCase() {
     assertTrue(loads.partitions.isCurrent(b, "B"))
     assertTrue(loads.messages.isCurrent(m, "B"))
   }
+
+  fun testSinceStartsAtTheOffsetForTheTimeOrAtTheEnd() {
+    val tps = (0..1).map { TopicPartition("t", it) }
+    val begin = tps.associateWith { 0L }
+    val end = tps.associateWith { 10L }
+    var askedFor = 0L
+    val from = KafkaSession.startOffsets(KafkaStart.Since(1_000, 5), 5, tps, begin, end) { epochMs ->
+      askedFor = epochMs
+      mapOf(tps[0] to 4L, tps[1] to null)
+    }
+    assertEquals(1_000L, askedFor)
+    // partition 1 has nothing that new: it starts at its end and reads nothing
+    assertEquals(mapOf(tps[0] to 4L, tps[1] to 10L), from)
+    assertEquals(mapOf(tps[0] to 5L, tps[1] to 0L),
+                 KafkaSession.startOffsets(KafkaStart.Latest(5), 5, tps, mapOf(tps[0] to 0L, tps[1] to 0L), mapOf(tps[0] to 10L, tps[1] to 3L)) { fail(); emptyMap() })
+  }
+
+  fun testGroupLagSumsPerTopicAndKeepsFailedGroups() {
+    val a0 = TopicPartition("a", 0)
+    val a1 = TopicPartition("a", 1)
+    val b0 = TopicPartition("b", 0)
+    val rows = KafkaSession.groupLags(
+      listOf("g2", "g1", "g3"),
+      mapOf("g1" to ("STABLE" to 2), "g2" to ("EMPTY" to 0)),
+      mapOf("g1" to Result.success(mapOf(a0 to 5L, a1 to 9L, b0 to 7L)),
+            "g2" to Result.success(emptyMap()),
+            "g3" to Result.failure(java.util.concurrent.ExecutionException(RuntimeException("not authorized")))),
+      // b0's end is unknown (its topic was deleted); a committed offset past the end counts as no lag
+      mapOf(a0 to 10L, a1 to 8L),
+    )
+    assertEquals(listOf(
+      KafkaGroupLag("g1", "STABLE", "a", 5, 2),
+      KafkaGroupLag("g1", "STABLE", "b", 0, 2),
+      KafkaGroupLag("g2", "EMPTY", "", 0, 0),
+      KafkaGroupLag("g3", "UNKNOWN", "", 0, 0, "not authorized"),
+    ), rows)
+  }
+
+  fun testReadKeepsAtMostMaxTotalRecords() {
+    val partitions = KafkaSession.MAX_TOTAL_RECORDS / 100 + 1
+    val consumer = MockConsumer<ByteArray, ByteArray>(OffsetResetStrategy.NONE)
+    val tps = (0 until partitions).map { TopicPartition("t", it) }
+    consumer.updatePartitions("t", tps.map { PartitionInfo("t", it.partition(), null, emptyArray(), emptyArray()) })
+    consumer.updateBeginningOffsets(tps.associateWith { 0L })
+    consumer.updateEndOffsets(tps.associateWith { 200L })
+    consumer.schedulePollTask {
+      for (tp in tps) for (o in consumer.position(tp) until 200L) consumer.addRecord(ConsumerRecord("t", tp.partition(), o, null, ByteArray(0)))
+    }
+    val result = KafkaSession.read(consumer, "t", KafkaStart.Earliest(100), 5_000) { false }
+    val limit = KafkaSession.MAX_TOTAL_RECORDS / partitions
+    assertEquals(limit, result.perPartitionLimit)
+    assertEquals(limit * partitions, result.messages.size)
+    assertTrue(result.messages.size <= KafkaSession.MAX_TOTAL_RECORDS)
+    assertFalse(result.partial)
+  }
 }

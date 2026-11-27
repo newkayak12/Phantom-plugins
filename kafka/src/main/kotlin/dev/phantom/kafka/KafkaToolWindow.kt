@@ -58,32 +58,34 @@ private class RowsModel<T>(private val columns: List<String>, private val cells:
  */
 class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(BorderLayout()), Disposable {
   private val executor = AppExecutorUtil.createBoundedApplicationPoolExecutor("Kafka Support", 1)
+  // Reads get their own thread: a read waits up to its timeout, which would otherwise hold back listing groups or partitions.
+  private val readExecutor = AppExecutorUtil.createBoundedApplicationPoolExecutor("Kafka Support Reads", 1)
   private val clusters = ComboBox<KafkaCluster>()
   private val topicFilter = SearchTextField(false)
-  private val showInternal = JBCheckBox("Internal")
+  private val showInternal = JBCheckBox(KafkaBundle.message("toolwindow.internal"))
   private var allTopics: List<KafkaTopic> = emptyList()
   private val topicsModel = DefaultListModel<KafkaTopic>()
   private val topics = JBList(topicsModel)
   private val status = JBLabel().apply { border = JBUI.Borders.empty(2, 6); foreground = UIUtil.getContextHelpForeground() }
 
-  private val messagesModel = RowsModel<KafkaMessage>(listOf("Partition", "Offset", "Time", "Key", "Value")) {
+  private val messagesModel = RowsModel<KafkaMessage>(columns("partition", "offset", "time", "key", "value")) {
     listOf(it.partition, it.offset, TIME.format(Date(it.timestamp)), it.key ?: "", it.value?.replace('\n', ' ') ?: "null")
   }
   private val messages = JBTable(messagesModel)
-  private val startMode = ComboBox(arrayOf("Latest", "Earliest", "Since minutes ago"))
+  private val startMode = ComboBox(arrayOf(KafkaBundle.message("start.latest"), KafkaBundle.message("start.earliest"), KafkaBundle.message("start.since")))
   private val count = JBIntSpinner(50, 1, 10_000)
   private val minutes = JBIntSpinner(15, 1, 60 * 24 * 30)
 
   private val produceKey = JBTextField()
   private val produceValue = JBTextArea(6, 40)
-  private val produceHeaders = JBTextArea(2, 40).apply { emptyText.text = "name=value per line" }
-  private val producePartition = JBTextField().apply { emptyText.text = "any" }
+  private val produceHeaders = JBTextArea(2, 40).apply { emptyText.text = KafkaBundle.message("produce.headers.empty") }
+  private val producePartition = JBTextField().apply { emptyText.text = KafkaBundle.message("produce.partition.empty") }
 
-  private val partitionsModel = RowsModel<KafkaPartition>(listOf("Partition", "Leader", "Replicas", "In sync", "First offset", "End offset", "Messages")) {
+  private val partitionsModel = RowsModel<KafkaPartition>(columns("partition", "leader", "replicas", "in.sync", "first.offset", "end.offset", "messages")) {
     listOf(it.partition, it.leader, it.replicas, it.inSync, it.begin, it.end, it.end - it.begin)
   }
-  private val groupsModel = RowsModel<KafkaGroupLag>(listOf("Group", "State", "Members", "Topic", "Lag")) {
-    listOf(it.group, it.state, it.members, it.topic, it.lag)
+  private val groupsModel = RowsModel<KafkaGroupLag>(columns("group", "state", "members", "topic", "lag")) {
+    listOf(it.group, it.state, it.members, it.error?.let { e -> KafkaBundle.message("group.offsets.failed", e) } ?: it.topic, it.lag)
   }
   private val tabs = JBTabbedPane()
   private val reads = KafkaTopicLoads()
@@ -110,14 +112,14 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
     })
     showInternal.addActionListener { loadTopics() }
 
-    messages.emptyText.text = "Choose a topic, then Read"
+    messages.emptyText.text = KafkaBundle.message("messages.empty.choose")
     object : DoubleClickListener() {
       override fun onDoubleClick(event: MouseEvent): Boolean { showMessage(); return true }
     }.installOn(messages)
 
-    val read = JButton("Read").apply { addActionListener { readMessages() } }
+    val read = JButton(KafkaBundle.message("button.read")).apply { addActionListener { readMessages() } }
     val readBar = JPanel(FlowLayout(FlowLayout.LEFT, JBUI.scale(6), 0)).apply {
-      add(startMode); add(JBLabel("count per partition:")); add(count); add(JBLabel("minutes:")); add(minutes); add(read)
+      add(startMode); add(JBLabel(KafkaBundle.message("label.count.per.partition"))); add(count); add(JBLabel(KafkaBundle.message("label.minutes"))); add(minutes); add(read)
     }
     minutes.isVisible = false
     startMode.addActionListener { minutes.isVisible = startMode.selectedIndex == 2; readBar.revalidate() }
@@ -125,29 +127,29 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
       add(readBar, BorderLayout.NORTH)
       add(ScrollPaneFactory.createScrollPane(messages, true), BorderLayout.CENTER)
     }
-    val send = JButton("Send").apply { addActionListener { produce() } }
+    val send = JButton(KafkaBundle.message("button.send")).apply { addActionListener { produce() } }
     val produceTab = FormBuilder.createFormBuilder()
-      .addLabeledComponent("Key:", produceKey)
-      .addLabeledComponent("Value:", JBScrollPane(produceValue), true)
-      .addLabeledComponent("Headers:", JBScrollPane(produceHeaders), true)
-      .addLabeledComponent("Partition:", producePartition)
+      .addLabeledComponent(KafkaBundle.message("label.key"), produceKey)
+      .addLabeledComponent(KafkaBundle.message("label.value"), JBScrollPane(produceValue), true)
+      .addLabeledComponent(KafkaBundle.message("label.headers"), JBScrollPane(produceHeaders), true)
+      .addLabeledComponent(KafkaBundle.message("label.partition"), producePartition)
       .addComponent(send)
       .addComponentFillVertically(JPanel(), 0)
       .panel.apply { border = JBUI.Borders.empty(6) }
-    tabs.addTab("Messages", messagesTab)
-    tabs.addTab("Send", produceTab)
-    tabs.addTab("Partitions", ScrollPaneFactory.createScrollPane(JBTable(partitionsModel), true))
-    tabs.addTab("Consumer Groups", ScrollPaneFactory.createScrollPane(JBTable(groupsModel), true))
+    tabs.addTab(KafkaBundle.message("tab.messages"), messagesTab)
+    tabs.addTab(KafkaBundle.message("tab.send"), produceTab)
+    tabs.addTab(KafkaBundle.message("tab.partitions"), ScrollPaneFactory.createScrollPane(JBTable(partitionsModel), true))
+    tabs.addTab(KafkaBundle.message("tab.groups"), ScrollPaneFactory.createScrollPane(JBTable(groupsModel), true))
     tabs.addChangeListener { if (tabs.selectedIndex == 3) loadGroups() else if (tabs.selectedIndex == 2) loadPartitions() }
 
     val actions = DefaultActionGroup(
-      action("Add Cluster…", AllIcons.General.Add) { editCluster(KafkaCluster()) },
-      action("Edit Cluster…", AllIcons.Actions.Edit) { (clusters.selectedItem as? KafkaCluster)?.let { editCluster(it.copy()) } },
-      action("Remove Cluster", AllIcons.General.Remove) { removeCluster() },
+      action(KafkaBundle.message("action.add.cluster"), AllIcons.General.Add) { editCluster(KafkaCluster()) },
+      action(KafkaBundle.message("action.edit.cluster"), AllIcons.Actions.Edit) { (clusters.selectedItem as? KafkaCluster)?.let { editCluster(it.copy()) } },
+      action(KafkaBundle.message("action.remove.cluster"), AllIcons.General.Remove) { removeCluster() },
       Separator.getInstance(),
-      action("Refresh", AllIcons.Actions.Refresh) { loadTopics() },
-      action("Create Topic…", AllIcons.Actions.AddList) { createTopic() },
-      action("Delete Topic…", AllIcons.Actions.GC) { deleteTopic() },
+      action(KafkaBundle.message("action.refresh"), AllIcons.Actions.Refresh) { loadTopics() },
+      action(KafkaBundle.message("action.create.topic"), AllIcons.Actions.AddList) { createTopic() },
+      action(KafkaBundle.message("action.delete.topic"), AllIcons.Actions.GC) { deleteTopic() },
     )
     val toolbar = ActionManager.getInstance().createActionToolbar("PhantomKafka", actions, true).apply { targetComponent = this@KafkaPanel }
     val top = JPanel(BorderLayout()).apply {
@@ -205,7 +207,7 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
   private fun removeCluster() {
     val cluster = clusters.selectedItem as? KafkaCluster ?: return
     if (cluster.id == KafkaClusters.LOCAL_ID) return
-    if (Messages.showYesNoDialog(project, "Remove $cluster?", "Remove Kafka Cluster", null) != Messages.YES) return
+    if (Messages.showYesNoDialog(project, KafkaBundle.message("remove.cluster.message", cluster), KafkaBundle.message("remove.cluster.title"), null) != Messages.YES) return
     val clusters = KafkaClusters.getInstance(project)
     clusters.remove(cluster.id)
     // The password safe may block on the OS keychain.
@@ -213,10 +215,19 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
     reloadClusters(null)
   }
 
-  /** [current] false when the result arrives means it no longer belongs on screen: dropped, status included. */
-  private fun <T> onSession(what: String, task: (KafkaSession) -> T, current: () -> Boolean = { true }, done: (T) -> Unit) {
+  /**
+   * [current] false when the result arrives means it no longer belongs on screen: dropped, status included. A [read]
+   * runs on its own thread with a session of its own, which holds no client besides the consumer it closes.
+   */
+  private fun <T> onSession(what: String, task: (KafkaSession) -> T, current: () -> Boolean = { true }, read: Boolean = false, done: (T) -> Unit) {
     val cluster = clusters.selectedItem as? KafkaCluster ?: return
-    status.text = "$what…"
+    status.text = KafkaBundle.message("status.working", what)
+    if (read) {
+      readExecutor.execute {
+        deliver(runCatching { KafkaSession(cluster.bootstrap, KafkaClusters.getInstance(project).properties(cluster.id)).use(task) }, current, done)
+      }
+      return
+    }
     executor.execute {
       val result = runCatching {
         val s = session?.takeIf { sessionFor == cluster.id } ?: run {
@@ -225,22 +236,26 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
         }
         task(s)
       }
-      ApplicationManager.getApplication().invokeLater({
-        if (!current()) return@invokeLater
-        result.fold({ status.text = ""; done(it) }) { e ->
-          val cause = if (e is ExecutionException) e.cause ?: e else e
-          status.text = "${cause.javaClass.simpleName}: ${cause.message ?: ""}".take(200)
-        }
-      }, ModalityState.any()) { Disposer.isDisposed(this) }
+      deliver(result, current, done)
     }
+  }
+
+  private fun <T> deliver(result: Result<T>, current: () -> Boolean, done: (T) -> Unit) {
+    ApplicationManager.getApplication().invokeLater({
+      if (!current()) return@invokeLater
+      result.fold({ status.text = ""; done(it) }) { e ->
+        val cause = if (e is ExecutionException) e.cause ?: e else e
+        status.text = "${cause.javaClass.simpleName}: ${cause.message ?: ""}".take(200)
+      }
+    }, ModalityState.any()) { Disposer.isDisposed(this) }
   }
 
   private fun loadTopics() {
     reads.invalidate()
-    onSession("Loading topics", { it.topics(showInternal.isSelected) }) { list ->
+    onSession(KafkaBundle.message("status.loading.topics"), { it.topics(showInternal.isSelected) }) { list ->
       allTopics = list
       showTopics()
-      status.text = "${list.size} topics"
+      status.text = KafkaBundle.message("status.topics", list.size.toString())
     }
   }
 
@@ -250,7 +265,7 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
     topicsModel.clear()
     allTopics.filter { query.isEmpty() || query in it.name.lowercase() }.forEach(topicsModel::addElement)
     (0 until topicsModel.size()).firstOrNull { topicsModel[it].name == selected }?.let { topics.selectedIndex = it }
-    topics.emptyText.text = if (allTopics.isEmpty()) "No topics" else "No topic matches"
+    topics.emptyText.text = if (allTopics.isEmpty()) KafkaBundle.message("topics.empty") else KafkaBundle.message("topics.no.match")
   }
 
   private fun topicSelected() {
@@ -268,10 +283,10 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
       1 -> KafkaStart.Earliest(n)
       else -> KafkaStart.Since(System.currentTimeMillis() - minutes.number * 60_000L, n)
     }
-    messages.emptyText.text = "Reading…"
+    messages.emptyText.text = KafkaBundle.message("messages.reading")
     val request = reads.messages.start(topic)
-    onSession("Reading $topic", { it.consume(topic, start, cancelled = { request.cancelled }) },
-              { reads.messages.isCurrent(request, topics.selectedValue?.name) }) { result ->
+    onSession(KafkaBundle.message("status.reading", topic), { it.consume(topic, start, cancelled = { request.cancelled }) },
+              { reads.messages.isCurrent(request, topics.selectedValue?.name) }, read = true) { result ->
       messagesModel.rows = result.messages
       val (empty, summary) = KafkaReads.describe(result)
       messages.emptyText.text = empty
@@ -290,7 +305,7 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
     }
     val area = JBTextArea(text).apply { isEditable = false; font = JBUI.Fonts.create(java.awt.Font.MONOSPACED, font.size) }
     val dialog = object : com.intellij.openapi.ui.DialogWrapper(project) {
-      init { title = "Message"; setOKButtonText("Copy Value"); init() }
+      init { title = KafkaBundle.message("message.dialog.title"); setOKButtonText(KafkaBundle.message("message.dialog.copy")); init() }
       override fun createCenterPanel(): JComponent = JBScrollPane(area).apply { preferredSize = JBUI.size(640, 420) }
       override fun doOKAction() { CopyPasteManager.getInstance().setContents(StringSelection(m.value ?: "")); super.doOKAction() }
     }
@@ -298,44 +313,44 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
   }
 
   private fun produce() {
-    val topic = topics.selectedValue?.name ?: run { status.text = "Choose a topic first"; return }
+    val topic = topics.selectedValue?.name ?: run { status.text = KafkaBundle.message("status.choose.topic"); return }
     val key = produceKey.text.takeIf { it.isNotEmpty() }
     val value = produceValue.text
     val headers = KafkaText.headers(produceHeaders.text)
     val partition = producePartition.text.trim().toIntOrNull()
-    onSession("Sending to $topic", { it.produce(topic, key, value, headers, partition) }) { (p, offset) ->
-      status.text = "Sent to partition $p at offset $offset"
+    onSession(KafkaBundle.message("status.sending", topic), { it.produce(topic, key, value, headers, partition) }) { (p, offset) ->
+      status.text = KafkaBundle.message("status.sent", p.toString(), offset.toString())
     }
   }
 
   private fun loadPartitions() {
     val topic = topics.selectedValue?.name ?: return
     val request = reads.partitions.start(topic)
-    onSession("Describing $topic", { it.partitions(topic) }, { reads.partitions.isCurrent(request, topics.selectedValue?.name) }) {
+    onSession(KafkaBundle.message("status.describing", topic), { it.partitions(topic) }, { reads.partitions.isCurrent(request, topics.selectedValue?.name) }) {
       partitionsModel.rows = it
     }
   }
 
   private fun loadGroups() {
-    onSession("Loading consumer groups", { it.groups() }) { groupsModel.rows = it }
+    onSession(KafkaBundle.message("status.loading.groups"), { it.groups() }) { groupsModel.rows = it }
   }
 
   private fun createTopic() {
-    val name = Messages.showInputDialog(project, "Topic name:", "Create Topic", null)?.trim()?.takeIf { it.isNotEmpty() } ?: return
-    val partitions = Messages.showInputDialog(project, "Partitions:", "Create Topic", null, "3", null)?.trim()?.toIntOrNull() ?: return
+    val name = Messages.showInputDialog(project, KafkaBundle.message("create.topic.name"), KafkaBundle.message("create.topic.title"), null)?.trim()?.takeIf { it.isNotEmpty() } ?: return
+    val partitions = Messages.showInputDialog(project, KafkaBundle.message("create.topic.partitions"), KafkaBundle.message("create.topic.title"), null, "3", null)?.trim()?.toIntOrNull() ?: return
     // empty (the default): the cluster's default.replication.factor, not a value that would override it
-    val typed = Messages.showInputDialog(project, "Replication factor (empty: the cluster's default):", "Create Topic", null, "", null)?.trim() ?: return
+    val typed = Messages.showInputDialog(project, KafkaBundle.message("create.topic.replication"), KafkaBundle.message("create.topic.title"), null, "", null)?.trim() ?: return
     val replication = if (typed.isEmpty()) null else typed.toShortOrNull() ?: return
     if (replication == 1.toShort() && Messages.showOkCancelDialog(project,
-        "'$name' will have a single replica: its data is lost if that broker fails. Create it anyway?",
-        "Create Topic", "Create", Messages.getCancelButton(), Messages.getWarningIcon()) != Messages.OK) return
-    onSession("Creating $name", { it.createTopic(name, partitions, replication) }) { loadTopics() }
+        KafkaBundle.message("create.topic.single.replica", name),
+        KafkaBundle.message("create.topic.title"), KafkaBundle.message("create.topic.create"), Messages.getCancelButton(), Messages.getWarningIcon()) != Messages.OK) return
+    onSession(KafkaBundle.message("status.creating", name), { it.createTopic(name, partitions, replication) }) { loadTopics() }
   }
 
   private fun deleteTopic() {
     val topic = topics.selectedValue?.name ?: return
-    if (Messages.showYesNoDialog(project, "Delete topic '$topic' and all its messages?", "Delete Topic", Messages.getWarningIcon()) != Messages.YES) return
-    onSession("Deleting $topic", { it.deleteTopic(topic) }) { loadTopics() }
+    if (Messages.showYesNoDialog(project, KafkaBundle.message("delete.topic.message", topic), KafkaBundle.message("delete.topic.title"), Messages.getWarningIcon()) != Messages.YES) return
+    onSession(KafkaBundle.message("status.deleting", topic), { it.deleteTopic(topic) }) { loadTopics() }
   }
 
   private fun closeSession() {
@@ -352,6 +367,8 @@ class KafkaPanel(private val project: Project, parent: Disposable) : JPanel(Bord
   override fun dispose() = closeSession()
 
   private companion object {
+    fun columns(vararg keys: String): List<String> = keys.map { KafkaBundle.message("column.$it") }
+
     val TIME = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
   }
 }
@@ -385,12 +402,17 @@ internal class KafkaReads {
   companion object {
     /** The table's empty text and the status line; a read cut off by the timeout says so instead of looking complete. */
     fun describe(result: KafkaReadResult): Pair<String, String> {
+      val (empty, summary) = describeRead(result)
+      val limit = result.perPartitionLimit ?: return empty to summary
+      return empty to KafkaBundle.message("read.limited", summary, limit.toString(), KafkaSession.MAX_TOTAL_RECORDS.toString())
+    }
+
+    private fun describeRead(result: KafkaReadResult): Pair<String, String> {
       val n = result.messages.size
-      if (!result.partial) return "No messages" to "$n messages"
-      val unfinished = "${result.unfinishedPartitions} ${if (result.unfinishedPartitions == 1) "partition" else "partitions"} " +
-                       "not finished within ${result.timeoutMs / 1000} s"
-      val empty = "No messages read yet: $unfinished"
-      return empty to if (n == 0) empty else "$n messages (partial: $unfinished)"
+      if (!result.partial) return KafkaBundle.message("read.no.messages") to KafkaBundle.message("read.messages", n.toString())
+      val unfinished = KafkaBundle.message("read.unfinished", result.unfinishedPartitions, result.timeoutMs / 1000)
+      val empty = KafkaBundle.message("read.no.messages.yet", unfinished)
+      return empty to if (n == 0) empty else KafkaBundle.message("read.messages.partial", n.toString(), unfinished)
     }
   }
 }
