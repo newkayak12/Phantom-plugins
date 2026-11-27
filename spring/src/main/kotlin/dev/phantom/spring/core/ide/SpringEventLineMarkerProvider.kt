@@ -5,6 +5,7 @@ import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
 import com.intellij.codeInsight.navigation.NavigationGutterIconBuilder
 import com.intellij.icons.AllIcons
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.NotNullLazyValue
 import com.intellij.psi.*
@@ -82,7 +83,18 @@ class SpringEventLineMarkerProvider : LineMarkerProviderDescriptor() {
 
   override fun getIcon(): Icon = AllIcons.Gutter.ImplementedMethod
 
-  override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+  override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? = null
+
+  // resolving publishEvent calls and the annotations of every method is too slow for the pass that runs on each
+  // visible leaf while typing (LineMarkerProvider's contract); the slow pass runs once the file is highlighted
+  override fun collectSlowLineMarkers(elements: List<PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
+    for (element in elements) {
+      ProgressManager.checkCanceled()
+      markerFor(element)?.let(result::add)
+    }
+  }
+
+  private fun markerFor(element: PsiElement): LineMarkerInfo<*>? {
     if (element.firstChild != null) return null
     val text = element.text
     val declaration = (element.parent as? PsiNameIdentifierOwner)?.takeIf { it.nameIdentifier == element }

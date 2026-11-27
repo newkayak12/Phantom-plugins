@@ -7,7 +7,7 @@ Spring support for Java and Kotlin projects.
 - **Autowiring inspection:** reports an injection point with no bean of its type in the project, or with several beans and nothing to pick one. Quick fixes add `@Qualifier` or `@Primary`. Optional injection, collections and test sources are skipped.
 - **No false "unused":** Spring-managed classes and methods (beans, `@Bean`, event listeners and similar) are not reported as unused.
 - **Endpoints:** fills Phantom's Endpoints tool window with every Spring MVC handler by module, for example `GET /api/v1/menu/{id}  FindMenuController.findMenu`.
-  - It covers `@RequestMapping` and `@GetMapping`-style shortcuts on `@Controller` classes, and on interfaces a controller implements.
+  - It covers `@RequestMapping` and `@GetMapping`-style shortcuts on `@Controller` classes, and on interfaces and abstract base classes a controller inherits from. A class-level `@RequestMapping` may come through a composed annotation.
   - Paths built from constants and string templates are resolved.
   - Filter by method, path or controller name. Enter or double-click opens the handler, and the context menu copies the URL.
 - **Spring Security:** completion of the project's handler paths (and `/**` prefixes) in `requestMatchers("…")` and the Kotlin DSL's `authorize("…")`; completion of functions, variables and `#arguments` in `@PreAuthorize` / `@PostAuthorize` / `@PreFilter` / `@PostFilter`, and an error for a `#name` that is not an argument of the method.

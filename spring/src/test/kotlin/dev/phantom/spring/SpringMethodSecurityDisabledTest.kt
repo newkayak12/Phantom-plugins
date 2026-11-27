@@ -4,7 +4,9 @@ package dev.phantom.spring
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
+import com.intellij.psi.PsiDocumentManager
 import dev.phantom.spring.security.MethodSecurityDisabledInspection
+import dev.phantom.spring.security.MethodSecuritySwitches
 
 /** Method security annotations without the configuration that turns them on. */
 class SpringMethodSecurityDisabledTest : LightJavaCodeInsightFixtureTestCase() {
@@ -53,6 +55,31 @@ class SpringMethodSecurityDisabledTest : LightJavaCodeInsightFixtureTestCase() {
     """.trimIndent())
     myFixture.configureByText("AdminService.java", service)
     assertEquals(listOf("@Secured has no effect: method security is enabled without securedEnabled = true"), warnings())
+  }
+
+  /** A composed annotation carrying @EnableMethodSecurity counts where it is used, not where it is declared. */
+  fun testComposedEnableAnnotation() {
+    myFixture.addClass("""
+      package app;
+      @org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity(securedEnabled = true)
+      @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+      public @interface SecureApp {}
+    """.trimIndent())
+    myFixture.configureByText("AdminService.java", service)
+    assertSize(2, warnings())
+    myFixture.addClass("package app; @SecureApp class AppConfig {}")
+    assertEmpty(warnings())
+  }
+
+  /** Typing in a method body keeps the search for the enabling annotations. */
+  fun testStateSurvivesBodyEdits() {
+    myFixture.addClass("package app; @org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity class SecurityConfig {}")
+    myFixture.configureByText("Work.java", "package app; class Work { void m() { <caret> } }")
+    val before = MethodSecuritySwitches.state(project)
+    assertNotNull(before)
+    myFixture.type("int x = 1;")
+    PsiDocumentManager.getInstance(project).commitAllDocuments()
+    assertSame(before, MethodSecuritySwitches.state(project))
   }
 
   fun testGlobalMethodSecurityNeedsFlags() {

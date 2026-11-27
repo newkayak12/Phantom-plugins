@@ -150,7 +150,8 @@ class SpringBeanNameReferenceContributor : PsiReferenceContributor() {
 
 class BeanNameReference(host: PsiElement, range: TextRange) : PsiPolyVariantReferenceBase<PsiElement>(host, range, true) {
   override fun multiResolve(incompleteCode: Boolean): Array<ResolveResult> =
-    PsiElementResolveResult.createResults(SpringBeanNames.byName(element.project)[value].orEmpty().map { it.navigationElement })
+    // found from the name alone, as the duplicate check does: byName rebuilds the whole catalog after declarations change
+    PsiElementResolveResult.createResults(SpringBeanNames.named(element.project, value).map { it.navigationElement })
 
   override fun getVariants(): Array<Any> = SpringBeanNames.byName(element.project).map { (name, beans) ->
     val bean = beans.first()

@@ -1,7 +1,10 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.spring
 
+import com.intellij.openapi.application.WriteAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiManager
@@ -129,6 +132,23 @@ class SpringMessagingTest : LightJavaCodeInsightFixtureTestCase() {
     myFixture.doHighlighting()
     assertTrue("Receivers of order.refunded" in myFixture.findAllGutters().mapNotNull { it.tooltipText })
     assertTrue(assertLocalSitesMatch(project) > 0)
+  }
+
+  /** Edits of files in other languages keep the sites; a config value a listener names updates them. */
+  fun testSitesFollowCodeAndConfigOnly() {
+    val config = myFixture.addFileToProject("application.properties", "app.topics.x=order.x\n").virtualFile
+    myFixture.addClass("""
+      package app;
+      public class XListener { @org.springframework.kafka.annotation.KafkaListener(topics = "${'$'}{app.topics.x}") public void on(String s) {} }
+    """.trimIndent())
+    myFixture.configureByText("notes.xml", "<notes><caret></notes>")
+    val before = MessagingModel.all(project)
+    assertTrue(before.any { it.channel == "order.x" })
+    myFixture.type("<note/>")
+    PsiDocumentManager.getInstance(project).commitAllDocuments()
+    assertSame(before, MessagingModel.all(project))
+    WriteAction.run<Throwable> { VfsUtil.saveText(config, "app.topics.x=order.y\n") }
+    assertTrue(MessagingModel.all(project).any { it.channel == "order.y" })
   }
 
   fun testTopicCompletion() {

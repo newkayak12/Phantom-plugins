@@ -126,6 +126,27 @@ class SpringMvcEndpointsTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals(listOf("GET /orders/{id} OrdersController.get"), endpoints())
   }
 
+  /** Mappings inherited from an abstract base class, and a class mapping carried by a composed annotation. */
+  fun testAbstractBaseAndComposedClassMapping() {
+    myFixture.addClass("""
+      package app;
+      @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+      @org.springframework.web.bind.annotation.RestController
+      @org.springframework.web.bind.annotation.RequestMapping("/api")
+      public @interface ApiController {}
+    """.trimIndent())
+    myFixture.addClass("""
+      package app;
+      public abstract class CrudController { @org.springframework.web.bind.annotation.GetMapping("/{id}") public String get() { return ""; } }
+    """.trimIndent())
+    myFixture.addClass("""
+      package app;
+      @ApiController
+      public class UserController extends CrudController { @org.springframework.web.bind.annotation.PostMapping("/users") public void create() {} }
+    """.trimIndent())
+    assertEquals(listOf("POST /api/users UserController.create", "GET /api/{id} UserController.get"), endpoints())
+  }
+
   fun testProviderGroupsByModule() {
     myFixture.addClass("""
       package app;

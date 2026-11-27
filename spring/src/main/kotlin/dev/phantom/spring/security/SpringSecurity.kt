@@ -212,10 +212,11 @@ internal object MethodSecuritySwitches {
 
   /**
    * The enabled kinds, or null when nothing can be said: the enabling annotations are not on the classpath (an
-   * unusual setup this check does not know). Searched in sources and libraries, cached until the next PSI change.
+   * unusual setup this check does not know). Searched in sources and libraries, cached until declarations change:
+   * typing in a method body keeps it.
    */
   fun state(project: Project): Found? = com.intellij.psi.util.CachedValuesManager.getManager(project).getCachedValue(project) {
-    com.intellij.psi.util.CachedValueProvider.Result.create(find(project), com.intellij.psi.util.PsiModificationTracker.getInstance(project))
+    com.intellij.psi.util.CachedValueProvider.Result.create(find(project), *dev.phantom.spring.core.SpringStructureTracker.deps(project))
   }?.takeIf { it.known }
 
   /** [used]: some configuration carries an enabling annotation; [kinds]: what it switches on. */
@@ -231,6 +232,8 @@ internal object MethodSecuritySwitches {
     for ((fqn, annotationClass) in classes) {
       com.intellij.psi.search.searches.AnnotatedElementsSearch.searchPsiClasses(annotationClass, all).forEach { configuration ->
         val annotation = configuration.getAnnotation(fqn) ?: return@forEach
+        // a composed annotation carrying @EnableMethodSecurity switches it on where it is used, not where it is declared
+        if (configuration.isAnnotationType && !isUsed(configuration, all, HashSet())) return@forEach
         used = true
         if (fqn == ENABLE_REACTIVE) { kinds += Kind.entries; return@forEach }
         for (kind in Kind.entries) {
@@ -241,6 +244,13 @@ internal object MethodSecuritySwitches {
       }
     }
     return Found(true, used, kinds)
+  }
+
+  /** Whether [annotationType] is on a class, directly or through further composed annotations. */
+  private fun isUsed(annotationType: com.intellij.psi.PsiClass, scope: GlobalSearchScope, seen: MutableSet<com.intellij.psi.PsiClass>): Boolean {
+    if (!seen.add(annotationType)) return false
+    return com.intellij.psi.search.searches.AnnotatedElementsSearch.searchPsiClasses(annotationType, scope).findAll()
+      .any { !it.isAnnotationType || isUsed(it, scope, seen) }
   }
 
   private fun flag(annotation: com.intellij.psi.PsiAnnotation, name: String): Boolean? {

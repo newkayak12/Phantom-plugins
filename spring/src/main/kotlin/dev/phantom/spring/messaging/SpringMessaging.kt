@@ -29,7 +29,6 @@ import com.intellij.psi.search.searches.AnnotatedElementsSearch
 import com.intellij.psi.search.searches.MethodReferencesSearch
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.util.ProcessingContext
 import dev.phantom.spring.core.PhantomSpringBundle
 import dev.phantom.spring.core.SpringCacheDeps
@@ -87,7 +86,9 @@ internal object MessagingModel {
   }
 
   fun all(project: Project): List<MessagingSite> = CachedValuesManager.getManager(project).getCachedValue(project) {
-    CachedValueProvider.Result.create(find(project), PsiModificationTracker.getInstance(project))
+    // senders sit in method bodies, so JVM body edits count; placeholders come from the config files. Edits in other
+    // languages (XML, SQL, Markdown) no longer rerun the project-wide reference searches.
+    CachedValueProvider.Result.create(find(project), SpringCacheDeps.jvm(project), *ConfigPlaceholders.deps(project))
   }
 
   fun channels(project: Project): List<Pair<Broker, String>> = all(project).map { it.broker to it.channel }.distinct().sortedBy { it.second }
@@ -404,12 +405,15 @@ internal object ConfigPlaceholders {
     return if (unresolved) value else resolved
   }
 
-  // the files are read from disk, so their contents on disk, the file set and the roots are all the value depends on
+  // each file is read from its open document when it has one (unsaved edits count once committed), else from disk
   fun properties(project: Project): Map<String, String> = CachedValuesManager.getManager(project).getCachedValue(project) {
     readCount.incrementAndGet()
     val files = files(project)
-    CachedValueProvider.Result.create(read(files), *SpringCacheDeps.config(project, files))
+    CachedValueProvider.Result.create(read(files), *deps(project, files))
   }
+
+  /** What [properties] depends on, for caches that resolve placeholders. */
+  fun deps(project: Project, files: List<VirtualFile> = files(project)): Array<Any> = SpringCacheDeps.config(project, files)
 
   /** How often the files were read, for tests that check the cache survives unrelated edits. */
   @TestOnly
@@ -430,7 +434,8 @@ internal object ConfigPlaceholders {
   private fun read(files: List<VirtualFile>): Map<String, String> {
     val result = LinkedHashMap<String, String>()
     for (file in files) {
-      val text = runCatching { com.intellij.openapi.vfs.VfsUtilCore.loadText(file) }.getOrNull() ?: continue
+      val text = com.intellij.openapi.fileEditor.FileDocumentManager.getInstance().getCachedDocument(file)?.text
+                 ?: runCatching { com.intellij.openapi.vfs.VfsUtilCore.loadText(file) }.getOrNull() ?: continue
       val entries = if (file.extension == "properties") readProperties(text) else readYaml(text)
       for ((key, value) in entries) result.putIfAbsent(key, value)
     }
