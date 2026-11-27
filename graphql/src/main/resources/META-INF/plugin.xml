@@ -5,7 +5,9 @@
   <category>Languages</category>
   <description><![CDATA[
   GraphQL for Phantom: highlighting, brace matching, commenting, navigation, find usages and rename for types and
-  fragments in .graphql, .graphqls and .gql files. Works offline.
+  fragments in .graphql, .graphqls and .gql files. With Spring GraphQL on the classpath, schema fields and their
+  @QueryMapping, @MutationMapping, @SubscriptionMapping, @SchemaMapping and @BatchMapping handlers link to each other
+  in the gutter, and Query, Mutation and Subscription fields without a handler are reported. Works offline.
   ]]></description>
 
   <dependencies>
@@ -27,5 +29,10 @@
     <lang.commenter language="GraphQL" implementationClass="dev.phantom.graphql.lang.GraphQLCommenter"/>
     <lang.braceMatcher language="GraphQL" implementationClass="dev.phantom.graphql.lang.GraphQLBraceMatcher"/>
     <lang.findUsagesProvider language="GraphQL" implementationClass="dev.phantom.graphql.lang.GraphQLFindUsagesProvider"/>
+
+    <codeInsight.lineMarkerProvider language="GraphQL" implementationClass="dev.phantom.graphql.spring.SchemaFieldHandlerLineMarkerProvider"/>
+    <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.graphql.spring.HandlerSchemaFieldLineMarkerProvider"/>
+    <localInspection language="GraphQL" shortName="GraphQLUnmappedField" implementationClass="dev.phantom.graphql.spring.GraphQLUnmappedFieldInspection"
+                     key="inspection.unmapped.field.name" groupKey="inspection.group" enabledByDefault="true" level="WARNING"/>
   </extensions>
 </idea-plugin>

@@ -1,0 +1,9 @@
+<html>
+<body>
+Reports a field of <code>Query</code>, <code>Mutation</code> or <code>Subscription</code> that no Spring GraphQL handler
+method answers: no <code>@QueryMapping</code>, <code>@MutationMapping</code>, <code>@SubscriptionMapping</code>,
+<code>@SchemaMapping</code> or <code>@BatchMapping</code> method maps it. Such a field returns null or an error at runtime.
+Fields of other types are not reported, because Spring GraphQL resolves them from the properties of the source object.
+Runs only when Spring GraphQL is on the project's classpath.
+</body>
+</html>
