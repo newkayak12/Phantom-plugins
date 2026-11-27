@@ -10,6 +10,9 @@
     <module name="intellij.platform.uast.ide"/>
   </dependencies>
   <resource-bundle>messages.PhantomSpringBootBundle</resource-bundle>
+  <projectListeners>
+    <listener class="dev.phantom.springboot.core.BootBuildListener" topic="com.intellij.task.ProjectTaskListener"/>
+  </projectListeners>
   <extensions defaultExtensionNs="com.intellij">
     <gotoDeclarationHandler implementation="dev.phantom.springboot.core.BootConfigGotoDeclarationHandler"/>
     <psi.referenceContributor language="UAST" implementation="dev.phantom.springboot.core.ValuePlaceholderReferenceContributor"/>

@@ -15,8 +15,11 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import org.jetbrains.annotations.TestOnly
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.concurrent.ConcurrentHashMap
+import com.intellij.util.containers.ContainerUtil
+import java.util.concurrent.ConcurrentMap
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Collects configuration metadata for a module on first use and keeps it until a root change or a rebuild
@@ -29,23 +32,41 @@ import java.util.concurrent.atomic.AtomicInteger
 @Service(Service.Level.PROJECT)
 class ConfigMetadataService(private val project: Project) {
   private class Libraries(val rootsStamp: Long, val roots: List<VirtualFile>, val stamps: List<Long>, val keys: ConfigKeys)
-  private class Layout(val stamp: List<Long>, val additional: List<VirtualFile>, val outputs: List<Path>)
+  private class Layout(val stamp: List<Long>, val additional: List<VirtualFile>, val outputs: List<Path>) {
+    @Volatile var checked: Checked? = null
+  }
+
+  /** The build output files found on disk at [at] (nanoTime), after [generation] builds finished in the IDE. */
+  private class Checked(val at: Long, val generation: Long, val files: List<OutputFile>)
   private class Entry(val libraries: Libraries, val localStamp: List<Any>, val belowSource: ConfigKeys, val fromSource: ParsedMetadata, val keys: ConfigKeys)
 
-  private val modules = ConcurrentHashMap<String, Entry>()
-  private val libraryLayers = ConcurrentHashMap<String, Libraries>()
-  private val layouts = ConcurrentHashMap<String, Layout>()
+  // Keyed by the module itself, weakly: a removed or renamed module's entry goes with it.
+  private val modules: ConcurrentMap<Module, Entry> = ContainerUtil.createConcurrentWeakMap()
+  private val libraryLayers: ConcurrentMap<Module, Libraries> = ContainerUtil.createConcurrentWeakMap()
+  private val layouts: ConcurrentMap<Module, Layout> = ContainerUtil.createConcurrentWeakMap()
+
+  /** Parsed library metadata by jar root, invalidated by the jar's timestamp; the least recently used roots are dropped. */
+  private val libraryCache = object : LinkedHashMap<String, Pair<Long, ParsedMetadata?>>(64, 0.75f, true) {
+    override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Pair<Long, ParsedMetadata?>>): Boolean = size > MAX_LIBRARY_ROOTS
+  }
+
+  private val buildGeneration = AtomicLong()
+
+  /** A build in the IDE finished: its metadata output is looked at on the next request, not after the recheck delay. */
+  fun buildFinished() {
+    buildGeneration.incrementAndGet()
+  }
 
   fun keysFor(module: Module): ConfigKeys {
     val libraries = libraries(module)
     val local = localMetadata(module)
     val localStamp = local.map { it.stamp }
     val fromSource = SourceConfigProperties.metadata(module)
-    val cached = modules[module.name]
+    val cached = modules[module]
     if (cached != null && cached.libraries === libraries && cached.localStamp == localStamp) {
       if (cached.fromSource === fromSource) return cached.keys
       val keys = cached.belowSource.overlaidBy(fromSource)
-      modules[module.name] = Entry(libraries, localStamp, cached.belowSource, fromSource, keys)
+      modules[module] = Entry(libraries, localStamp, cached.belowSource, fromSource, keys)
       return keys
     }
 
@@ -53,7 +74,7 @@ class ConfigMetadataService(private val project: Project) {
     // Same precedence as one flat merge of [source, local..., libraries...], built bottom up.
     val belowSource = local.asReversed().fold(libraries.keys) { below, source -> below.overlaidBy(source.parse()) }
     val keys = belowSource.overlaidBy(fromSource)
-    modules[module.name] = Entry(libraries, localStamp, belowSource, fromSource, keys)
+    modules[module] = Entry(libraries, localStamp, belowSource, fromSource, keys)
     return keys
   }
 
@@ -69,7 +90,7 @@ class ConfigMetadataService(private val project: Project) {
   /** Library keys of [module], merged once per root change; a jar rewritten in place (a snapshot) also counts. */
   private fun libraries(module: Module): Libraries {
     val rootsStamp = ProjectRootModificationTracker.getInstance(project).modificationCount
-    libraryLayers[module.name]?.let { cached ->
+    libraryLayers[module]?.let { cached ->
       if (cached.rootsStamp == rootsStamp && cached.roots.indices.all { cached.roots[it].isValid && jarStamp(cached.roots[it]) == cached.stamps[it] }) {
         return cached
       }
@@ -82,7 +103,7 @@ class ConfigMetadataService(private val project: Project) {
       ProgressManager.checkCanceled()
       libraryMetadata(root)?.let(sources::add)
     }
-    return Libraries(rootsStamp, roots, stamps, ConfigKeys(sources)).also { libraryLayers[module.name] = it }
+    return Libraries(rootsStamp, roots, stamps, ConfigKeys(sources)).also { libraryLayers[module] = it }
   }
 
   private fun libraryRoots(module: Module): List<VirtualFile> =
@@ -111,29 +132,39 @@ class ConfigMetadataService(private val project: Project) {
   /**
    * Metadata generated by spring-boot-configuration-processor into this module's and its dependencies' build output,
    * plus hand-written additional metadata in resource roots (used before the first build).
-   * The output files are checked on disk on every call: a build writes them without telling the VFS, and its keys must
-   * show up at once. Where to look is cached until roots change or files are created, deleted or renamed.
+   * A build writes the output files without telling the VFS, so they are checked on disk: right after a build in the
+   * IDE finishes, and otherwise at most once per [RECHECK_NANOS] (a build from a terminal), not on every completion or
+   * inspection request. Where to look is cached until roots change or files are created, deleted or renamed.
    */
   private fun localMetadata(module: Module): List<LocalSource> {
     val layout = layout(module)
     val result = ArrayList<LocalSource>()
     layout.additional.filter { it.isValid }.mapTo(result) { SourceFile(it) }
-    for (file in layout.outputs) {
-      val mtime = try {
-        Files.getLastModifiedTime(file).toMillis()
+    result.addAll(outputFiles(layout))
+    return result
+  }
+
+  private fun outputFiles(layout: Layout): List<OutputFile> {
+    val now = System.nanoTime()
+    val generation = buildGeneration.get()
+    layout.checked?.let { if (it.generation == generation && now - it.at < RECHECK_NANOS) return it.files }
+    diskChecks.incrementAndGet()
+    val files = layout.outputs.mapNotNull { file ->
+      try {
+        OutputFile(file, Files.getLastModifiedTime(file).toMillis())
       }
       catch (_: Exception) {
-        continue
+        null
       }
-      result.add(OutputFile(file, mtime))
     }
-    return result
+    layout.checked = Checked(now, generation, files)
+    return files
   }
 
   private fun layout(module: Module): Layout {
     val stamp = listOf(ProjectRootModificationTracker.getInstance(project).modificationCount,
                        VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS.modificationCount)
-    layouts[module.name]?.let { if (it.stamp == stamp) return it }
+    layouts[module]?.let { if (it.stamp == stamp) return it }
 
     val modules = LinkedHashSet<Module>()
     modules.add(module)
@@ -151,7 +182,7 @@ class ConfigMetadataService(private val project: Project) {
       }
     }
     val outputs = buildDirs.flatMap { dir -> OUTPUT_CANDIDATES.map(dir::resolve) }
-    return Layout(stamp, additional, outputs).also { layouts[module.name] = it }
+    return Layout(stamp, additional, outputs).also { layouts[module] = it }
   }
 
   /** The Gradle or Maven project directory that owns a content root (`adapter-module/src/main` -> `adapter-module`). */
@@ -172,6 +203,20 @@ class ConfigMetadataService(private val project: Project) {
     null
   }
 
+  private fun libraryMetadata(root: VirtualFile): ParsedMetadata? {
+    val stamp = jarStamp(root)
+    synchronized(libraryCache) { libraryCache[root.url] }?.let { (cachedStamp, parsed) -> if (cachedStamp == stamp) return parsed }
+    val files = listOfNotNull(root.findFileByRelativePath("META-INF/$METADATA"), root.findFileByRelativePath("META-INF/$ADDITIONAL"))
+    val parsed = if (files.isEmpty()) null
+    else {
+      val parts = files.map { MetadataParser.parse(VfsUtilCore.loadText(it)) }
+      ParsedMetadata(parts.flatMap { it.properties }, parts.fold(emptyMap()) { a, p -> a + p.hints },
+                     parts.fold(emptyMap()) { a, p -> a + p.groups })
+    }
+    synchronized(libraryCache) { libraryCache[root.url] = stamp to parsed }
+    return parsed
+  }
+
   companion object {
     private const val METADATA = "spring-configuration-metadata.json"
     private const val ADDITIONAL = "additional-spring-configuration-metadata.json"
@@ -184,24 +229,17 @@ class ConfigMetadataService(private val project: Project) {
       "target/classes/META-INF/$METADATA",
     )
 
-    /** Parsed library metadata, shared by all projects; keyed by jar root and invalidated by the jar's timestamp. */
-    private val libraries = ConcurrentHashMap<String, Pair<Long, ParsedMetadata?>>()
+    private const val MAX_LIBRARY_ROOTS = 2000
+    private val RECHECK_NANOS = TimeUnit.SECONDS.toNanos(3)
 
     private fun jarStamp(root: VirtualFile): Long = (VfsUtilCore.getVirtualFileForJar(root) ?: root).timeStamp
 
-    private fun libraryMetadata(root: VirtualFile): ParsedMetadata? {
-      val stamp = jarStamp(root)
-      libraries[root.url]?.let { (cachedStamp, parsed) -> if (cachedStamp == stamp) return parsed }
-      val files = listOfNotNull(root.findFileByRelativePath("META-INF/$METADATA"), root.findFileByRelativePath("META-INF/$ADDITIONAL"))
-      val parsed = if (files.isEmpty()) null
-      else {
-        val parts = files.map { MetadataParser.parse(VfsUtilCore.loadText(it)) }
-        ParsedMetadata(parts.flatMap { it.properties }, parts.fold(emptyMap()) { a, p -> a + p.hints },
-                       parts.fold(emptyMap()) { a, p -> a + p.groups })
-      }
-      libraries[root.url] = stamp to parsed
-      return parsed
-    }
+    /** Counts looks at the build output on disk, so tests can tell repeated requests do not touch the disk. */
+    @TestOnly
+    val diskChecks: AtomicInteger = AtomicInteger()
+
+    @TestOnly
+    fun libraryCacheSize(project: Project): Int = getInstance(project).let { synchronized(it.libraryCache) { it.libraryCache.size } }
 
     /** Counts library-layer merges, so tests can tell a Java edit does not redo it. */
     @TestOnly
@@ -209,4 +247,5 @@ class ConfigMetadataService(private val project: Project) {
 
     fun getInstance(project: Project): ConfigMetadataService = project.service()
   }
+
 }
