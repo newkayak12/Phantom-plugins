@@ -63,6 +63,25 @@ class JsInterpreterTest : TestCase() {
     }
   }
 
+  fun testDeepRecursionStopsWithALimitError() {
+    try {
+      JsInterpreter().run("function f(n) { return f(n + 1) } f(0)")
+      fail()
+    }
+    catch (e: JsLimitExceeded) {
+      assertTrue(e.message, e.message!!.contains("call depth"))
+    }
+  }
+
+  fun testCancelledRunStops() {
+    try {
+      JsInterpreter(cancelled = { true }).run("while (true) {}")
+      fail()
+    }
+    catch (_: java.util.concurrent.CancellationException) {
+    }
+  }
+
   fun testUnsupportedSyntaxIsReportedWithALine() {
     try {
       JsInterpreter().run("let a = 1;\nclass B {}")

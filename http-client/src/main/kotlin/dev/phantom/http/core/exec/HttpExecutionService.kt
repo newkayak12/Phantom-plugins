@@ -54,7 +54,8 @@ class HttpExecutionService(private val project: Project, private val cs: Corouti
   suspend fun send(request: HttpRequestModel): HttpResponseModel {
     val warnings = ArrayList<String>()
     val builder = HttpRequest.newBuilder(request.uri).version(request.version)
-    request.timeout?.let(builder::timeout)
+    // Without a timeout a server that never answers keeps the tab at "Sending…" until Stop; `# @timeout` overrides it.
+    builder.timeout(request.timeout ?: DEFAULT_TIMEOUT)
     for ((name, value) in request.headers) {
       try {
         builder.header(name, value)
@@ -71,7 +72,7 @@ class HttpExecutionService(private val project: Project, private val cs: Corouti
     inFlight.incrementAndGet()
     try {
       val response = client.sendAsync(builder.build(), HttpResponse.BodyHandlers.ofInputStream()).await()
-      val (body, truncated) = response.body().use { readLimited(it) }
+      val (body, truncated) = response.body().use { readCancellable(it) }
       val elapsed = (System.nanoTime() - started) / 1_000_000
       val headers = response.headers().map().flatMap { (name, values) -> values.map { name to it } }.filter { !it.first.startsWith(":") }
       return HttpResponseModel(response.statusCode(), response.version(), headers, body, truncated, elapsed, warnings)
@@ -91,6 +92,31 @@ class HttpExecutionService(private val project: Project, private val cs: Corouti
       }
     }
     return if (publishers.size == 1) publishers[0] else HttpRequest.BodyPublishers.concat(*publishers.toTypedArray())
+  }
+
+  /**
+   * The JDK client's body stream blocks in read() and ignores thread interrupts, so Stop closes the stream to end
+   * the read instead of waiting for the server to finish a large or slow body.
+   */
+  private suspend fun readCancellable(input: InputStream): Pair<ByteArray, Boolean> = coroutineScope {
+    val closer = launch(start = CoroutineStart.UNDISPATCHED) {
+      try {
+        awaitCancellation()
+      }
+      finally {
+        input.close()
+      }
+    }
+    try {
+      readLimited(input)
+    }
+    catch (e: java.io.IOException) {
+      ensureActive()
+      throw e
+    }
+    finally {
+      closer.cancel()
+    }
   }
 
   private fun readLimited(input: InputStream): Pair<ByteArray, Boolean> {
@@ -129,6 +155,7 @@ class HttpExecutionService(private val project: Project, private val cs: Corouti
 
   companion object {
     const val MAX_BODY: Int = 8 * 1024 * 1024
+    private val DEFAULT_TIMEOUT: Duration = Duration.ofSeconds(60)
     private const val IDLE_CLOSE_MS = 60_000L
     private const val USER_AGENT = "Phantom-HTTP-Client"
     private val LOG = logger<HttpExecutionService>()

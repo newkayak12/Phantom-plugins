@@ -6,6 +6,7 @@ import java.net.URLDecoder
 import java.net.URLEncoder
 import java.time.Instant
 import java.util.Base64
+import java.util.concurrent.CancellationException
 import kotlin.math.*
 
 object Undefined { override fun toString() = "undefined" }
@@ -43,6 +44,8 @@ class JsThrow(val value: Any?, val line: Int) : RuntimeException(null, null, fal
 
 class JsLimitExceeded(message: String) : RuntimeException(message)
 
+private const val MAX_CALL_DEPTH = 256
+
 internal class Scope(val parent: Scope?) {
   val vars = HashMap<String, Any?>()
   val consts = HashSet<String>()
@@ -65,11 +68,17 @@ private class ReturnSignal(val value: Any?) : RuntimeException(null, null, false
  * Tree-walking interpreter. Runs on the caller's thread with a step budget and a deadline, so a runaway loop in a
  * handler cannot hang the HTTP client.
  */
-class JsInterpreter(private val maxSteps: Long = 5_000_000, private val timeoutMs: Long = 10_000) {
+class JsInterpreter(
+  private val maxSteps: Long = 5_000_000,
+  private val timeoutMs: Long = 10_000,
+  /** True once the run that started the script was cancelled (Stop, or the tab was closed). */
+  private val cancelled: () -> Boolean = { false },
+) {
   val globals: MutableMap<String, Any?> get() = root.vars
   private val root = Scope(null)
   private var steps = 0L
   private var deadline = 0L
+  private var callDepth = 0
   var line: Int = 0
     private set
 
@@ -103,6 +112,7 @@ class JsInterpreter(private val maxSteps: Long = 5_000_000, private val timeoutM
     if (steps and 0x3FF == 0L) {
       if (System.currentTimeMillis() > deadline) throw JsLimitExceeded("The script ran longer than ${timeoutMs / 1000} s")
       if (Thread.currentThread().isInterrupted) throw JsLimitExceeded("Cancelled")
+      if (cancelled()) throw CancellationException("The request was cancelled")
     }
   }
 
@@ -111,6 +121,19 @@ class JsInterpreter(private val maxSteps: Long = 5_000_000, private val timeoutM
   }
 
   internal fun invoke(c: Closure, self: Any?, args: List<Any?>): Any? {
+    // Each script call takes several JVM frames; without a limit a recursive handler ends in StackOverflowError,
+    // which no caller expects, and the response panel would stay at "Sending…".
+    if (callDepth >= MAX_CALL_DEPTH) throw JsLimitExceeded("Maximum call depth of $MAX_CALL_DEPTH exceeded")
+    callDepth++
+    try {
+      return call(c, self, args)
+    }
+    finally {
+      callDepth--
+    }
+  }
+
+  private fun call(c: Closure, self: Any?, args: List<Any?>): Any? {
     val scope = Scope(c.scope)
     if (!c.fn.arrow) {
       scope.vars["this"] = self

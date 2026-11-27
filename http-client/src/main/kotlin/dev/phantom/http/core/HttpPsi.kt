@@ -4,8 +4,11 @@ package dev.phantom.http.core
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.lang.ASTNode
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.PsiReference
 import com.intellij.psi.PsiReferenceBase
@@ -49,7 +52,7 @@ class HttpRequestLine(node: ASTNode) : HttpElement(node) {
 class HttpRequestTarget(node: ASTNode) : HttpElement(node)
 
 class HttpHeader(node: ASTNode) : HttpElement(node) {
-  val headerName: String get() = node.findChildByType(HttpTokens.HEADER_NAME)?.text?.trim().orEmpty()}
+  val headerName: String get() = node.findChildByType(HttpTokens.HEADER_NAME)?.text?.trim().orEmpty() }
 
 class HttpBody(node: ASTNode) : HttpElement(node)
 
@@ -64,7 +67,11 @@ class HttpDirective(node: ASTNode) : HttpElement(node) {
 /** `@host = http://localhost:8080`. */
 class HttpFileVariable(node: ASTNode) : HttpElement(node), PsiNamedElement {
   override fun getName(): String = node.firstChildNode.text.removePrefix("@")
-  override fun setName(name: String): PsiElement = this
+  override fun setName(name: String): PsiElement {
+    val created = PsiTreeUtil.findChildOfType(httpFragment(project, "@$name = x"), HttpFileVariable::class.java) ?: return this
+    node.replaceChild(node.firstChildNode, created.node.firstChildNode)
+    return this
+  }
   override fun getTextOffset(): Int = textRange.startOffset
 
   /** The raw value text, still with `{{...}}` references. */
@@ -95,6 +102,16 @@ class HttpVariableRef(node: ASTNode) : HttpElement(node) {
       LookupElementBuilder.create(name).withTypeText(origin, true)
     }.toTypedArray()
 
-    override fun handleElementRename(newElementName: String): PsiElement = element
+    override fun handleElementRename(newElementName: String): PsiElement {
+      val old = element.node.findChildByType(HttpTokens.VARIABLE_NAME) ?: return element
+      val created = PsiTreeUtil.findChildOfType(httpFragment(element.project, "GET {{$newElementName}}"), HttpVariableRef::class.java)
+        ?.node?.findChildByType(HttpTokens.VARIABLE_NAME) ?: return element
+      element.node.replaceChild(old, created)
+      return element
+    }
   }
 }
+
+/** A throwaway `.http` file whose tokens rename copies into the real one. */
+private fun httpFragment(project: Project, text: String): PsiFile =
+  PsiFileFactory.getInstance(project).createFileFromText("fragment.http", HttpRequestFileType.INSTANCE, text)
