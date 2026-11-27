@@ -9,7 +9,6 @@ import com.intellij.java.library.JavaLibraryUtil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.psi.*
 import com.intellij.psi.search.GlobalSearchScope
@@ -128,7 +127,7 @@ object JdkProxyMode {
 
   private enum class CodeMode { CLASS, INTERFACE, BOOT }
 
-  /** The `@Enable*` search runs on code and library changes, the property is read once per set of config keys. */
+  /** The `@Enable*` search runs on changes of declarations and libraries, the property is read once per set of config keys. */
   fun isJdkProxying(project: Project): Boolean = when (codeMode(project)) {
     CodeMode.CLASS -> false
     CodeMode.INTERFACE -> true
@@ -136,10 +135,16 @@ object JdkProxyMode {
   }
 
   private fun codeMode(project: Project): CodeMode = CachedValuesManager.getManager(project).getCachedValue(project) {
-    CachedValueProvider.Result.create(computeCodeMode(project), SpringCacheDeps.jvm(project), ProjectRootManager.getInstance(project))
+    // annotations and their attributes are declarations: typing in a method body keeps the result
+    CachedValueProvider.Result.create(computeCodeMode(project), *SpringStructureTracker.deps(project))
   }
 
+  /** How often the `@Enable*` search ran, for tests that check it survives body edits. */
+  @org.jetbrains.annotations.TestOnly
+  val codeModeComputes: java.util.concurrent.atomic.AtomicInteger = java.util.concurrent.atomic.AtomicInteger()
+
   private fun computeCodeMode(project: Project): CodeMode {
+    codeModeComputes.incrementAndGet()
     val facade = JavaPsiFacade.getInstance(project)
     val all = GlobalSearchScope.allScope(project)
     val scope = GlobalSearchScope.projectScope(project)

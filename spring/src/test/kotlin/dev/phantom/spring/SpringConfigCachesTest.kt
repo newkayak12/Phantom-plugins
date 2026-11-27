@@ -137,16 +137,42 @@ class SpringConfigCachesTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals("second", ConfigPlaceholders.properties(project)["app.topic"])
   }
 
-  fun testPlaceholdersSavedEdit() {
-    // the values are read from disk, as before: an editor edit counts once saved
+  fun testPlaceholdersUnsavedEdit() {
+    // an open document is read before the file on disk: an editor edit counts once committed
     val file = myFixture.addFileToProject("application.yml", "app:\n  topic: first\n").virtualFile
     assertEquals("first", ConfigPlaceholders.properties(project)["app.topic"])
     myFixture.configureFromExistingVirtualFile(file)
     val document = myFixture.editor.document
     WriteCommandAction.runWriteCommandAction(project) { document.setText("app:\n  topic: second\n") }
     PsiDocumentManager.getInstance(project).commitAllDocuments()
-    FileDocumentManager.getInstance().saveDocument(document)
+    assertTrue(FileDocumentManager.getInstance().isDocumentUnsaved(document))
     assertEquals("second", ConfigPlaceholders.properties(project)["app.topic"])
+  }
+
+  fun testReadYaml() {
+    val yaml = """
+      app:
+        topics:
+          order: "order.placed" # inline comment
+          'quoted.key': audit
+        list:
+          - a
+          - b
+        block: |
+          multi
+      # a comment
+      other: 1
+      ---
+      second:
+        doc: two
+    """.trimIndent()
+    assertEquals(mapOf("app.topics.order" to "order.placed", "app.topics.quoted.key" to "audit", "other" to "1", "second.doc" to "two"),
+                 ConfigPlaceholders.readYaml(yaml))
+  }
+
+  fun testJdkProxyModeSurvivesBodyEdits() {
+    assertCodeEditKeeps(JdkProxyMode.codeModeComputes, { JdkProxyMode.isJdkProxying(project) }, "Foo.java",
+                        "class Foo { void m() { <caret> } }", "int x = 1;")
   }
 
   fun testPlaceholdersSurviveCodeEdits() {
