@@ -6,6 +6,8 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.SystemInfo
+import java.io.File
+import java.io.IOException
 import java.lang.management.ManagementFactory
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
@@ -93,7 +95,12 @@ class CpuSampler : Disposable {
       if (executor == null) {
         executor = Executors.newSingleThreadScheduledExecutor { r ->
           Thread(r, THREAD_NAME).apply { isDaemon = true; priority = Thread.MIN_PRIORITY }
-        }.also { it.scheduleWithFixedDelay({ sampleSafely(false) }, 0, SAMPLE_MS, TimeUnit.MILLISECONDS) }
+        }.also {
+          // A previous executor may have stopped mid-run; start from a fresh baseline so the first interval and the graph
+          // do not span the time nobody listened.
+          it.execute { resetSamplingState() }
+          it.scheduleWithFixedDelay({ sampleSafely(false) }, 0, SAMPLE_MS, TimeUnit.MILLISECONDS)
+        }
       }
     }
     Disposer.register(parent) {
@@ -228,7 +235,23 @@ class CpuSampler : Disposable {
     return d
   }
 
-  private fun publish(s: CpuSnapshot, changed: Boolean) {
+  /** On the sampling thread of a new executor, before its first sample. */
+  internal fun resetSamplingState() {
+    lastWall = 0L
+    lastProcess = 0L
+    lastSelf = 0L
+    highRun = 0
+    ideHistory = IntArray(CpuSnapshot.HISTORY) { -1 }
+    systemHistory = IntArray(CpuSnapshot.HISTORY) { -1 }
+    ideText = ""
+    systemText = ""
+    lastIde = -1
+    lastSystem = -1
+    detail = null
+    snapshot = CpuSnapshot.EMPTY
+  }
+
+  internal fun publish(s: CpuSnapshot, changed: Boolean) {
     snapshot = s
     for (l in listeners) l.sampled(s, changed)
   }
@@ -265,6 +288,7 @@ class CpuSampler : Disposable {
      * through the whole stack of such a thread.
      */
     private const val MAX_STACK_DEPTH = 256
+    private const val PS_TIMEOUT_MS = 2_000L
     private val LOG = logger<CpuSampler>()
 
     private fun percent(fraction: Double): Int = (fraction * 100).roundToInt().coerceIn(0, 100)
@@ -282,15 +306,37 @@ class CpuSampler : Disposable {
         SystemInfo.isLinux -> listOf("ps", "-Ao", "pcpu,comm", "--sort=-pcpu")
         else -> return emptyList()
       }
-      return try {
-        val process = ProcessBuilder(command).redirectErrorStream(true).start()
-        val output = process.inputStream.bufferedReader().use { it.readText() }
-        if (!process.waitFor(2, TimeUnit.SECONDS)) process.destroyForcibly()
-        TopProcesses.parse(output, TOP_PROCESSES)
+      val output = runWithTimeout(command, PS_TIMEOUT_MS) ?: return emptyList()
+      return TopProcesses.parse(output, TOP_PROCESSES)
+    }
+
+    /**
+     * Output of [command], or null when it fails or runs longer than [timeoutMs]. The output goes to a temporary file
+     * instead of a pipe: reading a pipe blocks until the process exits, so a hung `ps` would stall the sampling thread forever.
+     */
+    internal fun runWithTimeout(command: List<String>, timeoutMs: Long): String? {
+      val out = try {
+        File.createTempFile("phantom-cpu-ps", ".txt")
+      }
+      catch (e: IOException) {
+        LOG.debug(e)
+        return null
+      }
+      try {
+        val process = ProcessBuilder(command).redirectErrorStream(true).redirectOutput(out).start()
+        if (!process.waitFor(timeoutMs, TimeUnit.MILLISECONDS)) {
+          process.destroyForcibly()
+          return null
+        }
+        return out.readText()
       }
       catch (e: Exception) {
+        if (e is InterruptedException) Thread.currentThread().interrupt()
         LOG.debug(e)
-        emptyList()
+        return null
+      }
+      finally {
+        out.delete()
       }
     }
   }
