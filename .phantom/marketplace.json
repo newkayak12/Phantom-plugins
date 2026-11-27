@@ -794,7 +794,7 @@
     {
       "id": "dev.phantom.markdown",
       "name": "Support for Markdown",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "source": "markdown",
       "description": "Markdown files: highlighting, completion, navigation, inspections, table and list editing, images, language injection in code fences, front matter, and the JCEF preview; Shell Script, Kotlin and others build on it. Based on the IntelliJ Community Markdown plugin (Apache 2.0); org.intellij.plugins.markdown stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -804,7 +804,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "markdown-0.1.2/markdown-0.1.2.zip",
+      "download": "markdown-0.1.3/markdown-0.1.3.zip",
       "detect": [],
       "aliases": [
         "org.intellij.plugins.markdown"

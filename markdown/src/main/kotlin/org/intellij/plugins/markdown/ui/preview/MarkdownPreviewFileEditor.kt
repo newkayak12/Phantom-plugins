@@ -33,11 +33,13 @@ import com.intellij.util.ui.UIUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.intellij.plugins.markdown.MarkdownBundle
 import org.intellij.plugins.markdown.settings.MarkdownExtensionsSettings
 import org.intellij.plugins.markdown.settings.MarkdownSettings
@@ -219,9 +221,9 @@ class MarkdownPreviewFileEditor(
   }
 
   @RequiresEdt
-  private fun updateHtml() {
+  private fun updateHtml(debounceMillis: Long = 0) {
     cancelHtmlUpdate()
-    startHtmlUpdate()
+    startHtmlUpdate(debounceMillis)
   }
 
   private suspend fun doUpdateHtml() {
@@ -258,17 +260,21 @@ class MarkdownPreviewFileEditor(
       return
     }
 
-    writeIntentReadAction {
-      val offset = editor.caretModel.offset
-      val line = editor.document.getLineNumber(offset)
-      logger.info("MarkdownPreviewFileEditor: setContent length: ${lastRenderedContent.length}, offset: $offset, line: $line")
-      if (panel is MarkdownContentPanel) {
-        panel.setMarkdown(lastRenderedContent, offset, line, file)
+    // phantom-idea: the text and HTML are built off the EDT above; only handing them to the panel runs on the EDT.
+    withContext(Dispatchers.EDT) {
+      if (this@MarkdownPreviewFileEditor.panel !== panel) return@withContext
+      writeIntentReadAction {
+        val offset = editor.caretModel.offset
+        val line = editor.document.getLineNumber(offset)
+        logger.info("MarkdownPreviewFileEditor: setContent length: ${lastRenderedContent.length}, offset: $offset, line: $line")
+        if (panel is MarkdownContentPanel) {
+          panel.setMarkdown(lastRenderedContent, offset, line, file)
+        }
+        else {
+          panel.setHtml(lastRenderedContent, offset, line, file)
+        }
+        logger.info("MarkdownPreviewFileEditor: setContent finished")
       }
-      else {
-        panel.setHtml(lastRenderedContent, offset, line, file)
-      }
-      logger.info("MarkdownPreviewFileEditor: setContent finished")
     }
   }
 
@@ -300,12 +306,16 @@ class MarkdownPreviewFileEditor(
 
   private inner class ReparseContentDocumentListener : DocumentListener {
     override fun documentChanged(event: DocumentEvent) {
-      updateHtml()
+      // phantom-idea: coalesce keystrokes; each change cancels the pending update and restarts the wait.
+      updateHtml(DOCUMENT_CHANGE_DEBOUNCE_MILLIS)
     }
   }
 
-  private fun startHtmlUpdate() {
-    val job = coroutineScope.launch(Dispatchers.EDT) {
+  private fun startHtmlUpdate(debounceMillis: Long) {
+    // phantom-idea: build the preview text on a background thread instead of the EDT. The upstream job ran on
+    // Dispatchers.EDT, so readAction and the HTML conversion in the panel provider's preprocessor blocked typing.
+    val job = coroutineScope.launch(Dispatchers.Default) {
+      if (debounceMillis > 0) delay(debounceMillis)
       doUpdateHtml()
     }
     val set = updateHtmlInProgress.compareAndSet(null, job)
@@ -354,6 +364,9 @@ class MarkdownPreviewFileEditor(
   }
 
   companion object {
+    // phantom-idea: wait for a pause in typing before rebuilding the preview.
+    private const val DOCUMENT_CHANGE_DEBOUNCE_MILLIS = 150L
+
     private val logger = thisLogger()
 
     val PREVIEW_BROWSER: Key<WeakReference<MarkdownHtmlPanel>> = Key.create("PREVIEW_BROWSER")

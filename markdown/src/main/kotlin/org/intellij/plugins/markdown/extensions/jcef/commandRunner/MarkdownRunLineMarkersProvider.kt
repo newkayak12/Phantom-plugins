@@ -12,9 +12,11 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.NlsSafe
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
+import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
@@ -57,7 +59,12 @@ internal class MarkdownRunLineMarkersProvider: RunLineMarkerContributor(), DumbA
     }
 
     val dir = getMarkdownCommandWorkingDirectory(element.project, element.containingFile.virtualFile) ?: return null
-    if (!matches(element.project, dir, true, text)) {
+    // phantom-idea: cache the Run Anything match per element until the next PSI change. The daemon asks for run line markers
+    // on every leaf on every pass, and matching builds a data context and asks every RunAnythingProvider each time.
+    val matchesCommand = CachedValuesManager.getCachedValue(element, COMMAND_MATCHES_KEY) {
+      CachedValueProvider.Result.create(matches(element.project, dir, true, text), PsiModificationTracker.getInstance(element.project))
+    }
+    if (!matchesCommand) {
       return null
     }
 
@@ -165,7 +172,6 @@ internal class MarkdownRunLineMarkersProvider: RunLineMarkerContributor(), DumbA
     && element.parent.hasType(MarkdownElementTypes.CODE_SPAN)
     && element.parent.firstChild == element
 
-
   private class RunConfigurationAction(private val settings: RunnerAndConfigurationSettings): AnAction({ settings.name }, settings.configuration.icon) {
     override fun actionPerformed(event: AnActionEvent) {
       val project = event.project ?: settings.configuration.project
@@ -182,3 +188,6 @@ internal class MarkdownRunLineMarkersProvider: RunLineMarkerContributor(), DumbA
     }
   }
 }
+
+// phantom-idea: key for the cached Run Anything match above.
+private val COMMAND_MATCHES_KEY = Key.create<CachedValue<Boolean>>("markdown.runner.command.matches")
