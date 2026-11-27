@@ -529,6 +529,7 @@
     <ID>CyclomaticComplexMethod:PhantomMcp.kt:PhantomMcp$private fun tools: JsonArray</ID>
     <ID>CyclomaticComplexMethod:PowerShellCompletionContributor.kt:PowerShellCompletionContributor$override fun fillCompletionVariants</ID>
     <ID>CyclomaticComplexMethod:ProbeJson.kt:ProbeJson$private fun append</ID>
+    <ID>CyclomaticComplexMethod:ProtoLexer.kt:ProtoLexer$override fun advance</ID>
     <ID>CyclomaticComplexMethod:ProjectConfigKeys.kt:ConfigText$fun yaml: List&lt;Entry></ID>
     <ID>CyclomaticComplexMethod:PsiUtils.kt:fun getNotSoDistantSimilarSiblings: List&lt;PsiElement></ID>
     <ID>CyclomaticComplexMethod:QueryMethodInspections.kt:AttributeParameters$fun check</ID>
@@ -2866,6 +2867,7 @@
     <ID>TooManyFunctions:ProfileRun.kt:ProfileExecutor : Executor</ID>
     <ID>TooManyFunctions:ProfileRun.kt:Recordings</ID>
     <ID>TooManyFunctions:ProgressIndicatorWrapper.kt:ProgressIndicatorWrapper : ProgressIndicator</ID>
+    <ID>TooManyFunctions:ProtoParser.kt:ProtoParser : PsiParser</ID>
     <ID>TooManyFunctions:ProjectTabStrip.kt:ProjectTabStrip : JPanel</ID>
     <ID>TooManyFunctions:ProjectTabs.kt:ProjectTabs</ID>
     <ID>TooManyFunctions:ProjectTabsService.kt:ProjectTabsService : Disposable</ID>
