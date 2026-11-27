@@ -353,6 +353,27 @@
       ]
     },
     {
+      "id": "dev.phantom.graphql",
+      "name": "Support for GraphQL",
+      "version": "0.1.0",
+      "source": "graphql",
+      "description": "GraphQL schemas and queries (.graphql, .graphqls, .gql): highlighting, go to type and fragment definitions, find usages and rename. With Spring GraphQL, gutter icons link schema fields and @QueryMapping/@MutationMapping/@SchemaMapping/@BatchMapping handlers, and Query/Mutation/Subscription fields without a handler are reported. Works offline.",
+      "vendor": "Phantom",
+      "since": "262",
+      "until": "262.*",
+      "category": "Languages",
+      "depends": [
+        "com.intellij.modules.lang",
+        "com.intellij.java"
+      ],
+      "download": "graphql-0.1.0/graphql-0.1.0.zip",
+      "detect": [
+        "org.springframework.graphql:spring-graphql",
+        "org.springframework.boot:spring-boot-starter-graphql",
+        "com.graphql-java:graphql-java"
+      ]
+    },
+    {
       "id": "dev.phantom.http",
       "name": "Phantom HTTP Client",
       "version": "0.2.2",

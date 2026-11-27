@@ -44,6 +44,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Support for Bean Validation | [validation](./validation/KOR.md) · [English](./validation/README.md) | 모순된 범위, 맞지 않는 타입의 제약, Kotlin `@field:` 대상, 빠진 `@Valid` / `@Validated` |
 | Phantom Migrations | [migrations](./migrations/KOR.md) · [English](./migrations/README.md) | Flyway 파일 이름과 중복 버전, Liquibase 중복 changeset과 없는 include |
 | Support for OpenAPI | [openapi](./openapi/KOR.md) · [English](./openapi/README.md) | OpenAPI/Swagger 스펙의 `$ref` 이동·자동완성·오류, 스펙 ↔ 핸들러 거터 |
+| Support for GraphQL | [graphql](./graphql/KOR.md) · [English](./graphql/README.md) | GraphQL 스키마·쿼리 편집과 이동, 스키마 필드 ↔ Spring GraphQL 핸들러, 핸들러 없는 루트 필드 경고 |
 | Phantom HTTP Client | [http-client](./http-client/KOR.md) · [English](./http-client/README.md) | `.http` / `.rest` 요청을 에디터에서 실행: 환경 변수, `import` / `run`, 검사, 응답 창 |
 | Support for gRPC | [grpc](./grpc/KOR.md) · [English](./grpc/README.md) | `.proto` 편집: 강조, 문법 오류, 구조 보기, 메시지·enum·import 이동, 사용처 찾기와 이름 바꾸기 |
 | Phantom Icon Pack | [icons](./icons/KOR.md) · [English](./icons/README.md) | Material 파일·폴더 아이콘; Java 파일은 찻잔, Kotlin 파일은 로고, Java 클래스는 종류별 |
