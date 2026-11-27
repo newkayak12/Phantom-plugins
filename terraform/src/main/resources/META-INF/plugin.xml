@@ -25,5 +25,8 @@
     <lang.braceMatcher language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclBraceMatcher"/>
     <lang.psiStructureViewFactory language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclStructureViewFactory"/>
     <lang.findUsagesProvider language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclFindUsagesProvider"/>
+    <localInspection language="PhantomTerraform" enabledByDefault="true" level="WARNING" shortName="PhantomTerraformUnresolvedReference"
+                     bundle="messages.TerraformBundle" key="inspection.unresolved.name" groupKey="inspection.group"
+                     implementationClass="dev.phantom.terraform.TerraformUnresolvedReferenceInspection"/>
   </extensions>
 </idea-plugin>

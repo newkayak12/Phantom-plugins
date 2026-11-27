@@ -6,9 +6,12 @@ import com.intellij.icons.AllIcons
 import com.intellij.lang.ASTNode
 import com.intellij.navigation.ItemPresentation
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFileFactory
 import com.intellij.psi.PsiNameIdentifierOwner
+import com.intellij.psi.PsiReference
+import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.IncorrectOperationException
 import javax.swing.Icon
@@ -34,8 +37,11 @@ class HclBlock(node: ASTNode) : ASTWrapperPsiElement(node), PsiNameIdentifierOwn
     return this
   }
 
-
-  override fun getTextOffset(): Int = nameIdentifier?.textOffset ?: super.getTextOffset()
+  /** The start of the name inside the quotes, so the caret on it finds the block as the target of Find Usages and rename. */
+  override fun getTextOffset(): Int {
+    val label = labels.lastOrNull() ?: return super.getTextOffset()
+    return label.textOffset + if (label.text.startsWith('"') && label.textLength > 1) 1 else 0
+  }
 
   override fun getPresentation(): ItemPresentation = presentation((listOf(type) + labels.map { it.value }).joinToString(" "), this, AllIcons.Nodes.Class)
 
@@ -99,6 +105,31 @@ class HclGetAttr(node: ASTNode) : ASTWrapperPsiElement(node) {
         else -> null
       }
     }
+
+  fun resolve(): PsiElement? {
+    val file = containingFile as? HclFile ?: return null
+    if (!file.isConfiguration || TerraformScopes.isLocalName(this)) return null
+    return TerraformModules.resolve(file, chain ?: return null)
+  }
+
+  override fun getReference(): PsiReference? {
+    val name = nameNode ?: return null
+    return AttributeReference(this, TextRange.from(name.startOffsetInParent, name.textLength))
+  }
+
+  override fun getReferences(): Array<PsiReference> = reference?.let { arrayOf(it) } ?: PsiReference.EMPTY_ARRAY
+
+  private class AttributeReference(element: HclGetAttr, range: TextRange) : PsiReferenceBase<HclGetAttr>(element, range, true) {
+    override fun resolve(): PsiElement? = element.resolve()
+
+    override fun handleElementRename(newElementName: String): PsiElement {
+      val old = element.nameNode ?: return element
+      val dummy = HclElementFactory.file(element.project, "x = a.$newElementName")
+      val new = PsiTreeUtil.findChildOfType(dummy, HclGetAttr::class.java)?.nameNode ?: throw IncorrectOperationException(newElementName)
+      element.node.replaceChild(old, new)
+      return element
+    }
+  }
 }
 
 private fun presentation(text: String, element: PsiElement, icon: Icon): ItemPresentation = object : ItemPresentation {
