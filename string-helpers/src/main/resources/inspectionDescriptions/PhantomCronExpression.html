@@ -1,0 +1,10 @@
+<html>
+<body>
+Reports a cron expression that Spring or Quartz would reject at runtime: a wrong number of fields, a value outside its
+field's range, a malformed range, step, <code>L</code>, <code>W</code> or <code>#</code>, and for Quartz a missing or
+doubled <code>?</code> in day-of-month and day-of-week.
+<p>Checked: <code>@Scheduled(cron = ...)</code>, <code>CronExpression.parse</code> and <code>new CronTrigger</code> (Spring),
+<code>CronScheduleBuilder.cronSchedule</code>, <code>new CronExpression</code> and
+<code>CronTriggerFactoryBean.setCronExpression</code> (Quartz). Only string literals; placeholders are skipped.</p>
+</body>
+</html>
