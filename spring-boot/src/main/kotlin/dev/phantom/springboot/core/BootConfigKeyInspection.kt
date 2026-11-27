@@ -48,25 +48,52 @@ class BootConfigKeyInspection : LocalInspectionTool() {
     }
   }
 
-  /** The text ranges of the key on each line (the last segment in YAML, the whole dotted key in properties). */
-  private fun keyRanges(text: CharSequence, yaml: Boolean): List<TextRange> {
+  /**
+   * The text ranges of the key on each line (the last segment in YAML, the whole dotted key in properties). The lines of
+   * a YAML block scalar (`key: |` or `key: >`) are its value, not keys, even when they contain a colon.
+   */
+  internal fun keyRanges(text: CharSequence, yaml: Boolean): List<TextRange> {
     val result = ArrayList<TextRange>()
+    var blockIndent = -1
     var start = 0
     while (start < text.length) {
       val end = lineEndOf(text, start)
       var i = start
       while (i < end && (text[i] == ' ' || text[i] == '\t')) i++
-      if (i < end && text[i] != '#' && text[i] != '!' && text[i] != '-') {
-        val separator = (i until end).firstOrNull { text[it] == ':' || !yaml && text[it] == '=' }
-        if (separator != null) {
-          var keyEnd = separator
-          while (keyEnd > i && text[keyEnd - 1] == ' ') keyEnd--
-          if (keyEnd > i) result.add(TextRange(i, keyEnd))
+      val indent = i - start
+      if (blockIndent < 0 || i < end && indent <= blockIndent) {
+        blockIndent = -1
+        keyRangeOnLine(text, i, end, yaml)?.let { (range, blockScalar) ->
+          result.add(range)
+          if (blockScalar) blockIndent = indent
         }
       }
       start = end + 1
     }
     return result
+  }
+
+  /** The key's range on a line whose text starts at [i], and whether its value starts a YAML block scalar. */
+  private fun keyRangeOnLine(text: CharSequence, i: Int, end: Int, yaml: Boolean): Pair<TextRange, Boolean>? {
+    val separator = separatorOf(text, i, end, yaml) ?: return null
+    var keyEnd = separator
+    while (keyEnd > i && text[keyEnd - 1] == ' ') keyEnd--
+    if (keyEnd <= i) return null
+    return TextRange(i, keyEnd) to (yaml && isBlockScalar(text.subSequence(separator + 1, end)))
+  }
+
+  /** The `:` (or `=` in properties) after the key that starts at [i], on a line that is not a comment or list item. */
+  private fun separatorOf(text: CharSequence, i: Int, end: Int, yaml: Boolean): Int? {
+    if (i >= end || text[i] in NOT_A_KEY) return null
+    return (i until end).firstOrNull { text[it] == ':' || !yaml && text[it] == '=' }
+  }
+
+  /** `|`, `>`, with an optional chomping or indentation indicator and comment: `|-`, `>+2 # note`. */
+  private fun isBlockScalar(value: CharSequence): Boolean = BLOCK_SCALAR.matches(value)
+
+  private companion object {
+    const val NOT_A_KEY = "#!-"
+    val BLOCK_SCALAR = Regex("""\s*[|>][-+0-9]*\s*(#.*)?""")
   }
 
   /** Properties keys are replaced whole; a YAML key only when the replacement differs in the last segment. */
