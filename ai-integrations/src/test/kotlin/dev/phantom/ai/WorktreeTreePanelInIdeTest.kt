@@ -38,7 +38,7 @@ import javax.swing.JPanel
 import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
 
-/** The sidebar of the current project in a real IDE: rows, menus, activation, no drag and drop. Fake repos, worktrees and starter. */
+/** The sidebar of the current project in a real IDE: rows, menus, activation. Fake repos, worktrees and starter. */
 class WorktreeTreePanelInIdeTest : BasePlatformTestCase() {
   private class Started(val cwd: String, val command: String)
 
@@ -168,13 +168,14 @@ class WorktreeTreePanelInIdeTest : BasePlatformTestCase() {
     assertEquals(LaunchCommand.launch(AgentKind.CLAUDE), started.single().command)
     click(worktreeRow("/r/app-feat"), "sidebar.open.phantom")
     assertEquals(listOf("/r/app-feat"), opened)
+    // the main checkout cannot move: it keeps a name of its own (linked worktrees: WorktreeRenameSyncInIdeTest)
     val previous = TestDialogManager.setTestInputDialog(TestInputDialog { "Renamed" })
     try {
-      click(worktreeRow("/r/app-feat"), "sidebar.rename")
+      click(worktreeRow("/r/app"), "sidebar.rename")
     } finally {
       TestDialogManager.setTestInputDialog(previous)
     }
-    assertEquals("Renamed", (objectAt(worktreeRow("/r/app-feat")) as WorktreeNode).title)
+    assertEquals("Renamed", (objectAt(worktreeRow("/r/app")) as WorktreeNode).title)
   }
 
   fun testDoubleClickAndEnterOnSessionRowResume() {
@@ -185,11 +186,9 @@ class WorktreeTreePanelInIdeTest : BasePlatformTestCase() {
     assertEquals(2, started.size)
   }
 
-  fun testSessionMenuResumeAndNoDragAndMockupColors() {
+  fun testSessionMenuResumeAndMockupColors() {
     click(sessionRow(), "action.resume")
     assertEquals(LaunchCommand.resume(AgentKind.CLAUDE, "sess-9"), started.single().command)
-    assertFalse(tree.dragEnabled)
-    assertNull(tree.transferHandler.takeIf { it.javaClass.name.contains("phantom") })
     assertEquals(0xe8b339, SidebarColors.WORKING.rgb and 0xffffff)
     assertEquals(0xe06c5a, SidebarColors.WAITING.rgb and 0xffffff)
     assertEquals(0x5fb865, SidebarColors.DONE.rgb and 0xffffff)
@@ -217,12 +216,12 @@ class WorktreeTreePanelInIdeTest : BasePlatformTestCase() {
   }
 
   fun testF2RenamesTheSelectedWorktreeOrSession() {
-    tree.selectionPath = tree.getPathForRow(worktreeRow("/r/app-feat"))
+    tree.selectionPath = tree.getPathForRow(worktreeRow("/r/app"))
     withInput("Login") {
       tree.keyListeners.forEach { it.keyPressed(KeyEvent(tree, KeyEvent.KEY_PRESSED, System.currentTimeMillis(), 0, KeyEvent.VK_F2, KeyEvent.CHAR_UNDEFINED)) }
     }
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
-    assertEquals("Login", (objectAt(worktreeRow("/r/app-feat")) as WorktreeNode).title)
+    assertEquals("Login", (objectAt(worktreeRow("/r/app")) as WorktreeNode).title)
     tree.selectionPath = tree.getPathForRow(sessionRow())
     withInput("Bot") { panel.renameSelected() }
     assertEquals("Bot", SessionStore.getInstance().get("t1")!!.userTitle)

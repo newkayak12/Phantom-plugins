@@ -371,7 +371,7 @@
     {
       "id": "dev.phantom.ai",
       "name": "Phantom AI Integration",
-      "version": "0.7.1",
+      "version": "0.7.2",
       "source": "ai-integrations",
       "description": "Claude Code and Codex next to your projects (0.3.16): a tree of the current project's worktrees and agent sessions beside the agent terminals in one tool window, a board editor tab, an agent dashboard, usage in the status bar and opt-in remote control from another device's browser. Select code in the editor and type an AI command to leave an AI memo (kept in memory only, following its code as lines move), then send the checked memos to a session as one prompt, queued while that session is busy. Agents open files at a line in the editor and read what you are looking at through Phantom's own MCP server, with no setup. A small public API, dev.phantom.ai.api, lets other plugins read sessions (with the subagents each started, since 0.3.1, and what each is doing right now, since 0.3.8) and worktrees and focus or start a session. Agents keep running in tmux when their project window closes and reattach when it reopens. Needs Phantom Workspaces. 0.3.22: agents read one declaration (read_symbol), replace one or insert next to it (replace_symbol, insert_code) as undoable IDE edits, and read the end of a Run console filtered by a pattern (get_run_output). 0.3.23: with Phantom Database Console, agents list its data sources, tables and columns and run read-only queries (list_databases, list_tables, describe_table, query_database); passwords stay in Phantom. 0.3.24: agent teams, detached-session reattach, the hook server and Remote Control wait until they are needed. 0.3.25: agents draft changes with draft_sql, which writes the SQL into the data source's console in the editor and never runs it; reads stay read-only and rolled back. 0.7.0: needs Phantom Local Shared Index, which answers find_symbol, find_usages, file_outline and get_file_problems and adds search_text (text through Find in Files, with the lines around each match).",
       "vendor": "Phantom",
@@ -386,7 +386,7 @@
         "Git4Idea",
         "org.jetbrains.plugins.github"
       ],
-      "download": "ai-integrations-0.7.1/ai-integrations-0.7.1.zip",
+      "download": "ai-integrations-0.7.2/ai-integrations-0.7.2.zip",
       "versions": [
         {
           "version": "0.6.0",
@@ -433,7 +433,7 @@
     {
       "id": "dev.phantom.workspaces",
       "name": "Phantom Workspaces",
-      "version": "0.7.7",
+      "version": "0.7.8",
       "source": "workspaces",
       "description": "All open projects in one window. With no project open, Home opens as a project window (IntelliJ's non-modal welcome screen, without JetBrains content); the Projects and Files view, selectable in every project window, lists open and recent projects by repository, worktrees under their main checkout (also ones not opened yet), with × on open ones: click to switch or open as a tab. Only the project in front has a window on screen; projects share size, position, full screen and tool window layout; detach a project or show two side by side from the list's context menu. Closing the last project brings Home back in place. Off in Settings | Advanced Settings | Phantom Workspaces, which returns the modal welcome frame; installing or removing it needs a restart.",
       "vendor": "Phantom",
@@ -443,7 +443,7 @@
       "depends": [
         "com.intellij.modules.platform"
       ],
-      "download": "workspaces-0.7.7/workspaces-0.7.7.zip",
+      "download": "workspaces-0.7.8/workspaces-0.7.8.zip",
       "versions": [
         {
           "version": "0.6.3",

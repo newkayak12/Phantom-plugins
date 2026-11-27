@@ -18,7 +18,13 @@ import dev.phantom.ai.core.PhantomAiBundle
 import dev.phantom.ai.core.SessionListener
 import dev.phantom.ai.core.SessionStore
 import dev.phantom.ai.core.bestEffort
+import dev.phantom.ai.core.addFolder
+import dev.phantom.ai.core.deleteFolder
+import dev.phantom.ai.core.folders
+import dev.phantom.ai.core.moveToFolder
+import dev.phantom.ai.core.renameFolder
 import dev.phantom.ai.terminal.submit
+import dev.phantom.workspaces.core.WorktreeRename
 import org.jetbrains.annotations.TestOnly
 import java.awt.BorderLayout
 import java.awt.Color
@@ -26,16 +32,21 @@ import java.awt.Component
 import java.awt.FlowLayout
 import java.awt.Graphics
 import java.awt.RenderingHints
+import java.awt.datatransfer.StringSelection
+import java.awt.datatransfer.Transferable
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.util.concurrent.atomic.AtomicBoolean
+import javax.swing.DropMode
 import javax.swing.Icon
+import javax.swing.JComponent
 import javax.swing.JMenuItem
 import javax.swing.JPanel
 import javax.swing.JPopupMenu
 import javax.swing.JTree
+import javax.swing.TransferHandler
 import javax.swing.tree.DefaultMutableTreeNode
 import javax.swing.tree.DefaultTreeModel
 import javax.swing.tree.TreeCellRenderer
@@ -62,7 +73,8 @@ object SidebarColors {
  * The sidebar of the current project: worktree rows (title or branch, an open-PR pill `#N`) with their session rows below
  * (status dot, title, agent chip). One repository shows its worktrees at the top; several show a repository row above
  * each. Worktrees are read off the EDT through [WorktreeSource] and refreshed when a session or the shared state changes.
- * There is no drag and drop, and no group or repository editing: the repositories are the project's own ([ProjectRepos]).
+ * Worktrees can be grouped in folders of the user's ([FolderNode], kept per repository in [AiState]) and dragged into and
+ * out of them; there is no repository editing: the repositories are the project's own ([ProjectRepos]).
  */
 class WorktreeTreePanel(
   private val project: Project,
@@ -96,11 +108,16 @@ class WorktreeTreePanel(
   /** The row under the mouse: a repository or worktree row there shows its + (new worktree) at its end. */
   private var hoveredRow = -1
   private val whenShown = dev.phantom.ai.core.WhenShown(this, ::refresh)
+  /** The worktree being dragged from this tree; drops of anything else are refused. */
+  private var dragged: WorktreeNode? = null
 
   init {
     tree.isRootVisible = false
     tree.showsRootHandles = true
     tree.cellRenderer = Renderer { hoveredRow }
+    tree.dragEnabled = true
+    tree.dropMode = DropMode.ON
+    tree.transferHandler = FolderDrag()
     add(center, BorderLayout.CENTER)
     center.add(scroll, BorderLayout.CENTER)
     tree.addMouseListener(object : PopupHandler() {
@@ -222,6 +239,7 @@ class WorktreeTreePanel(
           // whole 30 s steps, as the ticker: elapsed times then do not make every refresh a new model
           { state.findWorktree(it)?.userName }, step(System.currentTimeMillis()),
           { state.findWorktree(it)?.parentPath },
+          { r -> state.folders(r).map { it.name.orEmpty() to it.worktrees.toList() } },
         )
       }.getOrNull() ?: return@Runnable
       ApplicationManager.getApplication().invokeLater({ show(built) }, project.disposed)
@@ -254,14 +272,15 @@ class WorktreeTreePanel(
       if (w.sessions.isNotEmpty() || n.children.isNotEmpty()) toExpand += wn
     }
     for (r in m.repos) {
-      val nested = SidebarModel.nest(r.worktrees)
-      if (m.flat) {
-        nested.forEach { worktree(root, it) }
-      } else {
-        val rn = DefaultMutableTreeNode(r).also(root::add)
-        nested.forEach { worktree(rn, it) }
-        toExpand += rn
+      val parent = if (m.flat) root else DefaultMutableTreeNode(r).also { root.add(it); toExpand += it }
+      // the user's folders first, each with its worktrees, then the worktrees in none
+      val (grouped, rest) = WorktreeFolders.group(SidebarModel.nest(r.worktrees), r.folders)
+      for ((name, members) in grouped) {
+        val fn = DefaultMutableTreeNode(FolderNode(r.path, name)).also(parent::add)
+        members.forEach { worktree(fn, it) }
+        if (members.isNotEmpty()) toExpand += fn
       }
+      rest.forEach { worktree(parent, it) }
     }
     repoOfWorktree = m.repos.flatMap { r -> r.worktrees.map { it.path to r } }.toMap()
     nestedOf = nestedByPath
@@ -288,6 +307,7 @@ class WorktreeTreePanel(
   private fun keyOf(o: Any?): String = when (o) {
     is RepoNode -> o.path
     is WorktreeNode -> o.path
+    is FolderNode -> "folder:" + o.name
     is SessionRow -> o.session.tabId
     else -> ""
   }
@@ -305,8 +325,18 @@ class WorktreeTreePanel(
       PhantomAiBundle.message("sidebar.rename") to { renameWorktree(o) },
       PhantomAiBundle.message("worktree.new") to (repoOfWorktree[o.path]?.let { r -> { newWorktree(r, o.path) } }),
       PhantomAiBundle.message("worktree.remove") to (if (o.isMain) null else ({ removeWorktree(o) })),
+      PhantomAiBundle.message("sidebar.folder.new") to (repoOfWorktree[o.path]?.let { r -> { newFolder(r.path) } }),
     )
-    is RepoNode -> menu(PhantomAiBundle.message("worktree.new") to { newWorktree(o) })
+    is RepoNode -> menu(
+      PhantomAiBundle.message("worktree.new") to { newWorktree(o) },
+      PhantomAiBundle.message("sidebar.folder.new") to { newFolder(o.path) },
+    )
+    is FolderNode -> menu(
+      PhantomAiBundle.message("sidebar.folder.rename") to { renameFolder(o) },
+      PhantomAiBundle.message("sidebar.folder.delete") to { AiState.getInstance().deleteFolder(o.repo, o.name); refresh() },
+    )
+    // below the last row of a single repository's tree
+    null -> shown?.repos?.singleOrNull()?.let { r -> menu(PhantomAiBundle.message("sidebar.folder.new") to { newFolder(r.path) }) }
     is SessionRow -> menu(
       PhantomAiBundle.message("action.resume") to (if (actions.canActivate(o.session)) ({ actions.activate(o.session); Unit }) else null),
       PhantomAiBundle.message("sidebar.rename") to { renameSession(o) },
@@ -357,7 +387,20 @@ class WorktreeTreePanel(
     refresh()
   }
 
+  /**
+   * A linked worktree is renamed with its folder through Phantom Workspaces, as in the Projects and Files list, so both
+   * show the new name ([WorktreeRenameSync]); never while agent sessions run in it. The main checkout cannot move: it
+   * keeps a name of its own in the tree.
+   */
   private fun renameWorktree(w: WorktreeNode) {
+    if (!w.isMain) {
+      if (SessionStore.getInstance().forWorktree(w.path).isNotEmpty()) {
+        Messages.showInfoMessage(project, PhantomAiBundle.message("worktree.rename.busy"), PhantomAiBundle.message("sidebar.rename"))
+        return
+      }
+      WorktreeRename.rename(project, w.path, background) { refresh() }
+      return
+    }
     val name = Messages.showInputDialog(project, PhantomAiBundle.message("sidebar.worktree.name"), PhantomAiBundle.message("sidebar.rename"), null, w.title, null) ?: return
     AiState.getInstance().worktree(w.path).userName = name.trim().ifEmpty { null }
     AiState.getInstance().changed()
@@ -397,6 +440,80 @@ class WorktreeTreePanel(
   private fun removeWorktree(w: WorktreeNode) {
     val repo = repoOfWorktree[w.path]?.path ?: return
     WorktreeRemoval(project, creator, background).remove(repo, w.path, w.branch) { refresh() }
+  }
+
+  private fun newFolder(repo: String) {
+    val name = Messages.showInputDialog(project, PhantomAiBundle.message("sidebar.folder.name"), PhantomAiBundle.message("sidebar.folder.new"),
+      null, "", folderNameValidator(repo, null)) ?: return
+    AiState.getInstance().addFolder(repo, name)
+    refresh()
+  }
+
+  private fun renameFolder(f: FolderNode) {
+    val name = Messages.showInputDialog(project, PhantomAiBundle.message("sidebar.folder.name"), PhantomAiBundle.message("sidebar.folder.rename"),
+      null, f.name, folderNameValidator(f.repo, f.name)) ?: return
+    AiState.getInstance().renameFolder(f.repo, f.name, name)
+    refresh()
+  }
+
+  private fun folderNameValidator(repo: String, current: String?) = object : com.intellij.openapi.ui.InputValidatorEx {
+    override fun getErrorText(inputString: String): String? {
+      val name = inputString.trim()
+      return when {
+        name.isEmpty() -> PhantomAiBundle.message("sidebar.folder.empty")
+        name != current && AiState.getInstance().folders(repo).any { it.name == name } -> PhantomAiBundle.message("sidebar.folder.exists")
+        else -> null
+      }
+    }
+  }
+
+  /** Where [w] dropped on the row at [path] goes; null when it cannot go there (another repository). */
+  private fun dropTarget(w: WorktreeNode, path: TreePath?): FolderDrop? {
+    val repo = repoOfWorktree[w.path]?.path ?: return null
+    val chain = path?.path?.drop(1)?.map { (it as DefaultMutableTreeNode).userObject }.orEmpty()
+    return WorktreeFolders.drop(repo, chain) { repoOfWorktree[it]?.path }
+  }
+
+  private fun drop(w: WorktreeNode, path: TreePath?): Boolean {
+    val target = dropTarget(w, path) ?: return false
+    val repo = repoOfWorktree[w.path]?.path ?: return false
+    AiState.getInstance().moveToFolder(repo, w.path, (target as? FolderDrop.Into)?.folder)
+    refresh()
+    return true
+  }
+
+  /** Drops the worktree [worktree] on [row] (-1: below the last row) as a drag from this tree would. */
+  @TestOnly internal fun dropForTest(worktree: String, row: Int): Boolean {
+    val w = allWorktrees().first { it.path == worktree }
+    return drop(w, if (row < 0) null else tree.getPathForRow(row))
+  }
+
+  /** Drags a top-level worktree row into a folder row, or out of one onto any other row of its repository. */
+  private inner class FolderDrag : TransferHandler() {
+    override fun getSourceActions(c: JComponent): Int = MOVE
+
+    override fun createTransferable(c: JComponent): Transferable? {
+      val node = tree.lastSelectedPathComponent as? DefaultMutableTreeNode ?: return null
+      val w = node.userObject as? WorktreeNode ?: return null
+      // a worktree made from another stays below that one: only top-level worktrees go into folders
+      if ((node.parent as? DefaultMutableTreeNode)?.userObject is WorktreeNode) return null
+      dragged = w
+      return StringSelection(w.path)
+    }
+
+    override fun exportDone(source: JComponent?, data: Transferable?, action: Int) {
+      dragged = null
+    }
+
+    override fun canImport(support: TransferSupport): Boolean {
+      val w = dragged ?: return false
+      return support.isDrop && dropTarget(w, (support.dropLocation as? JTree.DropLocation)?.path) != null
+    }
+
+    override fun importData(support: TransferSupport): Boolean {
+      val w = dragged ?: return false
+      return support.isDrop && drop(w, (support.dropLocation as? JTree.DropLocation)?.path)
+    }
   }
 
   private fun later(run: () -> Unit) = ApplicationManager.getApplication().invokeLater(run, project.disposed)
@@ -449,7 +566,7 @@ class WorktreeTreePanel(
       elapsed.foreground = dim
       listOf(hint, pill, chip, elapsed).forEach { it.text = ""; it.isVisible = false }
       val o0 = (value as? DefaultMutableTreeNode)?.userObject
-      plus.isVisible = row == hovered() && (o0 is RepoNode || o0 is WorktreeNode)
+      plus.isVisible = row == hovered() && hasPlus(o0)
       when (val o = (value as? DefaultMutableTreeNode)?.userObject) {
         is RepoNode -> {
           title.text = o.name
@@ -460,6 +577,10 @@ class WorktreeTreePanel(
           icon.icon = com.intellij.icons.AllIcons.Vcs.Branch
           o.branch?.takeIf { it != o.title }?.let { hint.text = it; hint.isVisible = true }
           o.prNumber?.let { pill.text = "#$it"; pill.isVisible = true }
+        }
+        is FolderNode -> {
+          title.text = o.name
+          icon.icon = com.intellij.icons.AllIcons.Nodes.Folder
         }
         is SessionRow -> {
           title.text = o.title
@@ -479,6 +600,9 @@ class WorktreeTreePanel(
   }
 
   private companion object {
+    /** Repository and worktree rows have a + (new worktree); folder and session rows do not. */
+    fun hasPlus(o: Any?) = o is RepoNode || o is WorktreeNode
+
     /** Width at the end of a row that is its + (icon and gap). */
     const val PLUS_HIT = 22
     const val TICK_MS = 30_000

@@ -40,7 +40,13 @@ object PromptPropagation {
     }
 }
 
-data class RepoNode(val path: String, val name: String, val worktrees: List<WorktreeNode>)
+/** [folders]: the user's folders of the repository in the tree (name to worktree paths); nothing on disk. */
+data class RepoNode(
+  val path: String,
+  val name: String,
+  val worktrees: List<WorktreeNode>,
+  val folders: List<Pair<String, List<String>>> = emptyList(),
+)
 
 /**
  * The sidebar tree of the current project: its repositories, each with worktrees and their sessions. With exactly one
@@ -78,6 +84,7 @@ data class SidebarModel(val repos: List<RepoNode>) {
       userName: (String) -> String?,
       now: Long,
       parentOf: (String) -> String? = { null },
+      foldersOf: (String) -> List<Pair<String, List<String>>> = { emptyList() },
     ): SidebarModel {
       val liveIds = sessions.mapNotNull { it.sessionId }.toSet()
       val all = sessions + saved.filter { it.sessionId !in liveIds }
@@ -100,6 +107,7 @@ data class SidebarModel(val repos: List<RepoNode>) {
               pr?.url,
             )
           },
+          foldersOf(path),
         )
       }
       return SidebarModel(repoRoots.distinct().map(::repoNode))

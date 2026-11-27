@@ -38,6 +38,13 @@ class SessionEntry : BaseState() {
   var accountId by string()
 }
 
+/** A folder of the worktree tree: only a group in the view, nothing on disk. [worktrees] are paths in [repo]. */
+class WorktreeFolderEntry : BaseState() {
+  var repo by string()
+  var name by string()
+  var worktrees by list<String>()
+}
+
 class AccountEntry : BaseState() {
   var provider by string()
   var id by string()
@@ -69,6 +76,8 @@ class AiStateData : BaseState() {
   var dbAllowedSources by list<String>()
   /** Id of the TerminalBackend agent terminals open in; absent = automatic (the IDE's tab with tmux, else the OS terminal). */
   var terminalBackend by string()
+  /** The worktree tree's folders, per repository, in the order they were made. */
+  var worktreeFolders by list<WorktreeFolderEntry>()
 }
 
 /** The user's answer to changing the agents' own config files: not asked yet, allowed, or refused. */

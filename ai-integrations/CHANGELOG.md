@@ -2,6 +2,11 @@
 
 ## 미배포
 
+## 0.7.2 (2026-11-27)
+
+- 연결된 worktree의 Rename이 Phantom Workspaces를 거쳐 폴더 이름을 바꾸고, Projects and Files에서 바꾼 이름도 트리에 나온다. 에이전트 세션이 있거나 프로젝트로 열린 worktree는 거절한다. (#179)
+- worktree 트리에 사용자 폴더를 둔다: New Folder…, 폴더 이름 바꾸기와 지우기(안의 worktree는 맨 위로 돌아감), worktree를 끌어 넣고 빼기. 저장소별로 저장되고 디스크에는 아무것도 바뀌지 않는다. (#179)
+
 ## 0.7.1 (2026-11-27)
 
 - 트리와 보드의 열린 PR 제목은 Settings | Tools | Phantom AI Integration의 "Show the open pull request of each branch"를 켠 경우에만 GitHub API로 찾는다. 기본은 꺼져 있다. (#167)
