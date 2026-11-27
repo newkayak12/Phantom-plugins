@@ -2,10 +2,13 @@
 package dev.phantom.localsharedindex.agent
 
 import com.intellij.codeInsight.daemon.ProblemHighlightFilter
+import com.intellij.find.FindModel
+import com.intellij.find.impl.FindInProjectUtil
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.util.ProgressIndicatorBase
@@ -21,8 +24,12 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.GlobalSearchScopes
+import com.intellij.usages.FindUsagesProcessPresentation
+import com.intellij.usages.UsageViewPresentation
 import com.intellij.util.concurrency.AppExecutorUtil
 import java.nio.file.Path
+import java.util.SortedSet
+import java.util.TreeSet
 import java.util.concurrent.Callable
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
@@ -42,13 +49,15 @@ class Located(val project: Project, val root: Path) {
 
   fun contains(file: VirtualFile): Boolean = runCatching { file.toNioPath().normalize().startsWith(root) }.getOrDefault(false)
 
-  /** Needs a read action. */
-  fun workspace(): Workspace {
+  /** The project's own files under [root], neither libraries nor excluded folders. Needs a read action. */
+  fun scope(): GlobalSearchScope {
     if (DumbService.isDumb(project)) throw IndexToolError(IndexWorkspaces.INDEXING)
     val dir = LocalFileSystem.getInstance().findFileByNioFile(root) ?: throw IndexToolError(IndexWorkspaces.NOT_OPEN)
-    val scope = GlobalSearchScope.projectScope(project).intersectWith(GlobalSearchScopes.directoryScope(project, dir, true))
-    return Workspace(this, CodeQueries(project, scope, ::shown))
+    return GlobalSearchScope.projectScope(project).intersectWith(GlobalSearchScopes.directoryScope(project, dir, true))
   }
+
+  /** Needs a read action. */
+  fun workspace(): Workspace = Workspace(this, CodeQueries(project, scope(), ::shown))
 }
 
 /** The worktree's files and the queries over them, inside a read action. */
@@ -100,6 +109,90 @@ object IndexWorkspaces {
     return file
   }
 
+  /**
+   * The lines of the worktree's files holding [text] (a regular expression when [regex]), each with [context] lines
+   * around it, at most [limit] matching lines. Find in Files does the search: the word and trigram indexes pick the
+   * files to read, so a large project is not read whole.
+   */
+  fun searchText(worktree: String?, text: String, regex: Boolean, caseSensitive: Boolean, context: Int, limit: Int): String {
+    if (regex) runCatching { Regex(text) }.onFailure { throw IndexToolError("Not a regular expression: ${it.message}") }
+    val at = locate(worktree)
+    val scope = ReadAction.compute<GlobalSearchScope, Exception> { at.scope() }
+    val model = FindModel().apply {
+      stringToFind = text
+      isCaseSensitive = caseSensitive
+      isRegularExpressions = regex
+      isMultipleFiles = true
+      isProjectScope = false
+      isCustomScope = true
+      customScope = scope
+    }
+    val hits = LinkedHashMap<VirtualFile, TreeSet<Int>>()
+    var found = 0
+    var more = false
+    val indicator = ProgressIndicatorBase()
+    val search = AppExecutorUtil.getAppExecutorService().submit {
+      ProgressManager.getInstance().runProcess({
+        FindInProjectUtil.findUsages(model, at.project, indicator, FindUsagesProcessPresentation(UsageViewPresentation()), emptySet()) { usage ->
+          val file = usage.virtualFile ?: return@findUsages true
+          val line = ReadAction.compute<Int?, Exception> {
+            val start = usage.navigationRange?.startOffset ?: return@compute null
+            FileDocumentManager.getInstance().getDocument(file)?.takeIf { start <= it.textLength }?.getLineNumber(start)
+          } ?: return@findUsages true
+          // Find in Files may search several files at once
+          synchronized(hits) {
+            when {
+              hits[file]?.contains(line) == true -> true
+              found == limit -> {
+                more = true
+                false
+              }
+              else -> {
+                found++
+                hits.getOrPut(file, ::TreeSet).add(line)
+              }
+            }
+          }
+        }
+      }, indicator)
+    }
+    try {
+      search.get(TIMEOUT_S, TimeUnit.SECONDS)
+    } catch (e: TimeoutException) {
+      indicator.cancel()
+      throw IndexToolError(TOO_SLOW)
+    } catch (e: ExecutionException) {
+      if (e.cause is ProcessCanceledException) throw IndexToolError("The search was interrupted by a change; call again")
+      throw e.cause ?: e
+    }
+    if (hits.isEmpty()) return "No line holds \"$text\" in this workspace."
+    val blocks = ReadAction.compute<List<String>, Exception> {
+      hits.entries.sortedBy { at.shown(it.key) }.flatMap { (file, lines) -> blocksOf(at.shown(file), file, lines, context) }
+    }
+    return (blocks + if (more) listOf("... more matches; narrow the text or raise limit") else emptyList()).joinToString("\n")
+  }
+
+  /** `path:line` and the lines around each match, `>` marking the matching ones; overlapping contexts are merged. */
+  private fun blocksOf(shown: String, file: VirtualFile, lines: SortedSet<Int>, context: Int): List<String> {
+    val document = FileDocumentManager.getInstance().getDocument(file) ?: return emptyList()
+    val blocks = ArrayList<String>()
+    var block: IntRange? = null
+    fun flush(range: IntRange) {
+      val head = "$shown:${lines.first { it in range } + 1}"
+      blocks += (listOf(head) + range.map { n ->
+        val code = document.charsSequence.subSequence(document.getLineStartOffset(n), document.getLineEndOffset(n)).toString().trimEnd()
+        (if (n in lines) "> " else "  ") + "${n + 1}  " + code.take(MAX_CODE)
+      }).joinToString("\n")
+    }
+    for (line in lines) {
+      val range = (line - context).coerceAtLeast(0)..(line + context).coerceAtMost(document.lineCount - 1)
+      val open = block
+      block = if (open != null && range.first <= open.last + 1) open.first..range.last else { open?.let(::flush); range }
+    }
+    block?.let(::flush)
+    return blocks
+  }
+
   /** The file's errors (and warnings when [warnings]) from the IDE's analysis, one `path:line  SEVERITY  message` each. */
   fun problems(worktree: String?, path: String, warnings: Boolean): String {
     val at = locate(worktree)
@@ -146,6 +239,7 @@ object IndexWorkspaces {
   private const val PROBLEMS_TIMEOUT_S = 60L
   private const val COMMIT_WAIT_S = 5L
   private const val MAX_PROBLEMS = 100
+  private const val MAX_CODE = 160
   const val NOT_AVAILABLE = "The IDE index is not available for this terminal; use your own search."
   const val NOT_OPEN = "This workspace is not open in Phantom, so it has no index; use your own search."
   const val INDEXING = "Phantom is still indexing this workspace; use your own search for now."
