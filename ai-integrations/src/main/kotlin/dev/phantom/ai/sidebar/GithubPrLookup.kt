@@ -5,6 +5,7 @@ import dev.phantom.ai.core.bestEffort
 import com.google.gson.JsonParser
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.progress.EmptyProgressIndicator
+import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.util.ThrowableConvertor
@@ -14,7 +15,6 @@ import git4idea.commands.GitLineHandler
 import java.net.URLEncoder
 import java.nio.file.Files
 import java.nio.file.Path
-import kotlinx.coroutines.runBlocking
 import org.jetbrains.plugins.github.api.GithubApiRequest
 import org.jetbrains.plugins.github.api.GithubApiRequestExecutor
 import org.jetbrains.plugins.github.api.GithubApiResponse
@@ -223,14 +223,14 @@ class GithubPluginPrFetcher(
   private fun queryPulls(target: GithubRepoRef, origin: GithubRepoRef, branch: String, all: List<GithubAccount>, hostRef: GithubRepoRef = target): PrInfo? =
     bestEffort {
       val account = GithubHosts.pick(hostRef, all, sshHosts) ?: return@bestEffort null
-      val t = runBlocking { token(account) } ?: return@bestEffort null
+      val t = runBlockingMaybeCancellable { token(account) } ?: return@bestEffort null
       val url = PullsResponse.url(account.server.toApiUrl(), target, branch, origin.owner)
       api.get(account.server, t, url)?.let { PullsResponse.parse(it) }
     }.getOrNull()
 
   private fun parentOf(origin: GithubRepoRef, all: List<GithubAccount>): GithubRepoRef? = bestEffort {
     val account = GithubHosts.pick(origin, all, sshHosts) ?: return@bestEffort null
-    val t = runBlocking { token(account) } ?: return@bestEffort null
+    val t = runBlockingMaybeCancellable { token(account) } ?: return@bestEffort null
     val body = api.get(account.server, t, "${account.server.toApiUrl().trimEnd('/')}/repos/${origin.owner}/${origin.repo}") ?: return@bestEffort null
     val parent = JsonParser.parseString(body).asJsonObject.get("parent")?.takeUnless { it.isJsonNull }?.asJsonObject ?: return@bestEffort null
     val owner = parent.getAsJsonObject("owner")?.get("login")?.asString ?: return@bestEffort null
