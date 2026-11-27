@@ -7,7 +7,19 @@ Reuses index data between checkouts of the same project on this machine, so a ne
 - **Local only:** data is read and written on this machine; nothing is sent anywhere.
 - **Advanced Settings:** Settings | Advanced Settings | Phantom Local Shared Index | Cache size limit (MB), default 2048. When the cache grows past it, the oldest data is deleted. The new limit applies after restarting the IDE.
 - **Turn off:** disable the plugin in Settings | Plugins.
-- **Not bundled:** Phantom does not ship this plugin; install it if you open several checkouts of the same project.
+- **Not bundled:** Phantom does not ship this plugin; install it if you open several checkouts of the same project. Phantom AI Integration needs it and installs it with it.
+
+## Index tools for agents
+
+With Phantom AI Integration, the agents in its terminals ask the IDE's index through Phantom's MCP server, and this plugin answers, for the agent's own worktree and only the project's files there:
+
+- `find_symbol`: where a class, method, function or field is declared, by name (camel humps work).
+- `find_usages`: the resolved references of a symbol, given where it is written.
+- `search_text`: text, or a regular expression, through Find in Files and the word and trigram indexes; each matching line with a few lines around it (`context`, default 2).
+- `file_outline`: the classes and members of a file with their lines, without the bodies.
+- `get_file_problems`: a file's errors, and warnings on request, from the IDE's analysis.
+
+Answers are `path:line` lines, at most `limit` results (default 30, at most 200). While the IDE is indexing they say so instead of waiting. They run in read actions off the EDT and make no network requests. Without Phantom AI Integration this plugin offers no tools.
 
 ## What to expect
 

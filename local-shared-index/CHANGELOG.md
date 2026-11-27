@@ -2,6 +2,10 @@
 
 ## 미배포
 
+## 0.2.0 (2026-11-27)
+
+- Phantom AI Integration의 에이전트가 MCP로 묻는 IDE 인덱스 도구(`find_symbol`, `find_usages`, `file_outline`, `get_file_problems`)를 이 플러그인이 답한다. 새 도구 `search_text`는 Find in Files와 단어·트라이그램 인덱스로 워크트리의 프로젝트 파일에서 텍스트(정규식 가능)를 찾아 일치한 줄과 앞뒤 몇 줄을 돌려준다. 결과 수에 상한이 있고, 인덱싱 중에는 기다리지 않고 인덱싱 중이라고 답하며, 네트워크를 쓰지 않는다. (#?)
+
 ## 0.1.2 (2026-11-26)
 
 - 같은 컴퓨터의 다른 체크아웃이 이미 인덱싱한 파일은 내용 전용 인덱스(IdIndex, Trigram, Java 식 인덱스, Kotlin 소스 이름 인덱스)와 스텁(Java, Kotlin .kt; .kts 제외)을 아예 다시 만들지 않고, 조회할 때 그 체크아웃 파일의 데이터를 쓴다. git으로 받은 파일은 git 인덱스의 blob id로 찾아 파일을 읽지 않는다. 새 클론에서 인덱싱 시간이 절반 이하로 줄었다. 레지스트리 `phantom.localsharedindex.alias`로 끌 수 있다. (#122, #124)
