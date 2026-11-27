@@ -9,6 +9,7 @@ import java.io.InputStream
 import java.net.InetAddress
 import java.nio.file.Files
 import java.nio.file.Path
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.io.path.createDirectories
@@ -26,7 +27,13 @@ private val LOG = logger<GitSettingsRepository>()
  *
  * A file's version is the hash of the last commit on the remote branch that touched it. A write that expects a
  * different version, or whose push is rejected because the branch moved, fails with [InvalidVersionIdException]
- * and the sync engine retries after the next update.
+ * and the sync engine retries after the next update. A version is the file's blob id on the remote branch (its content
+ * hash), so it does not depend on how much history the working copy has.
+ *
+ * The working copy is fetched with depth 1: a settings repository gains a commit on every sync, and a full clone would
+ * grow without bound on each machine. Amending a single commit and pushing with --force-with-lease would bound the
+ * remote too, but it needs force-push rights (often blocked on a protected main branch) and erases the user's history,
+ * which is the only way to restore older settings from their own repository; so the remote keeps its history.
  */
 class GitSettingsRepository(val url: String, private val workDir: Path, private val branch: String = DEFAULT_BRANCH) {
   private val remoteRef = "refs/remotes/origin/$branch"
@@ -37,29 +44,30 @@ class GitSettingsRepository(val url: String, private val workDir: Path, private 
   /** Test hook: runs before each `git fetch`. */
   internal var beforeFetch: () -> Unit = {}
 
-  @Synchronized
+  // the provider creates a new instance for each communicator and login check, all on the same workDir; a lock per
+  // instance would let two of them run git in one working copy at once
+  private val lock: Any = LOCKS.computeIfAbsent(workDir.toAbsolutePath().normalize()) { Any() }
+
   @Throws(IOException::class)
-  fun latestVersion(path: String): String? = if (fetch()) fetchedVersion(path) else null
+  fun latestVersion(path: String): String? = synchronized(lock) { if (fetch()) fetchedVersion(path) else null }
 
   /** The file's version at the last fetched remote commit, without fetching again. */
   private fun fetchedVersion(path: String): String? {
     // the commit that deleted a file also touches it, so first check that the file is in the branch
-    if (run(listOf(gitExecutable(), "cat-file", "-e", "$remoteRef:$path"), workDir, failOnError = false).exitCode != 0) return null
-    return git("log", "-1", "--format=%H", remoteRef, "--", path).text().ifEmpty { null }
+    val blob = run(listOf(gitExecutable(), "rev-parse", "--verify", "--quiet", "$remoteRef:$path"), workDir, failOnError = false)
+    return if (blob.exitCode == 0) blob.text().ifEmpty { null } else null
   }
 
   /** The file's content and version on the remote branch, or nulls when it is not there. */
-  @Synchronized
   @Throws(IOException::class)
-  fun read(path: String): Pair<ByteArray?, String?> {
+  fun read(path: String): Pair<ByteArray?, String?> = synchronized(lock) {
     val version = latestVersion(path) ?: return null to null
-    return git("show", "$remoteRef:$path").stdout to version
+    git("show", "$remoteRef:$path").stdout to version
   }
 
   /** Commits [content] at [path] and pushes it; returns the new version. */
-  @Synchronized
   @Throws(IOException::class, InvalidVersionIdException::class)
-  fun write(path: String, expectedVersion: String?, content: ByteArray): String {
+  fun write(path: String, expectedVersion: String?, content: ByteArray): String = synchronized(lock) {
     // check and commit on the same fetched commit: fetching again here could pick up another device's push and put
     // this device's stale content on top of it; a branch that moves after the check now rejects the push instead
     val fetched = fetch()
@@ -71,17 +79,16 @@ class GitSettingsRepository(val url: String, private val workDir: Path, private 
     file.parent.createDirectories()
     Files.write(file, content)
     git("add", "--", path)
-    commitAndPush("Update $path from ${hostName()}")
-    return git("rev-parse", "HEAD").text()
+    commitAndPush("Update $path from $HOST_NAME")
+    git("rev-parse", "HEAD:$path").text()
   }
 
-  @Synchronized
   @Throws(IOException::class)
-  fun delete(path: String) {
+  fun delete(path: String): Unit = synchronized(lock) {
     if (latestVersion(path) == null) return
     resetToRemote()
     git("rm", "-q", "--", path)
-    commitAndPush("Delete $path from ${hostName()}")
+    commitAndPush("Delete $path from $HOST_NAME")
   }
 
   /** Checks that the remote can be reached with the user's credentials. */
@@ -100,7 +107,7 @@ class GitSettingsRepository(val url: String, private val workDir: Path, private 
     val remoteHead = heads.lineSequence().firstOrNull { it.substringAfter('\t') == "refs/heads/$branch" }?.substringBefore('\t')
     if (remoteHead != null && remoteHead == fetchedHead()) return true
     beforeFetch()
-    git("fetch", "--quiet", "--no-tags", "origin", "+refs/heads/$branch:$remoteRef")
+    git("fetch", "--quiet", "--no-tags", "--depth=1", "origin", "+refs/heads/$branch:$remoteRef")
     return true
   }
 
@@ -168,7 +175,13 @@ class GitSettingsRepository(val url: String, private val workDir: Path, private 
 
     fun gitExecutable(): String = listOf("/usr/bin/git", "/opt/homebrew/bin/git", "/usr/local/bin/git").firstOrNull { Path.of(it).exists() } ?: "git"
 
-    private fun hostName(): String = runCatching { InetAddress.getLocalHost().hostName }.getOrDefault("Phantom")
+    // a reverse lookup of the local address can take seconds when DNS is slow; the name does not change while running
+    private val HOST_NAME: String by lazy { runCatching { InetAddress.getLocalHost().hostName }.getOrDefault("Phantom") }
+
+    private val LOCKS = ConcurrentHashMap<Path, Any>()
+
+    /** True when [url] carries a password or token (user:secret@, or a lone token@ over http(s)). */
+    fun hasCredentials(url: String): Boolean = maskCredentials(url) != url
 
     /** Hides the password or token of each URL in [text], keeping the user name: `user:***@host`, `***@host`. */
     fun maskCredentials(text: String): String = URL_CREDENTIALS.replace(text) { match ->

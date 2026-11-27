@@ -245,4 +245,40 @@ class GitRepoCommunicatorTest : BasePlatformTestCase() {
       }
     }
   }
+
+  fun testInstancesOnTheSameWorkDirShareOneLock() {
+    val dir = root.resolve("a")
+    val first = GitSettingsRepository(remote, dir)
+    val second = GitSettingsRepository(remote, dir)
+    var finishedDuringWrite = true
+    first.afterVersionCheck = {
+      // another instance on the same working copy must wait until this write is done
+      val other = kotlin.concurrent.thread { second.latestVersion("settings.zip") }
+      other.join(500)
+      finishedDuringWrite = !other.isAlive
+      first.afterVersionCheck = {}
+    }
+    val version = first.write("settings.zip", null, "<one/>".toByteArray())
+    assertFalse(finishedDuringWrite)
+    assertEquals(version, second.latestVersion("settings.zip"))
+  }
+
+  fun testWorkingCopyKeepsOnlyTheLatestRemoteCommit() {
+    val a = GitSettingsRepository(remote, root.resolve("a"))
+    val b = GitSettingsRepository(remote, root.resolve("b"))
+    var version: String? = null
+    repeat(3) { version = a.write("settings.zip", version, "<v$it/>".toByteArray()) }
+    assertEquals("<v2/>" to version, b.read("settings.zip").let { String(it.first!!) to it.second })
+    val count = GitSettingsRepository.run(listOf(GitSettingsRepository.gitExecutable(), "rev-list", "--count", "refs/remotes/origin/main"),
+                                          root.resolve("b")).text()
+    assertEquals("1", count)
+  }
+
+  fun testUrlsWithCredentialsAreDetected() {
+    assertTrue(GitSettingsRepository.hasCredentials("https://user:ghp_secret@github.com/me/s.git"))
+    assertTrue(GitSettingsRepository.hasCredentials("https://ghp_secret@github.com/me/s.git"))
+    assertFalse(GitSettingsRepository.hasCredentials("https://github.com/me/s.git"))
+    assertFalse(GitSettingsRepository.hasCredentials("git@github.com:me/s.git"))
+    assertFalse(GitSettingsRepository.hasCredentials("ssh://git@github.com/me/s.git"))
+  }
 }
