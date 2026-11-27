@@ -401,6 +401,38 @@ class MyBatisTest : LightJavaCodeInsightFixtureTestCase() {
     assertEmpty(MyBatis.mapperFiles(mapper))
   }
 
+  fun testSyntaxAnnotatorWaitsForIndexes() {
+    // it finds <include> targets in other mappers through the namespace index
+    assertFalse(com.intellij.openapi.project.DumbAware::class.java.isAssignableFrom(dev.phantom.mybatis.db.MapperSqlSyntaxAnnotator::class.java))
+  }
+
+  fun testOtherFilesFragmentsStayOutOfTheInjection() {
+    myFixture.addFileToProject("app/Shared.xml", """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <mapper namespace="app.Shared"><sql id="cols">id, name</sql></mapper>
+    """.trimIndent())
+    val file = addMapper("""<sql id="own">created</sql>
+      <select id="findAll" resultType="app.User">select <include refid="app.Shared.cols"/>, <include refid="own"/> from users</select>""")
+    val tag = MyBatis.statements(file).single()
+    fun sql(otherFiles: Boolean) = MapperSql.text(MapperSql.places(MapperSql.chunks(tag, otherFiles = otherFiles)!!)).replace(Regex("\\s+"), " ").trim()
+    // the injection is not recomputed when Shared.xml changes, so it does not copy its text; the syntax check does
+    assertEquals("select , created from users", sql(otherFiles = false))
+    assertEquals("select id, name , created from users", sql(otherFiles = true))
+    assertFalse(MapperSql.isWhole(tag))
+  }
+
+  fun testGoToImplementationOfAnInheritedMethod() {
+    myFixture.addClass("package app; public interface BaseMapper<T> { T findOne(Long id); }")
+    myFixture.addClass("package app; public interface AccountMapper extends BaseMapper<User> {}")
+    myFixture.addFileToProject("app/AccountMapper.xml", """
+      <?xml version="1.0" encoding="UTF-8"?>
+      <mapper namespace="app.AccountMapper"><select id="findOne" resultType="app.User">select 1</select></mapper>
+    """.trimIndent())
+    val method = myFixture.findClass("app.BaseMapper").findMethodsByName("findOne", false).single()
+    assertEmpty(MyBatis.statementsFor(method))
+    assertEquals(listOf("select"), com.intellij.psi.search.searches.DefinitionsScopedSearch.search(method).findAll().map { (it as XmlTag).name })
+  }
+
   private fun typeIn(file: com.intellij.openapi.vfs.VirtualFile, find: String, replace: String) {
     val document = com.intellij.openapi.fileEditor.FileDocumentManager.getInstance().getDocument(file)!!
     val offset = document.text.indexOf(find)

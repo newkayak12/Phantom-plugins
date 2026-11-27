@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.mybatis
 
+import com.intellij.codeInsight.FileModificationService
 import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.codeInspection.AbstractBaseJavaLocalInspectionTool
 import com.intellij.codeInspection.LocalInspectionTool
@@ -8,6 +9,7 @@ import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.ElementManipulators
@@ -26,6 +28,10 @@ import com.intellij.psi.XmlElementFactory
 class MapperXmlInspection : LocalInspectionTool() {
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
     val root = MyBatis.mapperRoot(holder.file) ?: return PsiElementVisitor.EMPTY_VISITOR
+    // How many tags of a kind share an id, counted once per file instead of rescanning the mapper for every tag.
+    val idCounts by lazy(LazyThreadSafetyMode.NONE) {
+      root.subTags.mapNotNull { t -> t.getAttributeValue("id")?.let { idKind(t) to it } }.groupingBy { it }.eachCount()
+    }
     return object : XmlElementVisitor() {
       override fun visitXmlTag(tag: XmlTag) {
         if (tag == root) {
@@ -55,8 +61,7 @@ class MapperXmlInspection : LocalInspectionTool() {
 
       private fun checkId(tag: XmlTag) {
         val id = tag.getAttributeValue("id") ?: return
-        val same = root.subTags.filter { it.getAttributeValue("id") == id && (it.name == tag.name || it.name in MyBatis.STATEMENTS && tag.name in MyBatis.STATEMENTS) }
-        if (same.size > 1) tag.getAttribute("id")?.valueElement?.let {
+        if ((idCounts[idKind(tag) to id] ?: 0) > 1) tag.getAttribute("id")?.valueElement?.let {
           error(it, PhantomMyBatisBundle.message("xml.duplicate.id", id))
         }
       }
@@ -71,6 +76,9 @@ class MapperXmlInspection : LocalInspectionTool() {
     }
   }
 }
+
+/** Statements share one id space; `<sql>` and `<resultMap>` each have their own. */
+private fun idKind(tag: XmlTag): String = if (tag.name in MyBatis.STATEMENTS) "statement" else tag.name
 
 /** A mapper method that has neither an XML statement nor SQL annotations, when the interface has a mapper XML. */
 class MapperMethodInspection : AbstractBaseJavaLocalInspectionTool() {
@@ -97,10 +105,14 @@ class GenerateStatementFix(private val tag: String, private val id: String, priv
   // the statement goes into another file
   override fun generatePreview(project: Project, previewDescriptor: ProblemDescriptor): IntentionPreviewInfo = IntentionPreviewInfo.EMPTY
 
+  // The XML file is not the one the problem is in: it is made writable (read-only or under VCS lock) before the write action.
+  override fun startInWriteAction(): Boolean = false
+
   override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
     val method = PsiTreeUtil.getParentOfType(descriptor.psiElement, PsiMethod::class.java) ?: return
     val file = MyBatis.mapperFiles(method.containingClass ?: return).firstOrNull() ?: return
-    val added = add(file, method) ?: return
+    if (!FileModificationService.getInstance().prepareFileForWrite(file)) return
+    val added = WriteCommandAction.writeCommandAction(project, file).withName(name).compute<XmlTag?, RuntimeException> { add(file, method) } ?: return
     val body = added.value.textRange.startOffset + 1
     file.virtualFile?.let { OpenFileDescriptor(project, it, body).navigate(true) }
   }

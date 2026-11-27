@@ -105,7 +105,7 @@
     {
       "id": "dev.phantom.mybatis",
       "name": "Support for MyBatis",
-      "version": "0.3.5",
+      "version": "0.3.6",
       "source": "mybatis",
       "description": "MyBatis mapper support (what MyBatisX does): interface ↔ XML statement gutters, statement id / resultMap / refid / resultType / property references with completion, rename and errors, mapper methods without a statement with a quick fix that writes it, #{...} parameter completion, and SQL highlighting and completion in mapper XML and @Select/@Insert/@Update/@Delete with Phantom Database Console. 0.1.1: Go to Implementation from mapper method calls opens the XML statement; Cmd+click on #{a.b}, <if test>, <foreach collection> and @Select placeholders goes to the parameter, property or foreach item. 0.2.0 (with Phantom Database Console 0.25.2): dynamic tags read as MyBatis builds them (<where> AND/OR, <set> commas, <trim>, <include>), syntax errors in whole statements, a run icon on each statement that runs it in the console asking for #{} values, and Reformat Code formats the SQL of plain statements. 0.3.0 (with Phantom Database Console 0.25.3): syntax errors in each <choose> branch and with ${}, Run asks which <if> parts and <choose> branches to take and builds <where>/<set>/<trim> by MyBatis rules, and Reformat Code formats statements with dynamic tags. 0.3.1: loads in Phantom again (Java classes come from the Java plugin modules), so mapper SQL highlights and the inspections run.",
       "vendor": "Phantom",
@@ -116,7 +116,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "mybatis-0.3.5/mybatis-0.3.5.zip",
+      "download": "mybatis-0.3.6/mybatis-0.3.6.zip",
       "detect": [
         "org.mybatis:mybatis",
         "org.mybatis.spring.boot:mybatis-spring-boot-starter",
@@ -127,7 +127,7 @@
     {
       "id": "dev.phantom.reactive",
       "name": "Support for Reactive Streams",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "source": "reactive-streams",
       "description": "Reactor and RxJava checks for Java and Kotlin: a Mono, Flux or RxJava source created and dropped without being subscribed, and blocking calls inside reactive operators.",
       "vendor": "Phantom",
@@ -138,7 +138,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "reactive-streams-0.1.4/reactive-streams-0.1.4.zip",
+      "download": "reactive-streams-0.1.5/reactive-streams-0.1.5.zip",
       "detect": [
         "io.projectreactor:reactor-core",
         "org.reactivestreams:reactive-streams",
@@ -608,7 +608,7 @@
     {
       "id": "dev.phantom.testcontainers",
       "name": "Support for Testcontainers",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "source": "testcontainers",
       "description": "Testcontainers checks for Java and Kotlin tests: a @Container that never starts (no @Testcontainers on its class, or not a container), one started again for every test (an instance field), an image without a version tag or with :latest, and Spring's @DynamicPropertySource methods and @ServiceConnection fields that are not static and so are not found. Java fixes make them static.",
       "vendor": "Phantom",
@@ -619,7 +619,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "testcontainers-0.1.3/testcontainers-0.1.3.zip",
+      "download": "testcontainers-0.1.4/testcontainers-0.1.4.zip",
       "detect": [
         "org.testcontainers:testcontainers",
         "org.testcontainers:junit-jupiter",

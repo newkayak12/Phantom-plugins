@@ -35,7 +35,7 @@ import com.intellij.util.Processor
 class MapperDefinitionsSearch : QueryExecutorBase<PsiElement, DefinitionsScopedSearch.SearchParameters>(true) {
   override fun processQuery(parameters: DefinitionsScopedSearch.SearchParameters, consumer: Processor<in PsiElement>) {
     when (val element = parameters.element) {
-      is PsiMethod -> if (element.containingClass?.isInterface == true) MyBatis.statementsFor(element).forEach { if (!consumer.process(it)) return }
+      is PsiMethod -> if (element.containingClass?.isInterface == true) MyBatis.statementsFor(element, subMappers = true).forEach { if (!consumer.process(it)) return }
       is PsiClass -> if (element.isInterface) MyBatis.mapperFiles(element).mapNotNull { MyBatis.mapperRoot(it) }.forEach { if (!consumer.process(it)) return }
     }
   }
