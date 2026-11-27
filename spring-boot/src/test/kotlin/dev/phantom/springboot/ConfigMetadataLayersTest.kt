@@ -151,16 +151,42 @@ class ConfigMetadataLayersTest : LightJavaCodeInsightFixtureTestCase() {
     val output = dir.resolve("build/classes/java/main/META-INF/spring-configuration-metadata.json")
     Files.createDirectories(output.parent)
     Files.writeString(output, """{"properties": [{"name": "app.built", "type": "java.lang.String", "description": "Built."}]}""")
+    buildFinished()
     assertEquals("Built.", keys().property("app.built")!!.description)
     assertLayeredKeysMatchFlat(module)
 
     Files.writeString(output, """{"properties": [{"name": "app.rebuilt", "type": "java.lang.String"}]}""")
     Files.setLastModifiedTime(output, FileTime.fromMillis(Files.getLastModifiedTime(output).toMillis() + 2000))
+    buildFinished()
     assertNull(keys().property("app.built"))
     assertNotNull(keys().property("app.rebuilt"))
 
     Files.delete(output)
+    buildFinished()
     assertNull(keys().property("app.rebuilt"))
     assertEquals(before, ConfigMetadataService.libraryMerges.get())
   }
+
+  /** Completion and inspections ask for keys many times a second: the build output is not looked at on each request. */
+  fun testRepeatedRequestsDoNotCheckBuildOutputOnDisk() {
+    val dir = Files.createTempDirectory("boot-build").toRealPath()
+    buildDir = dir
+    Files.writeString(dir.resolve("build.gradle"), "")
+    val root = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(dir)!!
+    ModuleRootModificationUtil.updateModel(module) { it.addContentEntry(root) }
+    keys()
+    val checks = ConfigMetadataService.diskChecks.get()
+    repeat(10) { keys() }
+    assertEquals(checks, ConfigMetadataService.diskChecks.get())
+
+    val output = dir.resolve("target/classes/META-INF/spring-configuration-metadata.json")
+    Files.createDirectories(output.parent)
+    Files.writeString(output, """{"properties": [{"name": "app.built", "type": "java.lang.String"}]}""")
+    buildFinished()
+    assertNotNull(keys().property("app.built"))
+    assertEquals(checks + 1, ConfigMetadataService.diskChecks.get())
+  }
+
+  /** What BootBuildListener does when a build in the IDE finishes. */
+  private fun buildFinished() = ConfigMetadataService.getInstance(project).buildFinished()
 }

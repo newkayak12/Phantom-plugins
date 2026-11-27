@@ -8,18 +8,20 @@ import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.roots.ProjectRootModificationTracker
 import com.intellij.psi.*
 import com.intellij.psi.javadoc.PsiDocComment
+import com.intellij.psi.util.JavaPsiRecordUtil
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.GlobalSearchScopesCore
 import com.intellij.psi.search.searches.AnnotatedElementsSearch
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PropertyUtilBase
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.PsiUtilCore
 import org.jetbrains.uast.UField
 import org.jetbrains.uast.UParameter
 import org.jetbrains.uast.toUElementOfType
+import org.jetbrains.annotations.TestOnly
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Keys of the project's own `@ConfigurationProperties` classes, read from source. Projects often skip
@@ -30,12 +32,19 @@ object SourceConfigProperties {
   const val CONFIGURATION_PROPERTIES: String = "org.springframework.boot.context.properties.ConfigurationProperties"
   private const val DEPRECATED_PROPERTY = "org.springframework.boot.context.properties.DeprecatedConfigurationProperty"
   private const val MAX_DEPTH = 5
+  private const val AUTOWIRED = "org.springframework.beans.factory.annotation.Autowired"
+  // Spring Boot 3 moved the annotation to the bind package; Boot 2.2 to 2.7 had it in the properties package.
+  private val CONSTRUCTOR_BINDING = listOf("org.springframework.boot.context.properties.bind.ConstructorBinding",
+                                           "org.springframework.boot.context.properties.ConstructorBinding")
+
+  @TestOnly
+  val computeCount: AtomicInteger = AtomicInteger()
 
   fun metadata(module: Module): ParsedMetadata {
     val project = module.project
     return CachedValuesManager.getManager(project).getCachedValue(module) {
-      val tracker = PsiModificationTracker.getInstance(project).forLanguages { it.id == "JAVA" || it.id == "kotlin" }
-      CachedValueProvider.Result.create(compute(module), tracker, ProjectRootModificationTracker.getInstance(project))
+      // Typing inside a method body cannot change the keys; BootStructureTracker skips those edits.
+      CachedValueProvider.Result.create(compute(module), BootStructureTracker.getInstance(project), ProjectRootModificationTracker.getInstance(project))
     }
   }
 
@@ -48,6 +57,7 @@ object SourceConfigProperties {
   }
 
   private fun compute(module: Module): ParsedMetadata {
+    computeCount.incrementAndGet()
     val project = module.project
     val annotation = JavaPsiFacade.getInstance(project).findClass(CONFIGURATION_PROPERTIES, module.getModuleWithDependenciesAndLibrariesScope(false))
                      ?: return ParsedMetadata.EMPTY
@@ -101,14 +111,16 @@ object SourceConfigProperties {
     companion object {
       fun of(psiClass: PsiClass): List<BindableProperty> {
         val result = LinkedHashMap<String, BindableProperty>()
-        // Constructor binding: the constructor with the most parameters is Kotlin's primary one (the others are generated
-        // for default arguments) and the only one in a record or an immutable Java class.
-        val constructor = psiClass.constructors.filter { !it.hasModifierProperty(PsiModifier.PRIVATE) }.maxByOrNull { it.parameterList.parametersCount }
-        constructor?.parameterList?.parameters?.forEach { parameter ->
-          val name = parameter.name
-          val field = psiClass.findFieldByName(name, false)
-          result.putIfAbsent(name, BindableProperty(name, parameter.type, parameter.navigationElement, description(field),
-                                                    defaultOf(parameter), deprecationOf(field, psiClass, name)))
+        val constructor = bindConstructor(psiClass)
+        if (constructor != null) {
+          // Spring binds through the constructor alone (ValueObjectBinder); setters and getters are not used.
+          for (parameter in constructor.parameterList.parameters) {
+            val name = parameter.name
+            val field = psiClass.findFieldByName(name, false)
+            result.putIfAbsent(name, BindableProperty(name, parameter.type, parameter.navigationElement, description(field),
+                                                      defaultOf(parameter), deprecationOf(field, psiClass, name)))
+          }
+          return result.values.toList()
         }
         for (method in psiClass.allMethods) {
           if (method.hasModifierProperty(PsiModifier.STATIC) || method.containingClass?.qualifiedName == CommonClassNames.JAVA_LANG_OBJECT) continue
@@ -131,6 +143,24 @@ object SourceConfigProperties {
                                           description(field) ?: description(method), null, deprecationOf(field, psiClass, name))
         }
         return result.values.toList()
+      }
+
+      /**
+       * The constructor Spring Boot binds through, as its DefaultBindConstructorProvider picks it: one annotated with
+       * `@ConstructorBinding`; none when a constructor is `@Autowired`; Kotlin's primary constructor (the one with the
+       * most parameters, the others being generated for default arguments); a record's canonical constructor; otherwise
+       * the only declared constructor when it has parameters. Null means JavaBean binding through setters.
+       */
+      private fun bindConstructor(psiClass: PsiClass): PsiMethod? {
+        val constructors = psiClass.constructors
+        constructors.firstOrNull { c -> CONSTRUCTOR_BINDING.any { c.hasAnnotation(it) } }?.let { return it }
+        if (constructors.any { it.hasAnnotation(AUTOWIRED) }) return null
+        val candidate = when {
+          psiClass.language.id == "kotlin" -> constructors.maxByOrNull { it.parameterList.parametersCount }
+          psiClass.isRecord -> JavaPsiRecordUtil.findCanonicalConstructor(psiClass)
+          else -> constructors.singleOrNull()
+        }
+        return candidate?.takeIf { it.parameterList.parametersCount > 0 }
       }
 
       private fun defaultOf(element: PsiElement): String? {

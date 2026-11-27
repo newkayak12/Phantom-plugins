@@ -56,11 +56,7 @@ internal object BootAnnotations {
   }
 
   /** Locations of [key] and of the keys under it, relaxed binding. */
-  fun locationsUnder(project: Project, key: String): List<ConfigKeyLocation> {
-    val normalized = ConfigNames.normalize(key)
-    return ProjectConfigKeys.keys(project).filterKeys { ConfigNames.normalize(it).let { k -> k == normalized || k.startsWith("$normalized.") || k.startsWith("$normalized[") } }
-      .values.flatten()
-  }
+  fun locationsUnder(project: Project, key: String): List<ConfigKeyLocation> = ProjectConfigKeys.under(project, key)
 }
 
 /**

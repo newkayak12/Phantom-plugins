@@ -22,7 +22,8 @@ object SpringBootGate {
 }
 
 object BootConfigFiles {
-  private val NAME = Regex("""(application|bootstrap)([-.][\w.-]*)?\.(ya?ml|properties)""")
+  // Same pattern as the Spring plugin's SpringConfigKeys, so both plugins treat the same files as configuration.
+  private val NAME = Regex("""(application|bootstrap)([-_.][\w.-]*)?\.(ya?ml|properties)""")
 
   fun isConfigFile(fileName: String): Boolean = NAME.matches(fileName)
 

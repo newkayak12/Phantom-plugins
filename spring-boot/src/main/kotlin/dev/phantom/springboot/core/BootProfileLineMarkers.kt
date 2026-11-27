@@ -16,9 +16,10 @@ import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import org.jetbrains.uast.UClass
 import org.jetbrains.uast.getUParentForIdentifier
+import org.jetbrains.annotations.TestOnly
+import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.Icon
 
 /** Keys of a configuration file by where their text starts, read without a parser. */
@@ -54,7 +55,11 @@ internal object ProfileFiles {
     }.sortedBy { it.name }
   }
 
+  @TestOnly
+  val readCount: AtomicInteger = AtomicInteger()
+
   fun keys(file: VirtualFile): Map<String, ConfigKeyOffsets.Key> {
+    readCount.incrementAndGet()
     val text = FileDocumentManager.getInstance().getCachedDocument(file)?.charsSequence?.toString()
                ?: runCatching { VfsUtilCore.loadText(file) }.getOrNull() ?: return emptyMap()
     return ConfigKeyOffsets.read(file.name, text).associateBy { it.name }
@@ -106,8 +111,9 @@ class BootProfileOverrideLineMarkerProvider : LineMarkerProviderDescriptor() {
 
   private fun counterpartKeys(file: PsiFile, virtualFile: VirtualFile): List<Pair<VirtualFile, Map<String, ConfigKeyOffsets.Key>>> =
     CachedValuesManager.getCachedValue(file) {
-      CachedValueProvider.Result.create(ProfileFiles.counterparts(virtualFile).map { it to ProfileFiles.keys(it) },
-                                        PsiModificationTracker.MODIFICATION_COUNT, com.intellij.openapi.vfs.VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS)
+      val counterparts = ProfileFiles.counterparts(virtualFile)
+      // Only configuration text matters, also a counterpart changed on disk: a Java keystroke must not re-read the files.
+      CachedValueProvider.Result.create(counterparts.map { it to ProfileFiles.keys(it) }, *BootCacheDeps.config(file.project, counterparts))
     }
 }
 

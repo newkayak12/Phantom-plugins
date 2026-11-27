@@ -11,7 +11,8 @@ Spring Boot 지원입니다. Spring Initializr로 새 프로젝트를 만들고,
 - **실행 구성:** `@SpringBootApplication` 클래스나 그 Kotlin `main`에서 Run, Debug, Profile을 누르면 일반 Application 대신 **Spring Boot** 구성이 만들어집니다. **Active profiles** 칸은 `-Dspring.profiles.active`로 넘어갑니다. IntelliJ IDEA와 같은 형식을 써서 `.idea/workspace.xml`에 있던 Spring Boot 구성이 그대로 열리고, Spring Boot 앱은 **Services** 창에 나옵니다.
 - **자동완성:** 키와 값을 채워 줍니다.
   - 키는 라이브러리의 `spring-configuration-metadata.json`에서 읽습니다.
-  - 프로젝트가 직접 만든 `@ConfigurationProperties` 클래스(Java, Kotlin)에서도 읽기 때문에, 설정 프로세서를 쓰지 않는 프로젝트에서도 키가 나옵니다.
+  - 프로젝트가 직접 만든 `@ConfigurationProperties` 클래스(Java, Kotlin)에서도 읽기 때문에, 설정 프로세서를 쓰지 않는 프로젝트에서도 키가 나옵니다. Spring Boot와 같이 생성자로 바인딩하는 클래스(`@ConstructorBinding`, record, Kotlin 주 생성자, 인자가 있는 생성자 하나뿐인 클래스)는 생성자 인자를, 나머지 클래스는 setter를 키로 씁니다.
+  - 프로젝트 빌드 출력의 메타데이터는 IDE에서 빌드가 끝나면 바로, 다른 곳에서 빌드하면 몇 초 안에 다시 읽습니다.
   - 값은 메타데이터 힌트, true/false, enum 상수에서 가져옵니다.
 - **키 문서 보기**와 **선언으로 이동**을 지원합니다.
 - **검사:** 폐기 예정인 키를 알려 주고, 대체 키가 있으면 빠른 수정으로 바꿔 줍니다. 프로젝트의 `@ConfigurationProperties` 접두사 아래에 없는 키를 쓰면 그것도 알려 줍니다.

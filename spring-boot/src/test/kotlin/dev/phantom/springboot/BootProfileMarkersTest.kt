@@ -3,8 +3,13 @@ package dev.phantom.springboot
 
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.RelatedItemLineMarkerInfo
+import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.vfs.VfsUtil
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
+import dev.phantom.springboot.core.ProfileFiles
 
 /** Profile files and the base file they override, and the @SpringBootApplication configuration gutter. */
 class BootProfileMarkersTest : LightJavaCodeInsightFixtureTestCase() {
@@ -70,6 +75,22 @@ class BootProfileMarkersTest : LightJavaCodeInsightFixtureTestCase() {
       "Overridden in application-dev.yml, application-prod.properties -> application-dev.yml:port: 9090, application-prod.properties:server.port=80",
       "Overridden in application-prod.properties -> application-prod.properties:app.greeting=yo",
     ), gutters(::profile))
+  }
+
+  /** The counterpart files are read again after a configuration change, not after a Java keystroke. */
+  fun testCounterpartKeysFollowConfigurationOnly() {
+    val baseFile = myFixture.addFileToProject("application.properties", "server.port=8080\n").virtualFile
+    val java = myFixture.addFileToProject("app/Service.java", "package app;\npublic class Service { int a; }\n")
+    myFixture.configureByText("application-dev.properties", "server.port=9090\n")
+    assertEquals(listOf("Overrides application.properties: 8080 -> application.properties:server.port=8080"), gutters(::profile))
+    val reads = ProfileFiles.readCount.get()
+    val document = PsiDocumentManager.getInstance(project).getDocument(java)!!
+    WriteCommandAction.runWriteCommandAction(project) { document.insertString(document.text.indexOf("int a;"), "int b; ") }
+    PsiDocumentManager.getInstance(project).commitAllDocuments()
+    gutters(::profile)
+    assertEquals(reads, ProfileFiles.readCount.get())
+    WriteAction.run<Throwable> { VfsUtil.saveText(baseFile, "server.port=8081\n") }
+    assertEquals(listOf("Overrides application.properties: 8081 -> application.properties:server.port=8081"), gutters(::profile))
   }
 
   fun testPropertiesProfileFile() {

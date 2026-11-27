@@ -138,6 +138,22 @@ class BootSourcePropertiesTest : LightJavaCodeInsightFixtureTestCase() {
     myFixture.checkHighlighting()
   }
 
+  /** The lines of a block scalar are text, not keys under the key that holds it. */
+  fun testBlockScalarLinesAreNotKeys() {
+    myFixture.enableInspections(BootConfigKeyInspection())
+    val unknown = PhantomSpringBootBundle.message("inspection.key.unknown", "app.mail.hots", "app.mail")
+    myFixture.configureByText("application.yml", """
+      app:
+        mail:
+          retry: |-
+            max-atempts: 3
+
+            other: 4
+          <warning descr="$unknown">hots</warning>: y
+    """.trimIndent())
+    myFixture.checkHighlighting()
+  }
+
   fun testReplaceDeprecatedKey() {
     myFixture.enableInspections(BootConfigKeyInspection())
     myFixture.configureByText("application.yml", "spring:\n  old-<caret>name: x\n")
