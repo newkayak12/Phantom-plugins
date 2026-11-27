@@ -1312,7 +1312,7 @@
     {
       "id": "dev.phantom.serviceview",
       "name": "Phantom Services View",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "source": "serviceview",
       "description": "The Services tool window: run configurations, servers, databases, Docker and other services in one place, with the run dashboard. Based on the IntelliJ Community Services View plugin (Apache 2.0); intellij.execution.serviceView.plugin stays as an alias and the content module names stay the IntelliJ ones. Needs Phantom Navigation Bar. Bundled with Phantom from build 262.261120; older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -1323,7 +1323,7 @@
         "com.intellij.modules.lang",
         "intellij.navbar.plugin"
       ],
-      "download": "serviceview-0.1.1/serviceview-0.1.1.zip",
+      "download": "serviceview-0.1.2/serviceview-0.1.2.zip",
       "detect": [],
       "aliases": [
         "intellij.execution.serviceView.plugin"
