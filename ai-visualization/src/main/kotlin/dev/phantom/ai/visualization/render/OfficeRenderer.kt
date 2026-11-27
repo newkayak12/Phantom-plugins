@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.ai.visualization.render
 
+import dev.phantom.ai.visualization.AiVisualizationBundle.message
 import dev.phantom.ai.visualization.model.DrawItem
 import dev.phantom.ai.visualization.model.Elapsed
 import dev.phantom.ai.visualization.model.Floor
@@ -64,7 +65,7 @@ object Fonts {
 /** Where a name plate's board goes in scene pixels and how wide it is once stretched to its label. */
 data class PlateGeo(val boardX: Int, val boardY: Int, val width: Int, val boardHeight: Int)
 
-/** A tag as drawn: its rectangle in screen pixels and the text it shows; [subagentId] names the subordinate it labels, if any. */
+/** A tag as drawn: its rectangle in screen pixels andthe text it shows; [subagentId] names the subordinate it labels, if any. */
 data class TagDraw(val tabId: String, val rect: Rect, val text: String, val state: VizState, val subagentId: String? = null)
 
 /**
@@ -122,8 +123,7 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
       val g = img.createGraphics()
       try {
         g.composite = java.awt.AlphaComposite.Src
-        g.drawImage(sub, 0, 0, null)
-      } finally {
+        g.drawImage(sub, 0, 0, null)      } finally {
         g.dispose()
       }
     }
@@ -131,14 +131,22 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
 
   /** The room composed for the last scene, zoom and compose scale, per animation phase, while it fits [COMPOSED_BUDGET]. */
   private val composed = HashMap<Int, BufferedImage>()
-  private var composedFor: Triple<Scene, Int, Int>? = null
+  private var composedFor: ComposeKey? = null
+  private var composedScene: Scene? = null
 
-  /** [composeImage], reused while [scene] (the same instance), [zoom] and [k] stay: drags, hovers and later animation cycles compose nothing. */
+  /**
+   * [composeImage], reused while what it draws stays: drags, hovers and later animation cycles compose nothing, and neither does a
+   * scene rebuilt for a session event that changed nothing drawn (an activity text or elapsed time only shows in tooltips and tags).
+   */
   private fun composedImage(scene: Scene, phase: Int, zoom: Int, k: Int): BufferedImage {
-    val key = Triple(scene, zoom, k)
-    if (composedFor != key) {
-      composed.clear()
-      composedFor = key
+    // the key walks every item, so it is computed only when the scene instance, zoom or scale changes, not on every paint
+    if (scene !== composedScene || composedFor?.zoom != zoom || composedFor?.k != k) {
+      val key = ComposeKey.of(scene, zoom, k)
+      composedScene = scene
+      if (composedFor != key) {
+        composed.clear()
+        composedFor = key
+      }
     }
     composed[phase]?.let { return it }
     val img = composeImage(scene, phase, zoom, k)
@@ -530,13 +538,13 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
     textHints(g)
     g.font = Fonts.font(13f, bold = true)
     g.color = palette.text
-    val title = if (floor == null) "AI Visualization" else "${floor.label}  ${floor.name}"
+    val title = if (floor == null) message("header.title") else "${floor.label}  ${floor.name}"
     g.drawString(title, x.toFloat(), y.toFloat())
     if (floor != null) {
       val w = g.fontMetrics.stringWidth(title)
       g.font = Fonts.font(12f)
       g.color = palette.dim
-      g.drawString("\u00b7  ${floor.sessionCount} sessions  \u00b7  ${floor.projectName}", (x + w + 14).toFloat(), y.toFloat())
+      g.drawString(message("header.sessions", floor.sessionCount.toString(), floor.projectName), (x + w + 14).toFloat(), y.toFloat())
     }
   }
 
@@ -578,7 +586,7 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
     textHints(g)
     g.font = Fonts.font(11f, bold = true)
     g.color = palette.dim
-    g.drawString("FLOORS \u00b7 worktree", PickerLayout.MARGIN.toFloat() + 6, 22f)
+    g.drawString(message("picker.title"), PickerLayout.MARGIN.toFloat() + 6, 22f)
     val rects = LinkedHashMap<String, Rect>()
     floorsTopDown.forEachIndexed { i, f ->
       val r = PickerLayout.card(i, width)
@@ -617,12 +625,12 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
     textHints(g)
     g.font = Fonts.font(11f, bold = true)
     g.color = palette.dim
-    g.drawString("STATES \u00b7 \uc138\uc158 \uc0c1\ud0dc", (PickerLayout.MARGIN + 6).toFloat(), (top + 22).toFloat())
+    g.drawString(message("legend.title"), (PickerLayout.MARGIN + 6).toFloat(), (top + 22).toFloat())
     val labels = mapOf(
-      VizState.WORKING to ("\uc791\uc5c5 \uc911" to "working"),
-      VizState.WAITING to ("\uc751\ub2f5 \ud544\uc694" to "waiting for you"),
-      VizState.DONE to ("\uc644\ub8cc" to "done"),
-      VizState.IDLE to ("\ub300\uae30 \u00b7 \uc7a0\ub4e6" to "idle"),
+      VizState.WORKING to (message("legend.working.ko") to message("legend.working.en")),
+      VizState.WAITING to (message("legend.waiting.ko") to message("legend.waiting.en")),
+      VizState.DONE to (message("legend.done.ko") to message("legend.done.en")),
+      VizState.IDLE to (message("legend.idle.ko") to message("legend.idle.en")),
     )
     VizState.values().forEachIndexed { i, s ->
       val r = legendRow(i, width, top)
@@ -663,14 +671,14 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
   fun tooltip(p: PersonPlacement, now: Long): String {
     val s = p.person.session
     val n = p.person.helperCount
-    val helpers = if (n == 0) "" else " \u00b7 $n helper${if (n == 1) "" else "s"}"
+    val helpers = if (n == 0) "" else " \u00b7 " + message("tooltip.helpers", n)
     val activity = s.activity?.let { " \u00b7 $it" } ?: ""
     return "${s.title} \u00b7 ${s.agent.name.lowercase()} \u00b7 ${Elapsed.format(s.startedAt, now)}$helpers$activity"
   }
 
   /** A subordinate's tooltip: the subagent's name, its parent's title and what it does. */
   fun tooltip(h: HelperPlacement): String =
-    "${h.helper.name} \u00b7 helper of ${h.parent.person.session.title}" + (h.helper.activity?.let { " \u00b7 $it" } ?: "")
+    message("tooltip.helper.of", h.helper.name, h.parent.person.session.title) + (h.helper.activity?.let { " \u00b7 $it" } ?: "")
 
   companion object {
     /** A "+N" tag ends this many screen pixels (not scaled) above where it is anchored. */
@@ -688,6 +696,29 @@ class OfficeRenderer(val theme: Theme, val atlas: Atlas = Atlas.of(theme)) {
       VizState.WAITING to "응답 필요",
       VizState.DONE to "완료",
       VizState.IDLE to "대기",
+    )
+  }
+}
+
+/** Everything of a [Scene] that [OfficeRenderer.composeImage] reads, plus zoom and compose scale: equal keys compose equal images. */
+internal data class ComposeKey(
+  val items: List<DrawItem>,
+  val people: List<List<Any?>>,
+  val helpers: List<List<Any?>>,
+  val width: Int,
+  val height: Int,
+  val zoom: Int,
+  val k: Int,
+) {
+  companion object {
+    fun of(scene: Scene, zoom: Int, k: Int) = ComposeKey(
+      scene.items,
+      scene.people.map { listOf(it.tabId, it.person.seed, it.state, it.facing, it.bubbleBounds) },
+      scene.helpers.map { listOf(it.key, it.variant, it.scale) },
+      scene.width,
+      scene.height,
+      zoom,
+      k,
     )
   }
 }

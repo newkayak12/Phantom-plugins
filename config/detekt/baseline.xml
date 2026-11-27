@@ -2478,6 +2478,7 @@
     <ID>TooGenericExceptionCaught:NetworkntSchemaService.kt:FallbackDialectRegistry$e: Exception</ID>
     <ID>TooGenericExceptionCaught:NetworkntValidationService.kt:NetworkntValidationService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ObservableTtyConnector.kt:ObservableTtyConnector$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:OfficeLoader.kt:OfficeLoader$e: Exception</ID>
     <ID>TooGenericExceptionCaught:OriginAwareMembersHolder.kt:OriginAwareMembersHolder$e: Exception</ID>
     <ID>TooGenericExceptionCaught:PandocExecutableDetector.kt:PandocExecutableDetector.GetVersionPandocTask$exception: Throwable</ID>
     <ID>TooGenericExceptionCaught:PhantomMcp.kt:PhantomMcp$e: Exception</ID>

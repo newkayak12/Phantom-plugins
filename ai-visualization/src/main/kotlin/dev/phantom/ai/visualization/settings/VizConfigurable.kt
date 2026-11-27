@@ -2,6 +2,7 @@
 package dev.phantom.ai.visualization.settings
 
 import com.intellij.openapi.options.Configurable
+import dev.phantom.ai.visualization.AiVisualizationBundle
 import dev.phantom.ai.visualization.theme.Theme
 import dev.phantom.ai.visualization.theme.Themes
 import java.awt.FlowLayout
@@ -15,7 +16,7 @@ import javax.swing.JPanel
 class VizConfigurable : Configurable {
   private var combo: JComboBox<Theme>? = null
 
-  override fun getDisplayName(): String = "Phantom AI Visualization"
+  override fun getDisplayName(): String = AiVisualizationBundle.message("settings.display.name")
 
   override fun createComponent(): JComponent {
     val box = JComboBox(DefaultComboBoxModel(Themes.all.toTypedArray()))
@@ -25,7 +26,7 @@ class VizConfigurable : Configurable {
     box.selectedItem = VizSettings.getInstance().theme
     combo = box
     return JPanel(FlowLayout(FlowLayout.LEFT)).apply {
-      add(JLabel("Theme:"))
+      add(JLabel(AiVisualizationBundle.message("settings.theme")))
       add(box)
     }
   }

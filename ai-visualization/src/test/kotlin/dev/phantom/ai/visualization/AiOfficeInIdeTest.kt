@@ -9,6 +9,7 @@ import dev.phantom.ai.visualization.actions.OpenAiOfficeAction
 import dev.phantom.ai.visualization.editor.AiOfficeEditor
 import dev.phantom.ai.visualization.editor.AiOfficeEditorProvider
 import dev.phantom.ai.visualization.editor.AiOfficeFile
+import dev.phantom.ai.visualization.editor.OfficeLoader
 import dev.phantom.ai.visualization.settings.VizConfigurable
 import dev.phantom.ai.visualization.settings.VizSettings
 import com.intellij.openapi.util.Disposer
@@ -117,7 +118,7 @@ class AiOfficeInIdeTest : BasePlatformTestCase() {
       override fun startSession(project: Project, worktreePath: String, agent: AiAgent): String? = null
     }
     val fake = FakeApi()
-    val editor = AiOfficeEditor(project, AiOfficeFile.of(project), { fake })
+    val editor = AiOfficeEditor(project, AiOfficeFile.of(project), OfficeLoader({ fake }, testRootDisposable))
     try {
       val deadline = System.currentTimeMillis() + 10_000
       while (loads.get() == 0 && System.currentTimeMillis() < deadline) {
