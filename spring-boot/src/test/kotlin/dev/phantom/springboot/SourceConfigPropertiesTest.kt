@@ -32,6 +32,39 @@ class SourceConfigPropertiesTest : LightJavaCodeInsightFixtureTestCase() {
     PsiDocumentManager.getInstance(project).commitAllDocuments()
   }
 
+  /** Spring Boot's DefaultBindConstructorProvider: which constructor binds, and setters only without one. */
+  fun testBindConstructorFollowsSpringBoot() {
+    myFixture.addClass("""
+      package org.springframework.boot.context.properties.bind;
+      @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+      public @interface ConstructorBinding {}
+    """.trimIndent())
+    myFixture.addClass("package org.springframework.beans.factory.annotation; public @interface Autowired {}")
+    myFixture.addFileToProject("app/Props.java", """
+      package app;
+      import org.springframework.boot.context.properties.ConfigurationProperties;
+      @ConfigurationProperties("single") class Single {
+        Single(String host, int port) {}
+        public void setIgnored(String ignored) {}
+      }
+      @ConfigurationProperties("two") class Two {
+        public Two() {}
+        public Two(String fromConstructor) {}
+        public void setName(String name) {}
+      }
+      @ConfigurationProperties("marked") class Marked {
+        public Marked() {}
+        @org.springframework.boot.context.properties.bind.ConstructorBinding public Marked(String url) {}
+      }
+      @ConfigurationProperties("wired") class Wired {
+        @org.springframework.beans.factory.annotation.Autowired Wired(Object helper) {}
+        public void setMode(String mode) {}
+      }
+      @ConfigurationProperties("rec") record Rec(String user, int timeout) {}
+    """.trimIndent())
+    assertEquals(listOf("marked.url", "rec.timeout", "rec.user", "single.host", "single.port", "two.name", "wired.mode"), keys())
+  }
+
   fun testTypingInMethodBodyDoesNotReadKeysAgain() {
     val file = myFixture.addFileToProject("app/Mail.java", """
       package app;
