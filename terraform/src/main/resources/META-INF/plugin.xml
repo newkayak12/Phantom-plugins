@@ -1,0 +1,37 @@
+<idea-plugin>
+  <id>dev.phantom.terraform</id>
+  <name>Phantom for Terraform</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Languages</category>
+  <description><![CDATA[
+  Editing support for Terraform configuration (.tf) and variable definition (.tfvars) files: highlighting, syntax errors,
+  formatting, a structure view, Go to Declaration, Find Usages and rename for variables, locals, modules, resources and
+  data sources, and a warning for references with no declaration in the module. Works offline; nothing runs until a
+  Terraform file is opened.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+  </dependencies>
+
+  <!-- Both plugins register the .tf and .tfvars file types. -->
+  <incompatible-with>org.intellij.plugins.hcl</incompatible-with>
+
+  <resource-bundle>messages.TerraformBundle</resource-bundle>
+  <extensions defaultExtensionNs="com.intellij">
+    <fileType name="Phantom Terraform" language="PhantomTerraform" extensions="tf;tfvars"
+              implementationClass="dev.phantom.terraform.TerraformFileType" fieldName="INSTANCE"/>
+    <lang.parserDefinition language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclParserDefinition"/>
+    <lang.syntaxHighlighterFactory language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclSyntaxHighlighterFactory"/>
+    <annotator language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclAnnotator"/>
+    <lang.commenter language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclCommenter"/>
+    <lang.braceMatcher language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclBraceMatcher"/>
+    <lang.formatter language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclFormattingModelBuilder"/>
+    <langCodeStyleSettingsProvider implementation="dev.phantom.terraform.HclCodeStyleSettingsProvider"/>
+    <lang.psiStructureViewFactory language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclStructureViewFactory"/>
+    <lang.findUsagesProvider language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclFindUsagesProvider"/>
+    <localInspection language="PhantomTerraform" enabledByDefault="true" level="WARNING" shortName="PhantomTerraformUnresolvedReference"
+                     bundle="messages.TerraformBundle" key="inspection.unresolved.name" groupKey="inspection.group"
+                     implementationClass="dev.phantom.terraform.TerraformUnresolvedReferenceInspection"/>
+  </extensions>
+</idea-plugin>

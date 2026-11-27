@@ -418,6 +418,24 @@
       ]
     },
     {
+      "id": "dev.phantom.terraform",
+      "name": "Phantom for Terraform",
+      "version": "0.1.0",
+      "source": "terraform",
+      "description": "Terraform (.tf, .tfvars) editing: highlighting, syntax errors, formatting, a structure view, Go to Declaration, Find Usages and rename for variables, locals, modules, resources and data sources, and a warning for references with no declaration in the module. Works offline.",
+      "vendor": "Phantom",
+      "since": "262",
+      "until": "262.*",
+      "category": "Languages",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "terraform-0.1.0/terraform-0.1.0.zip",
+      "detectFiles": [
+        "*.tf"
+      ]
+    },
+    {
       "id": "dev.phantom.iconpack",
       "name": "Phantom Icon Pack",
       "version": "0.3.6",
