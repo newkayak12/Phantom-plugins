@@ -246,6 +246,7 @@
     <ID>CyclomaticComplexMethod:BootConfigGotoDeclarationHandler.kt:BootConfigNavigation$private fun fromSource: PsiElement?</ID>
     <ID>CyclomaticComplexMethod:BootConfigImports.kt:BootConfigImports$fun importValues: String</ID>
     <ID>CyclomaticComplexMethod:BootConfigKeyInspection.kt:BootConfigKeyInspection$private fun keyRanges: List&lt;TextRange></ID>
+    <ID>CyclomaticComplexMethod:BootProfileValueLineMarkers.kt:BootProfileValueLineMarkerProvider$override fun getLineMarkerInfo: LineMarkerInfo&lt;*>?</ID>
     <ID>CyclomaticComplexMethod:BranchesDashboardActions.kt:BranchesDashboardActions.BranchActionsBuilder$@RequiresBackgroundThread fun build: ActionGroup?</ID>
     <ID>CyclomaticComplexMethod:BranchesInGitLogUiFactoryProvider.kt:BranchesVcsLogUi$private fun createMainComponent: JComponent</ID>
     <ID>CyclomaticComplexMethod:BrowserLogin.kt:BrowserLogin$fun await</ID>
@@ -577,6 +578,7 @@
     <ID>CyclomaticComplexMethod:SpringMessaging.kt:MessagingModel$private fun refersTo: Boolean</ID>
     <ID>CyclomaticComplexMethod:SpringProxyLineMarkers.kt:AopAdviceMatching.Evaluator$private fun designator: Match</ID>
     <ID>CyclomaticComplexMethod:SpringProxyLineMarkers.kt:AopAdviceMatching.Evaluator$private fun execution: Match</ID>
+    <ID>CyclomaticComplexMethod:SpringProxyLineMarkers.kt:AopAdvisedMethodLineMarkerProvider$override fun getLineMarkerInfo: LineMarkerInfo&lt;*>?</ID>
     <ID>CyclomaticComplexMethod:SpringValueAndCacheInspections.kt:SpringElSyntaxInspection.Companion$fun expressionError: String?</ID>
     <ID>CyclomaticComplexMethod:SqlCompletionContext.kt:SqlCompletionKeywords.Companion$fun at: SqlCompletionKeywords</ID>
     <ID>CyclomaticComplexMethod:SqlDdlInspections.kt:SqlAddNotNullColumnInspection$override fun checkDdl</ID>

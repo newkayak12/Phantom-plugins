@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.jpa.core
 
+import com.intellij.psi.PsiFile
 import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.PsiComment
@@ -16,6 +17,7 @@ import com.intellij.psi.util.PsiTreeUtil
  * templates are skipped: part of their text is unknown.
  */
 class JpqlInspection : LocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
     val file = holder.file as? JpqlFile ?: return PsiElementVisitor.EMPTY_VISITOR
     if (file.hasPlaceholders) return PsiElementVisitor.EMPTY_VISITOR

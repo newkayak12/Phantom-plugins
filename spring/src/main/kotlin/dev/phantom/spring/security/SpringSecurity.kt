@@ -1,6 +1,8 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.spring.security
 
+import dev.phantom.spring.core.GhostMode
+import com.intellij.psi.PsiFile
 import com.intellij.codeInsight.AnnotationUtil
 import com.intellij.codeInsight.completion.CompletionContributor
 import com.intellij.codeInsight.completion.CompletionParameters
@@ -164,6 +166,7 @@ class SpringSecurityCompletionContributor : CompletionContributor() {
  * so `#userId == principal.id` silently denies (or, negated, grants) access.
  */
 class MethodSecurityExpressionInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SecurityGate.isSecurityProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -265,6 +268,7 @@ internal object MethodSecuritySwitches {
  * method security: the method runs for everyone. Quiet when the enabling annotations cannot be found at all.
  */
 class MethodSecurityDisabledInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SecurityGate.isSecurityProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -289,6 +293,7 @@ class MethodSecurityDisabledInspection : AbstractBaseUastLocalInspectionTool() {
 
 /** `@EnableWebSecurity(debug = true)` in production code: Spring Security logs every request with its headers and session. */
 class SecurityDebugInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SecurityGate.isSecurityProject(holder.project) || dev.phantom.spring.core.SpringBeans.isInTestSources(holder.file)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -313,6 +318,7 @@ class SecurityDebugInspection : AbstractBaseUastLocalInspectionTool() {
  * go through the proxy, so the check does not run for it. A caller with the very same annotation is not reported.
  */
 class SecuritySelfInvocationInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SecurityGate.isSecurityProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -351,6 +357,7 @@ class SecuritySelfInvocationInspection : AbstractBaseUastLocalInspectionTool() {
  * one letter off). Names close to no project bean are not reported: library beans are not known here.
  */
 class SecurityBeanReferenceInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SecurityGate.isSecurityProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {

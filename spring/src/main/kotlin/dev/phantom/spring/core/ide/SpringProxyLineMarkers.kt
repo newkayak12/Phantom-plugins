@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.spring.core.ide
 
+import dev.phantom.spring.core.GhostMode
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
 import com.intellij.codeInsight.navigation.NavigationGutterIconBuilder
@@ -44,6 +45,8 @@ class SpringTransactionalLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getIcon(): Icon = AllIcons.Actions.Commit
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+
+    if (GhostMode.enabled) return null
     // the project gate before the UAST conversion: outside Spring projects no leaf pays for it
     if (!isNameIdentifier(element) || !SpringProjectGate.isSpringProject(element.project)) return null
     val owner = getUParentForIdentifier(element) as? UAnnotated ?: return null
@@ -71,6 +74,8 @@ class SpringComponentScanLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getIcon(): Icon = AllIcons.Nodes.Package
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+
+    if (GhostMode.enabled) return null
     if (!isNameIdentifier(element) || !SpringProjectGate.isSpringProject(element.project)) return null
     val uClass = getUParentForIdentifier(element) as? UClass ?: return null
     val scan = uClass.findAnnotation(componentScan)
@@ -345,6 +350,8 @@ class AopAdvisedMethodLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getIcon(): Icon = AllIcons.Nodes.Aspect
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+
+    if (GhostMode.enabled) return null
     if (!isNameIdentifier(element) || !AopModel.isAopProject(element.project)) return null
     val uMethod = getUParentForIdentifier(element) as? UMethod ?: return null
     if (uMethod.isConstructor) return null

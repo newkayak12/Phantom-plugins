@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap
  * decide what exists there). When unsure it stays quiet: a false "no bean" is worse than a missed one.
  */
 class SpringAutowiringInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     val file = holder.file
     if (!SpringProjectGate.isSpringProject(holder.project) || SpringBeans.isInTestSources(file)) return PsiElementVisitor.EMPTY_VISITOR

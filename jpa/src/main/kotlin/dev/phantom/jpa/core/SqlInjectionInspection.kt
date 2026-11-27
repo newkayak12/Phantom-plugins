@@ -20,6 +20,7 @@ import org.jetbrains.uast.visitor.AbstractUastNonRecursiveVisitor
  * methods are not traced, so some injections go unreported rather than flagging safe code.
  */
 class SqlInjectionInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     val facade = JavaPsiFacade.getInstance(holder.project)
     val scope = holder.file.resolveScope

@@ -6,6 +6,10 @@ import com.intellij.codeInsight.daemon.RelatedItemLineMarkerInfo
 import com.intellij.psi.PsiNamedElement
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import dev.phantom.jpa.core.DerivedJpql
+import com.intellij.openapi.util.registry.Registry
+import dev.phantom.jpa.core.DerivedQueryInspection
+import dev.phantom.jpa.core.GhostMode
+import com.intellij.openapi.util.Disposer
 
 /** Derived query JPQL tooltips, entity graph and attribute-usage gutters (Java and Kotlin). */
 class JpaQueryMarkersTest : LightJavaCodeInsightFixtureTestCase() {
@@ -133,5 +137,31 @@ class JpaQueryMarkersTest : LightJavaCodeInsightFixtureTestCase() {
       "1 repository method uses seat -> findByOwnerAndSeatLessThan",
     ), gutters(::ours))
     LegacyAttributeUsages.assertSame(myFixture, "app.User", "app.Address", "app.Ticket")
+  }
+
+  fun testGhostModeHidesGuttersAndInspections() {
+    ghostMode(true)
+    myFixture.configureByText("UserRepository.java", """
+      package app;
+      import org.springframework.data.jpa.repository.*;
+      import java.util.List;
+      public interface UserRepository extends JpaRepository<User, Long> {
+        List<User> findByLastnameAndAgeGreaterThan(String lastname, int age);
+        @EntityGraph(attributePaths = {"address"})
+        List<User> findByActiveTrue();
+      }
+    """.trimIndent())
+    assertEmpty(gutters(::ours))
+    assertFalse(DerivedQueryInspection().isAvailableForFile(myFixture.file))
+    ghostMode(false)
+    assertTrue(DerivedQueryInspection().isAvailableForFile(myFixture.file))
+  }
+
+  // Phantom registers phantom.ghost; the IntelliJ test platform does not, so a system property, which RegistryValue reads before
+  // the bundle, makes the key resolvable for setValue.
+  private fun ghostMode(on: Boolean) {
+    System.setProperty(GhostMode.KEY, "false")
+    Disposer.register(testRootDisposable) { System.clearProperty(GhostMode.KEY) }
+    Registry.get(GhostMode.KEY).setValue(on, testRootDisposable)
   }
 }

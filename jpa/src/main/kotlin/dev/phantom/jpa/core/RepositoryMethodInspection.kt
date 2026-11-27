@@ -24,6 +24,7 @@ import org.jetbrains.uast.visitor.AbstractUastNonRecursiveVisitor
  * - a derived query argument whose type cannot be compared with its property (`Int` for a `Long` id)
  */
 class RepositoryMethodInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     val module = ModuleUtilCore.findModuleForPsiElement(holder.file) ?: return PsiElementVisitor.EMPTY_VISITOR
     if (!JpaGate.isJpaModule(module)) return PsiElementVisitor.EMPTY_VISITOR

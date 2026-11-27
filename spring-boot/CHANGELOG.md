@@ -2,6 +2,10 @@
 
 ## 미배포
 
+## 0.8.7 (2026-11-28)
+
+- 고스트 모드에서는 설정 키 검사와 프로필·설정 거터 아이콘을 끈다. 설정 파일 색칠, 완성, 이동은 그대로다. (#204)
+
 ## 0.8.6 (2026-11-27)
 
 - @ConfigurationProperties 키를 Spring Boot와 같은 생성자 규칙으로 읽는다. @ConstructorBinding 생성자, 하나뿐인 인자 있는 생성자, record, Kotlin 주 생성자로 바인딩하면 setter 키는 넣지 않고, 생성자가 여럿이거나 @Autowired면 setter로 읽는다. (#176)

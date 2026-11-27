@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.jpa.core
 
+import com.intellij.psi.PsiFile
 import com.intellij.codeInsight.AnnotationUtil
 import com.intellij.codeInspection.AbstractBaseUastLocalInspectionTool
 import com.intellij.codeInspection.LocalInspectionToolSession
@@ -30,6 +31,7 @@ import org.jetbrains.uast.visitor.AbstractUastNonRecursiveVisitor
  * `orm.xml` or a mapping file a `persistence.xml` names, which can declare named queries too.
  */
 class JpaNamedQueryInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     val module = ModuleUtilCore.findModuleForPsiElement(holder.file) ?: return PsiElementVisitor.EMPTY_VISITOR
     if (!JpaGate.isJpaModule(module)) return PsiElementVisitor.EMPTY_VISITOR

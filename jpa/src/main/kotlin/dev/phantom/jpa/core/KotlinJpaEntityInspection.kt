@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.jpa.core
 
+import com.intellij.psi.PsiFile
 import com.intellij.codeInspection.AbstractBaseUastLocalInspectionTool
 import com.intellij.codeInspection.LocalInspectionToolSession
 import com.intellij.codeInspection.LocalQuickFix
@@ -33,6 +34,7 @@ import org.jetbrains.uast.visitor.AbstractUastNonRecursiveVisitor
  * Silent when the module has no Gradle build script, since then the compiler plugins are unknown.
  */
 open class KotlinJpaEntityInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   /** The `val` check is its own inspection, so it can be turned off alone: some teams keep entity fields immutable on purpose. */
   protected open val valAttributesOnly: Boolean = false
 

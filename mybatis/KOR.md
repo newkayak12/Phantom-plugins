@@ -18,3 +18,7 @@ Java용 MyBatis 매퍼 지원입니다. MyBatisX로 매일 쓰는 기능을 다�
 프로젝트가 MyBatis, MyBatis-Spring, MyBatis Spring Boot starter, MyBatis-Plus를 쓰면 Phantom이 이 플러그인 설치를 제안합니다. 그 밖의 프로젝트에서는 아무것도 하지 않습니다.
 
 아직 없는 기능: 테이블에서 코드를 만드는 MyBatis Generator 방식의 생성, 메서드 이름으로 SQL 만들기.
+
+## 고스트 모드
+
+Phantom의 고스트 모드(레지스트리 키 `phantom.ghost`)가 켜져 있으면 매퍼 검사와 거터 아이콘이 꺼진다. 색칠, SQL 문법 오류, 완성, 매퍼 메서드와 XML statement 사이의 선언/구현으로 이동은 그대로다.

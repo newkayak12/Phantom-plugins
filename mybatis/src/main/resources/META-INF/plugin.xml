@@ -52,4 +52,7 @@
                      groupBundle="messages.PhantomMyBatisBundle" groupKey="group.name"
                      implementationClass="dev.phantom.mybatis.MapperMethodInspection"/>
   </extensions>
+  <applicationListeners>
+    <listener class="dev.phantom.mybatis.GhostModeListener" topic="com.intellij.openapi.util.registry.RegistryValueListener"/>
+  </applicationListeners>
 </idea-plugin>

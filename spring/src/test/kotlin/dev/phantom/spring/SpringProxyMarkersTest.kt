@@ -13,6 +13,9 @@ import dev.phantom.spring.core.PhantomSpringBundle
 import dev.phantom.spring.core.ide.AopAdviceMatching
 import dev.phantom.spring.core.ide.SpringApiVersionNotConfiguredInspection
 import dev.phantom.spring.core.ide.SpringApiVersionSyntaxInspection
+import com.intellij.openapi.util.registry.Registry
+import dev.phantom.spring.core.GhostMode
+import com.intellij.openapi.util.Disposer
 
 /** Wave 9b: @Transactional/@Async, component scan and advised-method gutters; Spring 7 API versioning checks. */
 class SpringProxyMarkersTest : LightJavaCodeInsightFixtureTestCase() {
@@ -270,5 +273,29 @@ class SpringProxyMarkersTest : LightJavaCodeInsightFixtureTestCase() {
     versioningStubs(configurer = false)
     myFixture.configureByText("Users.java", controller)
     assertEquals(emptyList<String>(), problems())
+  }
+
+  fun testGhostModeHidesGuttersAndInspections() {
+    ghostMode(true)
+    myFixture.configureByText("Orders.java", """
+      package app;
+      import org.springframework.transaction.annotation.*;
+      @org.springframework.stereotype.Service @Transactional class Orders {
+        public String find() { return ""; }
+      }
+    """.trimIndent())
+    myFixture.doHighlighting()
+    assertEmpty(tooltips())
+    assertFalse(SpringApiVersionSyntaxInspection().isAvailableForFile(myFixture.file))
+    ghostMode(false)
+    assertTrue(SpringApiVersionSyntaxInspection().isAvailableForFile(myFixture.file))
+  }
+
+  // Phantom registers phantom.ghost; the IntelliJ test platform does not, so a system property, which RegistryValue reads before
+  // the bundle, makes the key resolvable for setValue.
+  private fun ghostMode(on: Boolean) {
+    System.setProperty(GhostMode.KEY, "false")
+    Disposer.register(testRootDisposable) { System.clearProperty(GhostMode.KEY) }
+    Registry.get(GhostMode.KEY).setValue(on, testRootDisposable)
   }
 }

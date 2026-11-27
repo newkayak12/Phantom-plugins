@@ -18,3 +18,7 @@ Spring Boot 지원입니다. Spring Initializr로 새 프로젝트를 만들고,
 - **검사:** 폐기 예정인 키를 알려 주고, 대체 키가 있으면 빠른 수정으로 바꿔 줍니다. 프로젝트의 `@ConfigurationProperties` 접두사 아래에 없는 키를 쓰면 그것도 알려 줍니다.
 
 프로젝트가 Spring Boot에 의존하면 Phantom이 이 플러그인 설치를 제안합니다. 다른 프로젝트에서는 New Project 항목만 보입니다.
+
+## 고스트 모드
+
+Phantom의 고스트 모드(레지스트리 키 `phantom.ghost`)가 켜져 있으면 이 플러그인의 검사와 거터 아이콘이 꺼진다. 색칠, 문법 오류, 완성, 이동은 그대로다.

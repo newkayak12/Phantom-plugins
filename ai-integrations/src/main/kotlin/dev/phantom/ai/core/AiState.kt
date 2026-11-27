@@ -78,6 +78,8 @@ class AiStateData : BaseState() {
   var terminalBackend by string()
   /** The worktree tree's folders, per repository, in the order they were made. */
   var worktreeFolders by list<WorktreeFolderEntry>()
+  /** The user chose "Don't Ask Again" on the Ghost Mode suggestion shown when an agent session starts. */
+  var ghostModeDeclined by property(false)
 }
 
 /** The user's answer to changing the agents' own config files: not asked yet, allowed, or refused. */

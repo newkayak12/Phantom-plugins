@@ -27,6 +27,8 @@ class JpaRepositoryLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getIcon(): Icon = AllIcons.Gutter.DataSchema
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+
+    if (GhostMode.enabled) return null
     if (element.firstChild != null) return null
     val owner = element.parent as? PsiNameIdentifierOwner ?: return null
     if (owner.nameIdentifier != element) return null

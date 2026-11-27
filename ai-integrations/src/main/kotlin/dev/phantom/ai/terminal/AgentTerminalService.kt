@@ -18,6 +18,7 @@ import dev.phantom.ai.accounts.AgentAccount
 import dev.phantom.ai.core.AgentKind
 import dev.phantom.ai.core.AgentSession
 import dev.phantom.ai.core.AiNotify
+import dev.phantom.ai.core.GhostModeSuggestion
 import dev.phantom.ai.core.AiState
 import dev.phantom.ai.core.PhantomAiBundle
 import dev.phantom.ai.core.SessionStore
@@ -234,6 +235,8 @@ class AgentTerminalService(private val project: Project) {
     if (!shown) {
       SessionStore.getInstance().remove(tabId)
       McpConfigFiles.delete(tabId)
+    } else {
+      GhostModeSuggestion.offer(project)
     }
     return tabId.takeIf { shown }
   }

@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.mybatis.db
 
+import dev.phantom.mybatis.GhostMode
 import com.intellij.codeInsight.daemon.GutterIconNavigationHandler
 import com.intellij.codeInsight.daemon.LineMarkerInfo
 import com.intellij.codeInsight.daemon.LineMarkerProviderDescriptor
@@ -124,6 +125,8 @@ class MapperRunLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getIcon(): Icon = AllIcons.Actions.Execute
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+
+    if (GhostMode.enabled) return null
     if (statementTag(element) == null && sqlAnnotation(element) == null) return null
     val handler = GutterIconNavigationHandler<PsiElement> { event, e ->
       val tag = statementTag(e)

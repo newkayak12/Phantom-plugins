@@ -16,6 +16,7 @@ import org.jetbrains.uast.visitor.AbstractUastNonRecursiveVisitor
  * `@Transactional` method is fine (it joins the same transaction) and is not reported.
  */
 class SpringSelfInvocationInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SpringProjectGate.isSpringProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -46,6 +47,7 @@ class SpringSelfInvocationInspection : AbstractBaseUastLocalInspectionTool() {
  * Java. Kotlin's final-by-default classes are checked by the Kotlin-only inspection, which knows the compiler plugins.
  */
 class SpringProxyMethodInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SpringProjectGate.isSpringProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     val java = holder.file.language.isKindOf(JavaLanguage.INSTANCE)

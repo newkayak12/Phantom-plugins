@@ -70,6 +70,7 @@ internal fun anchorOf(item: UExpression): PsiElement? = (item as? UInjectionHost
 
 /** `@Cacheable` and `@CachePut` on one method: the put always runs the method, so the cached value is never read. */
 class SpringCacheableAndCachePutInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SpringProjectGate.isSpringProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -89,6 +90,7 @@ class SpringCacheableAndCachePutInspection : AbstractBaseUastLocalInspectionTool
  * annotation (`@Mapper`, `@FeignClient`, `@HttpExchange`…) are left alone: another framework may implement them.
  */
 class SpringAbstractBeanInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SpringProjectGate.isSpringProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -125,6 +127,7 @@ class SpringAbstractBeanInspection : AbstractBaseUastLocalInspectionTool() {
 
 /** `@Value("abc")` with a literal (no placeholder, no SpEL) that Spring cannot convert to the number, boolean or char it injects. */
 class SpringValueTypeInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SpringProjectGate.isSpringProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -178,6 +181,7 @@ class SpringValueTypeInspection : AbstractBaseUastLocalInspectionTool() {
  * defaults are left to the Kotlin inspection, which knows the compiler plugins.
  */
 class SpringBeanMethodInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SpringProjectGate.isSpringProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     val java = holder.file.language.isKindOf(JavaLanguage.INSTANCE)
@@ -220,6 +224,7 @@ class SpringBeanMethodInspection : AbstractBaseUastLocalInspectionTool() {
 
 /** A package to scan (`@ComponentScan`, `scanBasePackages`, `@EnableJpaRepositories`…) that exists in no source root or library. */
 class SpringScanPackageInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SpringProjectGate.isSpringProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     val facade = JavaPsiFacade.getInstance(holder.project)
@@ -248,6 +253,7 @@ class SpringScanPackageInspection : AbstractBaseUastLocalInspectionTool() {
  * `<aop:aspectj-autoproxy>` and no Spring Boot (whose AOP auto-configuration does it). The advice never runs.
  */
 class SpringAspectjAutoproxyInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SpringProjectGate.isSpringProject(holder.project) || !AopModel.isAopProject(holder.project)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -280,6 +286,7 @@ class SpringAspectjAutoproxyInspection : AbstractBaseUastLocalInspectionTool() {
  * of anything. Its fields stay null. Only `@Autowired` is considered: `@Inject` is also used by other injectors.
  */
 class SpringAutowiredOutsideBeanInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!SpringProjectGate.isSpringProject(holder.project) || SpringBeans.isInTestSources(holder.file)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -347,6 +354,7 @@ class SpringAutowiredOutsideBeanInspection : AbstractBaseUastLocalInspectionTool
  * `ignoreResourceNotFound`), `@ImportResource`, and in tests `@TestPropertySource` and `@ContextConfiguration`.
  */
 class SpringResourceLocationInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   private class Target(val attributes: List<String>, val relativeToPackage: Boolean)
 
   private val targets = mapOf(

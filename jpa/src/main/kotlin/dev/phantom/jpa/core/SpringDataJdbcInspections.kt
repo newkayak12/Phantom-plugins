@@ -120,6 +120,7 @@ internal object JdbcAggregates {
  * - an entity contained in several aggregates (each aggregate writes its own copy and deletes it on update)
  */
 class JdbcAggregateBoundaryInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (!JdbcAggregates.isJdbcProject(holder.project, holder.file.resolveScope)) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -151,6 +152,7 @@ class JdbcAggregateBoundaryInspection : AbstractBaseUastLocalInspectionTool() {
  * - `@MappedCollection(keyColumn = …)` on a `Set` or other unordered collection: only `List` and `Map` have a key column
  */
 class JdbcMappingInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (JavaPsiFacade.getInstance(holder.project).findClass(JdbcAggregates.AGGREGATE_REFERENCE, holder.file.resolveScope) == null) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {

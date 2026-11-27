@@ -51,3 +51,7 @@ Claude Code와 Codex 아이콘(`src/main/resources/icons/agents`)은 제조사 �
 코드 일부(원격 페어링 주소 분류, worktree와 브랜치 이름 짓기, 파일을 끌어다 놓을 때 입력하는 텍스트, `codex app-server` 사용량 조회)는 [Orca](https://github.com/stablyai/orca)(MIT 라이선스, Copyright (c) 2026 Lovecast Inc.)를 옮겨 왔습니다. 고지문은 [`LICENSE`](./LICENSE)에 있고 플러그인에 `META-INF/LICENSE-ai-integrations`로 들어갑니다.
 
 **0.4.0**: 묻지 않고 Phantom 밖의 것을 바꾸지 않습니다. 훅은 한 번 묻는 Allow 뒤에만 `~/.claude/settings.json`과 `~/.codex/hooks.json`에 들어가고(설정에서 바꿀 수 있고, 끄거나 플러그인을 제거하면 다시 뺍니다), 에이전트는 "Skip the agents' permission prompts"를 켜지 않는 한 권한을 묻습니다(0.3.25까지는 묻지 않았습니다). DB 도구는 켜기 전에는 꺼져 있고, 쿼리 결과가 에이전트의 AI 제공사로 간다는 경고가 붙습니다. 사용량 위젯은 더 이상 Claude Code나 Codex의 로그인 토큰을 읽거나 Anthropic, OpenAI의 사용량 엔드포인트를 부르지 않습니다. Claude 사용량은 status line에서, Codex 사용량은 `codex app-server`에서만 오며, 그 엔드포인트에만 있던 Fable 주간 창은 빠졌습니다. 원격 제어 설정은 페어링 토큰을 포함한 HTTP가 암호화되지 않는다고 알립니다. 이전 버전의 Claude, OpenAI 로고가 보이던 스크린샷은 이 페이지에서 뺐습니다.
+
+## 고스트 모드 제안
+
+에이전트 세션을 시작할 때 Phantom의 고스트 모드가 꺼져 있으면 IDE 실행마다 한 번 켜기를 제안하는 알림이 뜬다. "Don't Ask Again"을 고르면 다시 뜨지 않는다. `phantom.ghost` 레지스트리 키가 없는 IDE에서는 뜨지 않는다.

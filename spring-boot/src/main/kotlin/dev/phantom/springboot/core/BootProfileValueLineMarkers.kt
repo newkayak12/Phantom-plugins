@@ -25,6 +25,8 @@ class BootProfileValueLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getIcon(): Icon = AllIcons.FileTypes.Config
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+
+    if (GhostMode.enabled) return null
     if (element.firstChild != null || element.textLength == 0) return null
     val file = element.containingFile ?: return null
     if (!BootConfigFiles.isConfigFile(file)) return null

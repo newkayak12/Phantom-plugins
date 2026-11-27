@@ -43,7 +43,7 @@
     {
       "id": "dev.phantom.spring",
       "name": "Support for Spring",
-      "version": "0.9.9",
+      "version": "0.9.10",
       "source": "spring",
       "description": "Spring support for Java and Kotlin: bean injection navigation in both directions, an autowiring inspection, correct unused analysis for Spring-managed code, Spring MVC handlers for the Endpoints tool window, Spring Security path and expression support, and Kafka/RabbitMQ/JMS sender-receiver navigation. 0.4.0: proxy pitfalls (self-invocation of @Transactional/@Cacheable/@Async, private/final/static proxied methods, Kotlin classes not opened by kotlin-spring), @Scheduled/@Async/@EventListener contracts, field and static injection, duplicate bean names, @Scope values, @Sql paths, @DirtiesContext, publishEvent ↔ listener gutters, @Qualifier/@DependsOn bean name completion and Ctrl+B. Wave 6: @Value placeholders (follows spring.config.import), SpEL syntax, cache names, caching on interfaces, @Qualifier/@DependsOn near-miss names, MVC path variables, endpoint and AOP advice gutters, method security not enabled, pointcut syntax. Wave 7: @Cacheable+@CachePut, abstract beans, @Value literal types, @Bean method shape, scan packages, AspectJ autoproxy, @Autowired outside beans, resource locations, @TestBean factories, @Around/pointcut/argNames/@DeclareParents, Security debug/self-invocation/bean refs. Wave 8: @Bean init/destroy methods, @Lookup, Resource @Value, @Profile expressions and unknown profiles, bean name convention, argNames bindings; cache, @Scheduled and @Import gutters. Waves 9-10: @Transactional/@Async, component scan and advised-method gutters; Spring 7 API versioning checks; HTTP header and media type typos; broken @Value placeholders; JDK proxy injection. Wave 11: test transaction pitfalls, @Value with @Qualifier/@Resource, removed @Required, @Qualifier bean type, ROLE_ prefix misuse.",
       "vendor": "Phantom",
@@ -54,7 +54,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-0.9.9/spring-0.9.9.zip",
+      "download": "spring-0.9.10/spring-0.9.10.zip",
       "detect": [
         "org.springframework:spring-context",
         "org.springframework:spring-web",
@@ -64,7 +64,7 @@
     {
       "id": "dev.phantom.spring.boot",
       "name": "Support for Spring Boot",
-      "version": "0.8.6",
+      "version": "0.8.7",
       "source": "spring-boot",
       "description": "Spring Boot support: File → New → Project → Spring Boot generates projects with Spring Initializr, and application*.yml / application*.properties get completion and quick documentation for keys and values, from library metadata and the project's own @ConfigurationProperties, in Java and Kotlin. An Actuator tab beside the console of a running app (health, beans, mappings, environment, polled only while shown; only for modules with spring-boot-starter-actuator), and completion and Ctrl+B for ${...} placeholders in @Value from the project's application.yml/properties and Spring Boot metadata. Wave 7: datasource driver missing, config key <-> @Value/@ConfigurationProperties gutters, spring.config.import files count as config. Wave 8: profile override gutters between application-<profile> and base config, @SpringBootApplication -> config files. Wave 9: @ConditionalOnProperty, @EnableConfigurationProperties, test property, @ConfigurationProperties field and profile value gutters. Wave 11: unread bootstrap.yml, Spring Cloud Stream bindings without a function bean.",
       "vendor": "Phantom",
@@ -75,7 +75,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-boot-0.8.6/spring-boot-0.8.6.zip",
+      "download": "spring-boot-0.8.7/spring-boot-0.8.7.zip",
       "detect": [
         "org.springframework.boot:spring-boot",
         "org.springframework.boot:spring-boot-autoconfigure"
@@ -84,7 +84,7 @@
     {
       "id": "dev.phantom.jpa",
       "name": "Support for JPA",
-      "version": "0.7.5",
+      "version": "0.7.6",
       "source": "jpa",
       "description": "JPA, Hibernate and Spring Data JPA for Java and Kotlin: JPQL in @Query with completion and errors, derived query method checks, a @Modifying check, entity mapping checks, and repository/entity gutter navigation. An Entity Diagram tool window: entities, columns and relations drawn from the code, copyable as a Mermaid erDiagram. 0.3.0: entity checks (several @Id, no-arg constructor, mappedBy, raw collections, converters), attribute checks (@Column on associations, LAZY on the inverse @OneToOne, @ManyToMany cascade REMOVE, unmapped entity fields, @Enumerated), Kotlin entity checks (kotlin-jpa/all-open, data class, val attributes, read-only collections), Lombok on entities, repository return and parameter types and Pageable. Wave 6: JPQL undeclared aliases and function arity, entity graph attributes, entity listener callback signatures. Wave 7: entity listener usage, named queries, JPQL in createQuery, Kotlin non-null vs nullable columns, Lombok @AllArgsConstructor without no-arg. Wave 9: derived query JPQL gutter, attribute <-> repository methods, @EntityGraph navigation. Wave 11: SQL injection through string-built JDBC/JPA queries, Criteria attribute names (check, completion, Ctrl+B), Jakarta Data repositories, Hibernate @Find, Spring Data JDBC aggregates and mappings.",
       "vendor": "Phantom",
@@ -95,7 +95,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "jpa-0.7.5/jpa-0.7.5.zip",
+      "download": "jpa-0.7.6/jpa-0.7.6.zip",
       "detect": [
         "org.springframework.data:spring-data-jpa",
         "org.hibernate.orm:hibernate-core",
@@ -107,7 +107,7 @@
     {
       "id": "dev.phantom.mybatis",
       "name": "Support for MyBatis",
-      "version": "0.3.6",
+      "version": "0.3.7",
       "source": "mybatis",
       "description": "MyBatis mapper support (what MyBatisX does): interface ↔ XML statement gutters, statement id / resultMap / refid / resultType / property references with completion, rename and errors, mapper methods without a statement with a quick fix that writes it, #{...} parameter completion, and SQL highlighting and completion in mapper XML and @Select/@Insert/@Update/@Delete with Phantom Database Console. 0.1.1: Go to Implementation from mapper method calls opens the XML statement; Cmd+click on #{a.b}, <if test>, <foreach collection> and @Select placeholders goes to the parameter, property or foreach item. 0.2.0 (with Phantom Database Console 0.25.2): dynamic tags read as MyBatis builds them (<where> AND/OR, <set> commas, <trim>, <include>), syntax errors in whole statements, a run icon on each statement that runs it in the console asking for #{} values, and Reformat Code formats the SQL of plain statements. 0.3.0 (with Phantom Database Console 0.25.3): syntax errors in each <choose> branch and with ${}, Run asks which <if> parts and <choose> branches to take and builds <where>/<set>/<trim> by MyBatis rules, and Reformat Code formats statements with dynamic tags. 0.3.1: loads in Phantom again (Java classes come from the Java plugin modules), so mapper SQL highlights and the inspections run.",
       "vendor": "Phantom",
@@ -118,7 +118,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "mybatis-0.3.6/mybatis-0.3.6.zip",
+      "download": "mybatis-0.3.7/mybatis-0.3.7.zip",
       "detect": [
         "org.mybatis:mybatis",
         "org.mybatis.spring.boot:mybatis-spring-boot-starter",
@@ -487,7 +487,7 @@
     {
       "id": "dev.phantom.ai",
       "name": "Phantom AI Integration",
-      "version": "0.7.2",
+      "version": "0.7.3",
       "source": "ai-integrations",
       "description": "Claude Code and Codex next to your projects (0.3.16): a tree of the current project's worktrees and agent sessions beside the agent terminals in one tool window, a board editor tab, an agent dashboard, usage in the status bar and opt-in remote control from another device's browser. Select code in the editor and type an AI command to leave an AI memo (kept in memory only, following its code as lines move), then send the checked memos to a session as one prompt, queued while that session is busy. Agents open files at a line in the editor and read what you are looking at through Phantom's own MCP server, with no setup. A small public API, dev.phantom.ai.api, lets other plugins read sessions (with the subagents each started, since 0.3.1, and what each is doing right now, since 0.3.8) and worktrees and focus or start a session. Agents keep running in tmux when their project window closes and reattach when it reopens. Needs Phantom Workspaces. 0.3.22: agents read one declaration (read_symbol), replace one or insert next to it (replace_symbol, insert_code) as undoable IDE edits, and read the end of a Run console filtered by a pattern (get_run_output). 0.3.23: with Phantom Database Console, agents list its data sources, tables and columns and run read-only queries (list_databases, list_tables, describe_table, query_database); passwords stay in Phantom. 0.3.24: agent teams, detached-session reattach, the hook server and Remote Control wait until they are needed. 0.3.25: agents draft changes with draft_sql, which writes the SQL into the data source's console in the editor and never runs it; reads stay read-only and rolled back. 0.7.0: needs Phantom Local Shared Index, which answers find_symbol, find_usages, file_outline and get_file_problems and adds search_text (text through Find in Files, with the lines around each match).",
       "vendor": "Phantom",
@@ -502,7 +502,7 @@
         "Git4Idea",
         "org.jetbrains.plugins.github"
       ],
-      "download": "ai-integrations-0.7.2/ai-integrations-0.7.2.zip",
+      "download": "ai-integrations-0.7.3/ai-integrations-0.7.3.zip",
       "versions": [
         {
           "version": "0.6.0",

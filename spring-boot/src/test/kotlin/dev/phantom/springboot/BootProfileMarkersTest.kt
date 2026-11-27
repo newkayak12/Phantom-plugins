@@ -10,6 +10,10 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import dev.phantom.springboot.core.ProfileFiles
+import com.intellij.openapi.util.registry.Registry
+import dev.phantom.springboot.core.BootConfigKeyInspection
+import dev.phantom.springboot.core.GhostMode
+import com.intellij.openapi.util.Disposer
 
 /** Profile files and the base file they override, and the @SpringBootApplication configuration gutter. */
 class BootProfileMarkersTest : LightJavaCodeInsightFixtureTestCase() {
@@ -110,5 +114,23 @@ class BootProfileMarkersTest : LightJavaCodeInsightFixtureTestCase() {
     """.trimIndent())
     assertEquals(listOf("Configuration: application-dev.yml, application.yml, index.yaml -> application-dev.yml, application.yml, index.yaml"),
                  gutters { it.startsWith("Configuration:") }.map { it.replace(Regex("Configuration: (.*) ->")) { m -> "Configuration: " + m.groupValues[1].split(", ").sorted().joinToString() + " ->" } })
+  }
+
+  fun testGhostModeHidesGuttersAndInspections() {
+    ghostMode(true)
+    myFixture.addFileToProject("application.yml", base)
+    myFixture.configureByText("application-dev.yml", "server:\n  port: 9090\n")
+    assertEmpty(gutters(::profile))
+    assertFalse(BootConfigKeyInspection().isAvailableForFile(myFixture.file))
+    ghostMode(false)
+    assertTrue(BootConfigKeyInspection().isAvailableForFile(myFixture.file))
+  }
+
+  // Phantom registers phantom.ghost; the IntelliJ test platform does not, so a system property, which RegistryValue reads before
+  // the bundle, makes the key resolvable for setValue.
+  private fun ghostMode(on: Boolean) {
+    System.setProperty(GhostMode.KEY, "false")
+    Disposer.register(testRootDisposable) { System.clearProperty(GhostMode.KEY) }
+    Registry.get(GhostMode.KEY).setValue(on, testRootDisposable)
   }
 }

@@ -18,3 +18,7 @@ MyBatis mapper support for Java, covering what MyBatisX does day to day.
 Phantom suggests this plugin when a project depends on MyBatis, MyBatis-Spring, the MyBatis Spring Boot starter or MyBatis-Plus. In other projects it does nothing.
 
 Not covered yet: the MyBatis Generator style code generation from tables, and SQL from method names.
+
+## Ghost Mode
+
+When Phantom's Ghost Mode is on (registry key `phantom.ghost`), the mapper inspections and gutter icons are off. Coloring, SQL syntax errors, completion and Go to Declaration/Implementation between mapper methods and XML statements stay.

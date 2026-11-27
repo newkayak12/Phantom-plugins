@@ -38,3 +38,7 @@ all beans only when some bean name in the project is not a plain string. Results
 
 **0.9.2**: the plugin uses less CPU while you type. Config and build files are read again only when they change, not on
 every edit of Java or Kotlin code, and gutter icons skip non-Spring projects sooner. Results are unchanged.
+
+## Ghost Mode
+
+When Phantom's Ghost Mode is on (registry key `phantom.ghost`), this plugin's inspections and gutter icons are off. Coloring, syntax errors, completion and navigation stay.

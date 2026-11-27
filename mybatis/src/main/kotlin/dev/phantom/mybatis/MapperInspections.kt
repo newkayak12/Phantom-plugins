@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.mybatis
 
+import com.intellij.psi.PsiFile
 import com.intellij.codeInsight.FileModificationService
 import com.intellij.codeInsight.intention.preview.IntentionPreviewInfo
 import com.intellij.codeInspection.AbstractBaseJavaLocalInspectionTool
@@ -26,6 +27,7 @@ import com.intellij.psi.XmlElementFactory
 
 /** Mapper XML: statements without a method, duplicate ids, `resultMap` and `refid` that name nothing. */
 class MapperXmlInspection : LocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
     val root = MyBatis.mapperRoot(holder.file) ?: return PsiElementVisitor.EMPTY_VISITOR
     // How many tags of a kind share an id, counted once per file instead of rescanning the mapper for every tag.
@@ -82,6 +84,7 @@ private fun idKind(tag: XmlTag): String = if (tag.name in MyBatis.STATEMENTS) "s
 
 /** A mapper method that has neither an XML statement nor SQL annotations, when the interface has a mapper XML. */
 class MapperMethodInspection : AbstractBaseJavaLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor = object : JavaElementVisitor() {
     override fun visitMethod(method: PsiMethod) {
       val mapper = method.containingClass ?: return

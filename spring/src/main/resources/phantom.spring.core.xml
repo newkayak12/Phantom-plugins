@@ -245,4 +245,7 @@
                      groupBundle="messages.PhantomSpringBundle" groupKey="inspection.group.name"
                      implementationClass="dev.phantom.spring.core.ide.SpringQualifierTypeInspection"/>
   </extensions>
+  <applicationListeners>
+    <listener class="dev.phantom.spring.core.GhostModeListener" topic="com.intellij.openapi.util.registry.RegistryValueListener"/>
+  </applicationListeners>
 </idea-plugin>

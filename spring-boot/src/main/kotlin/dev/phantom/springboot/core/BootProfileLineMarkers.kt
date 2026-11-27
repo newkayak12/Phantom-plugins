@@ -78,6 +78,8 @@ class BootProfileOverrideLineMarkerProvider : LineMarkerProviderDescriptor() {
   private class Override(val file: VirtualFile, val key: ConfigKeyOffsets.Key)
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+
+    if (GhostMode.enabled) return null
     if (element.firstChild != null || element.textLength == 0) return null
     val file = element.containingFile ?: return null
     val name = ProfileFiles.nameOf(file.name) ?: return null
@@ -124,6 +126,8 @@ class BootApplicationConfigLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getIcon(): Icon = AllIcons.FileTypes.Config
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+
+    if (GhostMode.enabled) return null
     if (element.firstChild != null) return null
     val owner = element.parent as? PsiNameIdentifierOwner ?: return null
     if (owner.nameIdentifier != element) return null

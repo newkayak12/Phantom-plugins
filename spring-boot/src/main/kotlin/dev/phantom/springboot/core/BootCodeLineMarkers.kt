@@ -69,6 +69,8 @@ class BootConditionalPropertyLineMarkerProvider : LineMarkerProviderDescriptor()
   override fun getIcon(): Icon = AllIcons.FileTypes.Config
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+
+    if (GhostMode.enabled) return null
     val (declaration, _) = BootAnnotations.declarationOf(element) ?: return null
     val annotation = declaration.findAnnotation(CONDITIONAL_ON_PROPERTY) ?: return null
     val prefix = BootAnnotations.strings(annotation.findDeclaredAttributeValue("prefix")).firstOrNull().orEmpty().trim().trimEnd('.')
@@ -103,6 +105,8 @@ class BootEnableConfigPropertiesLineMarkerProvider : LineMarkerProviderDescripto
   override fun getIcon(): Icon = AllIcons.Gutter.ImplementedMethod
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+
+    if (GhostMode.enabled) return null
     val (declaration, _) = BootAnnotations.declarationOf(element) ?: return null
     if (declaration !is UClass) return null
     val annotation = declaration.findAnnotation(ENABLE_CONFIGURATION_PROPERTIES) ?: return null
@@ -130,6 +134,8 @@ class BootTestPropertiesLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getIcon(): Icon = AllIcons.Gutter.OverridingMethod
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+
+    if (GhostMode.enabled) return null
     val (declaration, _) = BootAnnotations.declarationOf(element) ?: return null
     if (declaration !is UClass) return null
     val entries = ANNOTATIONS.mapNotNull { declaration.findAnnotation(it) }
@@ -162,6 +168,8 @@ class BootConfigPropertyFieldLineMarkerProvider : LineMarkerProviderDescriptor()
   override fun getIcon(): Icon = AllIcons.FileTypes.Config
 
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+
+    if (GhostMode.enabled) return null
     if (element.firstChild != null) return null
     val owner = element.parent as? PsiNameIdentifierOwner ?: return null
     if (owner.nameIdentifier != element) return null
