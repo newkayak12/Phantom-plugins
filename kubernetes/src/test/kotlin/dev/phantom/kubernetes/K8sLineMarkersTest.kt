@@ -208,6 +208,19 @@ class K8sLineMarkersTest : BasePlatformTestCase() {
     assertEquals(listOf("Defined as ConfigMap/cfg2 -> cfg2"), gutters())
   }
 
+  /** The targets come from every manifest of the project, so the markers are computed only in the slow pass. */
+  fun testMarkersOnlyInSlowPass() {
+    myFixture.addFileToProject("k8s/cm.yaml", "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: cfg\n")
+    myFixture.configureByText("pod.yaml", "apiVersion: v1\nkind: Pod\nmetadata:\n  name: p\nspec:\n  containers:\n    - name: c\n      image: x\n      envFrom:\n        - configMapRef:\n            name: cfg\n")
+    val provider = K8sLineMarkerProvider()
+    val leaves = com.intellij.psi.util.PsiTreeUtil.collectElements(myFixture.file) { it.firstChild == null }.toMutableList()
+    assertTrue(leaves.all { provider.getLineMarkerInfo(it) == null })
+    val slow = ArrayList<com.intellij.codeInsight.daemon.LineMarkerInfo<*>>()
+    provider.collectSlowLineMarkers(leaves, slow)
+    assertEquals(1, slow.size)
+    assertEquals("cfg", K8sProjectResources.all(project).single { it.kind == "ConfigMap" }.nameElement?.text)
+  }
+
   private fun edit(file: PsiFile, change: (Document) -> Unit) {
     val documents = PsiDocumentManager.getInstance(project)
     WriteCommandAction.runWriteCommandAction(project) { change(documents.getDocument(file)!!) }

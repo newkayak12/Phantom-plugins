@@ -145,4 +145,72 @@ class HelmTest : BasePlatformTestCase() {
     val tooltips = myFixture.findAllGutters().mapNotNull { it.tooltipText }.filter { it.startsWith("Template") }
     assertEquals(listOf("Template 'data-plane.labels' is included 2 times"), tooltips)
   }
+
+  /** Comments are not actions: neither a value nor a template name in them is checked. */
+  fun testCommentsAreNotActions() {
+    myFixture.enableInspections(HelmUnknownTemplateInspection::class.java)
+    template("""
+      a: {{/* .Values.notInValues */}}
+      b: {{- /* include "no.such.template" . */ -}}
+      c: {{ .Values.alsoMissing }}
+    """.trimIndent())
+    val problems = myFixture.doHighlighting(HighlightSeverity.WEAK_WARNING).mapNotNull(HighlightInfo::getDescription)
+      .filter { "values.yaml" in it || "No template" in it }
+    assertSameElements(problems, "'.Values.alsoMissing' is not in data-plane/values.yaml; Helm renders it empty unless the release sets it")
+  }
+
+  fun testInActionFindsTheRangeByBinarySearch() {
+    val ranges = HelmActions.ranges("x {{ a }} y {{ b }} z {{/* c */}}")
+    assertEquals(2, ranges.size)
+    assertTrue(HelmActions.inAction(ranges, 3))
+    assertFalse(HelmActions.inAction(ranges, 10))
+    assertTrue(HelmActions.inAction(ranges, 13))
+    assertFalse(HelmActions.inAction(ranges, 26))
+  }
+
+  /** A parent template reads a subchart's values under its name; a subchart reads values its parent sets for it. */
+  fun testSubchartValues() {
+    myFixture.addFileToProject("umbrella/Chart.yaml", """
+      apiVersion: v2
+      name: umbrella
+      version: 0.1.0
+      dependencies:
+        - name: redis
+          alias: cache
+          version: 1.x
+        - name: db
+          version: 1.x
+    """.trimIndent())
+    myFixture.addFileToProject("umbrella/values.yaml", "db:\n  password: secret\n")
+    myFixture.addFileToProject("umbrella/charts/db/Chart.yaml", "apiVersion: v2\nname: db\nversion: 1.0.0\n")
+    myFixture.addFileToProject("umbrella/charts/db/values.yaml", "port: 5432\n")
+    val parent = myFixture.addFileToProject("umbrella/templates/a.yaml", """
+      port: {{ .Values.db.port }}
+      password: {{ .Values.db.password }}
+      cache: {{ .Values.cache.host }}
+      typo: {{ .Values.db.prot }}
+    """.trimIndent())
+    myFixture.configureFromExistingVirtualFile(parent.virtualFile)
+    assertSameElements(myFixture.doHighlighting(HighlightSeverity.WEAK_WARNING).mapNotNull(HighlightInfo::getDescription).filter { "values.yaml" in it },
+                       "'.Values.db.prot' is not in umbrella/values.yaml; Helm renders it empty unless the release sets it")
+    val child = myFixture.addFileToProject("umbrella/charts/db/templates/b.yaml", """
+      port: {{ .Values.port }}
+      password: {{ .Values.password }}
+      user: {{ .Values.user }}
+    """.trimIndent())
+    myFixture.configureFromExistingVirtualFile(child.virtualFile)
+    assertSameElements(myFixture.doHighlighting(HighlightSeverity.WEAK_WARNING).mapNotNull(HighlightInfo::getDescription).filter { "values.yaml" in it },
+                       "'.Values.user' is not in db/values.yaml; Helm renders it empty unless the release sets it")
+  }
+  /** Defines and include calls are read once per chart and reread when a template changes. */
+  fun testChartIndexIsCachedUntilTemplatesChange() {
+    template("labels: {{ include \"data-plane.labels\" . }}")
+    val chart = HelmChart.of(myFixture.file)!!
+    val usages = chart.usages(project)
+    assertSame(usages, chart.usages(project))
+    assertEquals(1, usages["data-plane.labels"]?.size)
+    myFixture.addFileToProject("deploy/charts/data-plane/templates/_extra.tpl", "{{- define \"data-plane.extra\" -}}{{ include \"data-plane.labels\" . }}{{- end }}")
+    assertTrue("data-plane.extra" in chart.defineNames(project))
+    assertEquals(2, chart.usages(project)["data-plane.labels"]?.size)
+  }
 }

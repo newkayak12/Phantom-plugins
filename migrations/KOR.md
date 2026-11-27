@@ -8,6 +8,6 @@ Flyway와 Liquibase 검사입니다.
 - **Flyway 중복 버전:** 버전은 숫자로 비교하므로 `V1_16`, `V1.16`, `V1.016`은 같은 버전입니다. 버전 사이가 비는 것은 문제가 아니어서 알리지 않습니다.
 - **Liquibase changelog**(XML, YAML, formatted SQL): 한 changelog 안에서 같은 id와 author를 두 번 쓴 changeset, 존재하지 않는 `include` / `includeAll` 경로를 알려 줍니다.
 
-프로젝트가 `flyway-core`나 `liquibase-core`를 쓰면 Phantom이 이 플러그인 설치를 제안합니다. 그 밖의 모듈에서는 아무것도 하지 않습니다.
+프로젝트가 `flyway-core`나 `liquibase-core`를 쓰면 Phantom이 이 플러그인 설치를 제안합니다. 그 라이브러리가 있는 모듈과, 그런 모듈이 의존하는 모듈에서 동작하고 그 밖의 모듈에서는 아무것도 하지 않습니다.
 
 아직 없는 것: 마이그레이션 실행, 마이그레이션 목록 창.

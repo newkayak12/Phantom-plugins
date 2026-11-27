@@ -138,14 +138,14 @@ class LiquibaseChangelogInspection : LocalInspectionTool() {
   }
 }
 
-/** Next to the changelog when relative; otherwise from a resource root, then (as Liquibase also tries) next to the changelog. */
+/** Next to the changelog when relative; otherwise from a resource root of the module or a module it depends on, then (as Liquibase also tries) next to the changelog. */
 internal fun resolveInclude(module: Module, changelog: VirtualFile, path: String, relative: Boolean, directory: Boolean): VirtualFile? {
   if (path.contains("\${")) return changelog // a property placeholder: cannot be judged
   val clean = path.removePrefix("classpath:").removePrefix("classpath*:")
   val candidates = buildList {
     changelog.parent?.findFileByRelativePath(clean)?.let(::add)
     if (!relative) {
-      for (root in sourceAndResourceRoots(module, true)) root.findFileByRelativePath(clean.trimStart('/'))?.let(::add)
+      for (root in classpathRoots(module)) root.findFileByRelativePath(clean.trimStart('/'))?.let(::add)
     }
   }
   return candidates.firstOrNull { it.isDirectory == directory }

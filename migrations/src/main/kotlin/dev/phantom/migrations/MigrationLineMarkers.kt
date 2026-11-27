@@ -26,7 +26,14 @@ class FlywayLineMarkerProvider : LineMarkerProviderDescriptor() {
 
   override fun getIcon(): Icon = AllIcons.Vcs.History
 
-  override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+  override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? = null
+
+  /** In the slow pass: the neighbors come from a scan of the module's migration locations. */
+  override fun collectSlowLineMarkers(elements: MutableList<out PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
+    for (element in elements) markerFor(element)?.let(result::add)
+  }
+
+  private fun markerFor(element: PsiElement): LineMarkerInfo<*>? {
     if (element.textRange.startOffset != 0 || element.firstChild != null || element.textLength == 0) return null
     val file = element.containingFile ?: return null
     val vFile = file.virtualFile ?: return null

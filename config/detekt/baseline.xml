@@ -511,7 +511,7 @@
     <ID>CyclomaticComplexMethod:MermaidTypedHandlerDelegate.kt:MermaidTypedHandlerDelegate$override fun charTyped: Result</ID>
     <ID>CyclomaticComplexMethod:MigrationInspections.kt:LiquibaseChangelogInspection$override fun checkFile: Array&lt;ProblemDescriptor>?</ID>
     <ID>CyclomaticComplexMethod:MigrationInspections.kt:LiquibaseChangelogInspection$private fun yaml</ID>
-    <ID>CyclomaticComplexMethod:MigrationLineMarkers.kt:FlywayLineMarkerProvider$override fun getLineMarkerInfo: LineMarkerInfo&lt;*>?</ID>
+    <ID>CyclomaticComplexMethod:MigrationLineMarkers.kt:FlywayLineMarkerProvider$private fun markerFor: LineMarkerInfo&lt;*>?</ID>
     <ID>CyclomaticComplexMethod:MigrationLineMarkers.kt:LiquibaseIncludeLineMarkerProvider$private fun includeAt: Include?</ID>
     <ID>CyclomaticComplexMethod:NetworkntErrorMapper.kt:NetworkntErrorMapper$private fun computeBranchStructuralErrorSuppressions: Set&lt;Error></ID>
     <ID>CyclomaticComplexMethod:NetworkntErrorMapper.kt:NetworkntErrorMapper$private fun computeBranchTypeErrorSuppressions: Set&lt;Error></ID>
@@ -2793,6 +2793,7 @@
     <ID>TooManyFunctions:GroovyInferenceSessionBuilder.kt:org.jetbrains.plugins.groovy.lang.resolve.processors.inference.GroovyInferenceSessionBuilder.kt</ID>
     <ID>TooManyFunctions:GroovyPostfixTemplateUtils.kt:GroovyPostfixTemplateUtils</ID>
     <ID>TooManyFunctions:GroovyRedundantKotlinStdLibInspectionVisitor.kt:GroovyRedundantKotlinStdLibInspectionVisitor : GroovyElementVisitor</ID>
+    <ID>TooManyFunctions:Helm.kt:HelmChart</ID>
     <ID>TooManyFunctions:HierarchicalTableResultPanel.kt:HierarchicalTableResultPanel : TableResultPanelDataGridWithNestedTables</ID>
     <ID>TooManyFunctions:HierarchyView.kt:HierarchyView : AbstractLightClass</ID>
     <ID>TooManyFunctions:HorizontalBarPresentation.kt:HorizontalBarPresentation : BasePresentation</ID>

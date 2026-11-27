@@ -9,9 +9,12 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VfsUtilCore
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
+import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.CachedValueProvider
@@ -25,16 +28,30 @@ import javax.swing.Icon
 /**
  * The resources of the project's plain Kubernetes manifests (Helm templates and other templated files left out),
  * read only when a manifest's gutter asks and kept until YAML changes or files are created, deleted or renamed.
+ * Each entry keeps the names and labels the gutters match on and a smart pointer to its name: holding the PSI of every
+ * manifest in a project-level cache kept their trees in memory for as long as the cache lived.
  */
 object K8sProjectResources {
-  class Named(val resource: K8sResource, val name: String, val namespace: String?) {
-    val nameElement: PsiElement?
-      get() = ((resource.root.getKeyValueByKey("metadata")?.value as? YAMLMapping)?.getKeyValueByKey("name")?.value) ?: resource.root
+  class Named(
+    val kind: String,
+    val name: String,
+    val namespace: String?,
+    /** The pod template labels of a workload. */
+    val podLabels: Map<String, String>,
+    /** `spec.selector` of a Service. */
+    val selector: Map<String, String>,
+    val file: VirtualFile,
+    /** Index of the YAML document in [file], to leave out the resource the gutter is on. */
+    val documentIndex: Int,
+    private val namePointer: SmartPsiElementPointer<PsiElement>,
+  ) {
+    val nameElement: PsiElement? get() = namePointer.element
   }
 
   fun all(project: Project): List<Named> = CachedValuesManager.getManager(project).getCachedValue(project) {
     val scope = GlobalSearchScope.projectScope(project)
     val manager = PsiManager.getInstance(project)
+    val pointers = SmartPointerManager.getInstance(project)
     val out = ArrayList<Named>()
     for (ext in listOf("yaml", "yml")) {
       for (file in FilenameIndex.getAllFilesByExt(project, ext, scope)) {
@@ -44,8 +61,12 @@ object K8sProjectResources {
         val yaml = manager.findFile(file) as? YAMLFile ?: continue
         for (resource in K8sResource.all(yaml)) {
           val metadata = resource.root.getKeyValueByKey("metadata")?.value as? YAMLMapping ?: continue
-          val name = (metadata.getKeyValueByKey("name")?.value as? YAMLScalar)?.textValue ?: continue
-          out += Named(resource, name, namespaceOf(resource))
+          val nameValue = metadata.getKeyValueByKey("name")?.value
+          val name = (nameValue as? YAMLScalar)?.textValue ?: continue
+          val podLabels = podLabelsPath(resource.kind)?.let { labels(mappingAt(resource.root, it)) }.orEmpty()
+          val selector = if (resource.kind == "Service") labels(mappingAt(resource.root, listOf("spec", "selector"))) else emptyMap()
+          out += Named(resource.kind, name, namespaceOf(resource), podLabels, selector, file, yaml.documents.indexOf(resource.document),
+                       pointers.createSmartPsiElementPointer(nameValue, yaml))
         }
       }
     }
@@ -83,7 +104,17 @@ class K8sLineMarkerProvider : LineMarkerProviderDescriptor() {
 
   override fun getIcon(): Icon = AllIcons.Gutter.ImplementedMethod
 
-  override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+  override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? = null
+
+  /**
+   * In the slow pass: the targets come from every manifest of the project, which the fast pass would read while the
+   * file is first highlighted.
+   */
+  override fun collectSlowLineMarkers(elements: MutableList<out PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
+    for (element in elements) markerFor(element)?.let(result::add)
+  }
+
+  private fun markerFor(element: PsiElement): LineMarkerInfo<*>? {
     if (element.firstChild != null) return null
     val kv = element.parent as? YAMLKeyValue ?: return null
     if (kv.key != element) return null
@@ -93,9 +124,13 @@ class K8sLineMarkerProvider : LineMarkerProviderDescriptor() {
     val link = linkOf(kv, resource) ?: return null
     val project = file.project
     val namespace = K8sProjectResources.namespaceOf(resource)
-    val targets = K8sProjectResources.all(project).filter { it.resource.document != document && K8sProjectResources.sameNamespace(namespace, it.namespace) && link.matches(it) }
+    val virtualFile = file.virtualFile
+    val documentIndex = file.documents.indexOf(document)
+    val targets = K8sProjectResources.all(project).filter {
+      !(it.file == virtualFile && it.documentIndex == documentIndex) && K8sProjectResources.sameNamespace(namespace, it.namespace) && link.matches(it)
+    }
     if (targets.isEmpty()) return null
-    val names = targets.joinToString { "${it.resource.kind}/${it.name}" }
+    val names = targets.joinToString { "${it.kind}/${it.name}" }
     return NavigationGutterIconBuilder.create(link.icon)
       .setTargets(targets.mapNotNull { it.nameElement })
       .setTooltipText(PhantomKubernetesBundle.message(link.tooltipKey, names))
@@ -112,9 +147,7 @@ class K8sLineMarkerProvider : LineMarkerProviderDescriptor() {
     if (resource.kind == "Service" && kv.keyText == "selector" && parent == K8sProjectResources.mappingAt(root, listOf("spec"))) {
       val selector = K8sProjectResources.labels(kv.value as? YAMLMapping).takeIf { it.isNotEmpty() } ?: return null
       return Link("k8s.gutter.selects", AllIcons.Gutter.ImplementedMethod) { other ->
-        val path = K8sProjectResources.podLabelsPath(other.resource.kind) ?: return@Link false
-        val labels = K8sProjectResources.labels(K8sProjectResources.mappingAt(other.resource.root, path))
-        selector.all { (k, v) -> labels[k] == v }
+        K8sProjectResources.podLabelsPath(other.kind) != null && selector.all { (k, v) -> other.podLabels[k] == v }
       }
     }
     // workload pod labels -> Services that select them
@@ -122,14 +155,11 @@ class K8sLineMarkerProvider : LineMarkerProviderDescriptor() {
     if (labelsPath != null && kv.keyText == "labels" && parent == K8sProjectResources.mappingAt(root, labelsPath.dropLast(1))) {
       val labels = K8sProjectResources.labels(kv.value as? YAMLMapping).takeIf { it.isNotEmpty() } ?: return null
       return Link("k8s.gutter.selected.by", AllIcons.Gutter.ImplementingMethod) { other ->
-        if (other.resource.kind != "Service") return@Link false
-        val spec = K8sProjectResources.mappingAt(other.resource.root, listOf("spec"))
-        val selector = K8sProjectResources.labels(spec?.getKeyValueByKey("selector")?.value as? YAMLMapping)
-        selector.isNotEmpty() && selector.all { (k, v) -> labels[k] == v }
+        other.kind == "Service" && other.selector.isNotEmpty() && other.selector.all { (k, v) -> labels[k] == v }
       }
     }
     val value = (kv.value as? YAMLScalar)?.textValue?.takeIf { it.isNotEmpty() } ?: return null
-    fun named(kind: String, key: String) = Link(key, AllIcons.Gutter.ImplementedMethod) { it.resource.kind == kind && it.name == value }
+    fun named(kind: String, key: String) = Link(key, AllIcons.Gutter.ImplementedMethod) { it.kind == kind && it.name == value }
     val owner = (parent.parent as? YAMLKeyValue)?.keyText
     return when {
       kv.keyText == "name" && owner in setOf("configMapRef", "configMapKeyRef", "configMap") -> named("ConfigMap", "k8s.gutter.configmap")

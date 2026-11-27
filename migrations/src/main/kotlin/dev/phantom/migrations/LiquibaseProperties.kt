@@ -14,6 +14,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiComment
+import com.intellij.psi.PsiManager
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.PsiSearchHelper
 import com.intellij.psi.util.CachedValue
@@ -22,12 +23,17 @@ import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.xml.XmlFile
+import org.jetbrains.yaml.YAMLUtil
+import org.jetbrains.yaml.psi.YAMLFile
+import org.jetbrains.yaml.psi.YAMLMapping
+import org.jetbrains.yaml.psi.YAMLValue
 
 /**
  * Changelog properties a module defines: `<property name>` (XML), `property: name:` (YAML), `--property name:` (formatted
  * SQL) in any changelog of its source and resource roots (properties are global to the whole changelog tree), keys of
  * `liquibase*.properties` (with or without `parameter.`) and `spring.liquibase.parameters.*` in properties files.
- * [unknowable] is true when parameters come from where they cannot be read: `spring.liquibase.parameters` in YAML, or
+ * [unknowable] is true when parameters come from where they cannot be read: a `spring.liquibase.parameters` YAML value that
+ * is not a mapping, or
  * code that calls `setChangeLogParameters`.
  */
 internal class LiquibaseProperties(val names: Set<String>, val unknowable: Boolean) {
@@ -49,7 +55,7 @@ internal class LiquibaseProperties(val names: Set<String>, val unknowable: Boole
       val names = HashSet<String>()
       var unknowable = false
       val read = ArrayList<VirtualFile>()
-      for (root in sourceAndResourceRoots(module, true)) {
+      for (root in configRoots(module, true)) {
         VfsUtilCore.iterateChildrenRecursively(root, null) { file ->
           if (file.isDirectory) return@iterateChildrenRecursively true
           val ext = file.extension?.lowercase()
@@ -61,7 +67,14 @@ internal class LiquibaseProperties(val names: Set<String>, val unknowable: Boole
             "xml" -> if (text.contains("databaseChangeLog")) XML_PROPERTY.findAll(text).forEach { names += it.groupValues[1] }
             "yaml", "yml" -> {
               if (text.contains("databaseChangeLog") && text.contains("property:")) YAML_NAME.findAll(text).forEach { names += it.groupValues[1] }
-              if (text.contains("liquibase") && text.contains("parameters")) unknowable = true
+              if (text.contains("liquibase")) {
+                SPRING_PARAMETER.findAll(text).forEach { names += it.groupValues[1] }
+                when (val parameters = springParameters(module, file)) {
+                  null -> {}
+                  is YAMLMapping -> parameters.keyValues.forEach { names += it.keyText }
+                  else -> unknowable = true
+                }
+              }
             }
             "sql" -> SQL_PROPERTY.findAll(text).forEach { names += it.groupValues[1] }
             "properties" -> {
@@ -79,6 +92,15 @@ internal class LiquibaseProperties(val names: Set<String>, val unknowable: Boole
       CachedValueProvider.Result.create(LiquibaseProperties(names, unknowable), VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS,
                                         ProjectRootManager.getInstance(module.project), *read.toTypedArray())
     }, false)
+
+    /**
+     * `spring.liquibase.parameters` in a Spring YAML file. Its keys are known names; only a value that is not a
+     * mapping (a placeholder) makes the parameters unknowable. Any YAML that mentioned both words used to.
+     */
+    private fun springParameters(module: Module, file: VirtualFile): YAMLValue? {
+      val yaml = PsiManager.getInstance(module.project).findFile(file) as? YAMLFile ?: return null
+      return yaml.documents.firstNotNullOfOrNull { YAMLUtil.getQualifiedKeyInDocument(it, listOf("spring", "liquibase", "parameters"))?.value }
+    }
 
     /**
      * Whether code of the module may set parameters (`setChangeLogParameters`, a `changeLogParameters` property). Kept

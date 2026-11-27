@@ -17,11 +17,11 @@ import com.intellij.psi.PsiManager
 import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.annotations.PropertyKey
-import org.jetbrains.yaml.YAMLLanguage
+import org.jetbrains.annotations.TestOnly
+import org.jetbrains.jps.model.java.JavaResourceRootType
 import org.jetbrains.yaml.YAMLUtil
 import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLScalar
@@ -40,15 +40,24 @@ object PhantomMigrationsBundle : DynamicBundle(BUNDLE) {
 object MigrationsGate {
   private val LIBRARIES = Key.create<CachedValue<Set<String>>>("phantom.migrations.libraries")
 
+  /** Tests of the gate itself turn this off; other tests run without the libraries on the classpath. */
+  @TestOnly
+  internal var openInTests = true
+
+  /**
+   * The module or a module that depends on it has the library: migrations often sit in a persistence module while the
+   * application module that runs them brings in `flyway-core` or `liquibase-core`.
+   */
   fun uses(module: Module, artifact: String): Boolean {
     if (module.isDisposed) return false
-    if (ApplicationManager.getApplication().isUnitTestMode) return true
-    val names = CachedValuesManager.getManager(module.project).getCachedValue(module, LIBRARIES, {
-      val roots = OrderEnumerator.orderEntries(module).recursively().librariesOnly().runtimeOnly().classes().roots
-      CachedValueProvider.Result.create(roots.map { it.name }.toSet(), ProjectRootManager.getInstance(module.project))
-    }, false)
-    return names.any { it.startsWith("$artifact-") }
+    if (openInTests && ApplicationManager.getApplication().isUnitTestMode) return true
+    return (listOf(module) + ModuleUtilCore.getAllDependentModules(module)).any { m -> libraries(m).any { it.startsWith("$artifact-") } }
   }
+
+  private fun libraries(module: Module): Set<String> = CachedValuesManager.getManager(module.project).getCachedValue(module, LIBRARIES, {
+    val roots = OrderEnumerator.orderEntries(module).recursively().librariesOnly().runtimeOnly().classes().roots
+    CachedValueProvider.Result.create(roots.map { it.name }.toSet(), ProjectRootManager.getInstance(module.project))
+  }, false)
 }
 
 /**
@@ -59,6 +68,23 @@ internal fun sourceAndResourceRoots(module: Module, includingTests: Boolean): Li
   ModuleRootManager.getInstance(module).contentEntries.flatMap { entry ->
     entry.sourceFolders.filter { includingTests || !it.isTestSource }.mapNotNull { it.file }
   }
+
+/**
+ * Where configuration and changelogs are read from: the module's resource roots, or all its source roots when it marks
+ * none (a module without a build tool). Walking Java source roots visited every package folder for a few config files.
+ */
+internal fun configRoots(module: Module, includingTests: Boolean): List<VirtualFile> {
+  val folders = ModuleRootManager.getInstance(module).contentEntries.flatMap { it.sourceFolders.asList() }.filter { includingTests || !it.isTestSource }
+  val resources = folders.filter { it.rootType is JavaResourceRootType }
+  return (resources.ifEmpty { folders }).mapNotNull { it.file }
+}
+
+/** Roots of the module and the modules it depends on, which share its runtime classpath (`classpath:` includes). */
+internal fun classpathRoots(module: Module): List<VirtualFile> {
+  val modules = LinkedHashSet<Module>()
+  OrderEnumerator.orderEntries(module).recursively().withoutSdk().withoutLibraries().forEachModule { modules.add(it) }
+  return modules.flatMap { sourceAndResourceRoots(it, true) }
+}
 
 /** A source or resource root of the module, with the path below it. */
 internal fun relativeToRoot(module: Module, file: VirtualFile): Pair<VirtualFile, String>? =
@@ -86,25 +112,27 @@ object FlywayLocations {
     val found = linkedSetOf("db/migration")
     val project = module.project
     val psiManager = PsiManager.getInstance(project)
-    val read = ArrayList<VirtualFile>()
-    for (root in sourceAndResourceRoots(module, false)) {
+    val read = ArrayList<Any>()
+    for (root in configRoots(module, false)) {
       VfsUtilCore.iterateChildrenRecursively(root, { it.isDirectory || it.extension in setOf("yml", "yaml", "properties") }) { file ->
-        if (!file.isDirectory) read += file
-        if (!file.isDirectory && file.length < 512 * 1024) {
-          val text = VfsUtilCore.loadText(file)
+        if (file.isDirectory) return@iterateChildrenRecursively true
+        // YAML is read through PSI (unsaved edits count), so the dependency is the PSI file; .properties from disk.
+        val yaml = if (file.extension == "properties") null else psiManager.findFile(file) as? YAMLFile
+        read += yaml ?: file
+        if (file.length < 512 * 1024) {
+          val text = yaml?.viewProvider?.contents ?: VfsUtilCore.loadText(file)
           if (text.contains("flyway")) {
-            if (file.extension == "properties") PROPERTIES.findAll(text).forEach { m -> m.groupValues[1].split(',').forEach { found += it } }
-            else (psiManager.findFile(file) as? YAMLFile)?.let { yaml -> yamlLocations(yaml).forEach { found += it } }
+            if (yaml == null) PROPERTIES.findAll(text).forEach { m -> m.groupValues[1].split(',').forEach { found += it } }
+            else yamlLocations(yaml).forEach { found += it }
           }
         }
         true
       }
     }
     val normalized = found.mapNotNull(::normalize).distinct()
-    // YAML is read through PSI (committed unsaved edits), .properties from disk (each file read is a dependency, so a
-    // change on disk counts), plus files created, deleted or renamed and roots. The whole PsiModificationTracker
-    // also moved on every Java or SQL keystroke and reread every config file of the module.
-    val deps = arrayOf<Any>(PsiModificationTracker.getInstance(project).forLanguages { it.isKindOf(YAMLLanguage.INSTANCE) },
+    // Each config file read is a dependency, plus files created, deleted or renamed and roots. A YAML language tracker
+    // also moved on every edit of any YAML file of the project (manifests, CI files) and reread the module's config.
+    val deps = arrayOf<Any>(
                        VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS, ProjectRootManager.getInstance(project), *read.toTypedArray())
     CachedValueProvider.Result.create(Found(normalized, deps), *deps)
   }, false)

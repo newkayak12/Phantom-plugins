@@ -72,10 +72,10 @@ class K8sDeprecatedLabelsInspection : K8sInspection() {
 class HelmUnknownTemplateInspection : LocalInspectionTool() {
   override fun checkFile(file: PsiFile, manager: InspectionManager, isOnTheFly: Boolean): Array<ProblemDescriptor>? {
     val chart = HelmChart.of(file) ?: return null
-    if (chart.hasDependencies()) return null
+    if (chart.hasDependencies(file.project)) return null
     val text = file.text
     val actions = HelmActions.ranges(text)
-    val defined by lazy { chart.defines(file.project).keys + HelmChart.DEFINE.findAll(text).map { it.groupValues[1] } }
+    val defined by lazy { chart.defineNames(file.project) + HelmChart.DEFINE.findAll(text).map { it.groupValues[1] } }
     val out = ArrayList<ProblemDescriptor>()
     for (match in HelmChart.INCLUDE.findAll(text)) {
       if (!HelmActions.inAction(actions, match.range.first)) continue
@@ -179,17 +179,13 @@ class HelmDefineLineMarkerProvider : LineMarkerProviderDescriptor() {
   }
 
   private fun usages(chart: HelmChart, from: PsiFile): Map<String, List<PsiElement>> {
-    val result = HashMap<String, MutableList<PsiElement>>()
     val manager = PsiManager.getInstance(from.project)
-    for (vFile in chart.templateFiles()) {
-      val psi = if (vFile == from.virtualFile) from else manager.findFile(vFile) ?: continue
-      val text = psi.text
-      for (match in HelmChart.INCLUDE.findAll(text)) {
-        val group = match.groups[1]!!
-        result.getOrPut(group.value) { ArrayList() } += OffsetTarget(psi, group.range.first, group.value)
+    return chart.usages(from.project).mapValues { (name, locations) ->
+      locations.mapNotNull { location ->
+        val psi = if (location.file == from.virtualFile) from else manager.findFile(location.file) ?: return@mapNotNull null
+        OffsetTarget(psi, location.offset, name)
       }
     }
-    return result
   }
 }
 
