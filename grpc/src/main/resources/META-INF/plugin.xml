@@ -21,5 +21,10 @@
     <fileType name="Phantom Protocol Buffers" language="PhantomProto" extensions="proto"
               implementationClass="dev.phantom.grpc.ProtoFileType" fieldName="INSTANCE"/>
     <lang.parserDefinition language="PhantomProto" implementationClass="dev.phantom.grpc.ProtoParserDefinition"/>
+    <lang.syntaxHighlighterFactory language="PhantomProto" implementationClass="dev.phantom.grpc.ProtoSyntaxHighlighterFactory"/>
+    <lang.commenter language="PhantomProto" implementationClass="dev.phantom.grpc.ProtoCommenter"/>
+    <lang.braceMatcher language="PhantomProto" implementationClass="dev.phantom.grpc.ProtoBraceMatcher"/>
+    <lang.findUsagesProvider language="PhantomProto" implementationClass="dev.phantom.grpc.ProtoFindUsagesProvider"/>
+    <lang.psiStructureViewFactory language="PhantomProto" implementationClass="dev.phantom.grpc.ProtoStructureViewFactory"/>
   </extensions>
 </idea-plugin>
