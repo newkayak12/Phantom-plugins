@@ -59,6 +59,8 @@ class TabGroupPaneController(
     private set
   private var colors: Map<String, TabGroupColor> = emptyMap()
   private var lastOrder: List<String> = emptyList()
+  /** The groups and open files of the last [onChanged] call. */
+  private var lastNotified: Pair<PaneState, Set<String>>? = null
   private var suppressExpand = false
   private var refreshing = false
   private var applying = false
@@ -331,8 +333,13 @@ class TabGroupPaneController(
     val changed = (colors.keys + newColors.keys).filterTo(HashSet()) { colors[it] != newColors[it] }
     colors = newColors
     (oldTitles.keys + titles.keys).filterTo(changed) { oldTitles[it] != titles[it] }
-    // the service updates the tabs of these files in every pane
-    onChanged(changed)
+    // the service updates the tabs of these files in every pane. A refresh for a selection or another editor event that
+    // changed neither the groups nor the open files has nothing to tell it, and it would recompute every pane for nothing.
+    val notified = model.toPaneState() to open
+    if (changed.isNotEmpty() || notified != lastNotified) {
+      lastNotified = notified
+      onChanged(changed)
+    }
     lastOrder = visibleOrder()
     for (info in tabs.tabs) if (info.url in titles) styleName(info)
     tabs.component.repaint()
@@ -446,23 +453,15 @@ class TabGroupPaneController(
     val text = tabLabel.labelComponent as? SimpleColoredComponent ?: return
     if (tabLabel.info.url !in titles) return
     val name = tabLabel.info.coloredText.texts.firstOrNull() ?: return
-    // where the first fragment is: the x range findFragmentAt gives it
-    var start = -1
-    var end = -1
-    for (x in 0 until text.width) {
-      if (text.findFragmentAt(x) == 0) {
-        if (start < 0) start = x
-        end = x + 1
-      }
-      else if (start >= 0) break
-    }
-    if (start < 0) return
+    // SimpleColoredComponent gives no fragment bounds: find where the first fragment starts, which is only past the icon,
+    // and take its width from the font instead of probing findFragmentAt for every pixel of it on each paint
+    val start = (0 until text.width).firstOrNull { text.findFragmentAt(it) == 0 } ?: return
     val font = text.font.deriveFont(Font.BOLD)
     val metrics = text.getFontMetrics(font)
     val pad = JBUI.scale(5)
     val chipHeight = metrics.height + JBUI.scale(2)
     val origin = SwingUtilities.convertPoint(text, start, (text.height - chipHeight) / 2, component)
-    val width = maxOf(end - start, metrics.stringWidth(name))
+    val width = metrics.stringWidth(name)
     val chip = RoundRectangle2D.Float((origin.x - pad).toFloat(), origin.y.toFloat(), (width + 2 * pad).toFloat(), chipHeight.toFloat(),
                                       chipHeight.toFloat() / 2, chipHeight.toFloat() / 2)
     g.color = group.color.strong
@@ -485,10 +484,12 @@ class TabGroupPaneController(
     val project = window.manager.project
     applying = true
     try {
-      for (info in tabs.tabs) {
-        val file = info.`object` as? VirtualFile ?: continue
-        if (file.url !in urls || !file.isValid) continue
-        val (text, color) = ReadAction.computeBlocking<Pair<String, Color?>, Throwable> {
+      val targets = tabs.tabs.filter { info -> (info.`object` as? VirtualFile)?.let { it.url in urls && it.isValid } == true }
+      if (targets.isEmpty()) return
+      // one read action for all the tabs: the providers read the files, and a read action per tab costs a lock round trip each
+      val presentations = ReadAction.computeBlocking<List<Pair<String, Color?>>, Throwable> {
+        targets.map { info ->
+          val file = info.`object` as VirtualFile
           if (isPaneSpecific(file.url)) {
             val base = TabGroupTitleProvider.baseTitle(project, file)
             (titles[file.url]?.text { base } ?: base) to
@@ -498,6 +499,9 @@ class TabGroupPaneController(
             EditorTabPresentationUtil.getEditorTabTitle(project, file) to EditorTabPresentationUtil.getEditorTabBackgroundColor(project, file)
           }
         }
+      }
+      for ((info, presentation) in targets.zip(presentations)) {
+        val (text, color) = presentation
         if (info.text != text) info.setText(text)
         if (info.tabColor != color) info.setTabColor(color)
         styleName(info)

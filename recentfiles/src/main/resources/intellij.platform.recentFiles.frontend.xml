@@ -25,9 +25,7 @@
   <!-- endregion -->
 
   <extensionPoints>
-    <extensionPoint interface="com.intellij.platform.recentFiles.frontend.RecentFilesAdvertisementProvider"
-                    qualifiedName="com.intellij.recentFiles.advertisementProvider"
-                    dynamic="true"/>
+    <!-- phantom-idea: the advertisementProvider extension point is removed: Phantom shows no advertisements in the switcher -->
     <extensionPoint interface="com.intellij.platform.recentFiles.frontend.RecentFilesNavigator"
                     qualifiedName="com.intellij.recentFiles.navigator"
                     dynamic="true"/>

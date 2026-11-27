@@ -8,7 +8,6 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.ex.AnActionListener
 import com.intellij.openapi.components.serviceIfCreated
 import com.intellij.openapi.project.DumbAwareAction
-import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.wm.impl.ProjectWindowAction
 
 /**
@@ -19,7 +18,8 @@ internal abstract class SwitchProjectAction(private val offset: Int) : DumbAware
   override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
 
   override fun update(e: AnActionEvent) {
-    e.presentation.isEnabled = ProjectManager.getInstance().openProjects.size > 1
+    // the tabs it goes through, not every open project: a detached project or Home is not one of them
+    e.presentation.isEnabled = serviceIfCreated<ProjectTabsService>()?.canSwitch() == true
   }
 
   override fun actionPerformed(e: AnActionEvent) {

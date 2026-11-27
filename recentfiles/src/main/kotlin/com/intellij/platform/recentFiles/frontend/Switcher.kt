@@ -1,4 +1,5 @@
 // Copyright 2000-2026 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package com.intellij.platform.recentFiles.frontend
 
 import com.intellij.codeInsight.hint.HintUtil
@@ -46,10 +47,6 @@ import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.platform.ide.CoreUiCoroutineScopeHolder
 import com.intellij.platform.project.projectId
-import com.intellij.platform.recentFiles.frontend.SwitcherLogger.NAVIGATED
-import com.intellij.platform.recentFiles.frontend.SwitcherLogger.NAVIGATED_INDEXES
-import com.intellij.platform.recentFiles.frontend.SwitcherLogger.NAVIGATED_ORIGINAL_INDEXES
-import com.intellij.platform.recentFiles.frontend.SwitcherLogger.SHOWN_TIME_ACTIVITY
 import com.intellij.platform.recentFiles.frontend.SwitcherSpeedSearch.Companion.installOn
 import com.intellij.platform.recentFiles.frontend.model.FrontendRecentFilesModel
 import com.intellij.platform.recentFiles.shared.FileChangeKind
@@ -74,7 +71,6 @@ import com.intellij.ui.components.panels.HorizontalLayout
 import com.intellij.ui.hover.ListHoverListener
 import com.intellij.ui.popup.PopupUpdateProcessorBase
 import com.intellij.ui.render.RenderingUtil
-import com.intellij.ui.speedSearch.FilteringListModel
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.StartupUiUtil
 import com.intellij.util.ui.SwingTextTrimmer
@@ -94,7 +90,6 @@ import org.jetbrains.annotations.ApiStatus
 import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.concurrency.await
-import java.awt.BorderLayout
 import java.awt.Component
 import java.awt.Dimension
 import java.awt.event.InputEvent
@@ -137,8 +132,7 @@ object Switcher : BaseSwitcherAction(null), ActionRemoteBehaviorSpecification.Fr
     private val remoteApi: FileSwitcherApi,
   ) : BorderLayoutPanel(), UiDataProvider, QuickSearchComponent, Disposable {
     val popup: JBPopup?
-    private val activity = SHOWN_TIME_ACTIVITY.started(project)
-    private var navigationData: SwitcherLogger.NavigationData? = null
+    // phantom-idea: the dialog's usage statistics (SwitcherLogger: time shown, indexes navigated to) are not recorded
     internal val toolWindows: JBList<SwitcherListItem>
     internal val files: JBList<SwitcherVirtualFile>
     private val listModel: CollectionListModel<SwitcherVirtualFile>
@@ -183,14 +177,8 @@ object Switcher : BaseSwitcherAction(null), ActionRemoteBehaviorSpecification.Fr
           ?.toTypedArray()
     }
 
-    private fun setupBottomPanel(): JComponent {
-      return RecentFilesAdvertisementProvider.EP_NAME.extensionList.firstNotNullOfOrNull { it.getBanner(project) }?.let { banner ->
-        JPanel(BorderLayout()).apply {
-          add(pathLabel, BorderLayout.NORTH)
-          add(banner, BorderLayout.SOUTH)
-        }
-      } ?: pathLabel
-    }
+    // phantom-idea: no advertisement banner under the path (the com.intellij.recentFiles.advertisementProvider extension point is gone)
+    private fun setupBottomPanel(): JComponent = pathLabel
 
     init {
       val serviceScope = RecentFilesCoroutineScopeProvider.getInstance(project).coroutineScope
@@ -262,7 +250,6 @@ object Switcher : BaseSwitcherAction(null), ActionRemoteBehaviorSpecification.Fr
           header.add(HorizontalLayout.RIGHT, label)
         }
       }
-
 
       // setup items in the quick access list on the left
       val windows = mutableListOf<SwitcherListItem>()
@@ -410,7 +397,6 @@ object Switcher : BaseSwitcherAction(null), ActionRemoteBehaviorSpecification.Fr
         }
       }
 
-
       files.selectionMode = if (pinned) ListSelectionModel.MULTIPLE_INTERVAL_SELECTION else ListSelectionModel.SINGLE_SELECTION
       files.accessibleContext.accessibleName = IdeBundle.message("recent.files.accessible.file.list")
       files.setEmptyText(IdeBundle.message("recent.files.file.list.empty.text"))
@@ -482,15 +468,6 @@ object Switcher : BaseSwitcherAction(null), ActionRemoteBehaviorSpecification.Fr
 
     override fun dispose() {
       project.putUserData(SWITCHER_KEY, null)
-      activity.finished {
-        buildList {
-          NAVIGATED.with(navigationData != null && navigationData!!.navigationIndexes.isNotEmpty())
-          if (navigationData != null) {
-            NAVIGATED_ORIGINAL_INDEXES.with(navigationData!!.navigationOriginalIndexes)
-            NAVIGATED_INDEXES.with(navigationData!!.navigationIndexes)
-          }
-        }
-      }
       uiUpdateScope.cancel(CancellationException("Switcher is disposed"))
       modelUpdateScope.cancel(CancellationException("Switcher is disposed"))
     }
@@ -631,8 +608,6 @@ object Switcher : BaseSwitcherAction(null), ActionRemoteBehaviorSpecification.Fr
       val values: List<*> = selectedList!!.selectedValuesList
       val searchQuery = speedSearch?.enteredPrefix
 
-      navigationData = createNavigationData(values)
-
       cancel()
 
       val files = values.filterIsInstance<SwitcherVirtualFile>()
@@ -651,17 +626,6 @@ object Switcher : BaseSwitcherAction(null), ActionRemoteBehaviorSpecification.Fr
       else {
         action?.perform()
       }
-    }
-
-    private fun createNavigationData(values: List<*>): SwitcherLogger.NavigationData? {
-      if (selectedList != files) return null
-
-      val filteringListModel = files.model as? FilteringListModel<SwitcherListItem> ?: return null
-      val collectionListModel = filteringListModel.originalModel as? CollectionListModel<SwitcherListItem> ?: return null
-      val originalIndexes = values.filterIsInstance<SwitcherVirtualFile>().map { collectionListModel.getElementIndex(it) }
-      val navigatedIndexes = values.filterIsInstance<SwitcherVirtualFile>().map { filteringListModel.getElementIndex(it) }
-
-      return SwitcherLogger.NavigationData(originalIndexes, navigatedIndexes)
     }
 
     private fun tryToOpenFileSearch(e: InputEvent?, fileName: String?) {

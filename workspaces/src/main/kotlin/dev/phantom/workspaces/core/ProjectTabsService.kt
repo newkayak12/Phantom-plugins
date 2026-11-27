@@ -41,7 +41,9 @@ import java.awt.event.HierarchyEvent
 import java.nio.file.Path
 import javax.swing.JFrame
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -81,7 +83,12 @@ class ProjectTabsService(internal val scope: CoroutineScope) : Disposable {
   // projects opened whose checkout is not read yet: they move next to their repository's tabs once it is
   private val placing = ArrayList<Project>()
   private var reading = false
-  private var readAgain = false
+  // projects whose checkout is read next, once the read under way ends
+  private val toRead = ArrayList<Project>()
+
+  // the open and recent projects with their checkouts, shared by the lists of every frame while they reload together
+  private var knownInput: Any? = null
+  private var known: Deferred<List<KnownProject>>? = null
 
   // the HEAD files of the open checkouts, read by the VFS listener off the EDT
   @Volatile
@@ -162,22 +169,26 @@ class ProjectTabsService(internal val scope: CoroutineScope) : Disposable {
   internal fun windowActivated(window: StackedWindow) {
     if (isEnabled) {
       refreshAfter { stack.activated(window) }
-      readCheckouts()
+      // a branch switched outside the IDE shows on the window activated; the other windows are read when they are
+      strips.firstOrNull { it.window === window }?.project?.let(::readCheckouts)
     }
   }
 
   /**
-   * Reads the git checkout of every open project on the IO dispatcher. Tabs are refreshed when one changed (another
-   * branch), and a project that just opened moves next to the other tabs of its repository.
+   * Reads the git checkout of [only], else of every open project, on the IO dispatcher. Tabs are refreshed when one
+   * changed (another branch), and a project that just opened moves next to the other tabs of its repository.
    */
   @RequiresEdt
-  private fun readCheckouts() {
-    if (reading) {
-      readAgain = true
-      return
-    }
+  private fun readCheckouts(only: Project? = null) {
+    for (project in only?.let(::listOf) ?: openOrder) if (toRead.none { it === project }) toRead += project
+    if (!reading) startReading()
+  }
+
+  @RequiresEdt
+  private fun startReading() {
     reading = true
-    val projects = openOrder.filter { !it.isDisposed }
+    val projects = toRead.filter { !it.isDisposed }
+    toRead.clear()
     scope.launch(Dispatchers.IO) {
       val read = projects.map { p -> p to p.basePath?.let { GitCheckouts.read(Path.of(it)) } }
       withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) { checkoutsRead(read) }
@@ -202,10 +213,7 @@ class ProjectTabsService(internal val scope: CoroutineScope) : Disposable {
       changed = true
     }
     heads = checkouts.values.mapTo(HashSet()) { FileUtil.toSystemIndependentName(it.head) }
-    if (readAgain) {
-      readAgain = false
-      readCheckouts()
-    }
+    if (toRead.isNotEmpty()) startReading()
     if (changed) refresh()
   }
 
@@ -275,6 +283,9 @@ class ProjectTabsService(internal val scope: CoroutineScope) : Disposable {
     val index = open.indexOfFirst { it === project }.coerceAtLeast(0)
     switchTo(open[Math.floorMod(index + offset, open.size)])
   }
+
+  /** Whether Next/Previous Project Window has another tab to go to. */
+  fun canSwitch(): Boolean = openTabs().size > 1
 
   private fun openTabs(): List<Project> =
     openOrder.filter { p -> !p.isDisposed && strips.any { it.project === p } && !isDetached(p) }
@@ -370,6 +381,27 @@ class ProjectTabsService(internal val scope: CoroutineScope) : Disposable {
     Disposer.register(parent) { listeners.remove(listener) }
   }
 
+  /**
+   * The open and recent projects with their checkouts ([ProjectsList.known]), read off the EDT. The list of every frame
+   * reloads on the same events, so calls with the same projects during one EDT event share one read; the next event reads
+   * again, as a branch may have changed by then.
+   */
+  @RequiresEdt
+  internal fun knownProjects(open: List<Triple<Any, String, String>>, recent: List<Pair<String, String>>): Deferred<List<KnownProject>> {
+    val input = open to recent
+    known?.takeIf { knownInput == input }?.let { return it }
+    val read = scope.async(Dispatchers.IO) { ProjectsList.known(open, recent) }
+    knownInput = input
+    known = read
+    ApplicationManager.getApplication().invokeLater({
+      if (known === read) {
+        known = null
+        knownInput = null
+      }
+    }, ModalityState.any())
+    return read
+  }
+
   /** The open projects in tab order, detached ones included; not Home, the welcome screen project. */
   internal fun openProjects(): List<Project> =
     openOrder.filter { !it.isDisposed && !WelcomeScreenProjectProvider.isWelcomeScreenProject(it) }
@@ -403,6 +435,7 @@ class ProjectTabsService(internal val scope: CoroutineScope) : Disposable {
       openOrder.removeIf { it === project }
       detached.removeIf { it === project }
       placing.removeIf { it === project }
+      toRead.removeIf { it === project }
       checkouts.remove(project)
     }
   }

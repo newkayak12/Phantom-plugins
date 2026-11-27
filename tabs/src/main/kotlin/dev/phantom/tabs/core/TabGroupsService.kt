@@ -29,7 +29,8 @@ import java.util.WeakHashMap
 @Service(Service.Level.PROJECT)
 @State(name = "PhantomTabGroups", storages = [Storage(StoragePathMacros.WORKSPACE_FILE)])
 class TabGroupsService(private val project: Project) : PersistentStateComponent<TabGroupsState>, Disposable {
-  private val controllers = WeakHashMap<EditorWindow, TabGroupPaneController>()
+  // each controller holds its window, so weak keys would never let a closed split go: closed panes are dropped on each use
+  private val controllers = HashMap<EditorWindow, TabGroupPaneController>()
   private var saved = TabGroupsState()
   private val unbound: MutableSet<EditorWindow> = Collections.newSetFromMap(WeakHashMap())
   private val restoredPanes: MutableSet<EditorWindow> = Collections.newSetFromMap(WeakHashMap())
@@ -49,8 +50,7 @@ class TabGroupsService(private val project: Project) : PersistentStateComponent<
 
   @RequiresEdt
   fun controllerFor(window: EditorWindow): TabGroupPaneController = controllers.getOrPut(window) {
-    // the controller holds its window, so the weak keys alone would never let a closed split go
-    controllers.keys.removeIf { it.isDisposed }
+    dropClosedPanes()
     val index = windows().indexOf(window)
     // a pane the editor manager does not list yet (still being restored) gets its saved groups once it does
     if (index < 0) unbound.add(window)
@@ -60,7 +60,8 @@ class TabGroupsService(private val project: Project) : PersistentStateComponent<
   /** A pane's groups changed; [changed] are the files whose group color or group title changed in it. */
   @RequiresEdt
   private fun onChanged(changed: Collection<String>) {
-    val live = controllers.filterKeys { !it.isDisposed }
+    dropClosedPanes()
+    val live = controllers
     val panes = windows()
     // no panes known yet (the editors are still being restored): keep what was saved rather than save no panes
     if (panes.isNotEmpty()) {
@@ -125,7 +126,7 @@ class TabGroupsService(private val project: Project) : PersistentStateComponent<
   /** Controllers of the open panes, made for panes that have none yet. */
   @RequiresEdt
   fun allControllers(): List<TabGroupPaneController> {
-    controllers.keys.removeIf { it.isDisposed }
+    dropClosedPanes()
     val windows = windows()
     for (window in unbound.toList()) {
       val index = windows.indexOf(window)
@@ -159,12 +160,20 @@ class TabGroupsService(private val project: Project) : PersistentStateComponent<
 
   /** Controllers made so far for open panes; panes without one have no groups. */
   @RequiresEdt
-  fun existingControllers(): List<TabGroupPaneController> = controllers.filterKeys { !it.isDisposed }.values.toList()
+  fun existingControllers(): List<TabGroupPaneController> {
+    dropClosedPanes()
+    return controllers.values.toList()
+  }
+
+  private fun dropClosedPanes() {
+    controllers.keys.removeIf { it.isDisposed }
+  }
 
   /** [oldUrl], a file or a folder, was renamed or moved to [newUrl]. */
   @RequiresEdt
   fun fileMoved(oldUrl: String, newUrl: String) {
-    for (controller in controllers.values) controller.model.rename(oldUrl, newUrl)
+    // the pane's colors and titles, and the snapshots the providers read, are keyed by URL: they follow on a refresh
+    for (controller in existingControllers()) if (controller.model.rename(oldUrl, newUrl)) controller.refresh()
   }
 
   /** The color of [file]'s group, when it is in the same group in every pane it is open in. */
@@ -182,7 +191,9 @@ class TabGroupsService(private val project: Project) : PersistentStateComponent<
     ?: FileEditorManagerEx.getInstanceEx(project).windows.toList()
 
   /** The parent of what the pane controllers install on their tab bars (the group lines); nothing else to free. */
-  override fun dispose() {}
+  override fun dispose() {
+    controllers.clear()
+  }
 
   override fun getState(): TabGroupsState = stateSnapshot ?: saved
 
