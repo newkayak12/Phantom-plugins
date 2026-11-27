@@ -2793,6 +2793,7 @@
     <ID>TooManyFunctions:GroovyInferenceSessionBuilder.kt:org.jetbrains.plugins.groovy.lang.resolve.processors.inference.GroovyInferenceSessionBuilder.kt</ID>
     <ID>TooManyFunctions:GroovyPostfixTemplateUtils.kt:GroovyPostfixTemplateUtils</ID>
     <ID>TooManyFunctions:GroovyRedundantKotlinStdLibInspectionVisitor.kt:GroovyRedundantKotlinStdLibInspectionVisitor : GroovyElementVisitor</ID>
+    <ID>TooManyFunctions:Helm.kt:HelmChart</ID>
     <ID>TooManyFunctions:HierarchicalTableResultPanel.kt:HierarchicalTableResultPanel : TableResultPanelDataGridWithNestedTables</ID>
     <ID>TooManyFunctions:HierarchyView.kt:HierarchyView : AbstractLightClass</ID>
     <ID>TooManyFunctions:HorizontalBarPresentation.kt:HorizontalBarPresentation : BasePresentation</ID>

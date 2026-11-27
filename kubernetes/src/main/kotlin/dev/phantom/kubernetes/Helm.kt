@@ -17,13 +17,21 @@ import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
+import com.intellij.psi.util.CachedValue
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.ProcessingContext
 import org.jetbrains.annotations.Nls
@@ -32,6 +40,7 @@ import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLKeyValue
 import org.jetbrains.yaml.psi.YAMLMapping
 import org.jetbrains.yaml.psi.YAMLScalar
+import org.jetbrains.yaml.psi.YAMLSequence
 
 private const val BUNDLE = "messages.PhantomKubernetesBundle"
 
@@ -80,23 +89,76 @@ internal class HelmChart(val root: VirtualFile) {
     return true
   }
 
-  /** `{{- define "name" -}}` blocks in the chart's templates, by name. */
-  fun defines(project: Project): Map<String, PsiElement> {
-    val result = LinkedHashMap<String, PsiElement>()
-    for (file in templateFiles()) {
-      val psi = PsiManager.getInstance(project).findFile(file) ?: continue
-      for (match in DEFINE.findAll(psi.text)) {
-        psi.findElementAt(match.groups[1]!!.range.first)?.let { result.putIfAbsent(match.groupValues[1], it) }
+  /** `{{- define "name" -}}` names in the chart's templates. */
+  fun defineNames(project: Project): Set<String> = index(project)?.defines?.keys.orEmpty()
+
+  /** Where `define "name"` is: the first of the chart's templates that defines it. */
+  fun define(project: Project, name: String): PsiElement? {
+    val location = index(project)?.defines?.get(name) ?: return null
+    return PsiManager.getInstance(project).findFile(location.file)?.let { it.findElementAt(location.offset) ?: it }
+  }
+
+  /** The `include`/`template` calls in the chart's templates, by template name. */
+  fun usages(project: Project): Map<String, List<Location>> = index(project)?.usages.orEmpty()
+
+  class Location(val file: VirtualFile, val offset: Int)
+
+  private class Index(val defines: Map<String, Location>, val usages: Map<String, List<Location>>, val hasDependencies: Boolean)
+
+  /**
+   * The chart's defines, include calls and dependencies, kept on Chart.yaml until any PSI changes or files are created,
+   * deleted or renamed. Templates are read as text (`.tpl` files are plain text), and every completion, inspection and
+   * gutter of every template otherwise reread all templates of the chart.
+   */
+  private fun index(project: Project): Index? {
+    val chartYaml = root.findChild("Chart.yaml")?.let { PsiManager.getInstance(project).findFile(it) } ?: return null
+    return CachedValuesManager.getCachedValue(chartYaml, INDEX) {
+      val defines = LinkedHashMap<String, Location>()
+      val usages = HashMap<String, MutableList<Location>>()
+      for (file in templateFiles()) {
+        val text = FileDocumentManager.getInstance().getCachedDocument(file)?.charsSequence
+                   ?: runCatching { VfsUtilCore.loadText(file) }.getOrNull() ?: continue
+        for (match in DEFINE.findAll(text)) defines.putIfAbsent(match.groupValues[1], Location(file, match.groups[1]!!.range.first))
+        for (match in INCLUDE.findAll(text)) usages.getOrPut(match.groupValues[1]) { ArrayList() } += Location(file, match.groups[1]!!.range.first)
       }
+      val hasDependencies = root.findChild("charts")?.children?.isNotEmpty() == true ||
+                            Regex("""(?m)^dependencies\s*:""").containsMatchIn(chartYaml.viewProvider.contents)
+      CachedValueProvider.Result.create(Index(defines, usages, hasDependencies),
+                                        PsiModificationTracker.MODIFICATION_COUNT, VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS)
+    }
+  }
+
+  /**
+   * The charts whose values a template of this chart reads under `.Values.<name>`: unpacked subcharts in `charts/` by
+   * folder name, and `dependencies` of Chart.yaml by alias or name. A dependency that is not unpacked maps to null.
+   */
+  fun subcharts(project: Project): Map<String, HelmChart?> {
+    val result = HashMap<String, HelmChart?>()
+    val chartYaml = root.findChild("Chart.yaml")?.let { PsiManager.getInstance(project).findFile(it) as? YAMLFile }
+    val dependencies = (chartYaml?.documents?.firstOrNull()?.topLevelValue as? YAMLMapping)?.getKeyValueByKey("dependencies")?.value as? YAMLSequence
+    for (item in dependencies?.items.orEmpty()) {
+      val mapping = item.value as? YAMLMapping ?: continue
+      val name = (mapping.getKeyValueByKey("name")?.value as? YAMLScalar)?.textValue ?: continue
+      val alias = (mapping.getKeyValueByKey("alias")?.value as? YAMLScalar)?.textValue
+      result[alias ?: name] = root.findChild("charts")?.findChild(name)?.takeIf { it.findChild("Chart.yaml") != null }?.let(::HelmChart)
+    }
+    for (dir in root.findChild("charts")?.children.orEmpty()) {
+      if (dir.isDirectory && dir.findChild("Chart.yaml") != null) result.putIfAbsent(dir.name, HelmChart(dir))
     }
     return result
+  }
+
+  /** The chart this one is unpacked in (`<parent>/charts/<this>`), whose values.yaml can set this chart's values. */
+  fun parent(): HelmChart? {
+    val charts = root.parent?.takeIf { it.name == "charts" } ?: return null
+    return charts.parent?.takeIf { it.findChild("Chart.yaml") != null }?.let(::HelmChart)
   }
 
   /** Files under `templates/`, subfolders included. */
   fun templateFiles(): List<VirtualFile> {
     val templates = root.findChild("templates") ?: return emptyList()
     val result = ArrayList<VirtualFile>()
-    com.intellij.openapi.vfs.VfsUtilCore.iterateChildrenRecursively(templates, null) { file ->
+    VfsUtilCore.iterateChildrenRecursively(templates, null) { file ->
       if (!file.isDirectory) result.add(file)
       true
     }
@@ -107,13 +169,10 @@ internal class HelmChart(val root: VirtualFile) {
    * Whether templates can come from outside this chart: subcharts in `charts/` (library charts hold shared `define`s)
    * or `dependencies` in Chart.yaml.
    */
-  fun hasDependencies(): Boolean {
-    if (root.findChild("charts")?.children?.isNotEmpty() == true) return true
-    val chartYaml = root.findChild("Chart.yaml") ?: return false
-    return runCatching { com.intellij.openapi.vfs.VfsUtilCore.loadText(chartYaml) }.getOrDefault("").contains(Regex("""(?m)^dependencies\s*:"""))
-  }
+  fun hasDependencies(project: Project): Boolean = index(project)?.hasDependencies ?: false
 
   companion object {
+    private val INDEX = Key.create<CachedValue<Index>>("phantom.helm.chart.index")
     val DEFINE = Regex("""\{\{-?\s*define\s+"([^"]+)"""")
     /** `include "name"` and `template "name"`; group 1 is the name. */
     val INCLUDE = Regex("""\b(?:include|template)\s+"([^"]+)"""")
@@ -158,10 +217,22 @@ internal object ValuesReferences {
 /** Template text that Helm evaluates: `{{ … }}` actions. References outside them are plain text. */
 internal object HelmActions {
   private val ACTION = Regex("""\{\{.*?}}""", RegexOption.DOT_MATCHES_ALL)
+  private val COMMENT = Regex("""^\{\{-?\s*/\*""")
 
-  fun ranges(text: CharSequence): List<IntRange> = ACTION.findAll(text).map { it.range }.toList()
+  /** The actions in text order; comments (`{{/* … */}}`) are left out, since Helm does not evaluate them. */
+  fun ranges(text: CharSequence): List<IntRange> = ACTION.findAll(text).filter { !COMMENT.containsMatchIn(it.value) }.map { it.range }.toList()
 
-  fun inAction(ranges: List<IntRange>, offset: Int): Boolean = ranges.any { offset in it }
+  /** Binary search: [ranges] are sorted and do not overlap, and a template can hold thousands of actions. */
+  fun inAction(ranges: List<IntRange>, offset: Int): Boolean {
+    val index = ranges.binarySearch { range ->
+      when {
+        offset < range.first -> 1
+        offset > range.last -> -1
+        else -> 0
+      }
+    }
+    return index >= 0
+  }
 }
 
 /** Completion in chart templates: `.Values` keys from values.yaml, `.Release`/`.Chart` fields, and `include` names. */
@@ -178,7 +249,7 @@ class HelmCompletionContributor : CompletionContributor() {
 
         INCLUDE.find(before)?.let { match ->
           val names = result.withPrefixMatcher(match.groupValues[1])
-          chart.defines(file.project).keys.forEach { names.addElement(LookupElementBuilder.create(it).withIcon(AllIcons.Nodes.Template)) }
+          chart.defineNames(file.project).forEach { names.addElement(LookupElementBuilder.create(it).withIcon(AllIcons.Nodes.Template)) }
           result.stopHere()
           return
         }
@@ -244,7 +315,7 @@ class HelmGotoDeclarationHandler : GotoDeclarationHandler {
     }
     for (match in INCLUDE_NAME.findAll(line)) {
       if (offset - lineStart !in match.groups[1]!!.range.first..match.groups[1]!!.range.last + 1) continue
-      return chart.defines(file.project)[match.groupValues[1]]?.let { arrayOf(it) }
+      return chart.define(file.project, match.groupValues[1])?.let { arrayOf(it) }
     }
     return null
   }
@@ -264,11 +335,26 @@ class HelmValuesInspection : LocalInspectionTool() {
     val values = chart.values(file.project) ?: return null
     val text = file.text
     val actions = HelmActions.ranges(text)
+    val subcharts = chart.subcharts(file.project)
+    val parent = chart.parent()
+    val parentValues = parent?.values(file.project)
+    // Helm merges a subchart's values.yaml under the parent's `.Values.<subchart>`, and the parent's values.yaml sets
+    // values of its subcharts under their name: either side makes a key defined.
+    fun defined(path: List<String>): Boolean {
+      if (chart.defines(values, path)) return true
+      if (path.first() in subcharts) {
+        val subchart = subcharts[path.first()] ?: return true
+        val subValues = subchart.values(file.project) ?: return true
+        if (subchart.defines(subValues, path.drop(1))) return true
+      }
+      val parentTop = parentValues?.documents?.firstOrNull()?.topLevelValue as? YAMLMapping ?: return false
+      return parentTop.getKeyValueByKey(chart.root.name) != null && parent?.defines(parentValues, listOf(chart.root.name) + path) == true
+    }
     val problems = ArrayList<ProblemDescriptor>()
     for (ref in ValuesReferences.all(text)) {
       if (!HelmActions.inAction(actions, ref.range.startOffset)) continue
-      if (ref.path.first() == "global" || chart.defines(values, ref.path)) continue
-      val missing = ref.path.indices.first { !chart.defines(values, ref.path.take(it + 1)) }
+      if (ref.path.first() == "global" || defined(ref.path)) continue
+      val missing = ref.path.indices.first { !defined(ref.path.take(it + 1)) }
       val range = TextRange(ref.segments[missing].second.startOffset, ref.range.endOffset)
       val start = file.findElementAt(range.startOffset) ?: continue
       val end = file.findElementAt(range.endOffset - 1) ?: continue

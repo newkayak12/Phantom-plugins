@@ -170,7 +170,7 @@
     {
       "id": "dev.phantom.kubernetes",
       "name": "Support for Kubernetes",
-      "version": "0.6.3",
+      "version": "0.6.4",
       "source": "kubernetes",
       "description": "Helm chart templates: .Values completion and navigation from values.yaml, .Release/.Chart fields, include/define navigation, and a warning for values that values.yaml does not define. 0.2.0: manifest checks for built-in kinds (removed API versions, unknown and missing keys with key completion, duplicate env vars, selector/template label mismatch); YAML in Markdown fences is skipped. Wave 7: unknown kinds, enum values, deprecated keys/resources, server-set fields, Chart.yaml. Wave 8: gutters Service <-> workloads, ConfigMap/Secret/ServiceAccount references, Ingress backends. Wave 10: kinds that are not stored (reviews, Binding, Eviction). Wave 11: deprecated labels/annotations, required list-item keys, unknown Helm templates, risky whitespace trimming, define to include markers.",
       "vendor": "Phantom",
@@ -181,7 +181,7 @@
         "com.intellij.modules.lang",
         "org.jetbrains.plugins.yaml"
       ],
-      "download": "kubernetes-0.6.3/kubernetes-0.6.3.zip",
+      "download": "kubernetes-0.6.4/kubernetes-0.6.4.zip",
       "detectFiles": [
         "Chart.yaml"
       ]
