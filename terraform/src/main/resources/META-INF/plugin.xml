@@ -23,6 +23,8 @@
     <annotator language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclAnnotator"/>
     <lang.commenter language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclCommenter"/>
     <lang.braceMatcher language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclBraceMatcher"/>
+    <lang.formatter language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclFormattingModelBuilder"/>
+    <langCodeStyleSettingsProvider implementation="dev.phantom.terraform.HclCodeStyleSettingsProvider"/>
     <lang.psiStructureViewFactory language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclStructureViewFactory"/>
     <lang.findUsagesProvider language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclFindUsagesProvider"/>
     <localInspection language="PhantomTerraform" enabledByDefault="true" level="WARNING" shortName="PhantomTerraformUnresolvedReference"
