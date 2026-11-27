@@ -137,6 +137,31 @@ class SpringProxyMarkersTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals(listOf("Guard.bound", "Guard.lock"), targetsOf(msg("aop.advised.gutter.tooltip", "@Around Guard.bound, @Around Guard.lock")))
   }
 
+  /** A named pointcut is resolved once per advice, not once for every bean method the gutter checks. */
+  fun testNamedPointcutsResolvedOncePerAdvice() {
+    myFixture.addClass("""
+      package app;
+      import org.aspectj.lang.annotation.*;
+      @Aspect @org.springframework.stereotype.Component public class Guard {
+        @Pointcut("execution(* app.svc..*.find*(..))") void finders() {}
+        @Before("finders()") public void log() {}
+      }
+    """.trimIndent())
+    myFixture.configureByText("Orders.java", """
+      package app.svc;
+      @org.springframework.stereotype.Service public class Orders {
+        public String findA() { return ""; }
+        public String findB() { return ""; }
+        public String findC() { return ""; }
+        public void save() {}
+      }
+    """.trimIndent())
+    val before = AopAdviceMatching.pointcutExpansions.get()
+    myFixture.doHighlighting()
+    assertEquals(3, tooltips().count { it == msg("aop.advised.gutter.tooltip", "@Before Guard.log") })
+    assertEquals(1, AopAdviceMatching.pointcutExpansions.get() - before)
+  }
+
   /** A body edit keeps the advice list and its compiled patterns; an edit of a pointcut updates it. */
   fun testAdvicesFollowDeclarationsOnly() {
     myFixture.configureByText("Guard.java", """

@@ -120,7 +120,18 @@ object AopAdviceMatching {
      * was most of its cost. Dropped with the advice list when declarations change.
      */
     internal val patterns = java.util.concurrent.ConcurrentHashMap<String, java.util.Optional<Regex>>()
+
+    /**
+     * Named pointcuts this advice refers to, by the method whose expression names them and the name, resolved to the
+     * pointcut method and its expression on first use: resolving and reading the annotation again for every bean
+     * method the gutter checks cost as much as the matching itself.
+     */
+    internal val pointcuts = java.util.concurrent.ConcurrentHashMap<Pair<PsiMethod, String>, java.util.Optional<Pair<PsiMethod, String>>>()
   }
+
+  /** How often a named pointcut was resolved, for tests that check each is resolved once per advice. */
+  @org.jetbrains.annotations.TestOnly
+  val pointcutExpansions: java.util.concurrent.atomic.AtomicInteger = java.util.concurrent.atomic.AtomicInteger()
 
   /** Advice methods in project sources, cached until declarations change ([SpringStructureTracker]). */
   fun advices(project: Project): List<Advice> = CachedValuesManager.getManager(project).getCachedValue(project) {
@@ -246,10 +257,7 @@ object AopAdviceMatching {
 
     private fun namedPointcut(reference: String): Match {
       if (depth >= 4) return Match.UNKNOWN
-      val ownerClass = owner.containingClass ?: return Match.UNKNOWN
-      val pointcut = AopPointcutInspection.resolvePointcut(ownerClass, reference) as? PsiMethod ?: return Match.UNKNOWN
-      val annotation = (pointcut.toUElement() as? UMethod)?.findAnnotation(AopModel.POINTCUT) ?: return Match.UNKNOWN
-      val expression = AopModel.expressionOf(annotation)?.evaluateString()?.takeIf { it.isNotBlank() } ?: return Match.UNKNOWN
+      val (pointcut, expression) = cachedPointcut(advice, owner, reference) ?: return Match.UNKNOWN
       return Evaluator(advice, pointcut, target, depth + 1).evaluate(expression)
     }
 
@@ -296,6 +304,18 @@ object AopAdviceMatching {
     a == Match.YES || b == Match.YES -> Match.YES
     a == Match.NO && b == Match.NO -> Match.NO
     else -> Match.UNKNOWN
+  }
+
+  private fun cachedPointcut(advice: Advice, owner: PsiMethod, reference: String): Pair<PsiMethod, String>? =
+    advice.pointcuts.getOrPut(owner to reference) { java.util.Optional.ofNullable(expandPointcut(owner, reference)) }.orElse(null)
+
+  private fun expandPointcut(owner: PsiMethod, reference: String): Pair<PsiMethod, String>? {
+    pointcutExpansions.incrementAndGet()
+    val ownerClass = owner.containingClass ?: return null
+    val pointcut = AopPointcutInspection.resolvePointcut(ownerClass, reference) as? PsiMethod ?: return null
+    val annotation = (pointcut.toUElement() as? UMethod)?.findAnnotation(AopModel.POINTCUT) ?: return null
+    val expression = AopModel.expressionOf(annotation)?.evaluateString()?.takeIf { it.isNotBlank() } ?: return null
+    return pointcut to expression
   }
 
   private fun cachedGlob(advice: Advice, pattern: String): Regex =
