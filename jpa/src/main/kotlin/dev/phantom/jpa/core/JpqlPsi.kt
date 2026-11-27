@@ -7,18 +7,24 @@ import com.intellij.extapi.psi.ASTWrapperPsiElement
 import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.*
+import com.intellij.psi.impl.source.resolve.ResolveCache
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiTreeUtil
 
 open class JpqlElement(node: ASTNode) : ASTWrapperPsiElement(node)
 
 /** `FROM ReservationEntity r`: the entity name, a reference to the entity class. */
 class JpqlEntityRef(node: ASTNode) : JpqlElement(node) {
-  override fun getReference(): PsiReference = EntityReference(this)
+  // One reference per element: ResolveCache keys its results by the reference instance.
+  private val entityReference by lazy(LazyThreadSafetyMode.PUBLICATION) { EntityReference(this) }
+
+  override fun getReference(): PsiReference = entityReference
 
   fun resolveEntity(): PsiClass? = reference.resolve() as? PsiClass
 
   private class EntityReference(element: JpqlEntityRef) : PsiReferenceBase<JpqlEntityRef>(element, TextRange(0, element.textLength)) {
-    override fun resolve(): PsiElement? = JpaModel.findEntity(element.text, element)
+    override fun resolve(): PsiElement? = ResolveCache.getInstance(element.project).resolveWithCaching(this, RESOLVER, false, false)
 
     override fun getVariants(): Array<Any> = JpaModel.entities(element).mapNotNull { cls ->
       val name = JpaModel.entityName(cls) ?: return@mapNotNull null
@@ -26,6 +32,10 @@ class JpqlEntityRef(node: ASTNode) : JpqlElement(node) {
     }.toTypedArray()
 
     override fun handleElementRename(newElementName: String): PsiElement = element // v0.1: rename is not propagated
+
+    companion object {
+      val RESOLVER = ResolveCache.AbstractResolver<EntityReference, PsiElement> { ref, _ -> JpaModel.findEntity(ref.element.text, ref.element) }
+    }
   }
 }
 
@@ -86,13 +96,15 @@ class JpqlPathSegment(node: ASTNode) : JpqlElement(node) {
     return JpaModel.attribute(owner, text)
   }
 
-  private fun findAlias(name: String): JpqlAliasDecl? =
-    PsiTreeUtil.findChildrenOfType(containingFile, JpqlAliasDecl::class.java).firstOrNull { it.name.equals(name, ignoreCase = true) }
+  private fun findAlias(name: String): JpqlAliasDecl? = aliases(containingFile)[name.lowercase()]
 
-  override fun getReference(): PsiReference = SegmentReference(this)
+  // One reference per element: ResolveCache keys its results by the reference instance.
+  private val segmentReference by lazy(LazyThreadSafetyMode.PUBLICATION) { SegmentReference(this) }
+
+  override fun getReference(): PsiReference = segmentReference
 
   private class SegmentReference(element: JpqlPathSegment) : PsiReferenceBase<JpqlPathSegment>(element, TextRange(0, element.textLength), true) {
-    override fun resolve(): PsiElement? = element.resolveTarget()
+    override fun resolve(): PsiElement? = ResolveCache.getInstance(element.project).resolveWithCaching(this, RESOLVER, false, false)
 
     override fun getVariants(): Array<Any> {
       if (element.index == 0) {
@@ -107,6 +119,19 @@ class JpqlPathSegment(node: ASTNode) : JpqlElement(node) {
     }
 
     override fun handleElementRename(newElementName: String): PsiElement = element
+
+    companion object {
+      val RESOLVER = ResolveCache.AbstractResolver<SegmentReference, PsiElement> { ref, _ -> ref.element.resolveTarget() }
+    }
+  }
+
+  private companion object {
+    /** Alias declarations of a query by lower-case name (JPQL aliases ignore case); the first declaration wins. */
+    fun aliases(file: PsiFile): Map<String, JpqlAliasDecl> = CachedValuesManager.getCachedValue(file) {
+      val map = HashMap<String, JpqlAliasDecl>()
+      for (alias in PsiTreeUtil.findChildrenOfType(file, JpqlAliasDecl::class.java)) map.putIfAbsent(alias.name.lowercase(), alias)
+      CachedValueProvider.Result.create(map as Map<String, JpqlAliasDecl>, file)
+    }
   }
 }
 

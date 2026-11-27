@@ -62,6 +62,18 @@ internal object JdbcAggregates {
     CachedValueProvider.Result.create(result, *JpaCacheDeps.code(project))
   }
 
+  /**
+   * Entity class → the aggregate roots that contain it directly, built once from all roots: the inspection asks for
+   * every class it visits, which used to recompute the children of every root each time.
+   */
+  fun owners(project: Project): Map<PsiClass, List<PsiClass>> = CachedValuesManager.getManager(project).getCachedValue(project) {
+    val result = LinkedHashMap<PsiClass, MutableList<PsiClass>>()
+    for (root in roots(project)) {
+      for (child in children(root).values.distinct()) result.getOrPut(child) { ArrayList() }.add(root)
+    }
+    CachedValueProvider.Result.create(result as Map<PsiClass, List<PsiClass>>, *JpaCacheDeps.code(project))
+  }
+
   /** Entity classes a root contains directly: property types and element types, without embedded values and references by id. */
   fun children(root: PsiClass): Map<PsiField, PsiClass> {
     val result = LinkedHashMap<PsiField, PsiClass>()
@@ -123,7 +135,7 @@ class JdbcAggregateBoundaryInspection : AbstractBaseUastLocalInspectionTool() {
           }
           return true
         }
-        val owners = roots.filter { root -> JdbcAggregates.children(root).values.any { it == psiClass } }
+        val owners = JdbcAggregates.owners(holder.project)[psiClass].orEmpty()
         if (owners.size < 2) return true
         val anchor = node.uastAnchor?.sourcePsi ?: return true
         holder.registerProblem(anchor, PhantomJpaBundle.message("jdbc.several.aggregates", psiClass.name ?: "", owners.mapNotNull { it.name }.sorted().joinToString()))
