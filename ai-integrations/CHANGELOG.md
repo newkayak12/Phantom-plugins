@@ -4,7 +4,7 @@
 
 ## 0.7.0 (2026-11-27)
 
-- Phantom Local Shared Index가 필요하다. 에이전트의 `find_symbol`, `find_usages`, `file_outline`, `get_file_problems`는 이름과 인자가 그대로이고 Local Shared Index가 답한다. 에이전트가 `search_text`로 IDE의 Find in Files와 인덱스를 써서 텍스트를 찾고, 일치한 줄과 앞뒤 몇 줄을 받는다. (#?)
+- Phantom Local Shared Index가 필요하다. 에이전트의 `find_symbol`, `find_usages`, `file_outline`, `get_file_problems`는 이름과 인자가 그대로이고 Local Shared Index가 답한다. 에이전트가 `search_text`로 IDE의 Find in Files와 인덱스를 써서 텍스트를 찾고, 일치한 줄과 앞뒤 몇 줄을 받는다. (#'162')
 
 ## 0.6.0 (2026-11-24)
 
