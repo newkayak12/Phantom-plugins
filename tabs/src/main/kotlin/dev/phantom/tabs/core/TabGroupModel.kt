@@ -118,17 +118,19 @@ class TabGroupModel {
     groupOf(moved)?.members?.sortBy { after.indexOf(it) }
   }
 
-  /** [oldUrl] (a file, or a folder and everything in it) is now at [newUrl]. */
-  fun rename(oldUrl: String, newUrl: String) {
+  /** [oldUrl] (a file, or a folder and everything in it) is now at [newUrl]. Returns whether a member moved. */
+  fun rename(oldUrl: String, newUrl: String): Boolean {
+    var renamed = false
     for (group in myGroups) {
       group.members.replaceAll { url ->
         when {
-          url == oldUrl -> newUrl
-          url.startsWith("$oldUrl/") -> newUrl + url.substring(oldUrl.length)
+          url == oldUrl -> newUrl.also { renamed = true }
+          url.startsWith("$oldUrl/") -> (newUrl + url.substring(oldUrl.length)).also { renamed = true }
           else -> url
         }
       }
     }
+    return renamed
   }
 }
 

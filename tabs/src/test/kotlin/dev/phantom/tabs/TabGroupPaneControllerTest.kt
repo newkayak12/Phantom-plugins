@@ -624,6 +624,23 @@ class TabGroupPaneControllerTest : FileEditorManagerTestCase() {
     assertSame(group, controller.model.groupOf(b.url))
   }
 
+  fun testRenamedFileKeepsGroupColorAndTitle() {
+    val group = controller.createGroup(listOf(a, b))
+    group.name = "Work"
+    controller.changed(group)
+    WriteAction.runAndWait<Throwable> {
+      a.rename(this, "a2.txt")
+      b.rename(this, "b2.txt")
+    }
+    PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+    // no editor event follows a rename: the service has to bring the colors and titles to the new URLs itself
+    val service = TabGroupsService.getInstance(project)
+    assertEquals(group.color, controller.colorOf(b.url))
+    assertEquals(group.color, service.groupColorOf(b))
+    assertEquals("Work", service.groupTitleOf(a)?.name)
+    assertEquals("Work \u00B7 a2.txt", title(a))
+  }
+
   fun testPreviewTabCannotBeGrouped() {
     UISettings.getInstance().openInPreviewTabIfPossible = true
     val d = newFile("d.txt")
