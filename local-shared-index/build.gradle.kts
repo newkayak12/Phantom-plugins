@@ -4,7 +4,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.1.2"
+version = "0.2.0"
 
 // Whether the IDE the plugin builds against still bundles the Kotlin plugin (IntelliJ Community from the repository does)
 val kotlinBundled = providers.gradleProperty("platformFromRepository").isPresent ||
@@ -23,6 +23,8 @@ intellijPlatform {
 
 dependencies {
   intellijPlatform {
+    // CodeSmellDetector, the file analysis of the agent index queries
+    bundledModule("intellij.platform.vcs.impl")
     testBundledPlugin("com.intellij.java")
     if (kotlinBundled) testBundledPlugin("org.jetbrains.kotlin")
     testFramework(TestFrameworkType.Plugin.Java, providers.gradleProperty("platformTestBuild"))

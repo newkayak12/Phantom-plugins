@@ -27,6 +27,8 @@
   <depends>com.intellij.modules.platform</depends>
   <depends>com.intellij.modules.lang</depends>
   <depends>dev.phantom.workspaces</depends>
+  <!-- the IDE index queries agents ask through MCP (dev.phantom.localsharedindex.agent) -->
+  <depends>dev.phantom.local-shared-index</depends>
   <depends>org.jetbrains.plugins.terminal</depends>
   <depends>Git4Idea</depends>
   <depends>org.jetbrains.plugins.github</depends>
@@ -44,6 +46,7 @@
     <terminalBackend implementation="dev.phantom.ai.terminal.IdeTerminalBackend"/>
     <terminalBackend implementation="dev.phantom.ai.terminal.ITermBackend"/>
     <terminalBackend implementation="dev.phantom.ai.terminal.OsTerminalBackend"/>
+    <agentTools implementation="dev.phantom.ai.mcp.IndexAgentTools"/>
   </extensions>
 
   <!-- with Phantom Database Console: the agents' read-only database tools -->

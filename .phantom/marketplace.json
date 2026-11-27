@@ -371,9 +371,9 @@
     {
       "id": "dev.phantom.ai",
       "name": "Phantom AI Integration",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "source": "ai-integrations",
-      "description": "Claude Code and Codex next to your projects (0.3.16): a tree of the current project's worktrees and agent sessions beside the agent terminals in one tool window, a board editor tab, an agent dashboard, usage in the status bar and opt-in remote control from another device's browser. Select code in the editor and type an AI command to leave an AI memo (kept in memory only, following its code as lines move), then send the checked memos to a session as one prompt, queued while that session is busy. Agents open files at a line in the editor and read what you are looking at through Phantom's own MCP server, with no setup. A small public API, dev.phantom.ai.api, lets other plugins read sessions (with the subagents each started, since 0.3.1, and what each is doing right now, since 0.3.8) and worktrees and focus or start a session. Agents keep running in tmux when their project window closes and reattach when it reopens. Needs Phantom Workspaces. 0.3.22: agents read one declaration (read_symbol), replace one or insert next to it (replace_symbol, insert_code) as undoable IDE edits, and read the end of a Run console filtered by a pattern (get_run_output). 0.3.23: with Phantom Database Console, agents list its data sources, tables and columns and run read-only queries (list_databases, list_tables, describe_table, query_database); passwords stay in Phantom. 0.3.24: agent teams, detached-session reattach, the hook server and Remote Control wait until they are needed. 0.3.25: agents draft changes with draft_sql, which writes the SQL into the data source's console in the editor and never runs it; reads stay read-only and rolled back.",
+      "description": "Claude Code and Codex next to your projects (0.3.16): a tree of the current project's worktrees and agent sessions beside the agent terminals in one tool window, a board editor tab, an agent dashboard, usage in the status bar and opt-in remote control from another device's browser. Select code in the editor and type an AI command to leave an AI memo (kept in memory only, following its code as lines move), then send the checked memos to a session as one prompt, queued while that session is busy. Agents open files at a line in the editor and read what you are looking at through Phantom's own MCP server, with no setup. A small public API, dev.phantom.ai.api, lets other plugins read sessions (with the subagents each started, since 0.3.1, and what each is doing right now, since 0.3.8) and worktrees and focus or start a session. Agents keep running in tmux when their project window closes and reattach when it reopens. Needs Phantom Workspaces. 0.3.22: agents read one declaration (read_symbol), replace one or insert next to it (replace_symbol, insert_code) as undoable IDE edits, and read the end of a Run console filtered by a pattern (get_run_output). 0.3.23: with Phantom Database Console, agents list its data sources, tables and columns and run read-only queries (list_databases, list_tables, describe_table, query_database); passwords stay in Phantom. 0.3.24: agent teams, detached-session reattach, the hook server and Remote Control wait until they are needed. 0.3.25: agents draft changes with draft_sql, which writes the SQL into the data source's console in the editor and never runs it; reads stay read-only and rolled back. 0.7.0: needs Phantom Local Shared Index, which answers find_symbol, find_usages, file_outline and get_file_problems and adds search_text (text through Find in Files, with the lines around each match).",
       "vendor": "Phantom",
       "category": "Tools",
       "since": "262",
@@ -381,11 +381,12 @@
       "depends": [
         "com.intellij.modules.platform",
         "dev.phantom.workspaces",
+        "dev.phantom.local-shared-index",
         "org.jetbrains.plugins.terminal",
         "Git4Idea",
         "org.jetbrains.plugins.github"
       ],
-      "download": "ai-integrations-0.6.0/ai-integrations-0.6.0.zip",
+      "download": "ai-integrations-0.7.0/ai-integrations-0.7.0.zip",
       "detect": []
     },
     {
@@ -1168,9 +1169,9 @@
     {
       "id": "dev.phantom.local-shared-index",
       "name": "Phantom Local Shared Index",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "source": "local-shared-index",
-      "description": "Reuses index data between checkouts of the same project on this machine, so a new worktree or clone does not index files that another checkout already indexed. Nothing leaves the machine. Turn it off by disabling the plugin.",
+      "description": "Reuses index data between checkouts of the same project on this machine, so a new worktree or clone does not index files that another checkout already indexed. Nothing leaves the machine. Turn it off by disabling the plugin. 0.2.0: answers the IDE index tools that Phantom AI Integration gives its agents over MCP (find_symbol, find_usages, search_text, file_outline, get_file_problems).",
       "vendor": "Phantom",
       "category": "Tools",
       "since": "262.261116",
@@ -1178,7 +1179,7 @@
       "depends": [
         "com.intellij.modules.platform"
       ],
-      "download": "local-shared-index-0.1.2/local-shared-index-0.1.2.zip",
+      "download": "local-shared-index-0.2.0/local-shared-index-0.2.0.zip",
       "detect": []
     },
     {

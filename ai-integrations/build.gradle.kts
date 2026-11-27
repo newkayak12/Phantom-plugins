@@ -4,13 +4,15 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.6.0"
+version = "0.7.0"
 
 dependencies {
   implementation("io.nayuki:qrcodegen:1.8.0")
   intellijPlatform {
     // Workspaces is a plugin dependency (declared in plugin.xml), not bundled: ai-integrations.zip carries none of its classes
     localPlugin(project(":workspaces"))
+    // Local Shared Index answers the IDE index queries of the MCP tools; also a plugin dependency, not bundled
+    localPlugin(project(":local-shared-index"))
     bundledPlugin("org.jetbrains.plugins.terminal")
     bundledPlugin("Git4Idea")
     bundledPlugin("org.jetbrains.plugins.github")

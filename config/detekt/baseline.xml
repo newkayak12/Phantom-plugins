@@ -258,7 +258,7 @@
     <ID>CyclomaticComplexMethod:CleanupBranchesDialog.kt:CleanupBranchesDialog$private fun populateLastCommitDates</ID>
     <ID>CyclomaticComplexMethod:ClosureInferenceUtil.kt:fun analyzeClosureUsages</ID>
     <ID>CyclomaticComplexMethod:CodeDetector.kt:CodeDetector$private fun looksLikeCodeToken: Boolean</ID>
-    <ID>CyclomaticComplexMethod:CodeIndex.kt:CodeQueries$private fun signature: String?</ID>
+    <ID>CyclomaticComplexMethod:CodeQueries.kt:CodeQueries$private fun signature: String?</ID>
     <ID>CyclomaticComplexMethod:CodexUsageClient.kt:CodexUsageClient.Companion$private fun classify: CodexUsage?</ID>
     <ID>CyclomaticComplexMethod:CodexUsageClient.kt:fun codexRequest: JsonElement?</ID>
     <ID>CyclomaticComplexMethod:CompatibilityInfoGenerator.kt:fun readAppVersion: String</ID>
@@ -408,6 +408,7 @@
     <ID>CyclomaticComplexMethod:IdeaDecompiler.kt:IdeaDecompiler$private fun decompile: CharSequence</ID>
     <ID>CyclomaticComplexMethod:IdeaDecompilerTest.kt:IdeaDecompilerTest.MyFileVisitor$override fun visitFile: Boolean</ID>
     <ID>CyclomaticComplexMethod:ImagePasteProvider.kt:ImagePasteProvider$final override fun performPaste</ID>
+    <ID>CyclomaticComplexMethod:IndexWorkspaces.kt:IndexWorkspaces$fun searchText: String</ID>
     <ID>CyclomaticComplexMethod:InferMethodParametersTypesIntention.kt:InferMethodParametersTypesIntention$private fun substituteMethodSignature</ID>
     <ID>CyclomaticComplexMethod:InferenceGraphUtil.kt:private fun completeInstantiation: PsiType</ID>
     <ID>CyclomaticComplexMethod:InferenceProcessUtil.kt:fun PsiSubstitutor.removeForeignTypeParameters: PsiSubstitutor</ID>
@@ -2164,6 +2165,7 @@
     <ID>SwallowedException:AndroidGradleDeclarativeBuildModelImpl.kt:AndroidGradleDeclarativeBuildModelImpl$e: IllegalStateException</ID>
     <ID>SwallowedException:BlockTerminalSearchSession.kt:BlockTerminalSearchSession$e: PatternSyntaxException</ID>
     <ID>SwallowedException:BrowserLogin.kt:BrowserLogin$e: IOException</ID>
+    <ID>SwallowedException:CodeIndex.kt:IdeCodeIndex$e: IndexToolError</ID>
     <ID>SwallowedException:CodeIndex.kt:IdeCodeIndex$e: TimeoutException</ID>
     <ID>SwallowedException:CodexProbeLaunchTest.kt:CodexProbeLaunchTest$e: IOException</ID>
     <ID>SwallowedException:CodexUsageClient.kt:e: IOException</ID>
@@ -2223,6 +2225,8 @@
     <ID>SwallowedException:IdeEditorBridge.kt:IdeEditorBridge$e: TimeoutException</ID>
     <ID>SwallowedException:IdeaDecompiler.kt:IdeaDecompiler$e: CancellationManager.CanceledException</ID>
     <ID>SwallowedException:ImageUtils.kt:ImageUtils$exception: IncorrectOperationException</ID>
+    <ID>SwallowedException:IndexAgentTools.kt:IndexAgentTools$e: IndexToolError</ID>
+    <ID>SwallowedException:IndexWorkspaces.kt:IndexWorkspaces$e: TimeoutException</ID>
     <ID>SwallowedException:JsInterpreter.kt:Builtins$e: Exception</ID>
     <ID>SwallowedException:JsonSchemaCacheManager.kt:JsonSchemaCacheManager$e: ProcessCanceledException</ID>
     <ID>SwallowedException:MarkdownCreateLinkAction.kt:MarkdownCreateLinkAction$e: InvalidPathException</ID>
@@ -2270,7 +2274,6 @@
     <ID>ThrowsCount:AnalyzeDependenciesCommand.kt:AnalyzeDependenciesCommand$override suspend fun doExecute</ID>
     <ID>ThrowsCount:BrowserLogin.kt:BrowserLogin$fun await</ID>
     <ID>ThrowsCount:BytecodeToolWindowService.kt:BytecodeToolWindowService$fun updateTabNames</ID>
-    <ID>ThrowsCount:CodeIndex.kt:IdeCodeIndex$override fun fileProblems: String</ID>
     <ID>ThrowsCount:CodeIndex.kt:IdeCodeIndex$private fun edit: String</ID>
     <ID>ThrowsCount:CodeIndex.kt:IdeCodeIndex$private fun renameOnEdt: String</ID>
     <ID>ThrowsCount:CompatibilityInfoGenerator.kt:fun readAppVersion: String</ID>
@@ -2305,6 +2308,8 @@
     <ID>ThrowsCount:IdeEditorBridge.kt:IdeEditorBridge$override fun open: String</ID>
     <ID>ThrowsCount:IdeaDecompiler.kt:IdeaDecompiler$private fun decompile: CharSequence</ID>
     <ID>ThrowsCount:IdeaLogger.kt:IdeaLogger$override fun writeMessage</ID>
+    <ID>ThrowsCount:IndexWorkspaces.kt:IndexWorkspaces$fun problems: String</ID>
+    <ID>ThrowsCount:IndexWorkspaces.kt:IndexWorkspaces$fun searchText: String</ID>
     <ID>ThrowsCount:JsInterpreter.kt:JsInterpreter$private fun exec</ID>
     <ID>ThrowsCount:JsInterpreter.kt:JsInterpreter$private fun tick</ID>
     <ID>ThrowsCount:LocalGradleExecutionAware.kt:LocalGradleExecutionAware$private fun checkGradleJvmInfo</ID>
@@ -2620,8 +2625,8 @@
     <ID>TooManyFunctions:CleanupBranchesDialog.kt:CleanupBranchesDialog : DialogWrapper</ID>
     <ID>TooManyFunctions:CloneDialogLoginPanel.kt:CloneDialogLoginPanel : JBPanelDisposable</ID>
     <ID>TooManyFunctions:ClosureInferenceUtil.kt:org.jetbrains.plugins.groovy.intentions.style.inference.driver.closure.ClosureInferenceUtil.kt</ID>
-    <ID>TooManyFunctions:CodeIndex.kt:CodeQueries</ID>
     <ID>TooManyFunctions:CodeIndex.kt:IdeCodeIndex : CodeIndex</ID>
+    <ID>TooManyFunctions:CodeQueries.kt:CodeQueries</ID>
     <ID>TooManyFunctions:ComboBoxWithAutoCompletion.kt:ComboBoxWithAutoCompletion&lt;E : Any> : ComboBox</ID>
     <ID>TooManyFunctions:CommandRunnerExtension.kt:CommandRunnerExtension : MarkdownBrowserPreviewExtension</ID>
     <ID>TooManyFunctions:CpuWidget.kt:CpuComponent : JComponentListener</ID>
