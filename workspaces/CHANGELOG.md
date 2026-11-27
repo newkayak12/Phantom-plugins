@@ -4,7 +4,7 @@
 
 ## 0.7.8 (2026-11-27)
 
-- Projects and Files에서 연결된 worktree를 오른쪽 클릭해 Rename…으로 이름을 바꾸면 폴더 이름도 같이 바뀐다(`git worktree move`). 최근 프로젝트는 새 경로를 따라가고, 프로젝트로 열린 worktree는 먼저 닫으라는 메시지와 함께 거절한다. (#PR)
+- Projects and Files에서 연결된 worktree를 오른쪽 클릭해 Rename…으로 이름을 바꾸면 폴더 이름도 같이 바뀐다(`git worktree move`). 최근 프로젝트는 새 경로를 따라가고, 프로젝트로 열린 worktree는 먼저 닫으라는 메시지와 함께 거절한다. (#179)
 
 ## 0.7.7 (2026-11-27)
 
