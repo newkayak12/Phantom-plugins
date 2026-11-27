@@ -34,6 +34,7 @@ Public repositories need no token.
 | Support for Spring | [spring](./spring/README.md) · [한국어](./spring/KOR.md) | Bean injection navigation, autowiring inspection, Spring MVC endpoints, Security paths and expressions, Kafka/RabbitMQ/JMS navigation (Java and Kotlin) |
 | Support for Spring Boot | [spring-boot](./spring-boot/README.md) · [한국어](./spring-boot/KOR.md) | New Spring Boot projects with Spring Initializr; `application.yml` / `.properties` key and value completion and docs |
 | Phantom for Spring Security | [spring-security](./spring-security/README.md) · [한국어](./spring-security/KOR.md) | `SecurityFilterChain` order, matchers and rules in the gutter; matcher orders Spring Security rejects at startup |
+| Phantom for Spring Cloud | [spring-cloud](./spring-cloud/README.md) · [한국어](./spring-cloud/KOR.md) | `@FeignClient` methods and the controller methods they call, both ways |
 | Support for JPA | [jpa](./jpa/README.md) · [한국어](./jpa/KOR.md) | JPQL in `@Query`, derived query and `@Modifying` checks, entity mapping checks, repository/entity navigation |
 | Support for MyBatis | [mybatis](./mybatis/README.md) · [한국어](./mybatis/KOR.md) | Mapper interface ↔ XML navigation, statement / resultMap / property references and errors, missing statements with a fix, `#{}` completion, SQL in mapper XML |
 | Support for Reactive Streams | [reactive-streams](./reactive-streams/README.md) · [한국어](./reactive-streams/KOR.md) | Unsubscribed `Mono`/`Flux` and blocking calls inside operators (Reactor, RxJava) |

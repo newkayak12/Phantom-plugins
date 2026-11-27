@@ -626,6 +626,26 @@
       ]
     },
     {
+      "id": "dev.phantom.spring.cloud",
+      "name": "Phantom for Spring Cloud",
+      "version": "0.1.0",
+      "source": "spring-cloud",
+      "description": "Spring Cloud support for Java, offline: a gutter icon on a @FeignClient method goes to the controller method of the same project serving its request (same HTTP method and path, with the client's path attribute and the controller's @RequestMapping), and one on the controller method goes back to the Feign clients calling it.",
+      "vendor": "Phantom",
+      "category": "JVM Frameworks",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang",
+        "com.intellij.java"
+      ],
+      "download": "spring-cloud-0.1.0/spring-cloud-0.1.0.zip",
+      "detect": [
+        "org.springframework.cloud:spring-cloud-starter-openfeign",
+        "org.springframework.cloud:spring-cloud-openfeign-core"
+      ]
+    },
+    {
       "id": "dev.phantom.testcontainers",
       "name": "Support for Testcontainers",
       "version": "0.1.4",
