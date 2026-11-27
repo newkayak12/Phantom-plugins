@@ -3,6 +3,7 @@ package dev.phantom.http.core.exec
 
 import dev.phantom.http.core.script.*
 import kotlinx.serialization.json.Json
+import java.util.concurrent.CancellationException
 
 /** One `> {% ... %}` block or `> handler.js` file, read out of PSI. [line] is where the script starts in its file. */
 data class HttpHandlerSource(val script: String, val line: Int, val origin: String)
@@ -28,12 +29,13 @@ object HttpHandlerRunner {
     request: HttpRequestModel,
     response: HttpResponseModel,
     globals: MutableMap<String, String>,
+    cancelled: () -> Boolean = { false },
     variable: (String) -> String?,
   ): HttpHandlerReport {
     val tests = ArrayList<HttpTestResult>()
     val logs = ArrayList<String>()
     val errors = ArrayList<String>()
-    val interp = JsInterpreter()
+    val interp = JsInterpreter(cancelled = cancelled)
 
     val log = JsFunction { _, args -> logs.add(args.joinToString(" ") { JsValues.display(it) }); Undefined }
     val client = JsObject().apply {
@@ -80,26 +82,39 @@ object HttpHandlerRunner {
     interp.globals["response"] = responseObject(response)
     interp.globals["request"] = requestObject(request, variable)
 
-    for (handler in handlers) {
-      try {
-        interp.run(handler.script, handler.line)
-      }
-      catch (_: ExitSignal) {
-      }
-      catch (e: AssertionFailed) {
-        errors.add("${handler.origin}, line ${interp.line}: ${e.message}")
-      }
-      catch (e: JsThrow) {
-        errors.add("${handler.origin}, line ${e.line}: ${e.message}")
-      }
-      catch (e: JsSyntaxError) {
-        errors.add("${handler.origin}: syntax error: ${e.message}")
-      }
-      catch (e: JsLimitExceeded) {
-        errors.add("${handler.origin}: ${e.message}")
-      }
-    }
+    for (handler in handlers) runHandler(interp, handler, errors)
     return HttpHandlerReport(tests, logs, errors)
+  }
+
+  private fun runHandler(interp: JsInterpreter, handler: HttpHandlerSource, errors: MutableList<String>) {
+    try {
+      interp.run(handler.script, handler.line)
+    }
+    catch (_: ExitSignal) {
+    }
+    catch (e: AssertionFailed) {
+      errors.add("${handler.origin}, line ${interp.line}: ${e.message}")
+    }
+    catch (e: JsThrow) {
+      errors.add("${handler.origin}, line ${e.line}: ${e.message}")
+    }
+    catch (e: JsSyntaxError) {
+      errors.add("${handler.origin}: syntax error: ${e.message}")
+    }
+    catch (e: JsLimitExceeded) {
+      errors.add("${handler.origin}: ${e.message}")
+    }
+    catch (e: CancellationException) {
+      throw e
+    }
+    // An interpreter gap (a built-in that throws a JVM exception) is reported like a script error, so the response
+    // is still shown instead of the panel staying at "Sending…".
+    catch (e: RuntimeException) {
+      errors.add("${handler.origin}, line ${interp.line}: ${e}")
+    }
+    catch (e: StackOverflowError) {
+      errors.add("${handler.origin}, line ${interp.line}: ${e}")
+    }
   }
 
   private fun responseObject(response: HttpResponseModel): JsObject {

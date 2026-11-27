@@ -38,6 +38,7 @@ class PreparedBody(val text: String, val fileType: FileType, val extension: Stri
 
 object HttpResponseFormatter {
   private val PRETTY = Json { prettyPrint = true }
+  const val PLAIN_TEXT_ABOVE: Int = 1024 * 1024
 
   fun prepare(response: HttpResponseModel): PreparedBody {
     val contentType = response.contentType.orEmpty().lowercase()
@@ -45,6 +46,8 @@ object HttpResponseFormatter {
       ?.let { runCatching { Charset.forName(it) }.getOrNull() } ?: Charsets.UTF_8
     val raw = StringUtil.convertLineSeparators(String(response.body, charset))
     val extension = when {
+      // Pretty-printing and highlighting a body of several megabytes freezes the viewer, so large ones stay plain text.
+      response.body.size > PLAIN_TEXT_ABOVE -> "txt"
       contentType.contains("json") -> "json"
       contentType.contains("html") -> "html"
       contentType.contains("xml") -> "xml"

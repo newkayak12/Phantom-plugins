@@ -17,6 +17,9 @@ import dev.phantom.http.core.PhantomHttpBundle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.job
 import kotlinx.coroutines.withContext
 import java.awt.Component
 import java.net.http.HttpTimeoutException
@@ -70,11 +73,24 @@ object HttpRunner {
   private fun start(project: Project, steps: List<RunStep>, environment: String?) {
     val service = HttpExecutionService.getInstance(project)
     service.launch {
+      val run = coroutineContext.job
       for (step in steps) {
         val title = readAction { step.pointer.element?.presentableName } ?: continue
-        val panel = withContext(Dispatchers.EDT) { HttpResponseToolWindow.newTab(project, title) }
-        withContext(Dispatchers.EDT) { panel.job = coroutineContext[Job] }
-        if (!runOne(service, step, environment, panel)) break
+        // Each tab gets its own child job: closing a finished tab (the tool window drops old ones past ten) must not
+        // cancel the shared run, while Stop or closing the running tab still ends the run.
+        val stepJob = Job(run)
+        val panel = withContext(Dispatchers.EDT) { HttpResponseToolWindow.newTab(project, title).also { it.job = stepJob } }
+        val finished = try {
+          withContext(stepJob) { runOne(service, step, environment, panel) }
+        }
+        catch (_: CancellationException) {
+          run.ensureActive()
+          false
+        }
+        finally {
+          stepJob.complete()
+        }
+        if (!finished) break
       }
     }
   }
@@ -106,7 +122,8 @@ object HttpRunner {
       // the script interpreter loads only when a request has a handler
       val report = if (request.hasHandlers) {
         val lookup = resolver
-        HttpHandlerRunner.run(request.handlers, request, response, service.globals) { lookup?.lookup(it) }
+        val job = currentCoroutineContext().job
+        HttpHandlerRunner.run(request.handlers, request, response, service.globals, cancelled = { !job.isActive }) { lookup?.lookup(it) }
       }
       else null
       withContext(Dispatchers.EDT) { panel.showResponse(request, response, body, report) }

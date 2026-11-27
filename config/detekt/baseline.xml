@@ -68,7 +68,6 @@
     <ID>ComplexCondition:HttpInspections.kt:HttpUnknownHeaderInspection$name.isEmpty() || name.contains("{{") || name.startsWith("X-", ignoreCase = true) || !name.all(::isTokenChar)</ID>
     <ID>ComplexCondition:HttpInspections.kt:JsonCheck.Parser$i &lt; s.length &amp;&amp; (s[i] == ' ' || s[i] == '\t' || s[i] == '\n' || s[i] == '\r')</ID>
     <ID>ComplexCondition:HttpLexer.kt:HttpLexer$i > target &amp;&amp; buffer[i] == '(' &amp;&amp; spaces(i + 1, content) &lt; content &amp;&amp; buffer[spaces(i + 1, content)] == '@'</ID>
-    <ID>ComplexCondition:HttpVariables.kt:HttpVariables$isDynamic(name) || name in fileVariables(file) || name in handlerGlobals(file) || name in importedFileVariables(file)</ID>
     <ID>ComplexCondition:ImmutableOptionsAnnotationChecker.kt:ImmutableOptionsAnnotationChecker$target == null || (target is GrField &amp;&amp; !target.isProperty) || target.hasModifierProperty(PsiModifier.STATIC)</ID>
     <ID>ComplexCondition:JUnitMalformedDeclarationInspection.kt:JUnitMalformedSignatureVisitor$!factoryMethod.isStatic &amp;&amp; containingClass != null &amp;&amp; !TestUtils.testInstancePerClass(containingClass) &amp;&amp; !implementationsTestInstanceAnnotated(containingClass)</ID>
     <ID>ComplexCondition:JUnitMalformedDeclarationInspection.kt:JUnitMalformedSignatureVisitor$!sourceProvider.isStatic &amp;&amp; containingClass != null &amp;&amp; !TestUtils.testInstancePerClass(containingClass) &amp;&amp; !implementationsTestInstanceAnnotated(containingClass)</ID>
@@ -394,7 +393,6 @@
     <ID>CyclomaticComplexMethod:HtmlFileDropHandler.kt:private suspend fun insertImageTag</ID>
     <ID>CyclomaticComplexMethod:HtmlFileDropHandler.kt:private suspend fun insertTagInHead</ID>
     <ID>CyclomaticComplexMethod:HtmlUtils.kt:@ApiStatus.ScheduledForRemoval @Deprecated("use excludeHtml", ReplaceWith("excludeHtml")) fun removeHtml: TextContent?</ID>
-    <ID>CyclomaticComplexMethod:HttpHandlerRunner.kt:HttpHandlerRunner$fun run: HttpHandlerReport</ID>
     <ID>CyclomaticComplexMethod:HttpHighlighting.kt:HttpSyntaxHighlighter$override fun getTokenHighlights: Array&lt;TextAttributesKey></ID>
     <ID>CyclomaticComplexMethod:HttpInspections.kt:HttpAuthConfigurationInspection$override fun checkFile: Array&lt;com.intellij.codeInspection.ProblemDescriptor>?</ID>
     <ID>CyclomaticComplexMethod:HttpInspections.kt:HttpInsecureUrlInspection$private fun isLocal: Boolean</ID>
@@ -1249,7 +1247,6 @@
     <ID>LongMethod:GradleVersionCatalogSyncContributorTest.kt:GradleVersionCatalogSyncContributorTest$@Test @TargetVersions("7.6+") fun `test version catalog entities for buildSrc`</ID>
     <ID>LongMethod:GroovyColorSettingsPage.kt:GroovyColorSettingsPage$@NonNls override fun getDemoText: String</ID>
     <ID>LongMethod:HamcrestAssertionsConverterInspection.kt:MigrateToAssertThatQuickFix$override fun applyFix</ID>
-    <ID>LongMethod:HttpHandlerRunner.kt:HttpHandlerRunner$fun run: HttpHandlerReport</ID>
     <ID>LongMethod:InferenceUnitNode.kt:InferenceUnitNode$fun smartTypeInstantiation: Pair&lt;PsiType, InstantiationHint></ID>
     <ID>LongMethod:JUnitComparisonFailureDataTest.kt:JUnitComparisonFailureDataTest$@Test fun `test comparison failure (OpenTest4j)`</ID>
     <ID>LongMethod:JavaJUnitMalformedDeclarationInspectionTest.kt:JavaJUnitMalformedDeclarationInspectionTest.Latest$fun `test malformed parameterized @EmptySource no highlighting`</ID>
@@ -2453,6 +2450,7 @@
     <ID>TooGenericExceptionCaught:HookServer.kt:HookServer$e: Exception</ID>
     <ID>TooGenericExceptionCaught:HostedGitRepositoryReferenceUtil.kt:HostedGitRepositoryReference.File$e: Exception</ID>
     <ID>TooGenericExceptionCaught:HttpExecutionService.kt:HttpExecutionService$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:HttpHandlerRunner.kt:HttpHandlerRunner$e: RuntimeException</ID>
     <ID>TooGenericExceptionCaught:HttpRequestModel.kt:HttpRequestBuilder$e: Exception</ID>
     <ID>TooGenericExceptionCaught:HttpRunner.kt:HttpRunner$e: Exception</ID>
     <ID>TooGenericExceptionCaught:HunspellDictionaryProvider.kt:HunspellDictionaryProvider$e: Exception</ID>
