@@ -1,0 +1,22 @@
+<idea-plugin>
+  <id>dev.phantom.terraform</id>
+  <name>Phantom for Terraform</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Languages</category>
+  <description><![CDATA[
+  Editing support for Terraform configuration (.tf) and variable definition (.tfvars) files. Works offline.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+  </dependencies>
+
+  <!-- Both plugins register the .tf and .tfvars file types. -->
+  <incompatible-with>org.intellij.plugins.hcl</incompatible-with>
+
+  <resource-bundle>messages.TerraformBundle</resource-bundle>
+  <extensions defaultExtensionNs="com.intellij">
+    <fileType name="Phantom Terraform" language="PhantomTerraform" extensions="tf;tfvars"
+              implementationClass="dev.phantom.terraform.TerraformFileType" fieldName="INSTANCE"/>
+  </extensions>
+</idea-plugin>
