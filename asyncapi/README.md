@@ -1,4 +1,4 @@
-# Phantom for AsyncAPI
+# Support for AsyncAPI
 `dev.phantom.asyncapi` · [한국어](./KOR.md)
 
 AsyncAPI support that works offline, only in YAML and JSON files whose top level declares `asyncapi`.

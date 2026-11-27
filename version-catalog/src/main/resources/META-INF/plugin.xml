@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.version.catalog</id>
-  <name>Phantom for Gradle Version Catalogs</name>
+  <name>Support for Gradle Version Catalogs</name>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Build</category>
   <description><![CDATA[

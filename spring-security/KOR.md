@@ -1,4 +1,4 @@
-# Phantom for Spring Security
+# Support for Spring Security
 `dev.phantom.spring.security` · [English](./README.md)
 
 애플리케이션을 실행하지 않고 Java 소스에서 Spring Security 필터 체인을 읽습니다.

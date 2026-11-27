@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.terraform</id>
-  <name>Phantom for Terraform</name>
+  <name>Support for Terraform</name>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Languages</category>
   <description><![CDATA[
