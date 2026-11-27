@@ -8,6 +8,8 @@ import com.intellij.psi.PsiNamedElement
 import com.intellij.psi.xml.XmlAttributeValue
 import com.intellij.psi.xml.XmlTag
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
+import com.intellij.openapi.util.registry.Registry
+import com.intellij.openapi.util.Disposer
 
 class MyBatisTest : LightJavaCodeInsightFixtureTestCase() {
   override fun getProjectDescriptor() = RealJdk
@@ -439,5 +441,26 @@ class MyBatisTest : LightJavaCodeInsightFixtureTestCase() {
     assertTrue(offset >= 0)
     com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction(project) { document.replaceString(offset, offset + find.length, replace) }
     com.intellij.psi.PsiDocumentManager.getInstance(project).commitAllDocuments()
+  }
+
+  fun testGhostModeKeepsMapperNavigationOnly() {
+    ghostMode(true)
+    myFixture.enableInspections(MapperMethodInspection())
+    addMapper("<select id=\"findById\" resultType=\"app.User\">select 1</select>")
+    val mapper = myFixture.findClass("app.UserMapper")
+    myFixture.configureFromExistingVirtualFile(mapper.containingFile.virtualFile)
+    assertEmpty(myFixture.doHighlighting().filter { it.description?.contains("no statement") == true })
+    assertEmpty(gutterTargets())
+    val method = myFixture.findClass("app.UserMapper").findMethodsByName("findById", false).single()
+    val targets = com.intellij.psi.search.searches.DefinitionsScopedSearch.search(method).findAll()
+    assertEquals(listOf("select"), targets.map { (it as XmlTag).name })
+  }
+
+  // Phantom registers phantom.ghost; the IntelliJ test platform does not, so a system property, which RegistryValue reads before
+  // the bundle, makes the key resolvable for setValue.
+  private fun ghostMode(on: Boolean) {
+    System.setProperty(GhostMode.KEY, "false")
+    Disposer.register(testRootDisposable) { System.clearProperty(GhostMode.KEY) }
+    Registry.get(GhostMode.KEY).setValue(on, testRootDisposable)
   }
 }

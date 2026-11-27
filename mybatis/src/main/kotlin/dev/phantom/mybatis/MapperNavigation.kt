@@ -19,6 +19,8 @@ class MapperJavaLineMarkerProvider : RelatedItemLineMarkerProvider() {
   override fun getIcon(): Icon = AllIcons.Gutter.ImplementedMethod
 
   override fun collectNavigationMarkers(element: PsiElement, result: MutableCollection<in RelatedItemLineMarkerInfo<*>>) {
+
+    if (GhostMode.enabled) return
     if (element !is PsiIdentifier) return
     val targets: List<PsiElement> = when (val parent = element.parent) {
       is PsiClass -> if (parent.nameIdentifier == element && parent.isInterface) MyBatis.mapperFiles(parent).mapNotNull { MyBatis.mapperRoot(it) } else return
@@ -40,6 +42,8 @@ class MapperXmlLineMarkerProvider : RelatedItemLineMarkerProvider() {
   override fun getIcon(): Icon = AllIcons.Gutter.ImplementingMethod
 
   override fun collectNavigationMarkers(element: PsiElement, result: MutableCollection<in RelatedItemLineMarkerInfo<*>>) {
+
+    if (GhostMode.enabled) return
     if (element.node?.elementType != XmlTokenType.XML_NAME) return
     val tag = element.parent as? XmlTag ?: return
     // the name of the start tag, not of the end tag
