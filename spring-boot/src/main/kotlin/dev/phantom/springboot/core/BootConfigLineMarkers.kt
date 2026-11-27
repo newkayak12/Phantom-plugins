@@ -61,7 +61,15 @@ object BootConfigUsages {
     return Usages(values, prefixes)
   }
 
-  fun bound(prefixes: Set<String>, key: String): Boolean = prefixes.any { key == it || key.startsWith("$it.") }
+  /** Whether [key] or one of its parents (`app.mail` for `app.mail.host`) is a prefix: one set lookup per segment. */
+  fun bound(prefixes: Set<String>, key: String): Boolean {
+    var end = key.length
+    while (end > 0) {
+      if (key.substring(0, end) in prefixes) return true
+      end = key.lastIndexOf('.', end - 1)
+    }
+    return false
+  }
 }
 
 /**
@@ -115,12 +123,12 @@ class BootConfigPropertiesLineMarkerProvider : LineMarkerProviderDescriptor() {
     } ?: return null
     val prefix = SourceConfigProperties.prefixOf(declaration)?.takeIf { it.isNotEmpty() } ?: return null
     val project = element.project
-    val locations = ProjectConfigKeys.keys(project).filterKeys { ConfigNames.normalize(it).let { k -> k == prefix || k.startsWith("$prefix.") } }
+    val locations = ProjectConfigKeys.under(project, prefix)
     if (locations.isEmpty()) return null
     return NavigationGutterIconBuilder.create(AllIcons.FileTypes.Config)
       .setTargets(NotNullLazyValue.lazy {
         val manager = PsiManager.getInstance(project)
-        locations.values.flatten().mapNotNull { location -> manager.findFile(location.file)?.findElementAt(location.offset) }
+        locations.mapNotNull { location -> manager.findFile(location.file)?.findElementAt(location.offset) }
       })
       .setTooltipText(PhantomSpringBootBundle.message("gutter.config.properties.tooltip", prefix))
       .setPopupTitle(PhantomSpringBootBundle.message("gutter.config.properties.popup", prefix))

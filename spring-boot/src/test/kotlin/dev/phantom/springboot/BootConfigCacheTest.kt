@@ -92,6 +92,15 @@ class BootConfigCacheTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals(importsBefore, BootConfigImports.computeCount.get())
   }
 
+  /** Relaxed-binding lookups go through the sorted index: written names, children by prefix, a sibling with a longer name left out. */
+  fun testRelaxedLookupAndKeysUnderPrefix() {
+    myFixture.addFileToProject("application.properties", "app.mail.smtpHost=h\napp.mail.port=25\napp.mailer.x=1\napp.MAIL=m\n")
+    assertEquals(listOf("h"), ProjectConfigKeys.find(project, "app.mail.smtp-host").map { it.value })
+    assertEquals(listOf("m", "25", "h"), ProjectConfigKeys.under(project, "app.mail").map { it.value })
+    assertTrue(BootConfigUsages.bound(setOf("app.mail"), "app.mail.port"))
+    assertFalse(BootConfigUsages.bound(setOf("app.mail"), "app.mailer.x"))
+  }
+
   fun testUnsavedYamlEditUpdatesKeys() {
     myFixture.configureByText("application.yml", "app:\n  name: a\n  <caret>\n")
     assertTrue("app.name" in keys())

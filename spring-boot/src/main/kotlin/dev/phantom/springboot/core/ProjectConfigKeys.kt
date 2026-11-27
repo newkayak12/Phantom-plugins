@@ -8,6 +8,8 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import org.jetbrains.annotations.TestOnly
+import java.util.NavigableMap
+import java.util.TreeMap
 import java.util.concurrent.atomic.AtomicInteger
 
 /** Where a key is set: [offset] is where its name (its last segment in `.properties`) starts in [file]. */
@@ -22,7 +24,12 @@ object ProjectConfigKeys {
   @TestOnly
   val computeCount: AtomicInteger = AtomicInteger()
 
-  fun keys(project: Project): Map<String, List<ConfigKeyLocation>> = CachedValuesManager.getManager(project).getCachedValue(project) {
+  /** The keys as written, and the same locations by relaxed-binding name, sorted so the keys under a prefix are one range. */
+  private class Index(val raw: Map<String, List<ConfigKeyLocation>>, val normalized: NavigableMap<String, out List<ConfigKeyLocation>>)
+
+  fun keys(project: Project): Map<String, List<ConfigKeyLocation>> = index(project).raw
+
+  private fun index(project: Project): Index = CachedValuesManager.getManager(project).getCachedValue(project) {
     computeCount.incrementAndGet()
     val result = LinkedHashMap<String, MutableList<ConfigKeyLocation>>()
     val files = configFiles(project)
@@ -32,16 +39,24 @@ object ProjectConfigKeys {
       val entries = if (file.name.endsWith(".properties")) ConfigText.properties(text) else ConfigText.yaml(text)
       for ((key, offset, value) in entries) result.getOrPut(key) { ArrayList() }.add(ConfigKeyLocation(file, offset, value))
     }
+    val normalized = TreeMap<String, MutableList<ConfigKeyLocation>>()
+    for ((key, locations) in result) normalized.getOrPut(ConfigNames.normalize(key)) { ArrayList() }.addAll(locations)
     // Only configuration text and the files' places matter: a Java keystroke must not re-read and re-parse them.
-    CachedValueProvider.Result.create(result as Map<String, List<ConfigKeyLocation>>, *BootCacheDeps.config(project, files))
+    CachedValueProvider.Result.create(Index(result, normalized), *BootCacheDeps.config(project, files))
   }
 
   /** The locations of [key], matched with relaxed binding (`jwt.secretKey` finds `jwt.secret-key`). */
   fun find(project: Project, key: String): List<ConfigKeyLocation> {
-    val all = keys(project)
-    all[key]?.let { return it }
+    val index = index(project)
+    return index.raw[key] ?: index.normalized[ConfigNames.normalize(key)].orEmpty()
+  }
+
+  /** The locations of [key] and of the keys under it (`app.mail` finds `app.mail.host`), relaxed binding, by key name. */
+  fun under(project: Project, key: String): List<ConfigKeyLocation> {
     val normalized = ConfigNames.normalize(key)
-    return all.entries.filter { ConfigNames.normalize(it.key) == normalized }.flatMap { it.value }
+    val index = index(project).normalized
+    // '/' follows '.', so the range holds exactly the names that start with "$normalized."
+    return index[normalized].orEmpty() + index.subMap("$normalized.", true, "$normalized/", false).values.flatten()
   }
 
   private fun configFiles(project: Project): List<VirtualFile> =
