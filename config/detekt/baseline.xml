@@ -608,10 +608,10 @@
     <ID>CyclomaticComplexMethod:SqlJoinCompletion.kt:SqlJoinCompletion$fun addOnConditions</ID>
     <ID>CyclomaticComplexMethod:SqlJoinCompletion.kt:SqlJoinCompletion$fun conditions: List&lt;Condition></ID>
     <ID>CyclomaticComplexMethod:SqlLexer.kt:SqlLexer$override fun advance</ID>
-    <ID>CyclomaticComplexMethod:SqlLegacyNameMarker.kt:SqlParser.Block$fun parse</ID>
-    <ID>CyclomaticComplexMethod:SqlLegacyNameMarker.kt:SqlParser.Block$private fun keyword</ID>
-    <ID>CyclomaticComplexMethod:SqlLegacyNameMarker.kt:SqlParser.Block$private fun name</ID>
-    <ID>CyclomaticComplexMethod:SqlLegacyNameMarker.kt:SqlParser.Block$private fun paren</ID>
+    <ID>CyclomaticComplexMethod:SqlLegacyNameMarker.kt:SqlLegacyNameMarker.Block$fun parse</ID>
+    <ID>CyclomaticComplexMethod:SqlLegacyNameMarker.kt:SqlLegacyNameMarker.Block$private fun keyword</ID>
+    <ID>CyclomaticComplexMethod:SqlLegacyNameMarker.kt:SqlLegacyNameMarker.Block$private fun name</ID>
+    <ID>CyclomaticComplexMethod:SqlLegacyNameMarker.kt:SqlLegacyNameMarker.Block$private fun paren</ID>
     <ID>CyclomaticComplexMethod:SqlRefactoring.kt:SqlDbReferenceSearcher$override fun processQuery</ID>
     <ID>CyclomaticComplexMethod:SqlResolve.kt:SqlResolver$fun column: SqlResolution</ID>
     <ID>CyclomaticComplexMethod:SqlRoutineInspections.kt:SqlIllegalCursorStateInspection$override fun checkRoutine</ID>

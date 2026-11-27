@@ -1,27 +1,19 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.db.core
 
-import com.intellij.lang.ASTNode
 import com.intellij.lang.PsiBuilder
-import com.intellij.lang.PsiParser
 import com.intellij.psi.tree.IElementType
 
 /**
- * File → statements → names. One pass per statement that tracks the clause it is in (SELECT list, FROM list,
+ * Statement → names. The original SQL parser, now applied by [SqlParser] to statements it has no grammar for.
+ * One pass per statement that tracks the clause it is in (SELECT list, FROM list,
  * expressions, INSERT columns, WITH) and marks table references, column references, aliases and subqueries. It never
  * reports errors: a half-typed statement still gets its names marked, so completion and navigation work while typing.
  */
-class SqlParser : PsiParser {
-  override fun parse(root: IElementType, builder: PsiBuilder): ASTNode {
-    val file = builder.mark()
-    while (!builder.eof()) {
-      val statement = builder.mark()
-      Block(builder, function = false).parse(stopAtParen = false)
-      if (builder.tokenType == SqlTokens.SEMICOLON) builder.advanceLexer()
-      statement.done(SqlElements.STATEMENT)
-    }
-    file.done(root)
-    return builder.treeBuilt
+internal object SqlLegacyNameMarker {
+  /** Marks the names of one statement, up to its `;` (not consumed) or the end of the file. */
+  fun markStatement(builder: PsiBuilder) {
+    Block(builder, function = false).parse(stopAtParen = false)
   }
 
   private enum class Clause { NONE, SELECT, TABLES, EXPR, CTE }
