@@ -436,6 +436,24 @@
       ]
     },
     {
+      "id": "dev.phantom.version.catalog",
+      "name": "Phantom for Gradle Version Catalogs",
+      "version": "0.1.0",
+      "source": "version-catalog",
+      "description": "Checks the libraries of a Gradle version catalog (*.versions.toml) for newer versions on Maven Central and updates the chosen ones, including shared [versions] entries. Maven Central is asked only when you run the action.",
+      "vendor": "Phantom",
+      "since": "262",
+      "until": "262.*",
+      "category": "Build",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "version-catalog-0.1.0/version-catalog-0.1.0.zip",
+      "detectFiles": [
+        "*.versions.toml"
+      ]
+    },
+    {
       "id": "dev.phantom.iconpack",
       "name": "Phantom Icon Pack",
       "version": "0.3.6",
