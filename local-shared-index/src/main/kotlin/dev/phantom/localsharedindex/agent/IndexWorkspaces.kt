@@ -92,6 +92,19 @@ object IndexWorkspaces {
     }
   }
 
+  /**
+   * Runs [block] in a non-blocking read action on this background thread: unlike ReadAction.compute, it does not hold
+   * off a pending write action (typing, VFS refresh) but restarts after it.
+   */
+  private fun <T> readNow(project: Project, block: () -> T): T =
+    ReadAction.nonBlocking<Result<T>> {
+      try {
+        Result.success(block())
+      } catch (e: IndexToolError) {
+        Result.failure(e)
+      }
+    }.expireWith(project).executeSynchronously().getOrThrow()
+
   fun locate(worktree: String?): Located {
     val root = Path.of(worktree ?: throw IndexToolError(NOT_AVAILABLE)).normalize()
     val project = ProjectManager.getInstance().openProjects
@@ -117,7 +130,7 @@ object IndexWorkspaces {
   fun searchText(worktree: String?, text: String, regex: Boolean, caseSensitive: Boolean, context: Int, limit: Int): String {
     if (regex) runCatching { Regex(text) }.onFailure { throw IndexToolError("Not a regular expression: ${it.message}") }
     val at = locate(worktree)
-    val scope = ReadAction.compute<GlobalSearchScope, Exception> { at.scope() }
+    val scope = readNow(at.project) { at.scope() }
     val model = FindModel().apply {
       stringToFind = text
       isCaseSensitive = caseSensitive
@@ -166,7 +179,7 @@ object IndexWorkspaces {
       throw e.cause ?: e
     }
     if (hits.isEmpty()) return "No line holds \"$text\" in this workspace."
-    val blocks = ReadAction.compute<List<String>, Exception> {
+    val blocks = readNow(at.project) {
       hits.entries.sortedBy { at.shown(it.key) }.flatMap { (file, lines) -> blocksOf(at.shown(file), file, lines, context) }
     }
     return (blocks + if (more) listOf("... more matches; narrow the text or raise limit") else emptyList()).joinToString("\n")
@@ -204,7 +217,7 @@ object IndexWorkspaces {
       ModalityState.nonModal(), at.project.disposed,
     )
     runCatching { committed.get(COMMIT_WAIT_S, TimeUnit.SECONDS) }
-    ReadAction.compute<Unit, Exception> {
+    readNow(at.project) {
       at.workspace()
       val psi = PsiManager.getInstance(at.project).findFile(file) ?: throw IndexToolError("Cannot read $path")
       if (!ProblemHighlightFilter.shouldProcessFileInBatch(psi)) throw IndexToolError("Phantom does not analyze $path: it is not in the project's sources")

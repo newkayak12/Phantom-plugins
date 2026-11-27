@@ -1177,7 +1177,7 @@
     {
       "id": "dev.phantom.local-shared-index",
       "name": "Phantom Local Shared Index",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "source": "local-shared-index",
       "description": "Reuses index data between checkouts of the same project on this machine, so a new worktree or clone does not index files that another checkout already indexed. Nothing leaves the machine. Turn it off by disabling the plugin. 0.2.0: answers the IDE index tools that Phantom AI Integration gives its agents over MCP (find_symbol, find_usages, search_text, file_outline, get_file_problems).",
       "vendor": "Phantom",
@@ -1187,7 +1187,7 @@
       "depends": [
         "com.intellij.modules.platform"
       ],
-      "download": "local-shared-index-0.2.0/local-shared-index-0.2.0.zip",
+      "download": "local-shared-index-0.2.1/local-shared-index-0.2.1.zip",
       "detect": []
     },
     {

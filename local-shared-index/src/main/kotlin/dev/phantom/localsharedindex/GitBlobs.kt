@@ -6,7 +6,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.concurrent.ConcurrentHashMap
+import java.util.Collections
 
 /**
  * The git blob id of a file whose size and modification time still match its entry in the git index, read from the
@@ -23,8 +23,17 @@ internal object GitBlobs {
 
   private val NONE = WorkTree("", Path.of(""))
 
-  private val workTreeOfDir = ConcurrentHashMap<String, WorkTree>()
-  private val snapshots = ConcurrentHashMap<Path, Snapshot>()
+  // Bounded so a long session over many projects and worktrees does not keep every directory and parsed index alive;
+  // a parsed index holds an entry per tracked file. Evicted entries are found or parsed again.
+  private val workTreeOfDir = lru<String, WorkTree>(MAX_DIRS)
+  private val snapshots = lru<Path, Snapshot>(MAX_INDEXES)
+
+  internal val cachedDirs: Int get() = workTreeOfDir.size
+  internal val cachedIndexes: Int get() = snapshots.size
+
+  private fun <K, V> lru(max: Int): MutableMap<K, V> = Collections.synchronizedMap(object : LinkedHashMap<K, V>(16, 0.75f, true) {
+    override fun removeEldestEntry(eldest: MutableMap.MutableEntry<K, V>?): Boolean = size > max
+  })
 
   fun blobOf(file: VirtualFile): ByteArray? {
     if (!file.isInLocalFileSystem) return null
@@ -141,5 +150,7 @@ internal object GitBlobs {
   }
 
   private const val NANOS = 1_000_000_000L
+  internal const val MAX_DIRS = 4096
+  internal const val MAX_INDEXES = 8
   private val LOG = logger<GitBlobs>()
 }

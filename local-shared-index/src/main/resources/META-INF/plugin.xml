@@ -19,6 +19,10 @@
     <module name="intellij.platform.vcs.impl"/>
   </dependencies>
 
+  <applicationListeners>
+    <listener class="dev.phantom.localsharedindex.GitBlobsReleaser" topic="com.intellij.openapi.project.ProjectCloseListener"/>
+  </applicationListeners>
+
   <extensions defaultExtensionNs="com.intellij">
     <fileBasedIndexInfrastructureExtension implementation="dev.phantom.localsharedindex.LocalSharedIndexExtension"/>
     <registryKey key="phantom.localsharedindex.alias" defaultValue="true" description="Phantom Local Shared Index: skip content-only indexes and stubs of files whose content another checkout indexed, answering from that file (prototype)"/>
