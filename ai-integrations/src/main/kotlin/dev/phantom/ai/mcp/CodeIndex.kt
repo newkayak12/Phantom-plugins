@@ -37,14 +37,9 @@ import java.util.concurrent.atomic.AtomicInteger
  * whole files. Fakeable; the real one is [IdeCodeIndex]. Called off the EDT.
  */
 interface CodeIndex {
-  fun findSymbol(worktree: String?, query: String, limit: Int): String
   fun findFile(worktree: String?, query: String, limit: Int): String
-  fun findUsages(worktree: String?, path: String, line: Int, name: String, limit: Int): String
-  fun fileOutline(worktree: String?, path: String): String
   fun symbolInfo(worktree: String?, path: String, line: Int, name: String): String
   fun calls(worktree: String?, path: String, line: Int, name: String, limit: Int): String
-  /** The file's errors (and warnings when [warnings]) from the IDE's analysis, one `path:line  SEVERITY  message` each. */
-  fun fileProblems(worktree: String?, path: String, warnings: Boolean): String
   /** Renames the symbol and its references with the IDE's Rename and saves the files; refuses a conflict or a change outside [worktree]. */
   fun rename(worktree: String?, path: String, line: Int, name: String, newName: String): String
 
@@ -58,23 +53,16 @@ interface CodeIndex {
   fun insertCode(worktree: String?, path: String, line: Int?, name: String, after: Boolean, code: String): String
 }
 
-
 /**
  * The real [CodeIndex]: the open project holding the agent's worktree, only that worktree's own files. It never waits for
  * indexing: an agent told "not now" goes back to its own search, one kept waiting burns its turn.
  */
 class IdeCodeIndex : CodeIndex {
-  override fun findSymbol(worktree: String?, query: String, limit: Int) = inWorkspace(worktree) { it.queries.symbols(query, limit) }
   override fun findFile(worktree: String?, query: String, limit: Int) = inWorkspace(worktree) { it.queries.files(query, limit) }
-  override fun findUsages(worktree: String?, path: String, line: Int, name: String, limit: Int) =
-    inWorkspace(worktree) { it.queries.usages(it.file(path), line, name, limit) }
-  override fun fileOutline(worktree: String?, path: String) = inWorkspace(worktree) { it.queries.outline(it.file(path)) }
   override fun symbolInfo(worktree: String?, path: String, line: Int, name: String) =
     inWorkspace(worktree) { it.queries.symbolInfo(it.file(path), line, name) }
   override fun calls(worktree: String?, path: String, line: Int, name: String, limit: Int) =
     inWorkspace(worktree) { it.queries.calls(it.file(path), line, name, limit) }
-
-  override fun fileProblems(worktree: String?, path: String, warnings: Boolean): String = lsi { IndexWorkspaces.problems(worktree, path, warnings) }
 
   override fun rename(worktree: String?, path: String, line: Int, name: String, newName: String): String {
     val at = locate(worktree)

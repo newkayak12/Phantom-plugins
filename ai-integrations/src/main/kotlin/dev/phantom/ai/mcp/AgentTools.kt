@@ -5,8 +5,8 @@ import com.google.gson.JsonObject
 import com.intellij.openapi.extensions.ExtensionPointName
 
 /**
- * More MCP tools for the agents, from an optional part of this plugin (the database tools, with Phantom Database
- * Console). [AgentTool.call] runs off the EDT; a [McpToolError] it throws goes back to the agent as the tool's error.
+ * More MCP tools for the agents: the IDE index tools of Phantom Local Shared Index, and from an optional part of this
+ * plugin the database tools, with Phantom Database Console. [AgentTool.call] runs off the EDT; a [McpToolError] it throws goes back to the agent as the tool's error.
  */
 interface AgentTools {
   fun tools(): List<AgentTool>

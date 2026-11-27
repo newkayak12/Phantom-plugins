@@ -1,12 +1,14 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.ai
 
+import com.google.gson.JsonObject
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.testFramework.HeavyPlatformTestCase
 import com.intellij.testFramework.IndexingTestUtil
 import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.PsiTestUtil
+import dev.phantom.ai.mcp.AgentTools
 import dev.phantom.ai.mcp.IdeCodeIndex
 import dev.phantom.ai.mcp.McpToolError
 import java.nio.file.Files
@@ -40,15 +42,28 @@ class IdeCodeIndexInIdeTest : HeavyPlatformTestCase() {
 
   private val index = IdeCodeIndex()
 
+  /** A Local Shared Index tool as the MCP server calls it, through its registration in this plugin. */
+  private fun tool(name: String, worktree: String, vararg args: Pair<String, String>): String =
+    AgentTools.all().single { it.name == name }.call(worktree, JsonObject().apply { args.forEach { (k, v) -> addProperty(k, v) } })
+
+  fun testTheLocalSharedIndexToolsAreRegisteredOnce() {
+    val names = AgentTools.all().map { it.name }
+    for (name in listOf("find_symbol", "find_usages", "search_text", "file_outline", "get_file_problems")) assertEquals(name, 1, names.count { it == name })
+  }
+
+  fun testSearchTextAnswersThroughTheServer() {
+    assertEquals("src/Calc.java:2\n> 2    static int twice(int x) { return x * 2; }", offEdtPumping { tool("search_text", api, "text" to "x * 2", "context" to "0") })
+  }
+
   fun testAnswersForTheWholeProjectWithPathsRelativeToIt() {
-    assertEquals("api/src/Inside.java:1  public class Inside {}", offEdt { index.findSymbol(base.toString(), "Inside", 5) })
+    assertEquals("api/src/Inside.java:1  public class Inside {}", offEdt { tool("find_symbol", base.toString(), "query" to "Inside") })
   }
 
   fun testAWorktreeInsideTheProjectSeesOnlyItsOwnFiles() {
     val api = base.resolve("api").toString()
     assertEquals("src/Inside.java", offEdt { index.findFile(api, "Inside", 5) })
-    assertEquals("No symbol matches \"Outside\" in this workspace.", offEdt { index.findSymbol(api, "Outside", 5) })
-    assertEquals(McpToolError::class.java, runCatching { offEdt { index.fileOutline(api, "../other/src/Outside.java") } }.exceptionOrNull()?.javaClass)
+    assertEquals("No symbol matches \"Outside\" in this workspace.", offEdt { tool("find_symbol", api, "query" to "Outside") })
+    assertEquals(McpToolError::class.java, runCatching { offEdt { tool("file_outline", api, "path" to "../other/src/Outside.java") } }.exceptionOrNull()?.javaClass)
   }
 
   /** Off the EDT while the EDT keeps running: rename and the analysis wait for it. */
@@ -66,14 +81,14 @@ class IdeCodeIndexInIdeTest : HeavyPlatformTestCase() {
   private val api get() = base.resolve("api").toString()
 
   fun testProblemsAreTheFilesErrors() {
-    val broken = offEdtPumping { index.fileProblems(api, "src/Broken.java", false) }
+    val broken = offEdtPumping { tool("get_file_problems", api, "path" to "src/Broken.java") }
     assertTrue(broken, broken.startsWith("src/Broken.java:2  ERROR  ") && broken.contains("missing"))
-    assertEquals("No errors in src/Calc.java.", offEdtPumping { index.fileProblems(api, "src/Calc.java", false) })
+    assertEquals("No errors in src/Calc.java.", offEdtPumping { tool("get_file_problems", api, "path" to "src/Calc.java") })
   }
 
   fun testProblemsSeeWhatTheAgentJustWrote() {
     Files.writeString(base.resolve("api/src/Calc.java"), "public class Calc {\n  static int twice(int x) { return nope; }\n}\n")
-    assertTrue(offEdtPumping { index.fileProblems(api, "src/Calc.java", false) }.startsWith("src/Calc.java:2  ERROR  "))
+    assertTrue(offEdtPumping { tool("get_file_problems", api, "path" to "src/Calc.java") }.startsWith("src/Calc.java:2  ERROR  "))
   }
 
   fun testRenameChangesTheReferencesAndSavesThem() {

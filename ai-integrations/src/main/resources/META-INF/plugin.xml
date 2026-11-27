@@ -46,6 +46,7 @@
     <terminalBackend implementation="dev.phantom.ai.terminal.IdeTerminalBackend"/>
     <terminalBackend implementation="dev.phantom.ai.terminal.ITermBackend"/>
     <terminalBackend implementation="dev.phantom.ai.terminal.OsTerminalBackend"/>
+    <agentTools implementation="dev.phantom.ai.mcp.IndexAgentTools"/>
   </extensions>
 
   <!-- with Phantom Database Console: the agents' read-only database tools -->

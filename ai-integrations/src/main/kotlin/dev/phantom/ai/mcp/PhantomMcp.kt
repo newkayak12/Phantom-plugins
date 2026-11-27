@@ -33,6 +33,7 @@ interface EditorBridge {
  * Phantom's MCP server for its own agent terminals (JSON-RPC over the hook server's `/mcp`, streamable HTTP answered with
  * plain JSON, no SSE): lets Claude or Codex show the user code in the editor. [worktreeOf] maps the calling tab to its
  * worktree, the base of relative paths and the project to open in; [index] answers code questions within that worktree.
+ * find_symbol, find_usages, search_text, file_outline and get_file_problems come from Local Shared Index, through [extra].
  * Pure apart from [bridge] and [index].
  */
 class PhantomMcp(
@@ -99,13 +100,9 @@ class PhantomMcp(
           text(if (line != null) "Opened $opened at line $line." else "Opened $opened.")
         }
         CONTEXT -> text(bridge.context(worktree).toString())
-        FIND_SYMBOL -> text(index.findSymbol(worktree, required(args, "query"), limit(args)))
         FIND_FILE -> text(index.findFile(worktree, required(args, "query"), limit(args)))
-        FIND_USAGES -> text(index.findUsages(worktree, required(args, "path"), line(args), required(args, "name"), limit(args)))
-        OUTLINE -> text(index.fileOutline(worktree, required(args, "path")))
         SYMBOL_INFO -> text(index.symbolInfo(worktree, required(args, "path"), line(args), required(args, "name")))
         CALLS -> text(index.calls(worktree, required(args, "path"), line(args), required(args, "name"), limit(args)))
-        PROBLEMS -> text(index.fileProblems(worktree, required(args, "path"), args.get("warnings")?.takeIf { it.isJsonPrimitive }?.asString == "true"))
         RENAME -> text(index.rename(worktree, required(args, "path"), line(args), required(args, "name"), required(args, "new_name")))
         READ_SYMBOL -> text(index.readSymbol(worktree, required(args, "path"), int(args, "line"), required(args, "name")))
         REPLACE_SYMBOL -> text(index.replaceSymbol(worktree, required(args, "path"), int(args, "line"), required(args, "name"), code(args)))
@@ -136,31 +133,14 @@ class PhantomMcp(
       add("end_line", prop("integer", "Last line (1-based, inclusive) to select from `line`, to point at a block."))
     }, required = listOf("path")))
     add(tool(CONTEXT, CONTEXT_DESCRIPTION, JsonObject(), required = emptyList(), readOnly = true))
-    add(tool(FIND_SYMBOL, FIND_SYMBOL_DESCRIPTION, JsonObject().apply {
-      add("query", prop("string", "Name of a class, method, function or field; camel humps work (OSvc)."))
-      add("limit", prop("integer", "Most results to return (default $DEFAULT_LIMIT)."))
-    }, required = listOf("query"), readOnly = true))
     add(tool(FIND_FILE, FIND_FILE_DESCRIPTION, JsonObject().apply {
       add("query", prop("string", "File name or part of it; camel humps work."))
       add("limit", prop("integer", "Most results to return (default $DEFAULT_LIMIT)."))
     }, required = listOf("query"), readOnly = true))
-    add(tool(FIND_USAGES, FIND_USAGES_DESCRIPTION, JsonObject().apply {
-      add("path", prop("string", "File holding the symbol, as find_symbol gave it."))
-      add("line", prop("integer", "1-based line where the symbol is written."))
-      add("name", prop("string", "The symbol's name on that line."))
-      add("limit", prop("integer", "Most results to return (default $DEFAULT_LIMIT)."))
-    }, required = listOf("path", "line", "name"), readOnly = true))
-    add(tool(OUTLINE, OUTLINE_DESCRIPTION, JsonObject().apply {
-      add("path", prop("string", "File path, absolute or relative to your working directory."))
-    }, required = listOf("path"), readOnly = true))
     add(tool(SYMBOL_INFO, SYMBOL_INFO_DESCRIPTION, symbolAt(), required = listOf("path", "line", "name"), readOnly = true))
     add(tool(CALLS, CALLS_DESCRIPTION, symbolAt().apply {
       add("limit", prop("integer", "Most results per list (default $DEFAULT_LIMIT)."))
     }, required = listOf("path", "line", "name"), readOnly = true))
-    add(tool(PROBLEMS, PROBLEMS_DESCRIPTION, JsonObject().apply {
-      add("path", prop("string", "File path, absolute or relative to your working directory."))
-      add("warnings", prop("boolean", "Warnings too (default: errors only)."))
-    }, required = listOf("path"), readOnly = true))
     add(tool(RENAME, RENAME_DESCRIPTION, symbolAt().apply {
       add("new_name", prop("string", "The new name."))
     }, required = listOf("path", "line", "name", "new_name")))
@@ -249,13 +229,9 @@ class PhantomMcp(
   companion object {
     const val OPEN = "open_in_editor"
     const val CONTEXT = "get_editor_context"
-    const val FIND_SYMBOL = "find_symbol"
     const val FIND_FILE = "find_file"
-    const val FIND_USAGES = "find_usages"
-    const val OUTLINE = "file_outline"
     const val SYMBOL_INFO = "get_symbol_info"
     const val CALLS = "analyze_calls"
-    const val PROBLEMS = "get_file_problems"
     const val RENAME = "rename_refactoring"
     const val READ_SYMBOL = "read_symbol"
     const val REPLACE_SYMBOL = "replace_symbol"
@@ -279,7 +255,7 @@ class PhantomMcp(
       "You run in a terminal inside Phantom, the user's IDE. When you point the user at code (where something is defined, " +
         "the line you changed, the cause of a bug), open it with open_in_editor instead of only printing the path. When the " +
         "user says \"this\", \"here\" or refers to what they are looking at, read get_editor_context first. To find code, " +
-        "ask the IDE's index before searching or reading files: find_symbol, find_file, find_usages, and file_outline before " +
+        "ask the IDE's index before searching or reading files: find_symbol, find_file, find_usages, search_text for text, and file_outline before " +
         "reading a whole file; then read only the lines you need. If one says it cannot answer, use your own search. " +
         "To read one method or class, read_symbol instead of the whole file; to rewrite one, replace_symbol or insert_code " +
         "instead of reproducing its old text. After editing a file, get_file_problems shows its errors without a build; " +
@@ -295,26 +271,12 @@ class PhantomMcp(
       "The file the user has open in Phantom's editor right now: its path, the caret line and column, the selected text " +
         "and its lines, and the other open files."
 
-    private const val FIND_SYMBOL_DESCRIPTION =
-      "Finds where a class, method, function or field is declared in this workspace, from the IDE's index. Returns path:line and " +
-        "that line of code. Prefer it to grep when you know a name."
-
     private const val FIND_FILE_DESCRIPTION = "Finds files in this workspace by name, from the IDE's index. Returns relative paths."
-
-    private const val FIND_USAGES_DESCRIPTION =
-      "Finds the real references to a symbol in this workspace (no matches in comments or of other symbols with that name). " +
-        "Returns path:line and each line of code."
-
-    private const val OUTLINE_DESCRIPTION =
-      "The declarations of a file with their lines, nested: its structure without reading it. Use it before reading a large file."
 
     private const val SYMBOL_INFO_DESCRIPTION = "Where a symbol is declared, its signature and doc comment, without reading its file."
 
     private const val CALLS_DESCRIPTION =
       "Who calls a function or method, each with the [member] the call is in, and what it calls in this workspace."
-
-    private const val PROBLEMS_DESCRIPTION =
-      "A file's errors from the IDE's analysis (warnings with warnings=true), as path:line  ERROR  message. Faster than a build."
 
     private const val READ_SYMBOL_DESCRIPTION =
       "The source of one class, method, function or field with its line numbers, doc comment and annotations: only " +

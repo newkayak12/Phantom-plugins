@@ -8,6 +8,8 @@ import dev.phantom.ai.core.AiState
 import dev.phantom.ai.core.AiStateData
 import dev.phantom.ai.mcp.AgentTools
 import dev.phantom.ai.mcp.McpToolError
+import dev.phantom.localsharedindex.agent.IndexTool
+import dev.phantom.localsharedindex.agent.IndexTools
 import dev.phantom.db.core.DbDataSource
 import dev.phantom.db.core.DbDataSourceService
 import dev.phantom.db.core.Dbms
@@ -63,7 +65,7 @@ class DbAgentToolsInIdeTest : BasePlatformTestCase() {
     (runCatching { call(name, *args) }.exceptionOrNull() as? McpToolError)?.message ?: fail("no tool error") as String
 
   fun testTheModuleAddsTheDatabaseTools() {
-    val names = AgentTools.all().map { it.name }
+    val names = AgentTools.all().map { it.name }.filterNot { it in IndexTools.all().map(IndexTool::name) }
     assertEquals(listOf("list_databases", "list_tables", "describe_table", "query_database", "draft_sql"), names)
     assertEquals(listOf("draft_sql"), AgentTools.all().filterNot { it.readOnly }.map { it.name })
   }

@@ -63,6 +63,12 @@ class IndexWorkspacesTest : HeavyPlatformTestCase() {
                  offEdt { IndexWorkspaces.searchText(api, "nothing like this", regex = false, caseSensitive = false, context = 2, limit = 10) })
   }
 
+  fun testTheToolTakesItsArgumentsAsStrings() {
+    val tool = IndexTools.all().single { it.name == IndexTools.SEARCH_TEXT }
+    assertEquals("src/Calc.java:3\n> 3    static int twice(int x) { return x * 2; }\nsrc/Calc.java:7\n> 7    static int price() { return twice(21); }",
+                 offEdt { tool.call(api, mapOf("text" to "TWICE", "context" to "0", "limit" to "5")) })
+  }
+
   fun testABadRegexIsAToolError() {
     val error = runCatching { IndexWorkspaces.searchText(api, "(", regex = true, caseSensitive = true, context = 0, limit = 10) }.exceptionOrNull()
     assertInstanceOf(error, IndexToolError::class.java)
