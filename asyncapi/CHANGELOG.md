@@ -4,7 +4,7 @@
 
 ## 0.1.1 (2026-11-28)
 
-- 표시 이름을 바꿨다: Phantom for AsyncAPI → Support for AsyncAPI. 플러그인 id와 기능은 그대로다. (#PR)
+- 표시 이름을 바꿨다: Phantom for AsyncAPI → Support for AsyncAPI. 플러그인 id와 기능은 그대로다. (#202)
 
 ## 0.1.0 (2026-11-27)
 
