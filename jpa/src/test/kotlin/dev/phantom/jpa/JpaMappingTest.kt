@@ -57,6 +57,7 @@ class JpaMappingTest : LightJavaCodeInsightFixtureTestCase() {
 
   fun testModifyingQuery() {
     myFixture.addClass("package app; @jakarta.persistence.Entity public class Seat { @jakarta.persistence.Id String id; boolean taken; }")
+    myFixture.addClass("package org.springframework.data.jpa.repository; public @interface NativeQuery { String value() default \"\"; }")
     myFixture.configureByText("SeatRepository.java", """
       package app;
       import org.springframework.data.jpa.repository.*;
@@ -67,10 +68,11 @@ class JpaMappingTest : LightJavaCodeInsightFixtureTestCase() {
         @Modifying @Query("delete from Seat s where s.taken = true") int clear();
         @Query(RELEASE) int releaseAll();
         @Query(value = "insert into seat(id) values (?1)", nativeQuery = true) int add(String id);
+        @NativeQuery("delete from seat") int purge();
       }
     """.trimIndent())
     val messages = errors()
-    assertEquals(listOf("UPDATE", "UPDATE", "INSERT"), messages.map { it.substringBefore(' ') })
+    assertEquals(listOf("UPDATE", "UPDATE", "INSERT", "DELETE"), messages.map { it.substringBefore(' ') })
 
     val fix = myFixture.getAllQuickFixes().first { it.text.contains("Modifying") }
     myFixture.launchAction(fix)

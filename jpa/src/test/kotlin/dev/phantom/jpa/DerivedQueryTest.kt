@@ -67,6 +67,28 @@ class DerivedQueryTest : LightJavaCodeInsightFixtureTestCase() {
     myFixture.checkHighlighting()
   }
 
+  fun testNamedQueriesAndOtherQueryAnnotationsAreNotDerived() {
+    val runtime = "@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)"
+    myFixture.addClass("package jakarta.persistence; $runtime public @interface NamedQuery { String name(); String query(); }")
+    myFixture.addClass("package org.springframework.data.jpa.repository; $runtime public @interface Procedure { String value() default \"\"; }")
+    myFixture.addClass("""
+      package app;
+      @jakarta.persistence.Entity
+      @jakarta.persistence.NamedQuery(name = "Booking.findByCustomQuery", query = "select b from Booking b")
+      public class Booking { @jakarta.persistence.Id String id; }
+    """.trimIndent())
+    myFixture.enableInspections(DerivedQueryInspection())
+    myFixture.configureByText("BookingRepository.java", """
+      package app;
+      import java.util.List;
+      public interface BookingRepository extends org.springframework.data.repository.CrudRepository<Booking, String> {
+        List<Booking> findByCustomQuery();
+        @org.springframework.data.jpa.repository.Procedure("calc") List<Booking> findByProcedure();
+      }
+    """.trimIndent())
+    myFixture.checkHighlighting()
+  }
+
   fun testUnknownPropertyAndMissingArguments() {
     myFixture.enableInspections(DerivedQueryInspection())
     val unknown = PhantomJpaBundle.message("derived.unknown.property", "userIdd", "Ticket")

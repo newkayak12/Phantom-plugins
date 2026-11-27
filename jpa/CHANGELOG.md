@@ -2,6 +2,15 @@
 
 ## 미배포
 
+## 0.7.5 (2026-11-27)
+
+- JPQL 참조 해석 결과를 캐시해서, 별칭과 엔티티 이름을 쿼리마다·키 입력마다 다시 찾지 않는다. 이름 있는 쿼리 검사와 Spring Data JDBC 애그리거트 경계 검사도 모듈·프로젝트 단위로 한 번 계산한 결과를 JVM 코드가 바뀔 때까지 재사용한다. (#PR)
+- 파생 쿼리와 `@EntityGraph` 거터 아이콘을 느린 단계에서 계산해 파일의 첫 하이라이팅을 늦추지 않는다. (#PR)
+- Kotlin 템플릿 쿼리가 `$CONDITION` 같은 보간으로 끝나도 그 부분이 쿼리에 남는다. (#PR)
+- Java에서 `"select … " + "where …"`처럼 문자열을 이어 붙인 `@Query`도 JPQL로 인식한다. (#PR)
+- `persistence.xml`의 `<mapping-file>`로 지정한 매핑 파일이 있으면 이름 있는 쿼리 검사를 건너뛴다. (#PR)
+- 엔티티의 이름 있는 쿼리(`Entity.method`)나 `@Procedure`·다른 저장소의 `@Query`가 붙은 메서드를 파생 쿼리로 검사하지 않는다. `@NativeQuery`로 쓴 UPDATE/DELETE/INSERT도 `@Modifying` 누락을 알린다. (#PR)
+
 ## 0.7.4 (2026-11-26)
 
 - 표시 이름을 바꿨다: Phantom for JPA → Support for JPA. 플러그인 id와 기능은 그대로다. (#136)

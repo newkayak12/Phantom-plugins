@@ -23,7 +23,8 @@ import org.jetbrains.uast.visitor.AbstractUastNonRecursiveVisitor
 
 /**
  * `@Query("update …")` / `delete` / `insert` without `@Modifying`: Spring Data runs it as a select and the call fails
- * with "Query executed via 'getResultList()' or 'getSingleResult()' must be a 'select' query". Native queries too.
+ * with "Query executed via 'getResultList()' or 'getSingleResult()' must be a 'select' query". Native queries too, also
+ * written as `@NativeQuery`.
  */
 class ModifyingQueryInspection : AbstractBaseUastLocalInspectionTool() {
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
@@ -34,7 +35,7 @@ class ModifyingQueryInspection : AbstractBaseUastLocalInspectionTool() {
 
   private class Visitor(private val holder: ProblemsHolder) : AbstractUastNonRecursiveVisitor() {
     override fun visitMethod(node: UMethod): Boolean {
-      val query = node.findAnnotation(QUERY) ?: return true
+      val query = QUERY.firstNotNullOfOrNull { node.findAnnotation(it) } ?: return true
       if (node.findAnnotation(MODIFYING) != null) return true
       val value = query.findDeclaredAttributeValue("value") ?: return true
       val text = queryText(value) ?: return true
@@ -62,7 +63,7 @@ class ModifyingQueryInspection : AbstractBaseUastLocalInspectionTool() {
   }
 
   private companion object {
-    const val QUERY = "org.springframework.data.jpa.repository.Query"
+    val QUERY = listOf("org.springframework.data.jpa.repository.Query", "org.springframework.data.jpa.repository.NativeQuery")
     const val MODIFYING = "org.springframework.data.jpa.repository.Modifying"
     val MODIFYING_VERB = Regex("""^\s*(update|delete|insert)\b""", RegexOption.IGNORE_CASE)
   }

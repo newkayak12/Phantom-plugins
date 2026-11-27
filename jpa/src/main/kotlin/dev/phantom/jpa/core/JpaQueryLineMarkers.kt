@@ -131,15 +131,26 @@ private fun repositoryMethod(element: PsiElement): Pair<PsiMethod, PsiClass>? {
 /**
  * On a derived query method (`findByLastnameOrderByAgeDesc`): the JPQL it stands for as the tooltip, navigating to
  * the entity attributes it reads. Methods whose name does not resolve get nothing (the derived query check reports them).
+ * Collected in the slow pass: resolving the repository's entity and the property paths must not hold up the first
+ * highlighting of the file.
  */
 class DerivedQueryLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getName(): String = PhantomJpaBundle.message("gutter.derived.name")
 
   override fun getIcon(): Icon = AllIcons.Gutter.ImplementedMethod
 
-  override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+  override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? = null
+
+  override fun collectSlowLineMarkers(elements: MutableList<out PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
+    for (element in elements) {
+      ProgressManager.checkCanceled()
+      marker(element)?.let(result::add)
+    }
+  }
+
+  private fun marker(element: PsiElement): LineMarkerInfo<*>? {
     val (method, entity) = repositoryMethod(element) ?: return null
-    if (!DerivedQuery.isDerivedQueryMethod(method)) return null
+    if (!DerivedQuery.isDerivedQueryMethod(method) || DerivedQuery.hasNamedQuery(entity, method)) return null
     val jpql = DerivedJpql.of(entity, method.name) ?: return null
     val parsed = DerivedQuery.parse(method.name) ?: return null
     val members = (parsed.parts + parsed.orderBy).flatMap { DerivedQuery.resolvePath(entity, it.propertySource).orEmpty() }.distinct()
@@ -151,13 +162,22 @@ class DerivedQueryLineMarkerProvider : LineMarkerProviderDescriptor() {
   }
 }
 
-/** On a repository method with `@EntityGraph(attributePaths = ...)`: the attributes the graph fetches. */
+/** On a repository method with `@EntityGraph(attributePaths = ...)`: the attributes the graph fetches. Slow pass, like the derived query marker. */
 class EntityGraphLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getName(): String = PhantomJpaBundle.message("gutter.graph.name")
 
   override fun getIcon(): Icon = AllIcons.Nodes.DataTables
 
-  override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+  override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? = null
+
+  override fun collectSlowLineMarkers(elements: MutableList<out PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
+    for (element in elements) {
+      ProgressManager.checkCanceled()
+      marker(element)?.let(result::add)
+    }
+  }
+
+  private fun marker(element: PsiElement): LineMarkerInfo<*>? {
     val (method, entity) = repositoryMethod(element) ?: return null
     val annotation = method.getAnnotation("org.springframework.data.jpa.repository.EntityGraph") ?: return null
     val helper = JavaPsiFacade.getInstance(method.project).constantEvaluationHelper

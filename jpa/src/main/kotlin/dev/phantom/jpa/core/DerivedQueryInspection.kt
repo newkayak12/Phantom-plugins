@@ -16,7 +16,8 @@ import org.jetbrains.uast.visitor.AbstractUastNonRecursiveVisitor
 
 /**
  * Spring Data derived query methods whose name Spring would reject at startup: a property the entity does not have,
- * or a parameter count that does not match the operators. Methods with `@Query`, a body, or no `find…By` prefix are skipped.
+ * or a parameter count that does not match the operators. Methods with `@Query` (or another store's query annotation), a
+ * named query on the entity, a body, or no `find…By` prefix are skipped.
  */
 class DerivedQueryInspection : AbstractBaseUastLocalInspectionTool() {
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
@@ -32,6 +33,7 @@ class DerivedQueryInspection : AbstractBaseUastLocalInspectionTool() {
       val repository = node.getParentOfType<UClass>()?.javaPsi ?: return true
       if (!repository.isInterface) return true
       val entity = DerivedQuery.entityOf(repository) ?: return true
+      if (DerivedQuery.hasNamedQuery(entity, method)) return true
       val identifier = node.uastAnchor?.sourcePsi ?: return true
       if (identifier.text != method.name) return true
       val parsed = DerivedQuery.parse(method.name) ?: return true
