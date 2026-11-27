@@ -1,0 +1,233 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "AsyncAPI 3",
+  "type": "object",
+  "required": ["asyncapi", "info"],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {}
+  },
+  "properties": {
+    "asyncapi": {"type": "string", "pattern": "^3\\.\\d+\\.\\d+$", "description": "The AsyncAPI version of the document"},
+    "id": {"type": "string"},
+    "info": {"$ref": "#/definitions/info"},
+    "servers": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {"$ref": "#/definitions/reference"},
+          {"$ref": "#/definitions/server"}
+        ]
+      }
+    },
+    "defaultContentType": {"type": "string"},
+    "channels": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {"$ref": "#/definitions/reference"},
+          {"$ref": "#/definitions/channel"}
+        ]
+      }
+    },
+    "operations": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {"$ref": "#/definitions/reference"},
+          {"$ref": "#/definitions/operation"}
+        ]
+      }
+    },
+    "components": {"$ref": "#/definitions/components"}
+  },
+  "definitions": {
+    "reference": {
+      "type": "object",
+      "required": ["$ref"],
+      "properties": {
+        "$ref": {"type": "string", "description": "A reference: #/components/... in this file, or another file"}
+      }
+    },
+    "externalDocs": {"type": "object", "required": ["url"], "additionalProperties": false, "patternProperties": { "^x-": {}},
+      "properties": {"description": {"type": "string"}, "url": {"type": "string"}}
+    },
+    "tag": {"type": "object", "required": ["name"], "additionalProperties": false, "patternProperties": { "^x-": {}},
+      "properties": {
+        "name": {"type": "string"},
+        "description": {"type": "string"},
+        "externalDocs": {"$ref": "#/definitions/externalDocs"}
+      }
+    },
+    "contact": {"type": "object", "additionalProperties": false, "patternProperties": { "^x-": {}},
+      "properties": {"name": {"type": "string"}, "url": {"type": "string"}, "email": {"type": "string"}}
+    },
+    "license": {"type": "object", "required": ["name"], "additionalProperties": false, "patternProperties": { "^x-": {}},
+      "properties": {"name": {"type": "string"}, "url": {"type": "string"}}
+    },
+    "info": {
+      "type": "object",
+      "required": ["title", "version"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
+      "properties": {
+        "title": {"type": "string", "description": "The title of the application"},
+        "version": {"type": "string", "description": "The version of the API"},
+        "description": {"type": "string"},
+        "termsOfService": {"type": "string"},
+        "contact": {"$ref": "#/definitions/contact"},
+        "license": {"$ref": "#/definitions/license"},
+        "tags": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {"$ref": "#/definitions/reference"},
+              {"$ref": "#/definitions/tag"}
+            ]
+          }
+        },
+        "externalDocs": {"$ref": "#/definitions/externalDocs"}
+      }
+    },
+    "server": {
+      "type": "object",
+      "required": ["host", "protocol"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
+      "properties": {
+        "host": {"type": "string", "description": "Host name, with a port if needed"},
+        "protocol": {"type": "string", "description": "kafka, amqp, mqtt, ws, http, ..."},
+        "protocolVersion": {"type": "string"},
+        "pathname": {"type": "string"},
+        "description": {"type": "string"},
+        "title": {"type": "string"},
+        "summary": {"type": "string"},
+        "variables": {"type": "object"},
+        "security": {"type": "array"},
+        "tags": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {"$ref": "#/definitions/reference"},
+              {"$ref": "#/definitions/tag"}
+            ]
+          }
+        },
+        "externalDocs": {"$ref": "#/definitions/externalDocs"},
+        "bindings": {"type": "object"}
+      }
+    },
+    "channel": {"type": "object", "additionalProperties": false, "patternProperties": { "^x-": {}},
+      "properties": {
+        "address": {
+          "type": ["string", "null"],
+          "description": "The topic, queue or path; null when unknown or dynamic"
+        },
+        "messages": {
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [
+              {"$ref": "#/definitions/reference"},
+              {"$ref": "#/definitions/message"}
+            ]
+          }
+        },
+        "title": {"type": "string"},
+        "summary": {"type": "string"},
+        "description": {"type": "string"},
+        "servers": {"type": "array", "items": {"$ref": "#/definitions/reference"}},
+        "parameters": {"type": "object"},
+        "tags": {"type": "array", "items": { "anyOf": [ {"$ref": "#/definitions/reference"}, {"$ref": "#/definitions/tag"} ]}
+        },
+        "externalDocs": {"$ref": "#/definitions/externalDocs"},
+        "bindings": {"type": "object"}
+      }
+    },
+    "operation": {
+      "type": "object",
+      "required": ["action", "channel"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
+      "properties": {
+        "action": {
+          "enum": ["send", "receive"],
+          "description": "send: the application sends to the channel; receive: it receives from it"
+        },
+        "channel": {"$ref": "#/definitions/reference"},
+        "title": {"type": "string"},
+        "summary": {"type": "string"},
+        "description": {"type": "string"},
+        "security": {"type": "array"},
+        "tags": {"type": "array", "items": { "anyOf": [ {"$ref": "#/definitions/reference"}, {"$ref": "#/definitions/tag"} ]}
+        },
+        "externalDocs": {"$ref": "#/definitions/externalDocs"},
+        "bindings": {"type": "object"},
+        "traits": {"type": "array"},
+        "messages": {"type": "array", "items": {"$ref": "#/definitions/reference"}},
+        "reply": {"type": "object"}
+      }
+    },
+    "message": {"type": "object", "additionalProperties": false, "patternProperties": { "^x-": {}},
+      "properties": {
+        "headers": {"type": "object"},
+        "payload": {},
+        "correlationId": {"type": "object"},
+        "contentType": {"type": "string"},
+        "name": {"type": "string"},
+        "title": {"type": "string"},
+        "summary": {"type": "string"},
+        "description": {"type": "string"},
+        "tags": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {"$ref": "#/definitions/reference"},
+              {"$ref": "#/definitions/tag"}
+            ]
+          }
+        },
+        "externalDocs": {"$ref": "#/definitions/externalDocs"},
+        "bindings": {"type": "object"},
+        "examples": {"type": "array"},
+        "traits": {"type": "array"}
+      }
+    },
+    "components": {"type": "object", "additionalProperties": false, "patternProperties": { "^x-": {}},
+      "properties": {
+        "schemas": {"type": "object"},
+        "servers": {"type": "object"},
+        "channels": {"type": "object"},
+        "operations": {"type": "object"},
+        "securitySchemes": {"type": "object"},
+        "serverVariables": {"type": "object"},
+        "parameters": {"type": "object"},
+        "correlationIds": {"type": "object"},
+        "replies": {"type": "object"},
+        "replyAddresses": {"type": "object"},
+        "externalDocs": {"type": "object"},
+        "tags": {"type": "object"},
+        "operationTraits": {"type": "object"},
+        "messageTraits": {"type": "object"},
+        "serverBindings": {"type": "object"},
+        "channelBindings": {"type": "object"},
+        "operationBindings": {"type": "object"},
+        "messageBindings": {"type": "object"},
+        "messages": {
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [
+              {"$ref": "#/definitions/reference"},
+              {"$ref": "#/definitions/message"}
+            ]
+          }
+        }
+      }
+    }
+  }
+}
