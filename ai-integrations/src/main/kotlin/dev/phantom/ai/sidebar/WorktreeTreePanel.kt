@@ -24,6 +24,7 @@ import dev.phantom.ai.core.folders
 import dev.phantom.ai.core.moveToFolder
 import dev.phantom.ai.core.renameFolder
 import dev.phantom.ai.terminal.submit
+import dev.phantom.workspaces.core.WorktreeRename
 import org.jetbrains.annotations.TestOnly
 import java.awt.BorderLayout
 import java.awt.Color
@@ -386,7 +387,20 @@ class WorktreeTreePanel(
     refresh()
   }
 
+  /**
+   * A linked worktree is renamed with its folder through Phantom Workspaces, as in the Projects and Files list, so both
+   * show the new name ([WorktreeRenameSync]); never while agent sessions run in it. The main checkout cannot move: it
+   * keeps a name of its own in the tree.
+   */
   private fun renameWorktree(w: WorktreeNode) {
+    if (!w.isMain) {
+      if (SessionStore.getInstance().forWorktree(w.path).isNotEmpty()) {
+        Messages.showInfoMessage(project, PhantomAiBundle.message("worktree.rename.busy"), PhantomAiBundle.message("sidebar.rename"))
+        return
+      }
+      WorktreeRename.rename(project, w.path, background) { refresh() }
+      return
+    }
     val name = Messages.showInputDialog(project, PhantomAiBundle.message("sidebar.worktree.name"), PhantomAiBundle.message("sidebar.rename"), null, w.title, null) ?: return
     AiState.getInstance().worktree(w.path).userName = name.trim().ifEmpty { null }
     AiState.getInstance().changed()

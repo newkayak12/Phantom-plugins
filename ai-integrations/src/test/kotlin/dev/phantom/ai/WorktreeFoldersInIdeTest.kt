@@ -17,6 +17,7 @@ import dev.phantom.ai.core.deleteFolder
 import dev.phantom.ai.core.folders
 import dev.phantom.ai.core.moveToFolder
 import dev.phantom.ai.core.renameFolder
+import dev.phantom.ai.core.moveWorktree
 import dev.phantom.ai.sidebar.FolderNode
 import dev.phantom.ai.sidebar.PrTitles
 import dev.phantom.ai.sidebar.ProjectOpener
@@ -177,4 +178,17 @@ class WorktreeFoldersInIdeTest : BasePlatformTestCase() {
     a.deleteFolder("/r", "Z")
     assertEquals(listOf("X"), a.folders("/r").map { it.name })
   }
-}
+
+  fun testAMovedWorktreeKeepsItsFolderLineageAndSessionsAndShowsItsNewName() {
+    val a = AiState()
+    a.addFolder("/r", "X")
+    a.moveToFolder("/r", "/r/a", "X")
+    a.worktree("/r/child").parentPath = "/r/a"
+    a.rememberSession("/r/a", AgentKind.CLAUDE, "s1", "hi")
+    a.moveWorktree("/r/a", "/r/login", "login")
+    assertEquals("login", a.findWorktree("/r/login")!!.userName)
+    assertNull(a.findWorktree("/r/a"))
+    assertEquals("/r/login", a.findWorktree("/r/child")!!.parentPath)
+    assertEquals("hi", a.sessionsOf("/r/login").single().firstPrompt)
+    assertEquals(listOf("/r/login"), a.folders("/r").single().worktrees)
+  } }

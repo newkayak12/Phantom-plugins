@@ -104,5 +104,6 @@
     <listener class="dev.phantom.ai.usage.UsageStarter" topic="dev.phantom.ai.core.SessionListener"/>
     <!-- a finished session moves its board card from In progress to In review, with or without an open board -->
     <listener class="dev.phantom.ai.board.BoardReviewMover" topic="dev.phantom.ai.core.SessionListener"/>
+    <listener class="dev.phantom.ai.sidebar.WorktreeRenameSync" topic="dev.phantom.workspaces.core.WorktreeRenameListener"/>
   </applicationListeners>
 </idea-plugin>

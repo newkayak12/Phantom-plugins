@@ -168,13 +168,14 @@ class WorktreeTreePanelInIdeTest : BasePlatformTestCase() {
     assertEquals(LaunchCommand.launch(AgentKind.CLAUDE), started.single().command)
     click(worktreeRow("/r/app-feat"), "sidebar.open.phantom")
     assertEquals(listOf("/r/app-feat"), opened)
+    // the main checkout cannot move: it keeps a name of its own (linked worktrees: WorktreeRenameSyncInIdeTest)
     val previous = TestDialogManager.setTestInputDialog(TestInputDialog { "Renamed" })
     try {
-      click(worktreeRow("/r/app-feat"), "sidebar.rename")
+      click(worktreeRow("/r/app"), "sidebar.rename")
     } finally {
       TestDialogManager.setTestInputDialog(previous)
     }
-    assertEquals("Renamed", (objectAt(worktreeRow("/r/app-feat")) as WorktreeNode).title)
+    assertEquals("Renamed", (objectAt(worktreeRow("/r/app")) as WorktreeNode).title)
   }
 
   fun testDoubleClickAndEnterOnSessionRowResume() {
@@ -215,12 +216,12 @@ class WorktreeTreePanelInIdeTest : BasePlatformTestCase() {
   }
 
   fun testF2RenamesTheSelectedWorktreeOrSession() {
-    tree.selectionPath = tree.getPathForRow(worktreeRow("/r/app-feat"))
+    tree.selectionPath = tree.getPathForRow(worktreeRow("/r/app"))
     withInput("Login") {
       tree.keyListeners.forEach { it.keyPressed(KeyEvent(tree, KeyEvent.KEY_PRESSED, System.currentTimeMillis(), 0, KeyEvent.VK_F2, KeyEvent.CHAR_UNDEFINED)) }
     }
     PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
-    assertEquals("Login", (objectAt(worktreeRow("/r/app-feat")) as WorktreeNode).title)
+    assertEquals("Login", (objectAt(worktreeRow("/r/app")) as WorktreeNode).title)
     tree.selectionPath = tree.getPathForRow(sessionRow())
     withInput("Bot") { panel.renameSelected() }
     assertEquals("Bot", SessionStore.getInstance().get("t1")!!.userTitle)

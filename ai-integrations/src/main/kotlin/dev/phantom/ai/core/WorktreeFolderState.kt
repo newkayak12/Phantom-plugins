@@ -42,3 +42,19 @@ fun AiState.moveToFolder(repo: String, worktree: String, folder: String?) {
   folders(repo).firstOrNull { it.name == folder }?.worktrees?.add(worktree)
   edited()
 }
+
+/**
+ * A worktree's folder moved from [old] to [new] (renamed in either view): its entry, the worktrees made from it, its
+ * remembered sessions and its folder follow; the tree shows [name].
+ */
+fun AiState.moveWorktree(old: String, new: String, name: String) {
+  state.worktrees.removeIf { it.path == new }
+  state.worktrees.forEach { e ->
+    if (e.path == old) e.path = new
+    if (e.parentPath == old) e.parentPath = new
+  }
+  worktree(new).userName = name
+  state.sessions.filter { it.worktree == old }.forEach { it.worktree = new }
+  state.worktreeFolders.forEach { f -> f.worktrees.replaceAll { if (it == old) new else it } }
+  edited()
+}
