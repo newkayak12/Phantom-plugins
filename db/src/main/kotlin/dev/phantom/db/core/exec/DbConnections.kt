@@ -801,8 +801,9 @@ data class DbTableRef(val dataSourceId: String, val catalog: String?, val schema
 data class DbColumnInfo(val name: String, val typeName: String, val nullable: Boolean, val primaryKey: Boolean)
 
 /**
- * Schema metadata the tree has loaded, kept in memory only. Entries are filled when a node is expanded and dropped on
- * Refresh or after DDL from a console; completion reads this cache and never connects.
+ * Schema metadata the tree has loaded. Entries are filled when a node is expanded and dropped on Refresh or after DDL
+ * from a console; completion reads this cache and never connects. What was loaded is also kept in [DbMetadataStore],
+ * which the `cached*` functions fall back to for parts not loaded in this session (after a restart, or offline).
  */
 @Service(Service.Level.PROJECT)
 class DbMetadataCache(private val project: Project) {
@@ -824,7 +825,7 @@ class DbMetadataCache(private val project: Project) {
         }
       }
       all.sortedWith(compareBy<DbSchemaRef> { !it.name.equals(current, ignoreCase = true) }.thenBy { isSystem(it) }.thenBy { it.name.lowercase() })
-    }.also { schemas[dataSource.id] = it }
+    }.also { schemas[dataSource.id] = it; store.update(dataSource.id) { s -> s.replaceSchemas(it) } }
     return (if (includeSystem) all else all.filterNot(::isSystem)).filter { DbSchemaScope.matches(dataSource.schemas, it.name) }
   }
 
@@ -836,7 +837,7 @@ class DbMetadataCache(private val project: Project) {
       }.filter { (it.kind.contains("TABLE", true) || it.kind.contains("VIEW", true)) && !it.kind.contains("SYSTEM", true) }
         .toList()
     }.sortedWith(compareBy<DbTableRef> { it.isView }.thenBy { it.name.lowercase() })
-  }.also { tables[schema] = it }
+  }.also { tables[schema] = it; store.update(dataSource.id) { s -> s.replaceTables(schema, it) } }
 
   suspend fun columns(dataSource: DbDataSource, table: DbTableRef): List<DbColumnInfo> = columns[table] ?: metadata(dataSource) { md, _ ->
     val keys = runCatching {
@@ -856,30 +857,54 @@ class DbMetadataCache(private val project: Project) {
         DbColumnInfo(name, typeText, rs.getInt("NULLABLE") != DatabaseMetaData.columnNoNulls, name in keys)
       }.filter { it.name.isNotEmpty() }.toList()
     }
-  }.also { columns[table] = it }
+  }.also { columns[table] = it; store.update(dataSource.id) { s -> s.columns[table] = it } }
 
-  fun cachedTables(dataSourceId: String): List<DbTableRef> = tables.filterKeys { it.dataSourceId == dataSourceId }.values.flatten()
+  fun cachedTables(dataSourceId: String): List<DbTableRef> {
+    val fresh = tables.filterKeys { it.dataSourceId == dataSourceId }
+    val stored = store.get(dataSourceId)?.tables?.filterKeys { it !in fresh }.orEmpty()
+    return (fresh + stored).values.flatten()
+  }
 
-  fun cachedColumns(table: DbTableRef): List<DbColumnInfo>? = columns[table]
+  fun cachedColumns(table: DbTableRef): List<DbColumnInfo>? = columns[table] ?: store.get(table.dataSourceId)?.columns?.get(table)
 
   fun cachedSchemas(dataSourceId: String): List<DbSchemaRef>? {
     val scope = DbDataSourceService.getInstance(project).find(dataSourceId)?.schemas.orEmpty()
-    return schemas[dataSourceId]?.filterNot(::isSystem)?.filter { DbSchemaScope.matches(scope, it.name) }
+    return (schemas[dataSourceId] ?: store.get(dataSourceId)?.schemas)?.filterNot(::isSystem)?.filter { DbSchemaScope.matches(scope, it.name) }
   }
 
   /** Every table, view and column the tree has loaded, of every data source; never connects. */
-  fun cachedTables(): List<DbTableRef> = tables.values.flatten()
+  fun cachedTables(): List<DbTableRef> = dataSourceIds().flatMap(::cachedTables)
 
-  fun cachedColumns(): Map<DbTableRef, List<DbColumnInfo>> = HashMap(columns)
+  fun cachedColumns(): Map<DbTableRef, List<DbColumnInfo>> {
+    val all = HashMap<DbTableRef, List<DbColumnInfo>>()
+    for (id in dataSourceIds()) store.get(id)?.columns?.let(all::putAll)
+    all.putAll(columns)
+    return all
+  }
 
-  fun hasCachedTables(schema: DbSchemaRef): Boolean = tables.containsKey(schema)
+  fun hasCachedTables(schema: DbSchemaRef): Boolean = tables.containsKey(schema) || store.get(schema.dataSourceId)?.tables?.containsKey(schema) == true
 
-  fun invalidate(dataSourceId: String) {
+  /** Whether the schema list, a schema's tables or a table's columns were loaded in this session, not only read from disk. */
+  fun isFresh(dataSourceId: String): Boolean = schemas.containsKey(dataSourceId)
+  fun isFresh(schema: DbSchemaRef): Boolean = tables.containsKey(schema)
+  fun isFresh(table: DbTableRef): Boolean = columns.containsKey(table)
+
+  /**
+   * Drops what was loaded for [dataSourceId]. [keepStored] (Refresh) keeps the stored copy for completion until each
+   * part is loaded again and replaces it; otherwise (DDL, changed or removed data source) the stored copy goes too.
+   */
+  fun invalidate(dataSourceId: String, keepStored: Boolean = false) {
     schemas.remove(dataSourceId)
     tables.keys.removeIf { it.dataSourceId == dataSourceId }
     columns.keys.removeIf { it.dataSourceId == dataSourceId }
     DbObjectCache.getInstanceIfCreated(project)?.invalidate(dataSourceId)
+    if (!keepStored) store.drop(dataSourceId)
   }
+
+  private val store: DbMetadataStore get() = DbMetadataStore.getInstance()
+
+  private fun dataSourceIds(): Set<String> =
+    DbDataSourceService.getInstance(project).dataSources.mapTo(HashSet()) { it.id } + tables.keys.map { it.dataSourceId }
 
   private suspend fun <T> metadata(dataSource: DbDataSource, block: (DatabaseMetaData, Connection) -> T): T =
     DbConnectionService.getInstance(project).withConnection(dataSource, DbConnectionService.Purpose.METADATA) { c ->
@@ -901,7 +926,8 @@ class DbMetadataCache(private val project: Project) {
     fun getInstance(project: Project): DbMetadataCache = project.service()
     fun getInstanceIfCreated(project: Project): DbMetadataCache? = project.serviceIfCreated()
 
-    fun cachedTables(project: Project, dataSourceId: String): List<DbTableRef> = getInstanceIfCreated(project)?.cachedTables(dataSourceId).orEmpty()
-    fun cachedColumns(project: Project, table: DbTableRef): List<DbColumnInfo>? = getInstanceIfCreated(project)?.cachedColumns(table)
+    // getInstance, not getInstanceIfCreated: after a restart the service holds nothing yet, but the stored copy may
+    fun cachedTables(project: Project, dataSourceId: String): List<DbTableRef> = getInstance(project).cachedTables(dataSourceId)
+    fun cachedColumns(project: Project, table: DbTableRef): List<DbColumnInfo>? = getInstance(project).cachedColumns(table)
   }
 }

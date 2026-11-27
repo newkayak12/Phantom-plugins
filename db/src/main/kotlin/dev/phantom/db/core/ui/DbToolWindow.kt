@@ -593,7 +593,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
   private fun refresh() {
     val cache = DbMetadataCache.getInstance(project)
     val sources = selectedSource()?.let { listOf(it) } ?: DbDataSourceService.getInstance(project).dataSources
-    sources.forEach { cache.invalidate(it.id) }
+    sources.forEach { cache.invalidate(it.id, keepStored = true) }
     reload()
   }
 
