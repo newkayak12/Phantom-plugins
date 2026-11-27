@@ -189,7 +189,7 @@
     {
       "id": "dev.phantom.profiler",
       "name": "Phantom Profiler",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "source": "profiler",
       "description": "CPU and allocation profiling for Java and Kotlin with Java Flight Recorder: a Profile action next to Run and Debug, a Profiler tool window that records any running JVM, and a .jfr viewer with flame graph, call tree, hot methods, allocations and GC summary. Profile also works on Gradle run configurations: tests run by Gradle and applications delegated to Gradle, one recording per forked JVM.",
       "vendor": "Phantom",
@@ -200,7 +200,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "profiler-0.2.2/profiler-0.2.2.zip"
+      "download": "profiler-0.2.3/profiler-0.2.3.zip"
     },
     {
       "id": "dev.phantom.docker",

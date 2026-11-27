@@ -2862,6 +2862,7 @@
     <ID>TooManyFunctions:ProbeMac.kt:ProbeMac</ID>
     <ID>TooManyFunctions:ProbePopup.kt:ProbePopup</ID>
     <ID>TooManyFunctions:ProfileRun.kt:ProfileExecutor : Executor</ID>
+    <ID>TooManyFunctions:ProfileRun.kt:Recordings</ID>
     <ID>TooManyFunctions:ProgressIndicatorWrapper.kt:ProgressIndicatorWrapper : ProgressIndicator</ID>
     <ID>TooManyFunctions:ProjectTabStrip.kt:ProjectTabStrip : JPanel</ID>
     <ID>TooManyFunctions:ProjectTabs.kt:ProjectTabs</ID>
