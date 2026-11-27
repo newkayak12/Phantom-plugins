@@ -30,7 +30,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 
 | 플러그인 | 폴더 | 설명 |
 |----------|------|------|
-| Phantom Database Console | [db](./db/KOR.md) · [English](./db/README.md) | 드라이버를 추가할 수 있는 JDBC 콘솔(MySQL, PostgreSQL, H2, AWS, Oracle 등). 에디터에서 SQL 실행, 결과 그리드, 스키마 트리 |
+| Phantom Database Console | [db](./db/KOR.md) · [English](./db/README.md) | 드라이버를 추가할 수 있는 JDBC 콘솔(MySQL, PostgreSQL, H2, AWS, Oracle 등). 에디터에서 SQL 실행, 결과 그리드, 스키마 트리, MongoDB find/aggregate 콘솔 |
 | Support for Spring | [spring](./spring/KOR.md) · [English](./spring/README.md) | 빈 주입 이동, 자동 주입 검사, Spring MVC 엔드포인트, Security 경로·표현식, Kafka·RabbitMQ·JMS 이동 (Java, Kotlin) |
 | Support for Spring Boot | [spring-boot](./spring-boot/KOR.md) · [English](./spring-boot/README.md) | Spring Initializr로 새 Spring Boot 프로젝트 만들기, `application.yml` / `.properties` 키·값 자동완성과 문서 |
 | Phantom for Spring Security | [spring-security](./spring-security/KOR.md) · [English](./spring-security/README.md) | 거터에 `SecurityFilterChain` 순서, 매처, 규칙 표시; Spring Security가 시작할 때 거부하는 매처 순서 |
