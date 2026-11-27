@@ -4,9 +4,9 @@
 
 ## 0.7.1 (2026-11-27)
 
-- 트리와 보드의 열린 PR 제목은 Settings | Tools | Phantom AI Integration의 "Show the open pull request of each branch"를 켠 경우에만 GitHub API로 찾는다. 기본은 꺼져 있다. (#PR)
-- 에이전트 팀 확인은 Claude 세션이 모두 끝나면 멈추고 다음 세션에서 다시 시작한다. (#PR)
-- GitHub 토큰 조회와 에이전트 데이터베이스 도구가 취소 요청에 응답한다. (#PR)
+- 트리와 보드의 열린 PR 제목은 Settings | Tools | Phantom AI Integration의 "Show the open pull request of each branch"를 켠 경우에만 GitHub API로 찾는다. 기본은 꺼져 있다. (#167)
+- 에이전트 팀 확인은 Claude 세션이 모두 끝나면 멈추고 다음 세션에서 다시 시작한다. (#167)
+- GitHub 토큰 조회와 에이전트 데이터베이스 도구가 취소 요청에 응답한다. (#167)
 
 ## 0.7.0 (2026-11-27)
 
