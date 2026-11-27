@@ -2,6 +2,12 @@
 
 ## 미배포
 
+## 0.1.5 (2026-11-27)
+
+- 구독하지 않은 리액티브 값 검사가 오류가 아니라 경고로 표시된다. (#PR)
+- 아무것도 돌려주지 않는 람다의 본문(`users.forEach(u -> repository.save(u))`, Kotlin `forEach { repository.save(it) }`)으로 버려진 리액티브 값도 알린다. (#PR)
+- 연산자에 넘긴 익명 클래스 안의 블로킹 호출과 `toIterable()`, `toStream()`, RxJava의 다른 `blocking…` 메서드, `Future.get()` / `join()`도 알린다. (#PR)
+
 ## 0.1.4 (2026-11-26)
 
 - 표시 이름을 바꿨다: Phantom for Reactive Streams → Support for Reactive Streams. 플러그인 id와 기능은 그대로다. (#136)

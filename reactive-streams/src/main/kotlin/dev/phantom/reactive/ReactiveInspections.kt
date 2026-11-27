@@ -10,9 +10,11 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.psi.JavaPsiFacade
+import com.intellij.psi.LambdaUtil
 import com.intellij.psi.PsiClassType
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiType
+import com.intellij.psi.PsiTypes
 import com.intellij.psi.util.InheritanceUtil
 import com.intellij.uast.UastHintedVisitorAdapter
 import org.jetbrains.annotations.Nls
@@ -22,8 +24,11 @@ import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UElement
 import org.jetbrains.uast.UExpression
 import org.jetbrains.uast.ULambdaExpression
+import org.jetbrains.uast.UMethod
+import org.jetbrains.uast.UObjectLiteralExpression
 import org.jetbrains.uast.UParenthesizedExpression
 import org.jetbrains.uast.UQualifiedReferenceExpression
+import org.jetbrains.uast.UReturnExpression
 import org.jetbrains.uast.UastCallKind
 import org.jetbrains.uast.visitor.AbstractUastNonRecursiveVisitor
 
@@ -95,11 +100,34 @@ class UnusedPublisherInspection : AbstractBaseUastLocalInspectionTool() {
     }, arrayOf(UCallExpression::class.java), true)
   }
 
-  /** A statement in a block; the last expression of a lambda body is the lambda's value, so it is used. */
+  /**
+   * A statement in a block. The last expression of a lambda body (or an expression lambda's body) is the lambda's value,
+   * so it is used, unless the lambda returns nothing: `users.forEach(u -> repository.save(u))` drops it.
+   */
   private fun isDropped(expression: UExpression): Boolean {
-    val block = expression.uastParent as? UBlockExpression ?: return false
-    if (block.uastParent is ULambdaExpression && block.expressions.lastOrNull() == expression) return false
-    return true
+    when (val parent = expression.uastParent) {
+      is ULambdaExpression -> return returnsNothing(parent)
+      // the implicit return UAST puts around an expression lambda's body or a Kotlin lambda's last expression
+      is UReturnExpression -> {
+        if (parent.sourcePsi != null) return false
+        val lambda = parent.uastParent as? ULambdaExpression ?: parent.uastParent?.uastParent as? ULambdaExpression ?: return false
+        return returnsNothing(lambda)
+      }
+      is UBlockExpression -> {
+        val lambda = parent.uastParent as? ULambdaExpression
+        return lambda == null || parent.expressions.lastOrNull() != expression || returnsNothing(lambda)
+      }
+      else -> return false
+    }
+  }
+
+  /** The lambda is a `void` functional interface (Consumer, Runnable) or a Kotlin function type returning Unit. */
+  private fun returnsNothing(lambda: ULambdaExpression): Boolean {
+    val type = lambda.functionalInterfaceType ?: lambda.getExpressionType() ?: return false
+    LambdaUtil.getFunctionalInterfaceReturnType(type)?.let { return it == PsiTypes.voidType() || it.canonicalText == "kotlin.Unit" }
+    // Kotlin function types (kotlin.jvm.functions.FunctionN) take the return type as their last type argument
+    val classType = type as? PsiClassType ?: return false
+    return classType.className.startsWith("Function") && classType.parameters.lastOrNull()?.canonicalText?.removePrefix("? extends ") == "kotlin.Unit"
   }
 }
 
@@ -125,25 +153,41 @@ class BlockingInReactiveInspection : AbstractBaseUastLocalInspectionTool() {
   private fun isBlocking(call: UCallExpression): Boolean {
     val name = call.methodName ?: return false
     if (name == "sleep") return call.resolve()?.containingClass?.qualifiedName == "java.lang.Thread"
+    if (name == "get" || name == "join") {
+      val receiver = (call.receiverType as? PsiClassType)?.resolve() ?: return false
+      return InheritanceUtil.isInheritor(receiver, "java.util.concurrent.Future") || receiver.qualifiedName == "java.util.concurrent.Future"
+    }
     if (name !in BLOCKING) return false
     return ReactiveTypes.isLazy(call.receiverType)
   }
 
-  /** The nearest enclosing lambda is an argument of a call made on a reactive value (`flux.map { … }`). */
+  /**
+   * The nearest enclosing lambda, or method of an anonymous class (`flux.map(new Function<>() { … })`), is an argument of
+   * a call made on a reactive value (`flux.map { … }`).
+   */
   private fun insideReactiveOperator(call: UCallExpression): Boolean {
     var element: UElement? = call.uastParent
     while (element != null) {
-      if (element is ULambdaExpression) {
-        val operator = element.uastParent as? UCallExpression ?: return false
-        return ReactiveTypes.isLazy(operator.receiverType) || ReactiveTypes.isLazy(operator.returnType) && operator.receiver != null
+      if (element is ULambdaExpression) return isOperator(element.uastParent)
+      if (element is UMethod) {
+        val literal = element.uastParent?.uastParent as? UObjectLiteralExpression ?: return false
+        return isOperator(literal.uastParent)
       }
-      if (element is org.jetbrains.uast.UMethod) return false
       element = element.uastParent
     }
     return false
   }
 
+  private fun isOperator(element: UElement?): Boolean {
+    val operator = element as? UCallExpression ?: return false
+    return ReactiveTypes.isLazy(operator.receiverType) || ReactiveTypes.isLazy(operator.returnType) && operator.receiver != null
+  }
+
   private companion object {
-    val BLOCKING = setOf("block", "blockFirst", "blockLast", "blockOptional", "blockingGet", "blockingFirst", "blockingLast", "blockingAwait")
+    val BLOCKING = setOf(
+      "block", "blockFirst", "blockLast", "blockOptional", "toIterable", "toStream",
+      "blockingGet", "blockingFirst", "blockingLast", "blockingAwait", "blockingSingle", "blockingIterable", "blockingStream",
+      "blockingForEach", "blockingSubscribe", "blockingNext", "blockingLatest", "blockingMostRecent",
+    )
   }
 }

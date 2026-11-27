@@ -19,7 +19,7 @@
 
   <resource-bundle>messages.PhantomReactiveBundle</resource-bundle>
   <extensions defaultExtensionNs="com.intellij">
-    <localInspection language="UAST" enabledByDefault="true" level="ERROR" shortName="PhantomUnusedPublisher"
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomUnusedPublisher"
                      bundle="messages.PhantomReactiveBundle" key="unused.display.name"
                      groupBundle="messages.PhantomReactiveBundle" groupKey="group.name"
                      implementationClass="dev.phantom.reactive.UnusedPublisherInspection"/>

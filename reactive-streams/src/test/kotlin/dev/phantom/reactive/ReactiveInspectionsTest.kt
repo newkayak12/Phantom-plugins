@@ -19,6 +19,7 @@ class ReactiveInspectionsTest : LightJavaCodeInsightFixtureTestCase() {
         public <R> Mono<R> flatMap(java.util.function.Function<T, Mono<R>> f) { return null; }
         public Mono<T> doOnNext(java.util.function.Consumer<T> c) { return null; }
         public T block() { return null; }
+        public java.util.concurrent.CompletableFuture<T> toFuture() { return null; }
         public reactor.core.Disposable subscribe() { return null; }
       }
     """.trimIndent())
@@ -53,6 +54,51 @@ class ReactiveInspectionsTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals(found.toString(), 2, found.count { it.startsWith("The result of 'save'") || it.startsWith("The result of 'map'") })
     assertEquals(found.toString(), listOf("'block' blocks a reactive scheduler thread. Use flatMap or move the blocking work to Schedulers.boundedElastic()."),
                  found.filter { "blocks" in it })
+  }
+
+  fun testDroppedInLambdasThatReturnNothing() {
+    myFixture.configureByText("Service.java", """
+      package app;
+      import java.util.List;
+      import reactor.core.publisher.Mono;
+      class Service {
+        UserRepository repository;
+        void saveAll(List<String> users) { users.forEach(u -> repository.save(u)); }
+        Mono<String> used(String user) { return Mono.just(user).flatMap(u -> repository.save(u)); }
+      }
+    """.trimIndent())
+    val dropped = myFixture.doHighlighting(HighlightSeverity.WEAK_WARNING).filter { it.description?.startsWith("The result of 'save'") == true }
+    assertEquals(dropped.toString(), 1, dropped.size)
+    // a warning, not an error: the code compiles and may be meant
+    assertEquals(HighlightSeverity.WARNING, dropped.single().severity)
+  }
+
+  fun testKotlinDroppedInUnitLambda() {
+    myFixture.configureByText("Service.kt", """
+      package app
+      class Service(private val repository: UserRepository) {
+          fun saveAll(users: List<String>) { users.forEach { repository.save(it) } }
+      }
+    """.trimIndent())
+    val found = problems()
+    assertEquals(found.toString(), 1, found.count { it.startsWith("The result of 'save'") })
+  }
+
+  fun testBlockingInAnonymousClassesAndFutures() {
+    myFixture.configureByText("Service.java", """
+      package app;
+      import reactor.core.publisher.Mono;
+      class Service {
+        UserRepository repository;
+        Mono<String> anonymous(String user) {
+          return Mono.just(user).map(new java.util.function.Function<String, String>() {
+            public String apply(String u) { return repository.save(u).block(); }
+          });
+        }
+        Mono<String> future(String user) { return Mono.just(user).map(u -> repository.save(u).toFuture().join()); }
+      }
+    """.trimIndent())
+    assertEquals(listOf("'block' blocks", "'join' blocks"), problems().filter { "blocks" in it }.map { it.substringBefore(" a reactive") }.sorted())
   }
 
   fun testKotlin() {
