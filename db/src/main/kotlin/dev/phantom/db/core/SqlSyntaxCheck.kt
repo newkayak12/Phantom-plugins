@@ -190,7 +190,7 @@ internal object SqlSyntaxCheck {
   private val COMPARISONS = setOf("=", "<", ">", "<=", ">=", "<>", "!=")
   private val AFTER_LIST = arrayOf("FROM", "WHERE", "GROUP", "HAVING", "ORDER", "LIMIT", "UNION")
   private val CLAUSES = arrayOf("WHERE", "GROUP", "HAVING", "ORDER", "LIMIT", "FROM", "JOIN", "UNION", "ON")
-  private val BEFORE_SELECT = arrayOf("UNION", "ALL", "DISTINCT", "EXCEPT", "INTERSECT", "MINUS")
+  internal val BEFORE_SELECT = arrayOf("UNION", "ALL", "DISTINCT", "EXCEPT", "INTERSECT", "MINUS")
   private val RANK = mapOf("FROM" to 1, "WHERE" to 2, "GROUP" to 3, "HAVING" to 4, "ORDER" to 5, "LIMIT" to 6)
   private val NAMES = mapOf(1 to "FROM", 2 to "WHERE", 3 to "GROUP BY", 4 to "HAVING", 5 to "ORDER BY", 6 to "LIMIT")
   private val STATEMENT_STARTS = listOf("SELECT", "INSERT", "UPDATE", "DELETE", "CREATE", "ALTER", "DROP")
@@ -224,12 +224,37 @@ class SqlSyntaxAnnotator : Annotator, DumbAware {
     if (InjectedLanguageManager.getInstance(element.project).isInjectedFragment(element.containingFile) &&
         !SqlWholeInjection.isWhole(element.containingFile)) return
     if (dev.phantom.db.core.ui.DbFilterContext.of(element.containingFile) != null) return
+    val node = element.node
+    if (node.firstChildNode?.elementType == SqlTokens.DELIMITER_COMMAND) return
     val base = element.textRange.startOffset
-    for (problem in SqlSyntaxCheck.check(element.text)) {
+    missingSemicolon(element, holder)
+    // a `DELIMITER` delimiter is no SQL: `END$$` alone would read as the name `END$$`
+    val last = node.lastChildNode
+    val text = if (last?.elementType == SqlTokens.DELIMITER) element.text.substring(0, last.startOffsetInParent) else element.text
+    for (problem in SqlSyntaxCheck.check(text)) {
       var builder = holder.newAnnotation(HighlightSeverity.ERROR, problem.message).range(TextRange(base + problem.start, base + problem.end))
       problem.fix?.let { builder = builder.withFix(Fix(base, it)) }
       builder.create()
     }
+  }
+
+  /**
+   * The parser ends a statement where its `;` is missing (`SqlParserContext.missingSemicolonAt`), so the next one
+   * carries the error, with the fix after the last token of the one before.
+   */
+  private fun missingSemicolon(element: SqlStatement, holder: AnnotationHolder) {
+    val first = element.node.firstChildNode ?: return
+    var previous = element.node.treePrev
+    while (previous != null && (previous.elementType == TokenType.WHITE_SPACE || previous.elementType in SqlTokens.COMMENTS)) previous = previous.treePrev
+    if (previous == null || previous.elementType != SqlElements.STATEMENT) return
+    val end = previous.lastChildNode ?: return
+    if (end.elementType == SqlTokens.SEMICOLON || end.elementType == SqlTokens.DELIMITER ||
+        previous.firstChildNode?.elementType == SqlTokens.DELIMITER_COMMAND) return
+    val at = previous.textRange.endOffset
+    val fix = SqlSyntaxFix(at, at, ";", PhantomDbBundle.message("sql.syntax.fix.add", ";"))
+    val leaf = com.intellij.psi.impl.source.tree.TreeUtil.findFirstLeaf(first) ?: first
+    holder.newAnnotation(HighlightSeverity.ERROR, PhantomDbBundle.message("sql.syntax.missing.semicolon")).range(leaf.textRange)
+      .withFix(Fix(0, fix)).create()
   }
 
   private class Fix(private val base: Int, private val fix: SqlSyntaxFix) : IntentionAction {

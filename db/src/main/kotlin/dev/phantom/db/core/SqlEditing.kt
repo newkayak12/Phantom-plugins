@@ -63,7 +63,8 @@ class SqlSyntaxHighlighter : SyntaxHighlighterBase() {
       SqlTokens.BLOCK_COMMENT -> SqlColors.BLOCK_COMMENT
       SqlTokens.PARAMETER -> SqlColors.PARAMETER
       SqlTokens.OPERATOR -> SqlColors.OPERATOR
-      SqlTokens.SEMICOLON -> SqlColors.SEMICOLON
+      SqlTokens.SEMICOLON, SqlTokens.DELIMITER -> SqlColors.SEMICOLON
+      SqlTokens.DELIMITER_COMMAND -> SqlColors.KEYWORD
       SqlTokens.COMMA -> SqlColors.COMMA
       SqlTokens.DOT -> SqlColors.DOT
       SqlTokens.LPAREN, SqlTokens.RPAREN -> SqlColors.PARENTHESES

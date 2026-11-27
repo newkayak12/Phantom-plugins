@@ -29,10 +29,12 @@ class SqlAnyParserTest : SqlParsingTestCase("any", SqlDialects.ANY) {
   fun testSelectJoin() = doTest()
   fun testCteAndSubquery() = doTest()
   fun testIncompleteStatements() = doTest()
+  fun testMissingSemicolon() = doTest()
 }
 
 class SqlMySqlParserTest : SqlParsingTestCase("mysql", MySqlDialect) {
   fun testOnDuplicateKeyUpdate() = doTest()
+  fun testDelimiterBlocks() = doTest()
 }
 
 class SqlMariaDbParserTest : SqlParsingTestCase("mariadb", MariaDbDialect) {
@@ -41,6 +43,7 @@ class SqlMariaDbParserTest : SqlParsingTestCase("mariadb", MariaDbDialect) {
 
 class SqlPostgresParserTest : SqlParsingTestCase("postgresql", PostgresDialect) {
   fun testCastAndOnConflict() = doTest()
+  fun testDollarQuotedBody() = doTest()
 }
 
 class SqlH2ParserTest : SqlParsingTestCase("h2", H2Dialect) {

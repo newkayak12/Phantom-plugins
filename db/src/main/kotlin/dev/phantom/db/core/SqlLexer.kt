@@ -9,8 +9,9 @@ import com.intellij.psi.tree.IElementType
  * Single-pass SQL lexer for MySQL, PostgreSQL and H2 together: backtick, double-quote and bracket identifiers,
  * `--`/`#`/`/* */` comments, `'…'` strings with `''` and backslash escapes, PostgreSQL dollar-quoted bodies.
  *
- * Every token is a whole construct (an unclosed comment or string runs to the end), so the state is always 0 and
- * incremental relexing can restart at any token.
+ * Every token is a whole construct (an unclosed comment or string runs to the end). The state is 0 except after a MySQL
+ * client `DELIMITER x` line with `x` other than `;`: then it names `x`, every `x` is a [SqlTokens.DELIMITER] token,
+ * and incremental relexing restarts with that delimiter in force.
  */
 class SqlLexer : LexerBase() {
   private var buffer: CharSequence = ""
@@ -18,15 +19,18 @@ class SqlLexer : LexerBase() {
   private var tokenStart = 0
   private var tokenEnd = 0
   private var type: IElementType? = null
+  /** The active MySQL client delimiter, `null` for the default `;`. */
+  private var delimiter: String? = null
 
   override fun start(buffer: CharSequence, startOffset: Int, endOffset: Int, initialState: Int) {
     this.buffer = buffer
     this.end = endOffset
+    delimiter = delimiterOf(initialState)
     tokenEnd = startOffset
     advance()
   }
 
-  override fun getState(): Int = 0
+  override fun getState(): Int = stateOf(delimiter)
   override fun getTokenType(): IElementType? = type
   override fun getTokenStart(): Int = tokenStart
   override fun getTokenEnd(): Int = tokenEnd
@@ -41,7 +45,10 @@ class SqlLexer : LexerBase() {
     }
     val c = buffer[tokenStart]
     val next = at(tokenStart + 1)
+    val active = delimiter
     when {
+      active != null && !c.isWhitespace() && regionMatches(tokenStart, active) -> token(SqlTokens.DELIMITER, tokenStart + active.length)
+      (c == 'D' || c == 'd') && delimiterCommandEnd() > 0 -> delimiterCommand()
       c.isWhitespace() -> token(TokenType.WHITE_SPACE, skipWhile(tokenStart) { it.isWhitespace() })
       c == '-' && next == '-' || c == '#' -> token(SqlTokens.LINE_COMMENT, lineEnd(tokenStart))
       c == '/' && next == '*' -> token(SqlTokens.BLOCK_COMMENT, blockCommentEnd(tokenStart + 2))
@@ -56,7 +63,9 @@ class SqlLexer : LexerBase() {
       c == '$' -> dollar()
       c.isDigit() || c == '.' && next.isDigit() -> token(SqlTokens.NUMBER, numberEnd(tokenStart))
       isNameStart(c) -> {
-        val wordEnd = skipWhile(tokenStart) { isNamePart(it) }
+        var wordEnd = skipWhile(tokenStart) { isNamePart(it) }
+        // `END$$` under `DELIMITER $$`: the name stops where the delimiter starts
+        if (active != null) wordEnd = (tokenStart + 1 until wordEnd).firstOrNull { regionMatches(it, active) } ?: wordEnd
         token(if (SqlTokens.isKeyword(buffer.subSequence(tokenStart, wordEnd))) SqlTokens.KEYWORD else SqlTokens.IDENTIFIER, wordEnd)
       }
       c == '?' -> token(SqlTokens.PARAMETER, tokenStart + 1)
@@ -169,7 +178,29 @@ class SqlLexer : LexerBase() {
     token(SqlTokens.STRING, end)
   }
 
+  /**
+   * The end of a MySQL client `DELIMITER x` command starting here, or -1: the word first on its line, then blanks and
+   * one run of non-blank characters. The client reads it before the server sees anything, so it is no SQL keyword.
+   */
+  private fun delimiterCommandEnd(): Int {
+    val wordEnd = tokenStart + DELIMITER_WORD.length
+    if (wordEnd >= end || !buffer.subSequence(tokenStart, wordEnd).toString().equals(DELIMITER_WORD, ignoreCase = true)) return -1
+    var i = tokenStart - 1
+    while (i >= 0 && (buffer[i] == ' ' || buffer[i] == '\t')) i--
+    if (i >= 0 && buffer[i] != '\n' && buffer[i] != '\r') return -1
+    val valueStart = skipWhile(wordEnd) { it == ' ' || it == '\t' }
+    if (valueStart == wordEnd || valueStart >= end || buffer[valueStart].isWhitespace()) return -1
+    return skipWhile(valueStart) { !it.isWhitespace() }
+  }
+
+  private fun delimiterCommand() {
+    val to = delimiterCommandEnd()
+    token(SqlTokens.DELIMITER_COMMAND, to)
+    delimiter = delimiterValue(buffer.subSequence(tokenStart, to))
+  }
+
   private fun regionMatches(at: Int, s: String): Boolean {
+    if (at + s.length > end) return false
     for (k in s.indices) if (buffer[at + k] != s[k]) return false
     return true
   }
@@ -198,6 +229,21 @@ class SqlLexer : LexerBase() {
 
   companion object {
     private const val OPERATOR_CHARS = "+-*/%<>=!~^&|:"
+    private const val DELIMITER_WORD = "DELIMITER"
+
+    /** Lexer states: 0 is `;`, n the n-th other delimiter seen in this process. Scripts use very few distinct ones. */
+    private val DELIMITERS = java.util.concurrent.CopyOnWriteArrayList<String>()
+
+    private fun stateOf(delimiter: String?): Int {
+      if (delimiter == null) return 0
+      DELIMITERS.addIfAbsent(delimiter)
+      return DELIMITERS.indexOf(delimiter) + 1
+    }
+
+    private fun delimiterOf(state: Int): String? = DELIMITERS.getOrNull(state - 1)
+
+    /** The delimiter a `DELIMITER x` command token sets: `null` for `;`. */
+    fun delimiterValue(command: CharSequence): String? = command.substring(DELIMITER_WORD.length).trim().takeIf { it != ";" }
 
     fun isNameStart(c: Char): Boolean = c.isLetter() || c == '_'
     fun isNamePart(c: Char): Boolean = c.isLetterOrDigit() || c == '_' || c == '$'
