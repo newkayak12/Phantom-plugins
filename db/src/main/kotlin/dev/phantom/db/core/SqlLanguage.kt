@@ -69,6 +69,10 @@ object SqlTokens {
   @JvmField val PARAMETER: IElementType = SqlTokenType("PARAMETER")
   @JvmField val OPERATOR: IElementType = SqlTokenType("OPERATOR")
   @JvmField val SEMICOLON: IElementType = SqlTokenType(";")
+  /** The MySQL client command `DELIMITER x`, a statement of its own. */
+  @JvmField val DELIMITER_COMMAND: IElementType = SqlTokenType("DELIMITER_COMMAND")
+  /** The `x` set by `DELIMITER x`, ending statements in place of `;`. */
+  @JvmField val DELIMITER: IElementType = SqlTokenType("DELIMITER")
   @JvmField val COMMA: IElementType = SqlTokenType(",")
   @JvmField val DOT: IElementType = SqlTokenType(".")
   @JvmField val LPAREN: IElementType = SqlTokenType("(")
@@ -102,7 +106,7 @@ object SqlTokens {
 
 object SqlElements {
   @JvmField val FILE: IFileElementType = IFileElementType(SqlLanguage)
-  @JvmField val STATEMENT: IElementType = IElementType("STATEMENT", SqlLanguage)
+  @JvmField val STATEMENT: IElementType = SqlStatementElementType()
   @JvmField val SUBQUERY: IElementType = IElementType("SUBQUERY", SqlLanguage)
   @JvmField val TABLE_REF: IElementType = IElementType("TABLE_REF", SqlLanguage)
   @JvmField val COLUMN_REF: IElementType = IElementType("COLUMN_REF", SqlLanguage)
@@ -131,21 +135,14 @@ class SqlFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, SqlLan
     all.lastOrNull { it.textRange.endOffset <= offset }?.takeIf { sameLine(it.textRange.endOffset, offset) }?.let { return it }
     return all.firstOrNull { it.textRange.startOffset >= offset }?.takeIf { sameLine(offset, it.textRange.startOffset) }
   }
-  /** The SQL to run for a caret at [offset]: [statementAt], cut where a `;` is missing before the next statement. */
-  fun executableAt(offset: Int): String? = statementAt(offset)?.let { SqlStatements.part(it, offset) }
+  /** The SQL to run for a caret at [offset]: [statementAt], which the parser already ends where a `;` is missing. */
+  fun executableAt(offset: Int): String? = statementAt(offset)?.let { SqlStatements.part(it) }
 }
 
-/** One statement, up to and including its `;`. Below it: tokens, names ([SqlTableRef], [SqlColumnRef], ...) and subqueries. */
+/** One statement, up to and including its `;` (or `DELIMITER` delimiter). Below it: tokens, names ([SqlTableRef], [SqlColumnRef], ...) and subqueries. */
 class SqlStatement(node: ASTNode) : ASTWrapperPsiElement(node), SqlScope {
-  /** Text to send to the driver: without the trailing `;` and surrounding blanks. */
-  val executableText: String
-    get() {
-      var end = node.lastChildNode
-      while (end != null && (end.elementType == SqlTokens.SEMICOLON || end.elementType == TokenType.WHITE_SPACE ||
-                             end.elementType in SqlTokens.COMMENTS)) end = end.treePrev
-      if (end == null) return ""
-      return text.substring(0, end.startOffsetInParent + end.textLength).trim()
-    }
+  /** Text to send to the driver: without the trailing `;` and surrounding blanks; empty for a `DELIMITER` command. */
+  val executableText: String get() = SqlStatements.executableText(node)
 
   /** Uppercased first keyword, e.g. `SELECT`; `null` when the statement starts with something else. */
   val firstKeyword: String? get() = SqlStatements.firstKeyword(node.firstChildNode)
@@ -164,44 +161,30 @@ object SqlStatements {
     return n?.takeIf { it.elementType == SqlTokens.KEYWORD }?.text?.uppercase()
   }
 
-  /**
-   * The part of [statement] around [offset] (in the file): a statement that runs on into the next one for a missing
-   * `;` (`SELECT * FROM a` and `SELECT * FROM b` on the next line) is cut where the `;` should be.
-   */
-  fun part(statement: SqlStatement, offset: Int): String? {
-    val text = statement.executableText
-    if (text.isEmpty()) return null
-    val start = statement.textRange.startOffset + statement.text.indexOf(text)
-    val cuts = SqlSyntaxCheck.check(text).mapNotNull { p -> p.fix?.takeIf { it.text == ";" && it.start == it.end }?.start }.distinct().sorted()
-    var from = 0
-    for (cut in cuts) {
-      if (offset - start <= cut) return text.substring(from, cut).trim().ifEmpty { null }
-      from = cut
-    }
-    return text.substring(from).trim().ifEmpty { null }
+  private val TRAILING = TokenSet.create(SqlTokens.SEMICOLON, SqlTokens.DELIMITER, TokenType.WHITE_SPACE, SqlTokens.LINE_COMMENT, SqlTokens.BLOCK_COMMENT)
+
+  internal fun executableText(statement: ASTNode): String {
+    if (statement.firstChildNode?.elementType == SqlTokens.DELIMITER_COMMAND) return ""
+    var end = statement.lastChildNode
+    while (end != null && end.elementType in TRAILING) end = end.treePrev
+    if (end == null) return ""
+    return statement.text.substring(0, end.startOffsetInParent + end.textLength).trim()
   }
 
-  /** Splits plain SQL text into statements with the same lexer as the editor. */
+  /**
+   * The SQL of [statement] to run, `null` for none. The parser already ends a statement where a `;` is missing
+   * (`SELECT * FROM a` and `SELECT * FROM b` on the next line are two statements).
+   */
+  fun part(statement: SqlStatement): String? = statement.executableText.ifEmpty { null }
+
+  /**
+   * Splits plain SQL text into the statements the editor's parser finds: `;`, a `DELIMITER` delimiter and a missing
+   * `;` end one; `DELIMITER` commands themselves are client syntax and are dropped.
+   */
   fun split(text: CharSequence): List<String> {
-    val lexer = SqlLexer()
-    lexer.start(text)
-    val result = ArrayList<String>()
-    var start = -1
-    var lastSignificant = -1
-    while (lexer.tokenType != null) {
-      val type = lexer.tokenType
-      if (type == SqlTokens.SEMICOLON) {
-        if (start >= 0) result.add(text.substring(start, lastSignificant))
-        start = -1
-      }
-      else if (type != TokenType.WHITE_SPACE && type !in SqlTokens.COMMENTS) {
-        if (start < 0) start = lexer.tokenStart
-        lastSignificant = lexer.tokenEnd
-      }
-      lexer.advance()
-    }
-    if (start >= 0) result.add(text.substring(start, lastSignificant))
-    return result
+    val builder = PsiBuilderFactory.getInstance().createBuilder(SqlParserDefinition(), SqlLexer(), text)
+    val root = SqlParser().parse(SqlElements.FILE, builder)
+    return root.getChildren(null).filter { it.elementType == SqlElements.STATEMENT }.map { executableText(it) }.filter { it.isNotEmpty() }
   }
 }
 

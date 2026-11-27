@@ -3,6 +3,7 @@ package dev.phantom.db.core
 
 import com.intellij.lang.PsiBuilder
 import com.intellij.psi.tree.IElementType
+import com.intellij.psi.tree.TokenSet
 
 /**
  * Statement → names. The original SQL parser, now applied by [SqlParser] to statements it has no grammar for.
@@ -11,16 +12,24 @@ import com.intellij.psi.tree.IElementType
  * reports errors: a half-typed statement still gets its names marked, so completion and navigation work while typing.
  */
 internal object SqlLegacyNameMarker {
-  /** Marks the names of one statement, up to its `;` (not consumed) or the end of the file. */
-  fun markStatement(builder: PsiBuilder) {
-    Block(builder, function = false).parse(stopAtParen = false)
+  /**
+   * Marks the names of one statement, up to its `;`, a `DELIMITER` delimiter or command, the offset [end] (none of
+   * them consumed) or the end of the file.
+   */
+  fun markStatement(builder: PsiBuilder, end: Int = Int.MAX_VALUE) {
+    Block(builder, function = false, end = end).parse(stopAtParen = false)
   }
 
   private enum class Clause { NONE, SELECT, TABLES, EXPR, CTE }
   private enum class TableState { EXPECT, AFTER_TABLE, AFTER_ALIAS }
 
   /** One query block or the inside of one pair of parentheses. [function]: arguments, where FROM does not start a FROM list. */
-  private class Block(private val b: PsiBuilder, private val function: Boolean, private var clause: Clause = if (function) Clause.EXPR else Clause.NONE) {
+  private class Block(
+    private val b: PsiBuilder,
+    private val function: Boolean,
+    private var clause: Clause = if (function) Clause.EXPR else Clause.NONE,
+    private val end: Int,
+  ) {
     private var tables = TableState.EXPECT
     private var insertPending = false
     private var skipNextName = false
@@ -34,7 +43,7 @@ internal object SqlLegacyNameMarker {
       while (!b.eof()) {
         val type = b.tokenType
         when {
-          type == SqlTokens.SEMICOLON -> return
+          ended -> return
           type == SqlTokens.RPAREN -> if (stopAtParen) return else advance(ended = true)
           type == SqlTokens.LPAREN -> paren()
           type == SqlTokens.KEYWORD -> keyword(b.tokenText!!.uppercase())
@@ -194,7 +203,7 @@ internal object SqlLegacyNameMarker {
         subquery -> {
           val m = b.mark()
           b.advanceLexer()
-          Block(b, function = false).parse(stopAtParen = true)
+          Block(b, function = false, end = end).parse(stopAtParen = true)
           if (b.tokenType == SqlTokens.RPAREN) b.advanceLexer()
           m.done(SqlElements.SUBQUERY)
           if (clause == Clause.TABLES && tables == TableState.EXPECT) tables = TableState.AFTER_TABLE // derived table: an alias follows
@@ -205,12 +214,12 @@ internal object SqlLegacyNameMarker {
         clause == Clause.CTE -> skipBalanced() // WITH x (a, b) AS (...)
         clause == Clause.TABLES && tables == TableState.EXPECT && nestedTables -> {
           b.advanceLexer()
-          Block(b, function = false, clause = Clause.TABLES).parse(stopAtParen = true)
+          Block(b, function = false, clause = Clause.TABLES, end = end).parse(stopAtParen = true)
           if (b.tokenType == SqlTokens.RPAREN) b.advanceLexer()
         }
         else -> {
           b.advanceLexer()
-          Block(b, function = true).parse(stopAtParen = true)
+          Block(b, function = true, end = end).parse(stopAtParen = true)
           if (b.tokenType == SqlTokens.RPAREN) b.advanceLexer()
         }
       }
@@ -220,7 +229,7 @@ internal object SqlLegacyNameMarker {
     private fun insertColumns() {
       insertPending = false
       b.advanceLexer()
-      while (!b.eof() && b.tokenType != SqlTokens.RPAREN && b.tokenType != SqlTokens.SEMICOLON) {
+      while (!b.eof() && b.tokenType != SqlTokens.RPAREN && !ended) {
         if (b.tokenType in SqlTokens.NAMES) single(SqlElements.INSERT_COLUMN) else b.advanceLexer()
       }
       if (b.tokenType == SqlTokens.RPAREN) b.advanceLexer()
@@ -229,7 +238,7 @@ internal object SqlLegacyNameMarker {
 
     private fun skipBalanced() {
       var depth = 0
-      while (!b.eof() && b.tokenType != SqlTokens.SEMICOLON) {
+      while (!b.eof() && !ended) {
         if (b.tokenType == SqlTokens.LPAREN) depth++
         if (b.tokenType == SqlTokens.RPAREN) depth--
         b.advanceLexer()
@@ -237,7 +246,10 @@ internal object SqlLegacyNameMarker {
       }
     }
 
+    private val ended: Boolean get() = b.tokenType in STATEMENT_ENDS || b.currentOffset >= end
+
     private companion object {
+      val STATEMENT_ENDS = TokenSet.create(SqlTokens.SEMICOLON, SqlTokens.DELIMITER, SqlTokens.DELIMITER_COMMAND)
       val OPERAND_KEYWORDS = setOf("END", "NULL", "TRUE", "FALSE", "CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP", "CURRENT_USER")
     }
   }
