@@ -8,6 +8,7 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.content.ContentFactory
+import dev.phantom.ai.visualization.AiVisualizationBundle
 import dev.phantom.ai.visualization.actions.ApiCheck
 import javax.swing.SwingConstants
 
@@ -19,7 +20,7 @@ class AiOfficeToolWindowFactory : ToolWindowFactory, DumbAware {
       Disposer.register(toolWindow.disposable, editor)
       editor.component
     } else {
-      JBLabel("Phantom AI Visualization needs Phantom AI Integration 0.3.8 or later.", SwingConstants.CENTER)
+      JBLabel(AiVisualizationBundle.message("toolwindow.needs.integration"), SwingConstants.CENTER)
     }
     val content = ContentFactory.getInstance().createContent(component, "", false)
     content.isCloseable = false

@@ -1,4 +1,5 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package org.intellij.plugins.markdown.ui.preview.html;
 
 import com.intellij.concurrency.ConcurrentCollectionFactory;
@@ -30,7 +31,9 @@ import java.util.stream.Collectors;
 public final class MarkdownCodeFenceHtmlCache implements Disposable {
   public static final @NotNull String MARKDOWN_FILE_PATH_KEY = "markdown-md5-file-path";
 
-  private final @NotNull Alarm myAlarm = new Alarm(this);
+  // phantom-idea: run the periodic cache cleanup on a pooled thread. It only lists and deletes files on disk, which the
+  // default Swing-thread Alarm did on the EDT.
+  private final @NotNull Alarm myAlarm = new Alarm(Alarm.ThreadToUse.POOLED_THREAD, this);
   private final @NotNull Collection<MarkdownCodeFencePluginCacheCollector> myCodeFencePluginCaches =
     ConcurrentCollectionFactory.createConcurrentSet();
   private final @NotNull Collection<File> myAdditionalCacheToDelete = ConcurrentCollectionFactory.createConcurrentSet();

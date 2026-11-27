@@ -127,7 +127,12 @@ internal class CpuComponent(private val sampler: CpuSampler) : JComponent(), Cpu
   override fun getMaximumSize(): Dimension = preferredSize
 
   override fun sampled(snapshot: CpuSnapshot, changed: Boolean) {
-    popup?.let { p -> SwingUtilities.invokeLater { if (popup === p) p.update(snapshot) } }
+    // Called on the sampling thread: popup, isShowing and the window state are Swing state, read only on the EDT.
+    SwingUtilities.invokeLater { onSampled(snapshot, changed) }
+  }
+
+  private fun onSampled(snapshot: CpuSnapshot, changed: Boolean) {
+    popup?.update(snapshot)
     if (!changed) return
     if (!isShowing) return
     val w = window

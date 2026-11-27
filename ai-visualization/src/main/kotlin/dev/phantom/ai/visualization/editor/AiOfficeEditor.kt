@@ -3,21 +3,15 @@ package dev.phantom.ai.visualization.editor
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
-import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorLocation
 import com.intellij.openapi.fileEditor.FileEditorState
-import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.UserDataHolderBase
 import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.util.Alarm
 import dev.phantom.ai.api.AiAgent
 import dev.phantom.ai.api.PhantomAiApi
-import dev.phantom.ai.visualization.model.OfficeModel
-import dev.phantom.ai.visualization.model.PathKey
-import dev.phantom.ai.visualization.model.ProjectData
+import dev.phantom.ai.visualization.AiVisualizationBundle
 import dev.phantom.ai.visualization.settings.VizSettings
 import dev.phantom.ai.visualization.settings.VizThemeListener
 import dev.phantom.ai.visualization.ui.OfficeActions
@@ -27,16 +21,16 @@ import java.beans.PropertyChangeListener
 import javax.swing.JComponent
 
 /**
- * The AI Visualization editor tab. Reads everything through [PhantomAiApi]: a change listener (disposed with the editor) debounces,
- * worktrees and sessions of the open projects are read on a pooled thread, the result is painted on the EDT. Session events arrive
- * several times a second while agents work; a hidden tab ignores them and reloads when it is shown again.
+ * The AI Visualization editor tab. Its data comes from the shared [OfficeLoader], which reads [PhantomAiApi] and builds the model on
+ * a pooled thread; this tab paints it on the EDT. A hidden tab does not cause loads and asks for one when it is shown again.
  */
 class AiOfficeEditor(
   private val project: Project,
   private val file: VirtualFile,
-  private val api: () -> PhantomAiApi = { PhantomAiApi.getInstance() },
+  private val loader: OfficeLoader = OfficeLoader.getInstance(),
   theme: dev.phantom.ai.visualization.theme.Theme = VizSettings.getInstance().theme,
 ) : UserDataHolderBase(), FileEditor {
+  private val api: () -> PhantomAiApi = loader.api
   private val panel = OfficePanel(theme, object : OfficeActions {
     override fun focus(tabId: String) {
       api().focusSession(project, tabId)
@@ -46,61 +40,25 @@ class AiOfficeEditor(
       api().startSession(project, worktreePath, agent)
     }
   })
-  private val alarm = Alarm(Alarm.ThreadToUse.POOLED_THREAD, this)
-
   @Volatile private var disposed = false
 
   init {
-    api().addChangeListener(this) { if (panel.isShowing) request() }
     // Settings | Tools | Phantom AI Visualization: a new theme re-renders this tab
     ApplicationManager.getApplication().messageBus.connect(this).subscribe(VizSettings.TOPIC, VizThemeListener { t ->
       ApplicationManager.getApplication().invokeLater({ if (!disposed) panel.setTheme(t) }, ModalityState.any())
     })
     // back on screen: show current data (the timer restarts with the component, see Animation)
     panel.addHierarchyListener { e ->
-      if (e.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() != 0L && panel.isShowing) request()
+      if (e.changeFlags and HierarchyEvent.SHOWING_CHANGED.toLong() != 0L && panel.isShowing) loader.request()
     }
-    request()
+    loader.register(this, { panel.isShowing }) { m -> if (!disposed) panel.setModel(m, keyOf(project)) }
   }
 
   fun panel(): OfficePanel = panel
 
-  /** Reads the data after a short delay; a newer request replaces an older one. */
-  fun request() {
-    if (disposed) return
-    alarm.cancelAllRequests()
-    alarm.addRequest({ refreshNow() }, DEBOUNCE_MS)
-  }
-
-  private fun refreshNow() {
-    if (disposed) return
-    val data = load()
-    ApplicationManager.getApplication().invokeLater({
-      if (!disposed) panel.setModel(OfficeModel.build(data), keyOf(project))
-    }, ModalityState.any())
-  }
-
-  private fun load(): List<ProjectData> {
-    val a = api()
-    val all = a.sessions()
-    return ProjectManager.getInstance().openProjects.filter { !it.isDefault && !it.isDisposed }.map { p ->
-      try {
-        // sessions(p) would list the worktrees through git a second time; filter the IDE-wide list by the ones read here
-        val worktrees = a.worktrees(p)
-        val keys = worktrees.mapTo(HashSet()) { PathKey.of(it.path) }
-        ProjectData(keyOf(p), p.name, worktrees, all.filter { PathKey.of(it.worktreePath) in keys })
-      } catch (e: ProcessCanceledException) {
-        throw e
-      } catch (e: Exception) {
-        LOG.warn("AI Visualization: could not read ${p.name}", e)
-        ProjectData(keyOf(p), p.name, emptyList(), emptyList())
-      }
-    }
-  }
-
   override fun getComponent(): JComponent = panel
   override fun getPreferredFocusedComponent(): JComponent = panel.canvas
-  override fun getName(): String = "AI Visualization"
+  override fun getName(): String = AiVisualizationBundle.message("editor.name")
   override fun getFile(): VirtualFile = file
   override fun setState(state: FileEditorState) = Unit
   override fun isModified(): Boolean = false
@@ -115,10 +73,9 @@ class AiOfficeEditor(
   }
 
   companion object {
-    private val LOG = logger<AiOfficeEditor>()
-    const val DEBOUNCE_MS = 150
+    const val DEBOUNCE_MS = OfficeLoader.DEBOUNCE_MS
 
     /** Identifies a project in the model: its base path, else its name. */
-    fun keyOf(p: Project): String = p.basePath ?: p.name
+    fun keyOf(p: Project): String = OfficeLoader.keyOf(p)
   }
 }

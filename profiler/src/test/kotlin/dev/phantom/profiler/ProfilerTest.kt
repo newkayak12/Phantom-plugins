@@ -74,8 +74,9 @@ class ProfilerTest : BasePlatformTestCase() {
     val file = Path.of(start.substringAfter("filename="))
     assertEquals(Recordings.directory, file.parent)
     assertTrue(file.fileName.toString(), file.fileName.toString().startsWith("Reservation_App-"))
-    assertEquals(file, Recordings.take(configuration))
-    assertNull(Recordings.take(configuration))
+    Recordings.started(configuration, 42L)
+    assertEquals(file, Recordings.take(42L))
+    assertNull(Recordings.take(42L))
 
     // a configuration that starts JFR itself keeps its own options
     val own = JavaParameters().apply { vmParametersList.add("-XX:StartFlightRecording=filename=/tmp/x.jfr") }

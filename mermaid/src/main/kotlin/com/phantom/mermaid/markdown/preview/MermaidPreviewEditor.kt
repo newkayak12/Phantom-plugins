@@ -7,6 +7,7 @@ import com.intellij.ide.ui.LafManagerListener
 import com.phantom.mermaid.MermaidBundle
 import com.phantom.mermaid.MermaidPlugin
 import com.phantom.mermaid.settings.MermaidSettingsConfigurable
+import com.intellij.openapi.application.readAction
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.editor.event.DocumentEvent
@@ -36,6 +37,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.awt.BorderLayout
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
@@ -56,6 +59,9 @@ internal class MermaidPreviewEditor(
   // Phantom: a signal, not the text: the text is read once the typing pauses instead of copied on every keystroke
   private val updateViewRequests = MutableSharedFlow<Unit>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
   private var lastSentText: String? = null
+  // phantom-idea: one render at a time. Typing, theme and settings changes each started their own load/update, and
+  // two of them interleaving in the browser could leave an older diagram or theme on screen.
+  private val renderMutex = Mutex()
 
   private val document = FileDocumentManager.getInstance().getDocument(file)!!
 
@@ -87,10 +93,12 @@ internal class MermaidPreviewEditor(
       updateViewRequests.debounce(PREVIEW_DEBOUNCE).collectLatest {
         // phantom-idea: a diagram not created yet loads the current text when it is shown.
         if (!diagram.isInitialized()) return@collectLatest
-        val text = document.text
-        if (text != lastSentText) {
-          component.diagramComponent().update(text)
-          lastSentText = text
+        renderMutex.withLock {
+          val text = readAction { document.text }
+          if (text != lastSentText) {
+            component.diagramComponent().update(text)
+            lastSentText = text
+          }
         }
       }
     }
@@ -104,9 +112,7 @@ internal class MermaidPreviewEditor(
           // phantom-idea: a diagram not created yet picks up the theme when it is shown.
           if (!diagram.isInitialized()) return
           coroutineScope.launch(context = Dispatchers.Default) {
-            val component = component.diagramComponent()
-            component.load()
-            component.update(document.text)
+            reload(component.diagramComponent())
           }
         }
       }
@@ -116,9 +122,7 @@ internal class MermaidPreviewEditor(
       // phantom-idea: a diagram not created yet picks up the settings when it is shown.
       if (!diagram.isInitialized()) return@ChangeListener
       coroutineScope.launch(context = Dispatchers.Default) {
-        val component = component.diagramComponent()
-        component.load()
-        component.update(document.text)
+        reload(component.diagramComponent())
       }
     })
   }
@@ -141,8 +145,18 @@ internal class MermaidPreviewEditor(
     val component = MermaidDiagramPreviewComponent(project)
     Disposer.register(parentDisposable, component)
     return component to coroutineScope.async(context = Dispatchers.Default) {
+      reload(component)
+    }
+  }
+
+  // phantom-idea: the document is read inside a read action (it was read from a background thread without one), and
+  // under the render lock, so a reload and a typing update never run at the same time.
+  private suspend fun reload(component: MermaidDiagramPreviewComponent) {
+    renderMutex.withLock {
       component.load()
-      component.update(document.text)
+      val text = readAction { document.text }
+      component.update(text)
+      lastSentText = text
     }
   }
 

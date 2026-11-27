@@ -30,6 +30,8 @@ class FlameGraph(
   private val onNavigate: (Frame) -> Unit,
 ) : JComponent(), Scrollable {
   private var focus: CallNode = root
+  // maxDepth walks the whole subtree; Swing asks for the preferred size on every layout, so it is computed once per zoom
+  private var focusMaxDepth: Int = root.maxDepth()
   private var boxes: List<Pair<Rectangle, CallNode>> = emptyList()
   private val rowHeight get() = JBUI.scale(18)
 
@@ -48,12 +50,14 @@ class FlameGraph(
   /** Zooms to [node]; the root (or a click on the focused node itself) shows everything again. */
   fun zoom(node: CallNode) {
     focus = if (node === focus) node.parent ?: root else node
+    focusMaxDepth = focus.maxDepth()
     revalidate()
     repaint()
   }
 
   fun resetZoom() {
     focus = root
+    focusMaxDepth = root.maxDepth()
     revalidate()
     repaint()
   }
@@ -70,7 +74,7 @@ class FlameGraph(
 
   override fun getPreferredSize(): Dimension {
     val ancestors = focus.path().size - (if (focus.frame != null) 1 else 0)
-    val rows = ancestors + (focus.maxDepth() - focus.depth) + 1
+    val rows = ancestors + (focusMaxDepth - focus.depth) + 1
     return Dimension(JBUI.scale(400), max(rows, 1) * rowHeight)
   }
 

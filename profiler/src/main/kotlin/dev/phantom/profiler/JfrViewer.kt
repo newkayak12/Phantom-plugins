@@ -67,7 +67,9 @@ class JfrEditor(private val project: Project, private val file: VirtualFile) : U
         val profile = JfrProfile.read(file.toNioPath())
         val classes = HashSet<String>()
         collectClasses(profile.cpu, classes)
-        val own = ReadAction.nonBlocking<Set<String>> { FrameNavigation.projectClasses(project, classes) }.executeSynchronously()
+        // expireWith: closing the editor cancels the lookup instead of resolving thousands of classes for nobody
+        val own = ReadAction.nonBlocking<Set<String>> { FrameNavigation.projectClasses(project, classes) }
+          .expireWith(this).executeSynchronously()
         profile to own
       }
       ApplicationManager.getApplication().invokeLater({

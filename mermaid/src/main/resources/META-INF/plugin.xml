@@ -26,6 +26,11 @@
     <module name="phantom.mermaid.markdown" loading="optional"/>
   </content>
 
+  <projectListeners>
+    <listener class="com.phantom.mermaid.lang.intention.MermaidColorSchemeListener"
+              topic="com.intellij.openapi.editor.colors.EditorColorsListener"/>
+  </projectListeners>
+
   <extensions defaultExtensionNs="com.intellij">
     <fileType name="Mermaid"
               implementationClass="com.phantom.mermaid.lang.MermaidFileType"

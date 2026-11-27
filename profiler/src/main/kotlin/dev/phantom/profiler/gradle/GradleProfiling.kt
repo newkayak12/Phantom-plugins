@@ -39,7 +39,7 @@ class ProfileGradleRunner : ProgramRunner<RunnerSettings> {
     val dir = Recordings.newDirectory(original.name)
     copy.settings.env = copy.settings.env + (ENV to dir.toString())
     val profiled = ExecutionEnvironmentBuilder(environment).runProfile(copy).build()
-    Recordings.expectDirectory(copy, dir)
+    Recordings.expectDirectory(profiled.executionId, dir)
     val state = profiled.state as? ExternalSystemRunnableState ?: return
     ExecutionManager.getInstance(environment.project).startRunProfile(profiled) {
       val result = state.execute(profiled.executor, this) ?: return@startRunProfile resolvedPromise(null)
@@ -79,4 +79,3 @@ class GradleProfileInitScript : GradleTaskManagerExtension {
     }
   }
 }
-

@@ -22,13 +22,13 @@ const val GIT_REPO_PROVIDER_CODE: String = "phantom-git"
 
 /**
  * Backup and Sync to a git repository the user owns, instead of a JetBrains account. "Logging in" means naming the
- * repository; access goes through the user's git credentials (SSH key or credential helper), nothing is stored here.
+ * repository; access goes through the user's git credentials (SSH key or credential helper). The URL itself is stored in
+ * plain text ([GitRepoSyncAccounts]), so a URL that carries a password or token is refused instead of being stored.
  */
 class GitRepoSyncProvider : SettingsSyncCommunicatorProvider {
   override val providerCode: String = GIT_REPO_PROVIDER_CODE
 
   override val authService: SettingsSyncAuthService = GitRepoAuthService()
-
   override val supportsMultipleAccounts: Boolean = true
 
   override fun createCommunicator(userId: String): SettingsSyncRemoteCommunicator =
@@ -88,9 +88,11 @@ class GitRepoAuthService : SettingsSyncAuthService {
     SettingsSyncUserData(id = url, providerCode = GIT_REPO_PROVIDER_CODE, name = GitRepoSyncAccounts.repositoryName(url), email = null,
                        // shown in the UI; the id keeps the real URL, which git needs
                        printableName = GitSettingsRepository.maskCredentials(url))
-
   private object UrlValidator : InputValidatorEx {
-    override fun getErrorText(inputString: String): String? =
-      if (inputString.isBlank() || inputString.trim().contains(' ')) PhantomSyncBundle.message("login.invalid") else null
+    override fun getErrorText(inputString: String): String? = when {
+      inputString.isBlank() || inputString.trim().contains(' ') -> PhantomSyncBundle.message("login.invalid")
+      GitSettingsRepository.hasCredentials(inputString.trim()) -> PhantomSyncBundle.message("login.credentials")
+      else -> null
+    }
   }
 }

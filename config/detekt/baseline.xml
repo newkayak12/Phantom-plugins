@@ -2478,6 +2478,7 @@
     <ID>TooGenericExceptionCaught:NetworkntSchemaService.kt:FallbackDialectRegistry$e: Exception</ID>
     <ID>TooGenericExceptionCaught:NetworkntValidationService.kt:NetworkntValidationService$e: Exception</ID>
     <ID>TooGenericExceptionCaught:ObservableTtyConnector.kt:ObservableTtyConnector$t: Throwable</ID>
+    <ID>TooGenericExceptionCaught:OfficeLoader.kt:OfficeLoader$e: Exception</ID>
     <ID>TooGenericExceptionCaught:OriginAwareMembersHolder.kt:OriginAwareMembersHolder$e: Exception</ID>
     <ID>TooGenericExceptionCaught:PandocExecutableDetector.kt:PandocExecutableDetector.GetVersionPandocTask$exception: Throwable</ID>
     <ID>TooGenericExceptionCaught:PhantomMcp.kt:PhantomMcp$e: Exception</ID>
@@ -2842,6 +2843,7 @@
     <ID>TooManyFunctions:MermaidCompletionContributor.kt:MermaidCompletionContributor : CompletionContributor</ID>
     <ID>TooManyFunctions:MermaidElementFactory.kt:MermaidElementFactory$Companion</ID>
     <ID>TooManyFunctions:MermaidHighlighter.kt:MermaidHighlighter$Companion</ID>
+    <ID>TooManyFunctions:MermaidPreviewEditor.kt:MermaidPreviewEditor : FileEditorUserDataHolder</ID>
     <ID>TooManyFunctions:MissingJsonSchemaObject.kt:MissingJsonSchemaObject : JsonSchemaObjectBackedByJacksonBase</ID>
     <ID>TooManyFunctions:ModelUpdatingTerminalDisplay.kt:ModelUpdatingTerminalDisplay : TerminalDisplay</ID>
     <ID>TooManyFunctions:MutableShellExecOptionsImpl.kt:MutableShellExecOptionsImpl : MutableShellExecOptions</ID>
@@ -2862,6 +2864,7 @@
     <ID>TooManyFunctions:ProbeMac.kt:ProbeMac</ID>
     <ID>TooManyFunctions:ProbePopup.kt:ProbePopup</ID>
     <ID>TooManyFunctions:ProfileRun.kt:ProfileExecutor : Executor</ID>
+    <ID>TooManyFunctions:ProfileRun.kt:Recordings</ID>
     <ID>TooManyFunctions:ProgressIndicatorWrapper.kt:ProgressIndicatorWrapper : ProgressIndicator</ID>
     <ID>TooManyFunctions:ProjectTabStrip.kt:ProjectTabStrip : JPanel</ID>
     <ID>TooManyFunctions:ProjectTabs.kt:ProjectTabs</ID>

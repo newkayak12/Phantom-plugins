@@ -1,10 +1,12 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.localsharedindex
 
+import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.testFramework.ApplicationRule
 import com.intellij.testFramework.rules.TempDirectory
 import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
@@ -49,6 +51,18 @@ class GitBlobsTest {
     // The checkout stat'ed its files when it wrote them; back-dated ones are refreshed in the index.
     git(linked, "update-index", "--refresh", "-q")
     assertArrayEquals(hashObject(root, "A.java"), GitBlobs.blobOf(vFile(file)))
+  }
+
+  @Test
+  fun `test the parsed indexes kept are bounded and dropped when a project closes`() {
+    repeat(GitBlobs.MAX_INDEXES + 3) {
+      val root = tempDir.newDirectory("repo$it").toPath()
+      GitBlobs.blobOf(vFile(committed(root, "A.java", "class A {}\n")))
+    }
+    assertEquals(GitBlobs.MAX_INDEXES, GitBlobs.cachedIndexes)
+    GitBlobsReleaser().projectClosed(ProjectManager.getInstance().defaultProject)
+    assertEquals(0, GitBlobs.cachedIndexes)
+    assertEquals(0, GitBlobs.cachedDirs)
   }
 
   private fun vFile(path: Path) = VirtualFileManager.getInstance().refreshAndFindFileByNioPath(path)!!

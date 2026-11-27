@@ -2,7 +2,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.6.4"
+version = "0.6.5"
 
 dependencies {
   intellijPlatform {
@@ -10,6 +10,7 @@ dependencies {
     // none of their classes. The code uses only dev.phantom.ai.api (see plugin.xml); the rest is here so the plugin loads in tests and the probe.
     localPlugin(project(":ai-integrations"))
     localPlugin(project(":workspaces"))
+    localPlugin(project(":local-shared-index"))
     bundledPlugin("org.jetbrains.plugins.terminal")
     bundledPlugin("Git4Idea")
     bundledPlugin("org.jetbrains.plugins.github")

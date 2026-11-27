@@ -13,6 +13,8 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.SyntaxTraverser
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
 
 @Suppress("UnstableApiUsage")
 class IdentifierSymbolReference(
@@ -22,9 +24,10 @@ class IdentifierSymbolReference(
 ) : MermaidPsiSymbolReferenceBase(element, rangeInElement), PsiCompletableReference {
   override fun resolveReference(): Collection<Symbol> {
     val file = element.containingFile
-    val declarations = file.collectNamedElements().filter { it.isDeclaration }
-    val matchingDeclarations = declarations.filter { it.text == text }
-    if (matchingDeclarations.none()) {
+    // phantom-idea: declarations come from a per-file map cached until the file changes; the upstream code walked the
+    // whole PSI tree on every resolve, which made highlighting quadratic in the number of identifiers.
+    val matchingDeclarations = file.declarationsByText()[text].orEmpty()
+    if (matchingDeclarations.isEmpty()) {
       return listOf(element).mapNotNull {
         (it as? MermaidNamedPsiElement)?.let { element ->
           UnresolvedIdentifierSymbol.createPointer(
@@ -33,16 +36,23 @@ class IdentifierSymbolReference(
         }
       }
     }
-    return matchingDeclarations.mapNotNull { IdentifierSymbol.createPointer(it).dereference() }.toList()
+    return matchingDeclarations.mapNotNull { IdentifierSymbol.createPointer(it).dereference() }
   }
 
   override fun getCompletionVariants(): Collection<LookupElement> {
     val file = element.containingFile
     val labels = file.collectNamedElements()
-    return labels.map { LookupElementBuilder.create(it.name) }.toList()
+    // phantom-idea: an identifier used several times is offered once, not once per occurrence.
+    return labels.map { it.name }.distinct().map { LookupElementBuilder.create(it) }.toList()
   }
 
   companion object {
+    private fun PsiFile.declarationsByText(): Map<String, List<MermaidNamedPsiElement>> =
+      CachedValuesManager.getCachedValue(this) {
+        val map = collectNamedElements().filter { it.isDeclaration }.groupBy { it.text }
+        CachedValueProvider.Result.create(map, this)
+      }
+
     private fun PsiFile.collectNamedElements(): Sequence<MermaidNamedPsiElement> {
       return SyntaxTraverser.psiTraverser(this)
         .asSequence()

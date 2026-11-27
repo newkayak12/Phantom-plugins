@@ -3,7 +3,6 @@ package dev.phantom.iconpack
 
 import com.intellij.ide.FileIconPatcher
 import com.intellij.ide.IconProvider
-import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.IconLoader
@@ -11,7 +10,6 @@ import com.intellij.openapi.util.Iconable
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiManager
 import com.intellij.ui.IconManager
 import com.intellij.ui.PlatformIcons
 import com.intellij.util.BitUtil
@@ -61,9 +59,7 @@ object KotlinKindIcons {
 internal class KotlinFileKindPatcher : FileIconPatcher {
   override fun patchIcon(icon: Icon, file: VirtualFile, flags: Int, project: Project?): Icon {
     if (file.isDirectory || file.extension != "kt") return icon
-    val name = project?.takeIf { !it.isDisposed && file.isValid }?.let {
-      ReadAction.compute<String?, RuntimeException> { PsiManager.getInstance(it).findFile(file)?.let(KotlinKindIcons::fileIconName) }
-    }
+    val name = project?.takeIf { !it.isDisposed && file.isValid }?.let { FileKindNames.name(file, it, KotlinKindIcons::fileIconName) }
     return name?.let(KotlinKindIcons::icon) ?: icon
   }
 }

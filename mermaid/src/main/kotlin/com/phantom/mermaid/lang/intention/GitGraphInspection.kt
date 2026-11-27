@@ -36,8 +36,6 @@ import com.intellij.psi.SyntaxTraverser
 import com.intellij.psi.util.parents
 import com.intellij.refactoring.suggested.startOffset
 import com.intellij.util.containers.addIfNotNull
-import kotlin.random.Random
-
 
 class GitGraphInspection : LocalInspectionTool() {
   companion object {
@@ -98,7 +96,7 @@ class GitGraphInspection : LocalInspectionTool() {
       head = commit
       if (commits.put(commit.id, commit) == null) {
         branches[currentBranchName] = commit.id
-      } else if (commitElement != null && !commit.isMergeCommit){
+      } else if (commitElement != null && !commit.isMergeCommit) {
         result.add(
           manager.createProblemDescriptor(
             commitElement,
@@ -319,7 +317,9 @@ class GitGraphInspection : LocalInspectionTool() {
     }
 
     private fun generateCommitId(): String {
-      return "${seq++}_${Random(42).nextInt()}"
+      // phantom-idea: a fixed suffix keeps generated ids apart from short user ids; upstream used Random(42).nextInt(), the same
+      // number on every call because the generator is re-seeded each time.
+      return "${seq++}_generated"
     }
   }
 
@@ -341,7 +341,7 @@ class GitGraphInspection : LocalInspectionTool() {
         if (isQuoted) append(quote)
       }
 
-      val declaration = createBranchStatement(project, name)?: return
+      val declaration = createBranchStatement(project, name) ?: return
 
       document.addBefore(declaration, statement)
       document.addBefore(MermaidElementFactory.createEOL(project), statement)

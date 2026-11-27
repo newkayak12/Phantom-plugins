@@ -2,6 +2,7 @@
 package dev.phantom.ai.visualization.ui
 
 import dev.phantom.ai.api.AiAgent
+import dev.phantom.ai.visualization.AiVisualizationBundle.message
 import dev.phantom.ai.visualization.model.Floor
 import dev.phantom.ai.visualization.model.OfficeLayout
 import dev.phantom.ai.visualization.model.Rect
@@ -179,8 +180,7 @@ class OfficeCanvas(
   override fun setBounds(x: Int, y: Int, w: Int, h: Int) {
     super.setBounds(x, y, w, h)
     fit()
-    refreshPeople()
-  }
+    refreshPeople()  }
 
   /** The origin at zoom [z] before panning: the centre of the scene's focus at the centre of the canvas. */
   private fun baseX(z: Int) = width / 2 - (scene.focus.x * 2 + scene.focus.w) * z / 2
@@ -360,7 +360,8 @@ class OfficeCanvas(
     /** Read-only client property: the id of the theme drawn, for the probe. */
     const val THEME_PROPERTY = "phantom.aiviz.theme"
 
-    val DESK_MENU = listOf("New Claude" to AiAgent.CLAUDE, "New Codex" to AiAgent.CODEX)
+    val DESK_MENU: List<Pair<String, AiAgent>>
+      get() = listOf(message("desk.new.claude") to AiAgent.CLAUDE, message("desk.new.codex") to AiAgent.CODEX)
 
     private fun min(a: Int, b: Int) = if (a < b) a else b
     private fun max(a: Int, b: Int) = if (a > b) a else b

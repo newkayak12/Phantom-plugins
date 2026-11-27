@@ -9,7 +9,7 @@
     {
       "id": "dev.phantom.db",
       "name": "Phantom Database Console",
-      "version": "0.25.14",
+      "version": "0.25.15",
       "source": "db",
       "description": "Connect to MySQL, MariaDB, PostgreSQL, H2, AWS JDBC Wrapper, Redshift, Athena, Oracle, SQL Server, SQLite, ClickHouse, Snowflake or any JDBC driver you add, and run SQL from the editor: highlighting for .sql files, Ctrl+Enter to run the statement at the caret, results in a sortable grid, and a lazily loaded schema tree. Drivers are data you can edit: each is found in the project's own dependencies, the local Gradle/Maven cache or jars you choose, and is downloaded from Maven only when you ask (Download, Test Connection). Nothing runs at startup. A data source in manual-commit mode keeps changes in an open transaction: review them in the Database Changes tool window and commit or roll them back; closing the project asks first. A result from one table with its primary key can be edited in the grid, and Compare With on a schema diffs two schemas and writes the SQL to make them match. SQL in Spring Data `@Query(nativeQuery = true)`, `@NativeQuery` and JdbcTemplate / JdbcClient strings is highlighted and completed like a console. JPA entities are checked against the data source's schema (tables and columns that do not exist, nullable columns mapped to non-null attributes), and @Table / @Column names complete from it. A data source can have a color (as in DataGrip): its consoles and .sql files get it as editor background and tab color, its tree rows and result tabs too. A console or .sql file can run in a chosen schema (catalog in MySQL), which unqualified table names in completion and checks also resolve against. The Database tree groups each schema's tables, views, routines, triggers and sequences in folders, can be filtered by name, and Navigate → Database Object (a Database tab in Search Everywhere) finds loaded tables, views, routines and columns without connecting. A data source can have several consoles (New Console), kept in Scratches and Consoles. In the editor: after JOIN, completion offers the tables a foreign key links to the ones in FROM with their ON clause, and after ON whole join conditions from foreign keys (then by column name); SQL (Phantom) live templates sel, selc, selw, ins, upd, del, crt; Find Usages and Rename of tables, views and columns across .sql files, consoles and SQL strings (and JPA mappings), changing SQL text only, never the database; unknown tables and columns are reported with quick fixes. Connections can go through an SSH tunnel (password, key file or OpenSSH agent; unknown host keys confirmed and added to ~/.ssh/known_hosts) and use SSL (mode, CA, client certificate and key mapped to each driver's properties), set in the SSH/SSL tab. Diagram on a schema or selected tables draws them with their foreign keys (pan, zoom, drag, PNG export); Import Data from CSV on a table maps columns by header and inserts in batches in one transaction; Explain Plan shows the plan as a tree with cost, rows and time and the costliest step highlighted. Results grid: WHERE / ORDER BY fields with column completion and history, header clicks sorting a table on the server, a Value Viewer (JSON, XML, hex, images), Transpose, selection sum/avg/min/max, pinned result tabs, and Copy/Export as TSV, CSV, JSON, SQL INSERT, Markdown or HTML (a whole table streamed to a file). 0.17.0: unreachable routine code, cursor state, routine side effects vs. NO SQL/READS SQL DATA, invalid date/time literals, LOAD DATA paths, too many joins, SQL files without a data source; CREATE TABLE to entity marker. 0.17.1: a data source entry the IDE cannot read is skipped instead of breaking the Database Changes tool window and the JPA schema checks. 0.17.2: no completion right after a number (Enter no longer turns `id = 2` into `id = 2EMAIL`); opening a table no longer logs a read-access error. 0.18.0: as in DataGrip: Make Global keeps a data source (with its passwords) in the IDE for every project; passwords saved Forever, Until restart or Never, read once per IDE run, and asked again when the database refuses them; DataGrip's shortcuts in the tree, editor and grid; grid edits wait as changes until Submit (Cmd/Ctrl+Enter) or Submit and Commit, with Revert Selected and Submit Changes Immediately; Set NULL / Set DEFAULT, Select Row / Column, Edit Filter Criteria; SQL Generator and Copy DDL; data source groups, copy, paste and duplicate; single session mode or a session per console with a session switcher, Sessions and the Services tool window; schema scope and introspection levels. 0.18.1: Add Row and Clone Row in the grid, inserted on Submit; Preview Pending Changes. 0.18.2: dates and times in the grid show as stored and save as typed (east of UTC a TIMESTAMP or TIME showed hours early and a DATE the day before); changed, new and deleted cells are colored until Submit; a row inserted on Submit shows its generated key and defaults, so it can be edited again. 0.19.0: grid changes not yet submitted are asked about (Submit, Discard, Cancel) before the result is replaced or its tab closed; Add Row starts editing the new row and shows unfilled cells as <default>; Run 'file.sql' from the project view and editor tab; Dump to File and Restore from File with mysqldump / mysql and pg_dump / psql (not over SSH); TIMESTAMP fractional seconds show in the grid. 0.19.1: MySQL's DATETIME and TIMESTAMP(n) show their fraction and open the calendar on their value; dump and restore reach localhost over TCP; all data source passwords are kept in one keychain entry, so macOS asks once, not once per data source. 0.20.0: Copy As and the grid's Data Extractor list (used by Copy, Cmd/Ctrl+C) add SQL INSERT Multirow, SQL UPDATE, One-Row, XML and Pretty; Paste of copied rows into the grid fills the cells and adds rows. 0.21.0: Filter by on a cell (=, <>, LIKE, IS NULL, IN) adds to WHERE and runs; Column Statistics; pasted text takes the column's type; Copy Table To copies a table's rows into another schema or data source, creating the table when it is missing. 0.22.0: Full-text Search on a data source or schema finds a text (or number) in every table and opens the matching rows; Export saves Excel (.xlsx) workbooks, a whole table page by page too. 0.23.0: Quick Documentation on tables and columns in SQL; Structure view of SQL files; Run Again and Auto Refresh for query results; Compare Content of two tables, with the SQL that makes one match the other. 0.24.0: a join's result is editable: each cell updates its own table by that table's primary key. 0.24.1: the format picked in the result toolbar's Copy As stays what Copy (Cmd/Ctrl+C) uses, in new results too, and is checked in the list. 0.24.2: Cmd/Ctrl+Enter runs the statement in a console or .sql file again instead of splitting the line, and the Database tree's toolbar and commands no longer hold up the IDE by reading the clipboard. 0.25.0: ERD Design (.erd files kept in git): draw tables and relations, load a schema from a data source, and get CREATE or ALTER SQL against it; the SQL editor underlines misspelled keywords, missing commas, tables and conditions, clauses out of order and unclosed parentheses and quotes as you type, with quick fixes, and marks where a failed statement went wrong; completion by clause (keywords, functions, types, subquery and CTE columns) that opens after a dot and after FROM or JOIN; colors by what a name is (Color Scheme → SQL (Phantom)); parameter info for built-in functions, column names before INSERT values, Expand * to columns, folding, paired quotes, Extend Selection by clause and parentheses, Surround With, Complete Current Statement, and a Code Style page (indent, keyword case); the Database tree's toolbar keeps Add, Refresh, New Console and Data, the rest under More. 0.25.1: Diagram and ERD Design draw tables as cards (header band, key and link icons, types aligned right) on a dotted grid, with relations between the columns they join and a crow's foot on the many side. 0.25.2: SQL that MyBatis Support injects as a whole statement shows syntax errors. 0.25.3: the syntax check is open to MyBatis Support for statements with <choose> and ${}. 0.25.4: Run and Explain take only the statement at the caret when the one above has no ; and consoles open without the Non-Project Files Protection prompt. 0.25.5: the Java and Kotlin part (SQL in strings, JPA entities against the schema) loads in Phantom again. 0.25.6: Cmd/Ctrl+click on a table or column name in SQL selects it in the Database tree also when the tool window was not open yet, and says so when the tree does not show it. 0.25.7: Copy on a Database tree node puts its name on the clipboard, not the node object. 0.25.8: Modify Table shows and edits column comments and has room for long column and index names; changing a MySQL column keeps its comment and AUTO_INCREMENT (MODIFY COLUMN restated the column without them).",
       "vendor": "Phantom",
@@ -20,7 +20,7 @@
         "com.intellij.modules.lang",
         "intellij.grid.core.plugin"
       ],
-      "download": "db-0.25.14/db-0.25.14.zip",
+      "download": "db-0.25.15/db-0.25.15.zip",
       "detect": [
         "com.mysql:mysql-connector-j",
         "mysql:mysql-connector-java",
@@ -189,7 +189,7 @@
     {
       "id": "dev.phantom.profiler",
       "name": "Phantom Profiler",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "source": "profiler",
       "description": "CPU and allocation profiling for Java and Kotlin with Java Flight Recorder: a Profile action next to Run and Debug, a Profiler tool window that records any running JVM, and a .jfr viewer with flame graph, call tree, hot methods, allocations and GC summary. Profile also works on Gradle run configurations: tests run by Gradle and applications delegated to Gradle, one recording per forked JVM.",
       "vendor": "Phantom",
@@ -200,7 +200,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "profiler-0.2.2/profiler-0.2.2.zip"
+      "download": "profiler-0.2.3/profiler-0.2.3.zip"
     },
     {
       "id": "dev.phantom.docker",
@@ -355,7 +355,7 @@
     {
       "id": "dev.phantom.iconpack",
       "name": "Phantom Icon Pack",
-      "version": "0.3.5",
+      "version": "0.3.6",
       "source": "icons",
       "description": "Colored file and folder icons by name and extension from the Material Icon Theme (Philipp Kief, MIT). Java files show the Java cup and Kotlin files the Kotlin logo, also where a file shows as its class (Project view, navigation bar, editor tabs); Java classes show Material icons by kind. Source, test and resource roots get their own folder colors. Moved out of the Phantom bundle (Phantom File Icons, dev.phantom.icons): turn that one off if your Phantom still bundles it.",
       "vendor": "Phantom",
@@ -365,7 +365,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "icons-0.3.5/icons-0.3.5.zip",
+      "download": "icons-0.3.6/icons-0.3.6.zip",
       "detect": []
     },
     {
@@ -400,7 +400,7 @@
     {
       "id": "dev.phantom.ai.visualization",
       "name": "Phantom AI Visualization",
-      "version": "0.6.4",
+      "version": "0.6.5",
       "source": "ai-visualization",
       "description": "The agent sessions of Phantom AI Integration as an isometric pixel-art place (0.6.2): each worktree is a floor and an office: the first session opened in it is the CEO in an office of its own, a session leading subagents gets a team area with its subordinates seated by role, the rest share the open desks, and a session waiting for an answer lines up before the CEO for sign-off (결재); each live session is a cute big-eyed person drawn at twice the scene's pixel density: typing, waiting with a raised hand, holding a coffee or asleep. A label over every head says what the agent is doing right now (Edit Foo.kt, Bash: ./gradlew test, 권한 요청) and running subagents sit beside their lead as full-size subordinates, each with its own label. Click a person to focus its terminal, an empty desk to start Claude or Codex. Opens from its AI Visualization tool window icon or Tools | Open AI Visualization; six themes in Settings | Tools | Phantom AI Visualization: Warm Wood (A), Modern Bright (B), Night Shift (C), Restroom Cleaning (D, with a cat and a corgi), Kitchen (E) and Construction Site (F). Needs Phantom AI Integration 0.3.8.",
       "vendor": "Phantom",
@@ -411,7 +411,7 @@
         "com.intellij.modules.platform",
         "dev.phantom.ai"
       ],
-      "download": "ai-visualization-0.6.4/ai-visualization-0.6.4.zip",
+      "download": "ai-visualization-0.6.5/ai-visualization-0.6.5.zip",
       "detect": []
     },
     {
@@ -554,7 +554,7 @@
     {
       "id": "dev.phantom.cpu",
       "name": "Phantom CPU Indicator",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "source": "cpu",
       "description": "CPU use of the IDE and the whole machine in the status bar: a one-minute graph and the current numbers, highlighted while the IDE stays busy. Hover it to see what used the IDE's CPU in the last ten seconds (indexing, Kotlin/Java code analysis, GC, JIT, other), the three busiest processes and a thread dump link. Draws without offscreen images and repaints only on change; per-thread analysis and ps run only while hovered or busy. Replaces krasa.cpu.",
       "vendor": "Phantom",
@@ -564,7 +564,7 @@
       "depends": [
         "com.intellij.modules.platform"
       ],
-      "download": "cpu-0.1.2/cpu-0.1.2.zip"
+      "download": "cpu-0.1.3/cpu-0.1.3.zip"
     },
     {
       "id": "dev.phantom.logs",
@@ -629,7 +629,7 @@
     {
       "id": "com.phantom.mermaid",
       "name": "Support for Mermaid",
-      "version": "0.1.5",
+      "version": "0.1.6",
       "source": "mermaid",
       "description": "Editing support and diagram preview for Mermaid in .mmd and .mermaid files and in Markdown code fences: highlighting, completion, formatting, folding, rename and Find Usages of node ids, inspections, and a preview next to the editor. The IntelliJ Community Mermaid plugin (Apache 2.0) under its own id, so Phantom can stop bundling the JetBrains copy (com.intellij.mermaid), which has to be disabled for this one to load. Faster: the preview draws only the latest text after typing pauses and skips text that did not change, Markdown diagrams that did not change are not drawn again (and replaced blocks no longer stay in memory), and mermaid.js is read once and no longer kept stale in the browser after an update.",
       "vendor": "Phantom",
@@ -639,7 +639,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "mermaid-0.1.5/mermaid-0.1.5.zip",
+      "download": "mermaid-0.1.6/mermaid-0.1.6.zip",
       "detect": []
     },
     {
@@ -794,7 +794,7 @@
     {
       "id": "dev.phantom.markdown",
       "name": "Support for Markdown",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "source": "markdown",
       "description": "Markdown files: highlighting, completion, navigation, inspections, table and list editing, images, language injection in code fences, front matter, and the JCEF preview; Shell Script, Kotlin and others build on it. Based on the IntelliJ Community Markdown plugin (Apache 2.0); org.intellij.plugins.markdown stays as an alias, so plugins depending on it keep working. Bundled with Phantom from build 262.261112 (Nov 12, 2026); older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -804,7 +804,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "markdown-0.1.2/markdown-0.1.2.zip",
+      "download": "markdown-0.1.3/markdown-0.1.3.zip",
       "detect": [],
       "aliases": [
         "org.intellij.plugins.markdown"
@@ -1177,7 +1177,7 @@
     {
       "id": "dev.phantom.local-shared-index",
       "name": "Phantom Local Shared Index",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "source": "local-shared-index",
       "description": "Reuses index data between checkouts of the same project on this machine, so a new worktree or clone does not index files that another checkout already indexed. Nothing leaves the machine. Turn it off by disabling the plugin. 0.2.0: answers the IDE index tools that Phantom AI Integration gives its agents over MCP (find_symbol, find_usages, search_text, file_outline, get_file_problems).",
       "vendor": "Phantom",
@@ -1187,7 +1187,7 @@
       "depends": [
         "com.intellij.modules.platform"
       ],
-      "download": "local-shared-index-0.2.0/local-shared-index-0.2.0.zip",
+      "download": "local-shared-index-0.2.1/local-shared-index-0.2.1.zip",
       "detect": []
     },
     {

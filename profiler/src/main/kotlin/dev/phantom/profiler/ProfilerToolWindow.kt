@@ -25,7 +25,6 @@ import com.intellij.util.text.DateFormatUtil
 import com.intellij.util.ui.JBUI
 import java.awt.BorderLayout
 import java.awt.event.MouseEvent
-import java.nio.file.Files
 import javax.swing.DefaultListModel
 import javax.swing.JComponent
 import javax.swing.JList
@@ -101,6 +100,7 @@ class ProfilerPanel(private val project: Project) : JPanel(BorderLayout()) {
   fun refresh() {
     ApplicationManager.getApplication().executeOnPooledThread {
       val found = runCatching { JvmAttach.list() }.getOrDefault(emptyList())
+      JvmAttach.syncRecordingState(found)
       val saved = Recordings.list()
       ApplicationManager.getApplication().invokeLater({
         val selected = jvmList.selectedValue
@@ -169,7 +169,7 @@ class ProfilerPanel(private val project: Project) : JPanel(BorderLayout()) {
     }
     override fun actionPerformed(e: AnActionEvent) {
       val files = recordingList.selectedValuesList
-      inBackground { files.forEach { Files.deleteIfExists(it.path) } }
+      inBackground { files.forEach { Recordings.delete(it.path) } }
     }
   }
 }
