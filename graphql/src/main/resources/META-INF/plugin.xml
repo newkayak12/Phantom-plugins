@@ -4,7 +4,7 @@
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Languages</category>
   <description><![CDATA[
-  GraphQL for Phantom: highlighting and navigation from type references to types and from fragment spreads to
+  GraphQL for Phantom: highlighting, brace matching, commenting, navigation, find usages and rename for types and
   fragments in .graphql, .graphqls and .gql files. Works offline.
   ]]></description>
 
@@ -23,5 +23,9 @@
               extensions="graphql;graphqls;gql"/>
     <lang.parserDefinition language="GraphQL" implementationClass="dev.phantom.graphql.lang.GraphQLParserDefinition"/>
     <lang.syntaxHighlighterFactory language="GraphQL" implementationClass="dev.phantom.graphql.lang.GraphQLSyntaxHighlighterFactory"/>
+    <annotator language="GraphQL" implementationClass="dev.phantom.graphql.lang.GraphQLAnnotator"/>
+    <lang.commenter language="GraphQL" implementationClass="dev.phantom.graphql.lang.GraphQLCommenter"/>
+    <lang.braceMatcher language="GraphQL" implementationClass="dev.phantom.graphql.lang.GraphQLBraceMatcher"/>
+    <lang.findUsagesProvider language="GraphQL" implementationClass="dev.phantom.graphql.lang.GraphQLFindUsagesProvider"/>
   </extensions>
 </idea-plugin>
