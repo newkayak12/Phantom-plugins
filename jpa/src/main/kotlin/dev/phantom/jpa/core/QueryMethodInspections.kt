@@ -106,6 +106,7 @@ internal object AttributeParameters {
  * - query-by-method-name methods (`findBy…`) must name existing attributes
  */
 class JakartaDataMethodInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (JavaPsiFacade.getInstance(holder.project).findClass(DATA_REPOSITORY, holder.file.resolveScope) == null) return PsiElementVisitor.EMPTY_VISITOR
     return UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
@@ -167,6 +168,7 @@ class JakartaDataMethodInspection : AbstractBaseUastLocalInspectionTool() {
  * must name an attribute of the returned entity, with a matching type.
  */
 class HibernateFindInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     if (JavaPsiFacade.getInstance(holder.project).findClass(FIND, holder.file.resolveScope) == null) return PsiElementVisitor.EMPTY_VISITOR
     val module = ModuleUtilCore.findModuleForPsiElement(holder.file) ?: return PsiElementVisitor.EMPTY_VISITOR

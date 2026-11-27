@@ -142,6 +142,8 @@ class DerivedQueryLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? = null
 
   override fun collectSlowLineMarkers(elements: MutableList<out PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
+
+    if (GhostMode.enabled) return
     for (element in elements) {
       ProgressManager.checkCanceled()
       marker(element)?.let(result::add)
@@ -171,6 +173,8 @@ class EntityGraphLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? = null
 
   override fun collectSlowLineMarkers(elements: MutableList<out PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
+
+    if (GhostMode.enabled) return
     for (element in elements) {
       ProgressManager.checkCanceled()
       marker(element)?.let(result::add)
@@ -216,6 +220,8 @@ class EntityAttributeUsagesLineMarkerProvider : LineMarkerProviderDescriptor() {
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? = null
 
   override fun collectSlowLineMarkers(elements: MutableList<out PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
+
+    if (GhostMode.enabled) return
     for (element in elements) {
       ProgressManager.checkCanceled()
       marker(element)?.let(result::add)

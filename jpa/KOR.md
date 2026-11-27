@@ -12,3 +12,7 @@ Java와 Kotlin을 위한 JPA, Hibernate, Spring Data JPA 지원입니다.
 프로젝트가 Spring Data JPA, Hibernate, Jakarta Persistence API에 의존하면 Phantom이 이 플러그인 설치를 제안합니다. 다른 프로젝트에서는 아무 동작도 하지 않습니다.
 
 아직 없는 것: HQL 전용 문법, Persistence 툴 윈도우, ER 다이어그램.
+
+## 고스트 모드
+
+Phantom의 고스트 모드(레지스트리 키 `phantom.ghost`)가 켜져 있으면 이 플러그인의 검사와 거터 아이콘이 꺼진다. 색칠, 문법 오류, 완성, 이동은 그대로다.

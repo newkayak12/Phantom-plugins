@@ -12,3 +12,7 @@ JPA, Hibernate and Spring Data JPA support for Java and Kotlin.
 Phantom suggests this plugin when a project depends on Spring Data JPA, Hibernate or the Jakarta Persistence API. In other projects, it does nothing.
 
 Not yet: HQL-only syntax, the Persistence tool window, ER diagrams.
+
+## Ghost Mode
+
+When Phantom's Ghost Mode is on (registry key `phantom.ghost`), this plugin's inspections and gutter icons are off. Coloring, syntax errors, completion and navigation stay.

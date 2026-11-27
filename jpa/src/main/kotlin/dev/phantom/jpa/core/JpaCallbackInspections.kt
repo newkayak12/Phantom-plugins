@@ -20,6 +20,7 @@ import org.jetbrains.uast.visitor.AbstractUastNonRecursiveVisitor
  * method, resolved against the repository's entity. Hibernate fails when it builds the graph.
  */
 class JpaEntityGraphInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     val module = ModuleUtilCore.findModuleForPsiElement(holder.file) ?: return PsiElementVisitor.EMPTY_VISITOR
     if (!JpaGate.isJpaModule(module)) return PsiElementVisitor.EMPTY_VISITOR
@@ -94,6 +95,7 @@ class JpaEntityGraphInspection : AbstractBaseUastLocalInspectionTool() {
  * not static. Also two methods of one class for the same event, which the provider rejects.
  */
 class JpaEntityListenerInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     val module = ModuleUtilCore.findModuleForPsiElement(holder.file) ?: return PsiElementVisitor.EMPTY_VISITOR
     if (!JpaGate.isJpaModule(module)) return PsiElementVisitor.EMPTY_VISITOR
@@ -142,6 +144,7 @@ class JpaEntityListenerInspection : AbstractBaseUastLocalInspectionTool() {
  * listener without any lifecycle callback method.
  */
 class JpaEntityListenerUsageInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     val module = ModuleUtilCore.findModuleForPsiElement(holder.file) ?: return PsiElementVisitor.EMPTY_VISITOR
     if (!JpaGate.isJpaModule(module)) return PsiElementVisitor.EMPTY_VISITOR

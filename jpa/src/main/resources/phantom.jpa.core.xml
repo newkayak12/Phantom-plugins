@@ -106,4 +106,7 @@
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.jpa.core.EntityAttributeUsagesLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.jpa.core.EntityAttributeUsagesLineMarkerProvider"/>
   </extensions>
+  <applicationListeners>
+    <listener class="dev.phantom.jpa.core.GhostModeListener" topic="com.intellij.openapi.util.registry.RegistryValueListener"/>
+  </applicationListeners>
 </idea-plugin>

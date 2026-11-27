@@ -36,6 +36,7 @@ import org.jetbrains.uast.visitor.AbstractUastNonRecursiveVisitor
  * - an enum without `@Enumerated`, stored as its ordinal so reordering the constants changes stored data
  */
 class JpaAttributeInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     val module = ModuleUtilCore.findModuleForPsiElement(holder.file) ?: return PsiElementVisitor.EMPTY_VISITOR
     if (!JpaGate.isJpaModule(module)) return PsiElementVisitor.EMPTY_VISITOR
