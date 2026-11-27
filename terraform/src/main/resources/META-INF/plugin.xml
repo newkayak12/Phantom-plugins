@@ -19,5 +19,11 @@
     <fileType name="Phantom Terraform" language="PhantomTerraform" extensions="tf;tfvars"
               implementationClass="dev.phantom.terraform.TerraformFileType" fieldName="INSTANCE"/>
     <lang.parserDefinition language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclParserDefinition"/>
+    <lang.syntaxHighlighterFactory language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclSyntaxHighlighterFactory"/>
+    <annotator language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclAnnotator"/>
+    <lang.commenter language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclCommenter"/>
+    <lang.braceMatcher language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclBraceMatcher"/>
+    <lang.psiStructureViewFactory language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclStructureViewFactory"/>
+    <lang.findUsagesProvider language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclFindUsagesProvider"/>
   </extensions>
 </idea-plugin>
