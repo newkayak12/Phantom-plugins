@@ -11,11 +11,9 @@ import com.intellij.openapi.util.IconLoader
 import com.intellij.openapi.util.Iconable
 import com.intellij.psi.PsiAnonymousClass
 import com.intellij.psi.PsiClass
-import com.intellij.openapi.application.ReadAction
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiJavaFile
-import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiModifier
 import com.intellij.psi.PsiTypeParameter
 import com.intellij.psi.impl.ElementPresentationUtil
@@ -67,9 +65,7 @@ object JavaKindIcons {
 internal class JavaFileKindPatcher : FileIconPatcher {
   override fun patchIcon(icon: Icon, file: VirtualFile, flags: Int, project: Project?): Icon {
     if (file.isDirectory || file.extension != "java") return icon
-    val name = project?.takeIf { !it.isDisposed && file.isValid }?.let {
-      ReadAction.compute<String?, RuntimeException> { PsiManager.getInstance(it).findFile(file)?.let(JavaKindIcons::fileIconName) }
-    }
+    val name = project?.takeIf { !it.isDisposed && file.isValid }?.let { FileKindNames.name(file, it, JavaKindIcons::fileIconName) }
     return JavaKindIcons.icon(name ?: "java-file")
   }
 }

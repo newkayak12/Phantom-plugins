@@ -4,8 +4,10 @@ package dev.phantom.iconpack
 import com.intellij.ide.IconProvider
 import com.intellij.openapi.util.IconLoader
 import com.intellij.openapi.util.Iconable
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiJavaFile
 import com.intellij.testFramework.DumbModeTestUtils
+import com.intellij.testFramework.PlatformTestUtil
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import com.intellij.ui.DeferredIcon
 import com.intellij.ui.IconManager
@@ -93,7 +95,7 @@ class JavaKindIconsTest : LightJavaCodeInsightFixtureTestCase() {
       if (name != null) {
         assertTrue("$name in class icon", KotlinKindIcons.icon(name) in leaves(declaration.getIcon(0)))
         assertEquals(fileName, name, KotlinKindIcons.fileIconName(file))
-        assertTrue("$name in file icon", KotlinKindIcons.icon(name) in leaves(file.getIcon(0)))
+        assertTrue("$name in file icon", KotlinKindIcons.icon(name) in fileLeaves(file, KotlinKindIcons.icon(name)))
       }
       return name
     }
@@ -134,8 +136,23 @@ class JavaKindIconsTest : LightJavaCodeInsightFixtureTestCase() {
     val classLeaves = leaves(aClass.getIcon(0))
     assertTrue("$expected in $classLeaves", icon in classLeaves)
     assertEquals(fileName, expected, JavaKindIcons.fileIconName(file))
-    val fileLeaves = leaves(file.getIcon(0))
+    val fileLeaves = fileLeaves(file, icon)
     assertTrue("$expected in $fileLeaves", icon in fileLeaves)
+  }
+
+  /**
+   * A file icon asked for on the EDT shows the plain file type until FileKindNames has parsed the file in the background;
+   * dispatch events until the kind arrives.
+   */
+  private fun fileLeaves(file: PsiFile, expected: Icon): List<Icon> {
+    val deadline = System.currentTimeMillis() + 10_000
+    var result = leaves(file.getIcon(0))
+    while (expected !in result && System.currentTimeMillis() < deadline) {
+      PlatformTestUtil.dispatchAllEventsInIdeEventQueue()
+      Thread.sleep(10)
+      result = leaves(file.getIcon(0))
+    }
+    return result
   }
 
   /** The tests run on the EDT, where element icons come deferred (the file icon patcher defers the class icon again). */
