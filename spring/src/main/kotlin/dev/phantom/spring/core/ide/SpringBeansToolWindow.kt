@@ -7,6 +7,7 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.EDT
 import com.intellij.openapi.application.readAction
 import com.intellij.openapi.application.smartReadAction
@@ -60,10 +61,11 @@ sealed interface BeanNode {
   class Module(val name: String, val count: Int) : BeanNode
   class Group(val kind: BeanKind, val count: Int) : BeanNode
   class Bean(val info: BeanInfo) : BeanNode
-  class Section(val title: String, val bean: PsiModifierListOwner, val dependents: Boolean) : BeanNode
+  /** Pointers, so the tree does not hold PSI of files that were reparsed or closed since it was built. */
+  class Section(val title: String, val bean: SmartPsiElementPointer<PsiModifierListOwner>, val dependents: Boolean) : BeanNode
   /** Labels are made in the read action that found the dependency, so painting never touches PSI. */
   class Dependency(val dependency: BeanDependency, val text: String, val candidates: List<String>) : BeanNode
-  class Dependent(val element: PsiModifierListOwner, val label: String, val isMethod: Boolean) : BeanNode
+  class Dependent(val element: SmartPsiElementPointer<PsiModifierListOwner>, val label: String, val isMethod: Boolean) : BeanNode
   class Message(val text: String) : BeanNode
   data object Loading : BeanNode
 }
@@ -78,6 +80,8 @@ class SpringBeansPanel(private val project: Project) : SimpleToolWindowPanel(tru
   private val model = DefaultTreeModel(root)
   val tree: Tree = Tree(model)
   private var job: Job? = null
+  // sections whose children are being computed: expanding one again before they arrive must not search twice
+  private val expanding = HashSet<DefaultMutableTreeNode>()
 
   @get:TestOnly
   var loaded: Boolean = false
@@ -145,24 +149,26 @@ class SpringBeansPanel(private val project: Project) : SimpleToolWindowPanel(tru
   }
 
   private fun beanNode(info: BeanInfo): DefaultMutableTreeNode = DefaultMutableTreeNode(BeanNode.Bean(info)).apply {
-    add(placeholderSection(PhantomSpringBundle.message("beans.dependencies"), info.element, false))
-    add(placeholderSection(PhantomSpringBundle.message("beans.dependents"), info.element, true))
+    val pointer = SmartPointerManager.createPointer(info.element)
+    add(placeholderSection(PhantomSpringBundle.message("beans.dependencies"), pointer, false))
+    add(placeholderSection(PhantomSpringBundle.message("beans.dependents"), pointer, true))
   }
 
-  private fun placeholderSection(title: String, bean: PsiModifierListOwner, dependents: Boolean) =
+  private fun placeholderSection(title: String, bean: SmartPsiElementPointer<PsiModifierListOwner>, dependents: Boolean) =
     DefaultMutableTreeNode(BeanNode.Section(title, bean, dependents)).apply { add(DefaultMutableTreeNode(BeanNode.Loading, false)) }
 
   private fun expand(node: DefaultMutableTreeNode) {
     val section = node.userObject as? BeanNode.Section ?: return
-    if ((node.firstOrNull()?.userObject) != BeanNode.Loading) return
-    project.service<SpringBeansScope>().cs.launch {
+    if ((node.firstOrNull()?.userObject) != BeanNode.Loading || !expanding.add(node)) return
+    val job = project.service<SpringBeansScope>().cs.launch {
       val children: List<BeanNode> = smartReadAction(project) {
-        if (!section.bean.isValid) return@smartReadAction listOf(BeanNode.Message(PhantomSpringBundle.message("beans.outdated")))
+        val bean = section.bean.element?.takeIf { it.isValid }
+                   ?: return@smartReadAction listOf(BeanNode.Message(PhantomSpringBundle.message("beans.outdated")))
         if (section.dependents) {
-          SpringBeanCatalog.dependents(section.bean).map { BeanNode.Dependent(it, label(it), it is PsiMethod) }
+          SpringBeanCatalog.dependents(bean).map { BeanNode.Dependent(SmartPointerManager.createPointer(it), label(it), it is PsiMethod) }
         }
         else {
-          SpringBeanCatalog.dependencies(section.bean).map { d ->
+          SpringBeanCatalog.dependencies(bean).map { d ->
             BeanNode.Dependency(d, (d.point.name ?: "?") + ": " + d.point.type.presentableText, d.candidates.map(::label))
           }
         }.ifEmpty { listOf(BeanNode.Message(PhantomSpringBundle.message(if (section.dependents) "beans.no.dependents" else "beans.no.dependencies"))) }
@@ -173,6 +179,8 @@ class SpringBeansPanel(private val project: Project) : SimpleToolWindowPanel(tru
         model.nodeStructureChanged(node)
       }
     }
+    // also when cancelled, so a later expansion tries again
+    job.invokeOnCompletion { ApplicationManager.getApplication().invokeLater { expanding.remove(node) } }
   }
 
   private fun navigate(): Boolean {
@@ -180,7 +188,7 @@ class SpringBeansPanel(private val project: Project) : SimpleToolWindowPanel(tru
     val navigatable = com.intellij.openapi.application.ReadAction.compute<com.intellij.pom.Navigatable?, RuntimeException> {
       val target: PsiElement = when (payload) {
         is BeanNode.Bean -> payload.info.element
-        is BeanNode.Dependent -> payload.element
+        is BeanNode.Dependent -> payload.element.element ?: return@compute null
         // a dependency filled by exactly one bean goes to that bean; otherwise to the injection point
         is BeanNode.Dependency -> payload.dependency.candidates.singleOrNull() ?: payload.dependency.point.navigationTarget
         else -> return@compute null
@@ -231,4 +239,3 @@ private fun label(element: PsiModifierListOwner): String = when (element) {
   is PsiClass -> element.name.orEmpty()
   else -> (element as? PsiNamedElement)?.name.orEmpty()
 }
-
