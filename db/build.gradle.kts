@@ -4,7 +4,7 @@ plugins {
   id("phantom-plugin")
 }
 
-version = "0.25.16"
+version = "0.25.17"
 
 // Whether the IDE the plugin builds against still bundles the Kotlin plugin (IntelliJ Community from the repository does)
 val kotlinBundled = providers.gradleProperty("platformFromRepository").isPresent ||
@@ -12,6 +12,8 @@ val kotlinBundled = providers.gradleProperty("platformFromRepository").isPresent
   file("${providers.gradleProperty("phantomIde").get()}/Contents/plugins/Kotlin").isDirectory
 
 dependencies {
+  // MongoDB Console: the official driver (Apache 2.0); it connects only when the user runs a command
+  implementation("org.mongodb:mongodb-driver-sync:5.2.1")
   intellijPlatform {
     bundledPlugin("intellij.grid.core.plugin")
     bundledPlugin("com.intellij.java")

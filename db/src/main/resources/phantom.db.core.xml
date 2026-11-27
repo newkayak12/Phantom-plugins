@@ -253,6 +253,9 @@
     <action id="PhantomDb.GotoObject" class="dev.phantom.db.core.ui.DbGotoObjectAction" icon="AllIcons.Nodes.DataTables">
       <add-to-group group-id="GoToTargetEx" anchor="last"/>
     </action>
+    <action id="PhantomDb.MongoConsole" class="dev.phantom.db.core.mongo.MongoConsoleAction" icon="AllIcons.Nodes.DataTables">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
     <action id="PhantomDb.ShowDatabase" class="dev.phantom.db.core.ui.DbShowToolWindowAction" icon="AllIcons.Nodes.DataTables">
       <add-to-group group-id="ToolsMenu" anchor="last"/>
     </action>
