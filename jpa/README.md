@@ -3,9 +3,9 @@
 
 JPA, Hibernate and Spring Data JPA support for Java and Kotlin.
 
-- **JPQL** inside `@Query` and `@NamedQuery`, including queries kept in `const val` / `static final` constants and Kotlin templates: highlighting, completion of entities and attributes, navigation, and errors for names that don't resolve.
-- **Derived query methods** (`findByNameAndCreatedAtAfter`): completion of property paths, and an error for a property the entity doesn't have or for missing parameters.
-- **`@Modifying`:** an `UPDATE`, `DELETE` or `INSERT` `@Query` without `@Modifying` is an error, with a quick fix that adds it.
+- **JPQL** inside `@Query` and `@NamedQuery`, including queries kept in `const val` / `static final` constants, Kotlin templates and Java string concatenations: highlighting, completion of entities and attributes, navigation, and errors for names that don't resolve.
+- **Derived query methods** (`findByNameAndCreatedAtAfter`): completion of property paths, and an error for a property the entity doesn't have or for missing parameters. Methods backed by a named query (`Entity.method`) or a query annotation such as `@Procedure` are not derived queries.
+- **`@Modifying`:** an `UPDATE`, `DELETE` or `INSERT` `@Query` or `@NativeQuery` without `@Modifying` is an error, with a quick fix that adds it.
 - **Entity mapping:** an `@Entity` without `@Id`/`@EmbeddedId` on itself or a superclass, and a `mappedBy` naming an attribute the other entity doesn't have.
 - **Gutter navigation** from a repository to its entity, and from an entity to its repositories.
 

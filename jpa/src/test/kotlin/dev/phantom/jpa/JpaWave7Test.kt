@@ -90,6 +90,32 @@ class JpaWave7Test : LightJavaCodeInsightFixtureTestCase() {
                         "No @NamedQuery or @NamedNativeQuery is named 'Item.nope': createNamedQuery fails at runtime"), problems())
   }
 
+  fun testNamedQueriesSkippedWithMappingFileFromPersistenceXml() {
+    myFixture.addFileToProject("META-INF/persistence.xml",
+                               "<persistence><persistence-unit name=\"u\"><mapping-file>META-INF/queries.xml</mapping-file></persistence-unit></persistence>")
+    myFixture.addFileToProject("META-INF/queries.xml", "<entity-mappings/>")
+    myFixture.configureByText("Dao.java", """
+      package app;
+      class Dao { jakarta.persistence.EntityManager em; void run() { em.createNamedQuery("Anything"); } }
+    """.trimIndent())
+    assertEquals(emptyList<String>(), problems())
+  }
+
+  fun testNamedQueryAddedLaterIsKnown() {
+    val dao = """
+      package app;
+      class Dao { jakarta.persistence.EntityManager em; void run() { em.createNamedQuery("Shop.all"); } }
+    """.trimIndent()
+    myFixture.configureByText("Dao.java", dao)
+    assertEquals(1, problems().size)
+    myFixture.addClass("""
+      package app;
+      @jakarta.persistence.Entity @jakarta.persistence.NamedQuery(name = "Shop.all", query = "select s from Shop s")
+      public class Shop { @jakarta.persistence.Id Long id; }
+    """.trimIndent())
+    assertEquals(emptyList<String>(), problems())
+  }
+
   fun testNamedQueriesSkippedWithOrmXml() {
     myFixture.addFileToProject("META-INF/orm.xml", "<entity-mappings/>")
     myFixture.configureByText("Dao.java", """

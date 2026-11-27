@@ -1,5 +1,7 @@
 <html><body>
 Reports Spring services, components and repositories with constraints or <code>@Valid</code> on method parameters or
 return values but no <code>@Validated</code> on the class or its supertypes. Spring checks method constraints only for
-<code>@Validated</code> beans. Controllers are not reported, since Spring MVC validates their arguments itself.
+<code>@Validated</code> beans. Stereotypes of the project's own (an annotation meta-annotated with <code>@Service</code> or
+<code>@Component</code>) count too. Controllers are reported only before Spring Framework 6.1 and only for constraints on
+parameters: Spring MVC validates <code>@Valid</code> arguments itself, and since 6.1 all controller parameter constraints.
 </body></html>

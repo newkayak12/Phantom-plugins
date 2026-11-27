@@ -105,6 +105,31 @@ class JpqlQueryTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals("SELECT o FROM Occ", myFixture.editor.document.text)
   }
 
+  fun testJavaConcatenationIsInjectedOnce() {
+    myFixture.configureByText("OccupancyRepository.java", """
+      package app;
+      import org.springframework.data.jpa.repository.Query;
+      interface OccupancyRepository {
+        String COND = "o.userId = :userId";
+        @Query("SELECT o FROM Occ o " + "WHERE o.timeTable.restaurant<caret>Id = :rid")
+        java.util.List<Occupancy> find(String rid);
+        @Query("SELECT o FROM Occ o WHERE " + COND + " AND o.nope = 1")
+        java.util.List<Occupancy> find2(String userId);
+      }
+    """.trimIndent())
+    val target = myFixture.getReferenceAtCaretPositionWithAssertion().resolve() as PsiField
+    assertEquals("TimeTable", target.containingClass?.name)
+    // the constant operand is a placeholder; the second literal still belongs to the same query, reported once
+    assertEquals(listOf("Cannot resolve attribute 'nope' of 'Occupancy'"), errors())
+  }
+
+  fun testNewEntityResolvesAfterJavaChange() {
+    myFixture.configureByText("OccupancyRepository.java", repository("SELECT l FROM Later l"))
+    assertEquals(listOf("Cannot resolve entity 'Later'"), errors())
+    myFixture.addClass("package app; @jakarta.persistence.Entity public class Later { @jakarta.persistence.Id Long id; }")
+    assertEmpty(errors())
+  }
+
   fun testConstantQueryAndNativeQuery() {
     myFixture.configureByText("OccupancyRepository.java", """
       package app;

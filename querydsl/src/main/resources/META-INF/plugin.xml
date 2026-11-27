@@ -27,7 +27,7 @@
   <extensions defaultExtensionNs="com.intellij">
     <gotoDeclarationHandler implementation="dev.phantom.querydsl.QueryDslGotoDeclaration"/>
     <referencesSearch implementation="dev.phantom.querydsl.QueryDslUsagesSearcher"/>
-    <localInspection language="JAVA" enabledByDefault="true" level="WARNING" shortName="PhantomStaleQClass"
+    <localInspection language="UAST" enabledByDefault="true" level="WARNING" shortName="PhantomStaleQClass"
                      groupName="QueryDSL" key="inspection.stale" bundle="messages.PhantomQueryDslBundle"
                      implementationClass="dev.phantom.querydsl.StaleQClassInspection"/>
   </extensions>

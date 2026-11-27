@@ -8,13 +8,19 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.roots.ProjectFileIndex
+import com.intellij.openapi.util.Key
 import com.intellij.psi.*
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.PsiShortNamesCache
 import com.intellij.psi.search.searches.AnnotatedElementsSearch
+import com.intellij.psi.util.CachedValue
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.InheritanceUtil
 import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.PsiUtilCore
+import java.util.Optional
+import java.util.concurrent.ConcurrentHashMap
 
 object JpaGate {
   private val ENTITY_CLASSES = listOf("jakarta.persistence.Entity", "javax.persistence.Entity")
@@ -30,7 +36,7 @@ object JpaGate {
 
 /**
  * Entity lookups straight from PSI and indexes, scoped to the module that contains the query.
- * Nothing is cached project-wide; reference resolution is cached by the platform per query.
+ * Entity names are cached per scope until JVM code changes; reference resolution is cached by the platform per query.
  */
 object JpaModel {
   private val ENTITY = listOf("jakarta.persistence.Entity", "javax.persistence.Entity")
@@ -70,8 +76,26 @@ object JpaModel {
     return psiClass.name
   }
 
+  private val ENTITY_BY_NAME = Key.create<CachedValue<ConcurrentHashMap<Pair<GlobalSearchScope, String>, Optional<PsiClass>>>>("phantom.jpa.entityByName")
+
+  /**
+   * The entity a JPQL name stands for. Kept per module scope and name until JVM code or roots change: every path in every
+   * query of a file starts from one of a few entity names, and the fallback scans all entities of the scope.
+   */
   fun findEntity(name: String, context: PsiElement): PsiClass? {
     val scope = scopeFor(context)
+    val project = context.project
+    val byName = CachedValuesManager.getManager(project).getCachedValue(project, ENTITY_BY_NAME, {
+      CachedValueProvider.Result.create(ConcurrentHashMap<Pair<GlobalSearchScope, String>, Optional<PsiClass>>(), *JpaCacheDeps.code(project))
+    }, false)
+    val key = scope to name
+    byName[key]?.let { return it.orElse(null) }
+    val found = findEntityUncached(name, context, scope)
+    byName.putIfAbsent(key, Optional.ofNullable(found))
+    return found
+  }
+
+  private fun findEntityUncached(name: String, context: PsiElement, scope: GlobalSearchScope): PsiClass? {
     val simple = name.substringAfterLast('.')
     PsiShortNamesCache.getInstance(context.project).getClassesByName(simple, scope)
       .firstOrNull { isEntity(it) && (entityName(it) == simple || it.qualifiedName == name) }

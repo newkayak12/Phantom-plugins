@@ -6,6 +6,7 @@ import com.intellij.codeInsight.AnnotationUtil
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.roots.ProjectFileIndex
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.psi.CommonClassNames
 import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiArrayType
@@ -16,7 +17,10 @@ import com.intellij.psi.PsiPrimitiveType
 import com.intellij.psi.PsiType
 import com.intellij.psi.PsiTypeParameter
 import com.intellij.psi.PsiTypes
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.InheritanceUtil
+import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiUtil
 import com.intellij.java.library.JavaLibraryUtil
 import org.jetbrains.annotations.Nls
@@ -85,16 +89,25 @@ object Constraints {
 
   fun constraints(owner: UAnnotated): List<UAnnotation> = owner.uAnnotations.filter { isConstraint(it) }
 
-  /** Whether a class from the project's own sources declares a constraint or `@Valid` on one of its fields or getters. */
-  fun hasConstrainedMembers(psiClass: PsiClass): Boolean {
+  /**
+   * Whether a class from the project's own sources declares a constraint or `@Valid` on one of its fields or getters.
+   * Cached per class until JVM code or roots change: the cascade check asks it for every field type of every class it visits.
+   */
+  fun hasConstrainedMembers(psiClass: PsiClass): Boolean = CachedValuesManager.getCachedValue(psiClass) {
+    val project = psiClass.project
+    val jvm = PsiModificationTracker.getInstance(project).forLanguages { it.id in JVM_LANGUAGES }
     val names = (CONSTRAINT_META + VALID).toSet()
-    return (psiClass.allFields.asSequence() + psiClass.allMethods.asSequence().filter { it.parameterList.isEmpty }).any { member ->
+    val constrained = (psiClass.allFields.asSequence() + psiClass.allMethods.asSequence().filter { it.parameterList.isEmpty }).any { member ->
       member.annotations.any { a ->
         val qn = a.qualifiedName
         qn in names || isBuiltIn(qn) || a.nameReferenceElement?.resolve().let { it is PsiClass && isConstraintClass(it) }
       }
     }
+    CachedValueProvider.Result.create(constrained, jvm, ProjectRootManager.getInstance(project))
   }
+
+  // Groovy too: Groovy classes can carry constraints like Java and Kotlin ones
+  private val JVM_LANGUAGES = setOf("JAVA", "kotlin", "Groovy")
 
   fun isProjectSource(element: PsiElement): Boolean {
     val file = element.containingFile?.virtualFile ?: return false

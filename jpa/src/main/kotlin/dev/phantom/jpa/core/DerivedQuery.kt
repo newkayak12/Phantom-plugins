@@ -12,9 +12,15 @@ import com.intellij.psi.util.PsiUtil
  */
 object DerivedQuery {
   const val REPOSITORY: String = "org.springframework.data.repository.Repository"
+  /** Annotations that give a repository method its query, so Spring does not derive one from the name. */
   private val QUERY_ANNOTATIONS = listOf(
     "org.springframework.data.jpa.repository.Query",
     "org.springframework.data.jpa.repository.NativeQuery",
+    "org.springframework.data.jpa.repository.Procedure",
+    "org.springframework.data.jdbc.repository.query.Query",
+    "org.springframework.data.r2dbc.repository.Query",
+    "org.springframework.data.mongodb.repository.Query",
+    "org.springframework.data.mongodb.repository.Aggregation",
   )
   /** Parameters Spring passes alongside the query arguments. */
   private val SPECIAL_PARAMETERS = listOf(
@@ -139,6 +145,15 @@ object DerivedQuery {
   fun isDerivedQueryMethod(method: PsiMethod): Boolean =
     !method.hasModifierProperty(PsiModifier.DEFAULT) && !method.hasModifierProperty(PsiModifier.STATIC) &&
     method.body == null && QUERY_ANNOTATIONS.none { method.hasAnnotation(it) } && PREFIX.containsMatchIn(method.name)
+
+  /**
+   * Spring Data JPA looks up a named query `<entity name>.<method name>` before deriving one from the method name, so a
+   * method backed by a `@NamedQuery` on its entity is not a derived query.
+   */
+  fun hasNamedQuery(entity: PsiClass, method: PsiMethod): Boolean {
+    val entityName = JpaModel.entityName(entity) ?: return false
+    return "$entityName.${method.name}" in JpaNamedQueries.declaredOn(entity)
+  }
 
   fun countsAsArgument(parameter: PsiParameter): Boolean {
     val psiClass = PsiUtil.resolveClassInClassTypeOnly(parameter.type) ?: return true

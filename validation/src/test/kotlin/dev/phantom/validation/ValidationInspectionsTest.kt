@@ -108,6 +108,13 @@ class ValidationInspectionsTest : LightJavaCodeInsightFixtureTestCase() {
       @jakarta.validation.Constraint(validatedBy = {})
       public @interface FieldOnly {}
     """.trimIndent())
+    // TYPE_PARAMETER is no PARAMETER target: Kotlin puts this one on the field
+    myFixture.addClass("""
+      package app;
+      @java.lang.annotation.Target({java.lang.annotation.ElementType.FIELD, java.lang.annotation.ElementType.TYPE_PARAMETER})
+      @jakarta.validation.Constraint(validatedBy = {})
+      public @interface FieldOrTypeParameter {}
+    """.trimIndent())
     myFixture.configureByText("SignUpRequest.kt", """
       package app
 
@@ -124,6 +131,7 @@ class ValidationInspectionsTest : LightJavaCodeInsightFixtureTestCase() {
           @get:Size(max = 3) val code: String,
           @param:NotBlank val explicitParam: String,
           @FieldOnly val legacy: String,
+          @FieldOrTypeParameter val typed: String,
           @Valid val address: Address,
           @NotBlank plainParameter: String,
       ) {
@@ -172,12 +180,15 @@ class ValidationInspectionsTest : LightJavaCodeInsightFixtureTestCase() {
       package app
 
       import jakarta.validation.Valid
+      import jakarta.validation.Valid as Cascade
       import jakarta.validation.constraints.NotNull
 
       class Order2(
           @field:NotNull val id: String?,
           val shipping: Address,
           @field:Valid val billing: Address,
+          @field:Cascade val aliased: Address,
+          @get:Valid val throughGetter: Address,
       )
     """.trimIndent())
     assertEquals(listOf("shipping"), problems().map { it.substringBefore(':') })
@@ -215,8 +226,38 @@ class ValidationInspectionsTest : LightJavaCodeInsightFixtureTestCase() {
       class ReservationController {
           fun create(@Valid @RequestBody body: String) {}
       }
+
+      @Service
+      annotation class UseCase
+
+      @UseCase
+      class BookingUseCase {
+          fun book(@Min(1) seats: Int) {}
+      }
+
+      @RestController
+      class SeatController {
+          fun seat(@Min(1) id: Long) {}
+      }
     """.trimIndent())
-    assertEquals(listOf("ReservationService"), problems().map { it.substringBefore(':') })
+    // before Spring 6.1 a controller's parameter constraints need @Validated too
+    assertEquals(listOf("BookingUseCase", "ReservationService", "SeatController"), problems().map { it.substringBefore(':') })
+  }
+
+  fun testControllersValidateThemselvesSinceSpring61() {
+    myFixture.addClass("package org.springframework.web.method.annotation; public class HandlerMethodValidator {}")
+    myFixture.configureByText("SeatController.kt", """
+      package app
+
+      import jakarta.validation.constraints.Min
+      import org.springframework.web.bind.annotation.RestController
+
+      @RestController
+      class SeatController {
+          fun seat(@Min(1) id: Long) {}
+      }
+    """.trimIndent())
+    assertEmpty(problems())
   }
 
   /** Common shapes that must stay quiet: Kotlin DTOs with @field:, services without constraints, value classes. */

@@ -82,7 +82,7 @@
     {
       "id": "dev.phantom.jpa",
       "name": "Support for JPA",
-      "version": "0.7.4",
+      "version": "0.7.5",
       "source": "jpa",
       "description": "JPA, Hibernate and Spring Data JPA for Java and Kotlin: JPQL in @Query with completion and errors, derived query method checks, a @Modifying check, entity mapping checks, and repository/entity gutter navigation. An Entity Diagram tool window: entities, columns and relations drawn from the code, copyable as a Mermaid erDiagram. 0.3.0: entity checks (several @Id, no-arg constructor, mappedBy, raw collections, converters), attribute checks (@Column on associations, LAZY on the inverse @OneToOne, @ManyToMany cascade REMOVE, unmapped entity fields, @Enumerated), Kotlin entity checks (kotlin-jpa/all-open, data class, val attributes, read-only collections), Lombok on entities, repository return and parameter types and Pageable. Wave 6: JPQL undeclared aliases and function arity, entity graph attributes, entity listener callback signatures. Wave 7: entity listener usage, named queries, JPQL in createQuery, Kotlin non-null vs nullable columns, Lombok @AllArgsConstructor without no-arg. Wave 9: derived query JPQL gutter, attribute <-> repository methods, @EntityGraph navigation. Wave 11: SQL injection through string-built JDBC/JPA queries, Criteria attribute names (check, completion, Ctrl+B), Jakarta Data repositories, Hibernate @Find, Spring Data JDBC aggregates and mappings.",
       "vendor": "Phantom",
@@ -93,7 +93,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "jpa-0.7.4/jpa-0.7.4.zip",
+      "download": "jpa-0.7.5/jpa-0.7.5.zip",
       "detect": [
         "org.springframework.data:spring-data-jpa",
         "org.hibernate.orm:hibernate-core",
@@ -269,7 +269,7 @@
     {
       "id": "dev.phantom.validation",
       "name": "Support for Bean Validation",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "source": "validation",
       "description": "Bean Validation checks for Java and Kotlin: contradictory bounds (@Min above @Max, @Size min above max), constraints on types they cannot validate, Kotlin constructor properties whose constraint lands on the parameter (quick fix: @field:), nested objects with constraints but no @Valid, and Spring beans with method constraints but no @Validated. Wave 7: custom @Constraint definitions.",
       "vendor": "Phantom",
@@ -280,7 +280,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "validation-0.2.3/validation-0.2.3.zip",
+      "download": "validation-0.2.4/validation-0.2.4.zip",
       "detect": [
         "jakarta.validation:jakarta.validation-api",
         "javax.validation:validation-api",
@@ -585,7 +585,7 @@
     {
       "id": "dev.phantom.querydsl",
       "name": "Support for QueryDSL",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "source": "querydsl",
       "description": "QueryDSL Q classes followed back to their entities: Go to Declaration on a Q class path (order.customer.name, QOrder.order) goes to the entity property or entity, in Java and Kotlin code; Find Usages of a Java entity field also finds its QueryDSL paths; Java entities whose Q class is out of date (a field added or removed since the last build) are reported.",
       "vendor": "Phantom",
@@ -596,7 +596,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "querydsl-0.1.3/querydsl-0.1.3.zip",
+      "download": "querydsl-0.1.4/querydsl-0.1.4.zip",
       "detect": [
         "com.querydsl:querydsl-jpa",
         "com.querydsl:querydsl-core",

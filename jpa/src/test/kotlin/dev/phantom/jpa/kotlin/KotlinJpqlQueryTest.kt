@@ -72,6 +72,29 @@ class KotlinJpqlQueryTest : LightJavaCodeInsightFixtureTestCase() {
     assertEmpty(errors())
   }
 
+  fun testTrailingInterpolationStaysInTheQuery() {
+    myFixture.configureByText("Repo.kt", """
+      package app
+
+      import org.springframework.data.jpa.repository.Query
+
+      interface Repo {
+          companion object {
+              private const val NOT_RELEASED = "AND o.releasedAt IS NULL"
+              private const val FIND = "SELECT o FROM TimeTableOccupancyEntity o WHERE o.userId = :userId ${'$'}NOT_RELEASED"
+          }
+
+          @Query(FIND)
+          fun find(userId: String): List<TimeTableOccupancyEntity>
+      }
+    """.trimIndent())
+    val host = com.intellij.psi.util.PsiTreeUtil.findChildrenOfType(myFixture.file, com.intellij.psi.PsiLanguageInjectionHost::class.java)
+      .single { it.text.contains("WHERE o.userId") }
+    val injected = com.intellij.lang.injection.InjectedLanguageManager.getInstance(project).getInjectedPsiFiles(host)!!.single().first
+    assertTrue(injected.text, injected.text.trimEnd().endsWith(dev.phantom.jpa.core.JpqlTokens.PLACEHOLDER_TEXT))
+    assertEmpty(errors())
+  }
+
   fun testInlineKotlinQueryReportsUnknownAttribute() {
     myFixture.configureByText("Repo.kt", """
       package app
