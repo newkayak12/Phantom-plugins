@@ -60,11 +60,39 @@ class DbGenericDialectTest : BasePlatformTestCase() {
     assertEmpty(warningsFor(Dbms.GENERIC))
   }
 
-  fun testGridIsReadOnlyWithoutDialect() {
-    val columns = listOf(DbColumn("id", Types.INTEGER, "INT", null))
-    val name = DbTableName(null, "t")
-    assertNotNull(DbEditTargets.build(Dbms.H2, "\"", name, null, "T", listOf("id"), listOf("id"), columns))
-    assertNull(DbEditTargets.build(Dbms.GENERIC, "\"", name, null, "T", listOf("id"), listOf("id"), columns))
+  fun testGridEditsWithoutDialectUseDriverQuotes() {
+    val columns = listOf(DbColumn("id", Types.INTEGER, "INT", null), DbColumn("name", Types.VARCHAR, "VARCHAR", null))
+    val target = DbEditTargets.build(Dbms.GENERIC, "`", DbTableName("app", "t"), "app", "T", listOf("id"), listOf("id", "name"), columns)!!
+    assertEquals("UPDATE `app`.`T` SET `name` = ? WHERE `id` = ?", target.update(arrayOf(1, "a"), 1, "b").sql)
+    // standard SQL for a row of defaults; MySQL's `() VALUES ()` is not
+    assertEquals("INSERT INTO `app`.`T` DEFAULT VALUES", target.insert(emptyMap()).sql)
+    assertNull(DbEditTargets.build(Dbms.GENERIC, "\"", DbTableName(null, "t"), null, "T", emptyList(), listOf("id"), columns))
+  }
+
+  fun testGenericResultIsEditableThroughMetadata() {
+    val ds = genericH2()
+    val outcomes = runBlocking {
+      DbExecutor.execute(project, ds, listOf("CREATE TABLE \"Item\"(id INT PRIMARY KEY, name VARCHAR(20))", "INSERT INTO \"Item\" VALUES (1, 'a')",
+                                            "SELECT id, name FROM \"Item\""))
+    }
+    val rows = outcomes[2] as DbOutcome.Rows
+    val target = runBlocking { DbEditTargets.resolve(project, ds, rows) }!!
+    assertEquals("UPDATE \"Item\" SET \"NAME\" = ? WHERE \"ID\" = ?", target.update(arrayOf(1, "a"), 1, "b").sql)
+    ds.readOnly = true
+    assertNull(runBlocking { DbEditTargets.resolve(project, ds, rows) })
+  }
+
+  private fun genericH2(): DbDataSource {
+    DbDriverRegistry.getInstance().save(DbDriverDefinition().apply {
+      id = "my-h2"; name = "My H2"; driverClass = "org.h2.Driver"
+      urlPrefixes = mutableListOf("jdbc:h2:"); artifacts = mutableListOf("com.h2database:h2"); dialect = Dbms.GENERIC
+    })
+    val ds = DbDataSource().apply {
+      name = "generic-h2"; driverId = "my-h2"; user = "sa"; url = "jdbc:h2:mem:generic_${System.nanoTime()};DB_CLOSE_DELAY=-1"
+    }
+    DbDataSourceService.getInstance(project).save(ds, CharArray(0))
+    assertEquals(Dbms.GENERIC, ds.dialect())
+    return ds
   }
 
   fun testGenericHasNoDriverToFind() {
