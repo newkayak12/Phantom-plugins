@@ -5,6 +5,7 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.configurations.PathEnvironmentVariableUtil
 import com.intellij.execution.process.CapturingProcessHandler
 import com.intellij.execution.process.ProcessOutput
+import dev.phantom.docker.compose.PhantomDockerBundle
 import java.io.File
 import java.nio.file.Path
 
@@ -63,4 +64,4 @@ object DockerCli {
 
 open class DockerException(message: String) : Exception(message)
 
-class DockerNotFoundException : DockerException("The docker command was not found. Install Docker Desktop, OrbStack or Colima, or put docker on PATH.")
+class DockerNotFoundException : DockerException(PhantomDockerBundle.message("docker.not.found"))

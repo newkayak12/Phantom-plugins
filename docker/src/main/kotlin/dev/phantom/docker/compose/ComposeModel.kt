@@ -6,7 +6,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
+import com.intellij.openapi.vfs.VirtualFileManager
 import dev.phantom.docker.ComposeFiles
 import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.PropertyKey
@@ -22,6 +22,9 @@ private const val BUNDLE = "messages.PhantomDockerBundle"
 object PhantomDockerBundle : DynamicBundle(BUNDLE) {
   @Nls
   fun message(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg params: Any): String = getMessage(key, *params)
+
+  fun messagePointer(@PropertyKey(resourceBundle = BUNDLE) key: String, vararg params: Any): java.util.function.Supplier<@Nls String> =
+    getLazyMessage(key, *params)
 }
 
 /**
@@ -95,19 +98,31 @@ class ComposeModel(val services: Map<String, YAMLKeyValue>, val networks: Set<St
     fun withSiblings(file: PsiFile): Scope? {
       val own = of(file) ?: return null
       return CachedValuesManager.getCachedValue(file) {
-        val siblings = file.originalFile.virtualFile?.parent?.children.orEmpty()
-          .filter { it != file.originalFile.virtualFile && ComposeFiles.isComposeFile(it.name) }
-          .mapNotNull { PsiManager.getInstance(file.project).findFile(it) }
-          .mapNotNull { of(it) }
+        val siblingFiles = siblings(file)
+        val siblings = siblingFiles.mapNotNull { of(it) }
         val all = siblings + own
         val scope = Scope(
           all.flatMap { it.services.keys }.toSet(), all.flatMap { it.networks }.toSet(), all.flatMap { it.volumes }.toSet(),
-          all.any { it.hasInclude }, siblings.isNotEmpty(),
+          all.any { it.hasInclude },
           siblings.flatMap { s -> s.services.filterValues { definesImage(it) }.keys }.toSet(),
         )
-        CachedValueProvider.Result.create(scope, PsiModificationTracker.getInstance(file.project))
+        CachedValueProvider.Result.create(scope, *siblingDeps(file, siblingFiles))
       }
     }
+
+    /** The other compose files in the directory of [file]. */
+    fun siblings(file: PsiFile): List<YAMLFile> {
+      val vFile = file.originalFile.virtualFile ?: return emptyList()
+      return vFile.parent?.children.orEmpty().filter { it != vFile && ComposeFiles.isComposeFile(it.name) }
+        .mapNotNull { PsiManager.getInstance(file.project).findFile(it) as? YAMLFile }
+    }
+
+    /**
+     * What a value read from [file] and its [siblings] depends on: those files, and files added, renamed or removed. Not
+     * every PSI change of the project, which recomputed it on each Java or Kotlin keystroke.
+     */
+    fun siblingDeps(file: PsiFile, siblings: List<PsiFile>): Array<Any> =
+      arrayOf(file, *siblings.toTypedArray(), VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS)
 
     fun definesImage(service: YAMLKeyValue): Boolean {
       val mapping = service.value as? YAMLMapping ?: return true // an alias or merge: cannot tell, assume it does
@@ -117,7 +132,7 @@ class ComposeModel(val services: Map<String, YAMLKeyValue>, val networks: Set<St
   }
 
   data class Scope(val services: Set<String>, val networks: Set<String>, val volumes: Set<String>, val hasInclude: Boolean,
-                   val hasSiblings: Boolean, val siblingImages: Set<String>)
+                   val siblingImages: Set<String>)
 }
 
 /** Small helpers over YAML PSI. */

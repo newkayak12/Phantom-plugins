@@ -6,6 +6,7 @@ import com.intellij.json.psi.JsonArray
 import com.intellij.json.psi.JsonFile
 import com.intellij.json.psi.JsonObject
 import com.intellij.json.psi.JsonProperty
+import com.intellij.json.psi.JsonStringLiteral
 import com.intellij.json.psi.JsonValue
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VfsUtilCore
@@ -17,6 +18,7 @@ import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.annotations.PropertyKey
@@ -24,6 +26,7 @@ import org.jetbrains.annotations.TestOnly
 import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLKeyValue
 import org.jetbrains.yaml.psi.YAMLMapping
+import org.jetbrains.yaml.psi.YAMLScalar
 import org.jetbrains.yaml.psi.YAMLSequence
 import org.jetbrains.yaml.psi.YAMLValue
 import java.net.URLDecoder
@@ -173,11 +176,65 @@ object OpenApiSpecs {
   /** `/users/{id}` and `/users/{userId}/` compare equal: parameter names and trailing slashes do not matter. */
   fun normalizePath(path: String): String = "/" + path.trim().trim('/').replace(Regex("""\{[^}]*}"""), "{}")
 
-  /** Exact match, or one path is the other with a prefix of whole segments (a server base path or context path). */
+  fun pathsEqual(a: String, b: String): Boolean = normalizePath(a) == normalizePath(b)
+
+  /**
+   * Exact match, or one path is the other with a prefix of whole literal segments (a server base path or context path).
+   * The prefix holds no parameter and the shorter path has a literal segment, so `/{id}` does not match every path
+   * that ends in a parameter.
+   */
   fun pathsMatch(specPath: String, codePath: String): Boolean {
     val a = normalizePath(specPath)
     val b = normalizePath(codePath)
+    if (a == b) return true
+    val (long, short) = if (a.length > b.length) a to b else b to a
     // both start with '/', so a suffix match always falls on a segment boundary
-    return a == b || (b != "/" && a.endsWith(b)) || (a != "/" && b.endsWith(a))
+    if (short == "/" || !long.endsWith(short)) return false
+    return "{}" !in long.removeSuffix(short) && short.split('/').any { it.isNotEmpty() && it != "{}" }
+  }
+}
+
+/** Files that are part of a spec without being one: a spec split into files keeps paths and schemas there. */
+internal object SpecFragments {
+  /** A spec or a file a spec points to with `$ref`, directly or through other such files (a spec split into files). */
+  fun isSpecOrFragment(file: PsiFile?): Boolean {
+    if (file !is YAMLFile && file !is JsonFile) return false
+    if (OpenApiSpecs.isSpec(file)) return true
+    val vFile = file.originalFile.virtualFile ?: return false
+    return vFile in fragmentFiles(file.project)
+  }
+
+  private fun fragmentFiles(project: Project): Set<VirtualFile> = CachedValuesManager.getManager(project).getCachedValue(project) {
+    val psiManager = PsiManager.getInstance(project)
+    val specs = OpenApiSpecs.specFiles(project)
+    val specVFiles = specs.mapNotNull { it.virtualFile }.toSet()
+    val seen = HashSet<VirtualFile>()
+    val queue = ArrayDeque(specs)
+    while (queue.isNotEmpty()) {
+      for (target in referencedFiles(queue.removeFirst())) {
+        if (target !in specVFiles && seen.add(target)) psiManager.findFile(target)?.let { queue.add(it) }
+      }
+    }
+    CachedValueProvider.Result.create(seen, *specFileDeps(project))
+  }
+
+  /** The local files the `$ref` values of [file] name. */
+  private fun referencedFiles(file: PsiFile): Set<VirtualFile> = CachedValuesManager.getCachedValue(file) {
+    val dir = file.virtualFile?.parent
+    val result = HashSet<VirtualFile>()
+    if (dir != null) {
+      PsiTreeUtil.processElements(file) { element ->
+        if (isRefValue(element)) {
+          val value = when (element) {
+            is YAMLScalar -> element.textValue
+            is JsonStringLiteral -> element.value
+            else -> ""
+          }.substringBefore('#')
+          if (value.isNotEmpty() && "://" !in value) dir.findFileByRelativePath(value)?.takeIf { !it.isDirectory }?.let { result.add(it) }
+        }
+        true
+      }
+    }
+    CachedValueProvider.Result.create(result, file)
   }
 }

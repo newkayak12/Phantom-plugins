@@ -134,6 +134,37 @@ class OpenApiTest : LightJavaCodeInsightFixtureTestCase() {
     assertFalse(OpenApiSpecs.pathsMatch("/users/{id}", "/apiusers/{id}"))
     assertFalse(OpenApiSpecs.pathsMatch("/users", "/users/{id}"))
     assertFalse(OpenApiSpecs.pathsMatch("/", "/users"))
+    // a parameter alone or a parameter in the extra prefix is not a base path
+    assertFalse(OpenApiSpecs.pathsMatch("/{id}", "/users/{id}"))
+    assertFalse(OpenApiSpecs.pathsMatch("/users/{id}", "/{tenant}/users/{id}"))
+    assertEquals(listOf("/pets"), CodeEndpoints.preferExact(listOf("/api/pets", "/pets"), "/pets") { it })
+    assertEquals(listOf("/api/pets"), CodeEndpoints.preferExact(listOf("/api/pets"), "/pets") { it })
+  }
+
+  fun testRenameChangesOnlyTheLastPointerSegment() {
+    myFixture.addFileToProject("common.yaml", "components:\n  responses:\n    NotFound:\n      description: not found\n")
+    myFixture.configureByText("petstore.yaml", petstore.replace("'#/components/schemas/Pet'", "'#/components/schemas/P<caret>et'"))
+    myFixture.renameElementAtCaret("Big~Pet")
+    val text = myFixture.editor.document.text
+    assertTrue(text, text.contains("'#/components/schemas/Big~0Pet'"))
+    assertTrue(text, text.contains("Big~Pet:"))
+  }
+
+  /** A spec split into files: `${'$'}ref` in the files the spec points to resolve and are checked too. */
+  fun testRefsInSplitSpecFiles() {
+    myFixture.addFileToProject("api.yaml", """
+      openapi: 3.0.3
+      info:
+        title: split
+        version: "1"
+      paths:
+        /pets:
+          ${'$'}ref: 'paths/pets.yaml'
+    """.trimIndent())
+    myFixture.addFileToProject("paths/pets.yaml", "get:\n  responses:\n    '200':\n      ${'$'}ref: '../schemas/pet.yaml#/Pet'\n")
+    val pet = myFixture.addFileToProject("schemas/pet.yaml", "Pet:\n  properties:\n    owner:\n      ${'$'}ref: '#/Owner'\n    tag:\n      ${'$'}ref: '#/Tag'\nTag:\n  type: string\n")
+    myFixture.configureFromExistingVirtualFile(pet.virtualFile)
+    assertEquals(listOf("Cannot resolve '#/Owner'"), errors())
   }
 
   /** A stand-in for Spring MVC: one GET handler on `/api/pets/{id}`. */
@@ -202,7 +233,7 @@ class OpenApiTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals(0, provider.searches.get())
   }
 
-  /** The probe the real project check used: a spec in a module's resource root with a `$ref` to a missing schema. */
+  /** The probe the real project check used: a spec in a module's resource root with a `${'$'}ref` to a missing schema. */
   fun testSpecInAResourceRoot() {
     val resources = myFixture.tempDirFixture.findOrCreateDir("module/src/main/resources")
     com.intellij.testFramework.PsiTestUtil.addSourceRoot(module, resources, org.jetbrains.jps.model.java.JavaResourceRootType.RESOURCE)

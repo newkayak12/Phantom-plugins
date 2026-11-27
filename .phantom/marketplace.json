@@ -205,7 +205,7 @@
     {
       "id": "dev.phantom.docker",
       "name": "Support for Docker",
-      "version": "0.6.3",
+      "version": "0.6.4",
       "source": "docker",
       "description": "Docker Compose through the docker CLI: run icons on compose services, a Docker Compose run configuration shown in Services, and a Docker tool window listing containers by compose project with start, stop, restart, remove, logs and compose down. Polls only while open. 0.2.0: Compose checks (unknown keys and values, undefined services/networks/volumes with Ctrl+B and completion, missing image, unquoted base-60 ports, duplicate container names) and Dockerfile checks (continuations, argument counts, exec form, heredocs, stages, COPY/ADD paths). Wave 7: Compose pull_policy and network_mode values. Wave 8: Compose build -> Dockerfile and depends_on gutters, Dockerfile stage Ctrl+B. Wave 10: COPY/ADD here-documents BuildKit rejects. Wave 11: FROM ... AS stage to its usages marker.",
       "vendor": "Phantom",
@@ -216,7 +216,7 @@
         "com.intellij.modules.lang",
         "org.jetbrains.plugins.yaml"
       ],
-      "download": "docker-0.6.3/docker-0.6.3.zip",
+      "download": "docker-0.6.4/docker-0.6.4.zip",
       "detectFiles": [
         "compose.yaml",
         "compose.yml",
@@ -311,7 +311,7 @@
     {
       "id": "dev.phantom.openapi",
       "name": "Support for OpenAPI",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "source": "openapi",
       "description": "OpenAPI and Swagger specs in YAML and JSON: $ref navigation to local pointers and other files, #/components/... completion, unresolved $ref errors, and gutter links between a spec operation and its handler (Spring MVC and any framework in the Endpoints view). Wave 10: specs not recognized because of a misspelled version key, unsupported versions, unknown top-level keys.",
       "vendor": "Phantom",
@@ -323,7 +323,7 @@
         "org.jetbrains.plugins.yaml",
         "com.intellij.modules.json"
       ],
-      "download": "openapi-0.2.4/openapi-0.2.4.zip",
+      "download": "openapi-0.2.5/openapi-0.2.5.zip",
       "detect": [
         "org.springdoc:springdoc-openapi-starter-webmvc-ui",
         "org.springdoc:springdoc-openapi-starter-webflux-ui",

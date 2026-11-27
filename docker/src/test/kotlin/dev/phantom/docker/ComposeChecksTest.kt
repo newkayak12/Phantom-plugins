@@ -110,6 +110,29 @@ class ComposeChecksTest : BasePlatformTestCase() {
     assertTrue(myFixture.file.text.contains("- \"22:22\""))
   }
 
+  /** `C:\data:/data` is a Windows bind mount: neither `C` nor any other volume name. */
+  fun testWindowsBindMountIsNotANamedVolume() {
+    myFixture.configureByText("compose.yaml", """
+      services:
+        app:
+          image: alpine
+          volumes:
+            - 'C:\data:/data'
+            - D:/logs:/logs:ro
+            - cache:/cache
+    """.trimIndent())
+    assertEquals(listOf("Volume 'cache' is not declared under the top-level volumes"), problems())
+  }
+
+  /** The definitions of a compose file and its neighbours are read once until one of the files changes. */
+  fun testDefinitionsAreCached() {
+    myFixture.addFileToProject("compose.override.yaml", "services:\n  extra:\n    image: alpine\n")
+    val file = myFixture.configureByText("compose.yaml", "services:\n  app:\n    image: alpine\n") as org.jetbrains.yaml.psi.YAMLFile
+    val first = ComposeReferences.definitions(file, ComposeReferences.Kind.SERVICE)
+    assertEquals(setOf("app", "extra"), first.keys)
+    assertSame(first, ComposeReferences.definitions(file, ComposeReferences.Kind.SERVICE))
+  }
+
   fun testOverrideFileSeesServicesOfItsBase() {
     myFixture.addFileToProject("app/compose.yaml", "services:\n  db:\n    image: mysql\n  api:\n    image: app\n")
     val file = myFixture.addFileToProject("app/compose.override.yaml", "services:\n  api:\n    ports: [\"8080:80\"]\n    depends_on: [db]\n")

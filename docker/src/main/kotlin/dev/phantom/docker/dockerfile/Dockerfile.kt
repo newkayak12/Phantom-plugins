@@ -106,7 +106,8 @@ class Dockerfile private constructor(val instructions: List<Instruction>, val pr
         // heredocs: their bodies follow the instruction's last line
         val heredocs = ArrayList<String>()
         if (keyword.uppercase() in setOf("RUN", "COPY", "ADD")) {
-          for (m in HEREDOC.findAll(args)) {
+          // `RUN echo "<<EOF"` prints the text; only a `<<` outside quotes starts a heredoc
+          for (m in HEREDOC.findAll(args).filter { !inQuotes(args, it.range.first) }) {
             val delimiter = m.groupValues[3]
             val stripTabs = m.groupValues[1] == "-"
             var j = i + 1
@@ -129,6 +130,17 @@ class Dockerfile private constructor(val instructions: List<Instruction>, val pr
         i++
       }
       return Dockerfile(instructions, problems)
+    }
+
+    /** Whether [index] of [text] lies inside a single- or double-quoted part. */
+    private fun inQuotes(text: String, index: Int): Boolean {
+      var quote: Char? = null
+      for (k in 0 until index) {
+        val c = text[k]
+        if (quote != null) { if (c == quote) quote = null }
+        else if (c == '"' || c == '\'') quote = c
+      }
+      return quote != null
     }
 
     /** Splits on whitespace outside quotes. */

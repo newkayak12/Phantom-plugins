@@ -9,6 +9,7 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import org.jetbrains.annotations.Nls
 import org.jetbrains.yaml.YAMLElementGenerator
 import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLKeyValue
@@ -45,17 +46,17 @@ abstract class ComposeInspection : LocalInspectionTool() {
 /** Keys the Compose Specification does not define, at the top level, in services, `build`, `healthcheck` and `depends_on`. */
 class ComposeUnknownKeysInspection : ComposeInspection() {
   override fun check(file: YAMLFile, root: YAMLMapping, model: ComposeModel, problems: Problems) {
-    fun level(mapping: YAMLValue?, known: Set<String>, where: String) {
+    fun level(mapping: YAMLValue?, known: Set<String>, where: @Nls String) {
       for (kv in Yaml.keys(mapping)) {
         if (!ComposeSchema.allowed(kv.keyText, known)) {
           problems.add(kv.key ?: kv, PhantomDockerBundle.message("compose.unknown.key", kv.keyText, where))
         }
       }
     }
-    level(root, ComposeSchema.TOP, "the top level")
+    level(root, ComposeSchema.TOP, PhantomDockerBundle.message("compose.level.top"))
     for (service in services(root)) {
       val body = service.value as? YAMLMapping ?: continue
-      level(body, ComposeSchema.SERVICE, "a service")
+      level(body, ComposeSchema.SERVICE, PhantomDockerBundle.message("compose.level.service"))
       level(body.getKeyValueByKey("healthcheck")?.value, ComposeSchema.HEALTHCHECK, "healthcheck")
       level(body.getKeyValueByKey("build")?.value, ComposeSchema.BUILD, "build")
       for (dep in Yaml.keys(body.getKeyValueByKey("depends_on")?.value)) level(dep.value, ComposeSchema.DEPENDS_ON_ENTRY, "depends_on")
