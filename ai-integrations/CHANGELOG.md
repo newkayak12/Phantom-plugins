@@ -2,6 +2,12 @@
 
 ## 미배포
 
+## 0.7.1 (2026-11-27)
+
+- 트리와 보드의 열린 PR 제목은 Settings | Tools | Phantom AI Integration의 "Show the open pull request of each branch"를 켠 경우에만 GitHub API로 찾는다. 기본은 꺼져 있다. (#167)
+- 에이전트 팀 확인은 Claude 세션이 모두 끝나면 멈추고 다음 세션에서 다시 시작한다. (#167)
+- GitHub 토큰 조회와 에이전트 데이터베이스 도구가 취소 요청에 응답한다. (#167)
+
 ## 0.7.0 (2026-11-27)
 
 - Phantom Local Shared Index가 필요하다. 에이전트의 `find_symbol`, `find_usages`, `file_outline`, `get_file_problems`는 이름과 인자가 그대로이고 Local Shared Index가 답한다. 에이전트가 `search_text`로 IDE의 Find in Files와 인덱스를 써서 텍스트를 찾고, 일치한 줄과 앞뒤 몇 줄을 받는다. (#'162')

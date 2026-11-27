@@ -38,6 +38,7 @@ class AccountsConfigurable(
   private var hooksBox: JBCheckBox? = null
   private var skipBox: JBCheckBox? = null
   private var dbBox: JBCheckBox? = null
+  private var prBox: JBCheckBox? = null
 
   override fun getDisplayName(): String = PhantomAiBundle.message("accounts.title")
 
@@ -54,9 +55,10 @@ class AccountsConfigurable(
     val h = JBCheckBox(PhantomAiBundle.message("settings.hooks", files)).apply { name = "settings.hooks" }
     val k = JBCheckBox(PhantomAiBundle.message("settings.skip.permissions")).apply { name = "settings.skip.permissions" }
     val d = JBCheckBox(PhantomAiBundle.message("settings.db.tools")).apply { name = "settings.db.tools" }
-    hooksBox = h; skipBox = k; dbBox = d
+    val pr = JBCheckBox(PhantomAiBundle.message("settings.pr.titles")).apply { name = "settings.pr.titles" }
+    hooksBox = h; skipBox = k; dbBox = d; prBox = pr
     val options = JPanel().apply { layout = BoxLayout(this, BoxLayout.Y_AXIS); border = JBUI.Borders.emptyTop(12) }
-    for ((box, help) in listOf(h to "settings.hooks.help", k to "settings.skip.permissions.help", d to "settings.db.tools.help")) {
+    for ((box, help) in listOf(h to "settings.hooks.help", k to "settings.skip.permissions.help", d to "settings.db.tools.help", pr to "settings.pr.titles.help")) {
       options.add(JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply { add(box) })
       options.add(JPanel(FlowLayout(FlowLayout.LEFT, 4, 0)).apply { add(help(PhantomAiBundle.message(help)).apply { name = help }) })
     }
@@ -79,13 +81,15 @@ class AccountsConfigurable(
     hooksBox?.isSelected = hooks.consent() == HookConsent.ALLOWED
     skipBox?.isSelected = s.skipPermissions
     dbBox?.isSelected = s.dbTools
+    prBox?.isSelected = s.prTitles
   }
 
   private fun optionsModified(): Boolean {
     val s = stateProvider().state
     return hooksBox?.let { it.isSelected != (hooks.consent() == HookConsent.ALLOWED) } == true ||
       skipBox?.let { it.isSelected != s.skipPermissions } == true ||
-      dbBox?.let { it.isSelected != s.dbTools } == true
+      dbBox?.let { it.isSelected != s.dbTools } == true ||
+      prBox?.let { it.isSelected != s.prTitles } == true
   }
 
   private fun rebuild() {
@@ -153,6 +157,7 @@ class AccountsConfigurable(
     val s = stateProvider().state
     skipBox?.let { s.skipPermissions = it.isSelected }
     dbBox?.let { s.dbTools = it.isSelected }
+    prBox?.let { s.prTitles = it.isSelected }
     // turning the tools off also forgets which data sources were allowed: turned on again, each is asked for again
     if (!s.dbTools) s.dbAllowedSources = mutableListOf()
     hooksBox?.let { box ->
@@ -171,6 +176,6 @@ class AccountsConfigurable(
 
   override fun disposeUIResources() {
     root = null
-    hooksBox = null; skipBox = null; dbBox = null
+    hooksBox = null; skipBox = null; dbBox = null; prBox = null
   }
 }

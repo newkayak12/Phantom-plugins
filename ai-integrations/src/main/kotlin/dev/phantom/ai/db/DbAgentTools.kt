@@ -4,6 +4,7 @@ package dev.phantom.ai.db
 import com.google.gson.JsonObject
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.progress.runBlockingMaybeCancellable
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import dev.phantom.ai.core.AiState
@@ -19,9 +20,7 @@ import dev.phantom.db.core.exec.DbConsoles
 import dev.phantom.db.core.exec.DbMetadataCache
 import dev.phantom.db.core.exec.DbSchemaRef
 import dev.phantom.db.core.exec.SqlSafety
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import java.nio.file.Path
 import java.sql.Connection
 import java.sql.SQLException
@@ -189,10 +188,11 @@ class DbAgentTools(
       DbDataSourceService.getInstance(project).password(ds.id).isNullOrEmpty() && !DbConnectionService.getInstance(project).isConnected(ds.id)
     if (needsPassword) throw McpToolError("${ds.name} asks for its password each time; connect to it in Phantom's Database Console first")
     return try {
-      runBlocking { withTimeout(TIMEOUT_MS) { block() } }
-    }
-    catch (e: TimeoutCancellationException) {
-      throw McpToolError("${ds.name} did not answer in ${TIMEOUT_MS / 1000} s")
+      // runBlockingMaybeCancellable, unlike runBlocking, lets the caller's progress or job cancel the wait; MCP calls come on
+      // HookServer's threads without either, where runBlockingCancellable logs an error. The timeout is a null result rather
+      // than a TimeoutCancellationException, which would read as a cancellation.
+      runBlockingMaybeCancellable { withTimeoutOrNull(TIMEOUT_MS) { block() } }
+        ?: throw McpToolError("${ds.name} did not answer in ${TIMEOUT_MS / 1000} s")
     }
     catch (e: SQLException) {
       throw McpToolError("${ds.name}: ${e.message ?: e.javaClass.simpleName}")
