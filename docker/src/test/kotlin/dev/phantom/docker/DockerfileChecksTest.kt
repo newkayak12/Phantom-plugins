@@ -77,7 +77,7 @@ class DockerfileChecksTest : BasePlatformTestCase() {
     """)
     assertEquals(listOf(
       "--from=5 refers to this or a later stage; only earlier stages can be copied from",
-      "ARG takes one name, optionally with =default",
+      "ARG takes names, each optionally with =default",
       "Another stage is already named 'Base'",
       "COPY needs at least one source and a destination",
       "ENV takes key=value pairs, or a single key followed by its value",
@@ -90,6 +90,16 @@ class DockerfileChecksTest : BasePlatformTestCase() {
       "Unknown instruction 'FORM'",
       "WORKDIR takes exactly one argument",
     ), problems())
+  }
+
+  fun testSeveralArgsAndQuotedHeredocMarker() {
+    dockerfile("Dockerfile", """
+      ARG A=1 B=2 C
+      FROM alpine
+      RUN echo "<<EOF" > /notes && echo '<<-END' >> /notes
+      CMD ["sh", "-c", "cat <<EOF"]
+    """)
+    assertEmpty(problems())
   }
 
   fun testShellFormAndCopySources() {

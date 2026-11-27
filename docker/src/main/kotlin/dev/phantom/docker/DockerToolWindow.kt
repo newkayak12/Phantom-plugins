@@ -30,9 +30,12 @@ import com.intellij.ui.SimpleTextAttributes
 import com.intellij.ui.content.ContentFactory
 import com.intellij.ui.table.JBTable
 import com.intellij.util.Alarm
+import dev.phantom.docker.compose.PhantomDockerBundle
+import org.jetbrains.annotations.PropertyKey
 import java.awt.BorderLayout
 import java.awt.datatransfer.StringSelection
 import java.awt.event.MouseEvent
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.JPanel
 import javax.swing.JTable
 import javax.swing.ListSelectionModel
@@ -47,25 +50,27 @@ class DockerToolWindowFactory : ToolWindowFactory, DumbAware {
 
   override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
     val panel = ContainersPanel(project, toolWindow.disposable)
-    toolWindow.contentManager.addContent(ContentFactory.getInstance().createContent(panel, "Containers", false))
+    toolWindow.contentManager.addContent(ContentFactory.getInstance().createContent(panel, PhantomDockerBundle.message("containers.tab"), false))
   }
 }
 
 /**
  * `docker ps -a` as a table, grouped by compose project. Refreshes every three seconds while it is on screen and the IDE is
- * the active application, never in the background; switching back to the IDE refreshes at once. Start, stop, restart, remove and logs run the docker command for the selected containers.
+ * the active application, never in the background; switching back to the IDE refreshes at once. One poll runs at a time,
+ * and failing polls back off up to [MAX_PERIOD_MS]. Start, stop, restart, remove and logs run the docker command for the selected containers.
  */
 class ContainersPanel(private val project: Project, parent: Disposable) : JPanel(BorderLayout()), Disposable {
   private var rows: List<DockerCli.Container> = emptyList()
   private val model = object : AbstractTableModel() {
     override fun getRowCount() = rows.size
     override fun getColumnCount() = COLUMNS.size
-    override fun getColumnName(column: Int) = COLUMNS[column]
+    override fun getColumnName(column: Int) = PhantomDockerBundle.message(COLUMNS[column])
     override fun getValueAt(row: Int, column: Int): Any = rows[row]
   }
   private val table = JBTable(model)
   private val alarm = Alarm(Alarm.ThreadToUse.POOLED_THREAD, this)
-  @Volatile private var error: String? = null
+  private val polling = AtomicBoolean()
+  @Volatile private var failures = 0
 
   init {
     Disposer.register(parent, this)
@@ -76,23 +81,23 @@ class ContainersPanel(private val project: Project, parent: Disposable) : JPanel
     })
     table.setShowGrid(false)
     table.selectionModel.selectionMode = ListSelectionModel.MULTIPLE_INTERVAL_SELECTION
-    table.emptyText.text = "Loading containers…"
+    table.emptyText.text = PhantomDockerBundle.message("containers.loading")
     table.setDefaultRenderer(Any::class.java, Renderer())
     object : DoubleClickListener() {
       override fun onDoubleClick(event: MouseEvent): Boolean { selected().firstOrNull()?.let(::showLogs); return true }
     }.installOn(table)
 
     val actions = DefaultActionGroup(
-      action("Refresh", AllIcons.Actions.Refresh, { true }) { refresh() },
+      action("containers.action.refresh", AllIcons.Actions.Refresh, { true }) { refresh() },
       Separator.getInstance(),
-      action("Start", AllIcons.Actions.Execute, { it.any { c -> !c.running } }) { run("start", it) },
-      action("Stop", AllIcons.Actions.Suspend, { it.any { c -> c.running } }) { run("stop", it) },
-      action("Restart", AllIcons.Actions.Restart, { it.isNotEmpty() }) { run("restart", it) },
-      action("Show Logs", AllIcons.Debugger.Console, { it.size == 1 }) { showLogs(it.single()) },
-      action("Remove", AllIcons.General.Remove, { it.isNotEmpty() }) { remove(it) },
+      action("containers.action.start", AllIcons.Actions.Execute, { it.any { c -> !c.running } }) { run("start", it) },
+      action("containers.action.stop", AllIcons.Actions.Suspend, { it.any { c -> c.running } }) { run("stop", it) },
+      action("containers.action.restart", AllIcons.Actions.Restart, { it.isNotEmpty() }) { run("restart", it) },
+      action("containers.action.logs", AllIcons.Debugger.Console, { it.size == 1 }) { showLogs(it.single()) },
+      action("containers.action.remove", AllIcons.General.Remove, { it.isNotEmpty() }) { remove(it) },
       Separator.getInstance(),
-      action("Compose Down", AllIcons.Actions.Cancel, { it.any { c -> c.composeProject.isNotEmpty() } }) { composeDown(it) },
-      action("Copy Container ID", AllIcons.Actions.Copy, { it.isNotEmpty() }) {
+      action("containers.action.compose.down", AllIcons.Actions.Cancel, { it.any { c -> c.composeProject.isNotEmpty() } }) { composeDown(it) },
+      action("containers.action.copy.id", AllIcons.Actions.Copy, { it.isNotEmpty() }) {
         CopyPasteManager.getInstance().setContents(StringSelection(it.joinToString("\n") { c -> c.id.take(12) }))
       },
     )
@@ -108,8 +113,9 @@ class ContainersPanel(private val project: Project, parent: Disposable) : JPanel
     return table.selectedRows.map { row -> table.convertRowIndexToModel(row) }.filter { index -> index in list.indices }.map { index -> list[index] }
   }
 
-  private fun action(text: String, icon: javax.swing.Icon, enabled: (List<DockerCli.Container>) -> Boolean,
-                     perform: (List<DockerCli.Container>) -> Unit) = object : DumbAwareAction(text, null, icon) {
+  private fun action(@PropertyKey(resourceBundle = "messages.PhantomDockerBundle") key: String, icon: javax.swing.Icon,
+                     enabled: (List<DockerCli.Container>) -> Boolean,
+                     perform: (List<DockerCli.Container>) -> Unit) = object : DumbAwareAction(PhantomDockerBundle.messagePointer(key), icon) {
     override fun getActionUpdateThread() = ActionUpdateThread.EDT
     override fun update(e: AnActionEvent) { e.presentation.isEnabled = enabled(selected()) }
     override fun actionPerformed(e: AnActionEvent) = perform(selected())
@@ -133,26 +139,33 @@ class ContainersPanel(private val project: Project, parent: Disposable) : JPanel
   }
 
   private fun poll() {
-    // paused while another application is in front; applicationActivated starts it again
-    if (!ApplicationManager.getApplication().isActive) return
-    val result = runCatching { DockerCli.containers() }
+    // A refresh while a poll runs used to start a second chain of polls; the running poll's result is fresh enough.
+    if (!polling.compareAndSet(false, true)) return
+    val result = try {
+      // paused while another application is in front; applicationActivated starts it again
+      if (!ApplicationManager.getApplication().isActive) return
+      runCatching { DockerCli.containers() }
+    }
+    finally {
+      polling.set(false)
+    }
+    failures = if (result.isSuccess) 0 else failures + 1
     ApplicationManager.getApplication().invokeLater({
       result.onSuccess { list ->
-        error = null
         val keep = selected().map { it.id }.toSet()
         rows = list.sortedWith(compareBy({ it.composeProject.ifEmpty { "￿" } }, { !it.running }, { it.name }))
         model.fireTableDataChanged()
         rows.forEachIndexed { i, c -> if (c.id in keep) table.selectionModel.addSelectionInterval(table.convertRowIndexToView(i), table.convertRowIndexToView(i)) }
-        table.emptyText.text = "No containers"
+        table.emptyText.text = PhantomDockerBundle.message("containers.empty")
       }.onFailure { e ->
-        error = e.message
         rows = emptyList()
         model.fireTableDataChanged()
-        table.emptyText.setText(e.message ?: "docker failed", SimpleTextAttributes.ERROR_ATTRIBUTES)
+        table.emptyText.setText(e.message ?: PhantomDockerBundle.message("containers.docker.failed"), SimpleTextAttributes.ERROR_ATTRIBUTES)
       }
     }, ModalityState.any()) { project.isDisposed }
     // a missing docker command will not appear by itself; the Refresh button retries
-    if (result.exceptionOrNull() !is DockerNotFoundException && isShowing) alarm.addRequest(::poll, PERIOD_MS)
+    // schedule() drops any request queued meanwhile, so one chain of polls remains
+    if (result.exceptionOrNull() !is DockerNotFoundException && isShowing) schedule(nextDelay(failures))
   }
 
   private fun run(command: String, containers: List<DockerCli.Container>) {
@@ -162,14 +175,15 @@ class ContainersPanel(private val project: Project, parent: Disposable) : JPanel
 
   private fun remove(containers: List<DockerCli.Container>) {
     val names = containers.joinToString(", ") { it.name }
-    if (Messages.showYesNoDialog(project, "Remove $names? Running containers are stopped first.", "Remove Containers", null) != Messages.YES) return
+    if (Messages.showYesNoDialog(project, PhantomDockerBundle.message("containers.remove.question", names),
+                                 PhantomDockerBundle.message("containers.remove.title"), null) != Messages.YES) return
     background("docker rm") { DockerCli.run("rm", "-f", *containers.map { it.id }.toTypedArray(), timeoutMs = 60_000) }
   }
 
   private fun composeDown(containers: List<DockerCli.Container>) {
     val projects = containers.map { it.composeProject }.filter { it.isNotEmpty() }.distinct()
-    if (Messages.showYesNoDialog(project, "Stop and remove the containers and networks of ${projects.joinToString(", ")}? Volumes are kept.",
-                                 "Compose Down", null) != Messages.YES) return
+    if (Messages.showYesNoDialog(project, PhantomDockerBundle.message("containers.compose.down.question", projects.joinToString(", ")),
+                                 PhantomDockerBundle.message("containers.action.compose.down"), null) != Messages.YES) return
     for (p in projects) background("docker compose down") { DockerCli.run("compose", "-p", p, "down", timeoutMs = 120_000) }
   }
 
@@ -177,9 +191,9 @@ class ContainersPanel(private val project: Project, parent: Disposable) : JPanel
     ApplicationManager.getApplication().executeOnPooledThread {
       val output = runCatching(task)
       val failure = output.exceptionOrNull()?.message
-                    ?: output.getOrNull()?.takeIf { it.exitCode != 0 || it.isTimeout }?.let { it.stderr.trim().ifEmpty { "exit code ${it.exitCode}" } }
+                    ?: output.getOrNull()?.takeIf { it.exitCode != 0 || it.isTimeout }?.let { it.stderr.trim().ifEmpty { PhantomDockerBundle.message("containers.exit.code", it.exitCode) } }
       if (failure != null) {
-        NotificationGroupManager.getInstance().getNotificationGroup("Docker Support").createNotification("$title failed", failure, NotificationType.ERROR).notify(project)
+        NotificationGroupManager.getInstance().getNotificationGroup("Docker Support").createNotification(PhantomDockerBundle.message("containers.command.failed", title), failure, NotificationType.ERROR).notify(project)
       }
       schedule(0)
     }
@@ -190,10 +204,10 @@ class ContainersPanel(private val project: Project, parent: Disposable) : JPanel
       KillableColoredProcessHandler(DockerCli.command("logs", "-f", "--tail", "1000", container.id))
     }
     catch (e: Exception) {
-      Messages.showErrorDialog(project, e.message, "Docker Logs")
+      Messages.showErrorDialog(project, e.message, PhantomDockerBundle.message("containers.logs.title"))
       return
     }
-    RunContentExecutor(project, handler).withTitle("Logs: ${container.name}").withActivateToolWindow(true).run()
+    RunContentExecutor(project, handler).withTitle(PhantomDockerBundle.message("containers.logs.tab", container.name)).withActivateToolWindow(true).run()
   }
 
   override fun dispose() {}
@@ -217,7 +231,12 @@ class ContainersPanel(private val project: Project, parent: Disposable) : JPanel
   }
 
   companion object {
-    private val COLUMNS = listOf("Container", "Compose", "Image", "Status", "Ports")
+    private val COLUMNS = listOf("containers.column.name", "containers.column.compose", "containers.column.image", "containers.column.status",
+                                 "containers.column.ports")
     private const val PERIOD_MS = 3_000
+    private const val MAX_PERIOD_MS = 60_000
+
+    /** Three seconds, doubled after each failure in a row, at most a minute. */
+    internal fun nextDelay(failures: Int): Int = (PERIOD_MS.toLong() shl failures.coerceIn(0, 5)).coerceAtMost(MAX_PERIOD_MS.toLong()).toInt()
   }
 }

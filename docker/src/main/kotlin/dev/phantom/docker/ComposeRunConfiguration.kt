@@ -20,6 +20,7 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.execution.ParametersListUtil
 import com.intellij.util.ui.FormBuilder
+import dev.phantom.docker.compose.PhantomDockerBundle
 import org.jdom.Element
 import java.io.File
 import java.nio.file.Path
@@ -30,7 +31,8 @@ object DockerIcons {
   @JvmField val Docker: Icon = IconLoader.getIcon("/icons/phantom/docker.svg", DockerIcons::class.java.classLoader)
 }
 
-class ComposeConfigurationType : ConfigurationTypeBase(ID, "Docker Compose", "Start services with docker compose up",
+class ComposeConfigurationType : ConfigurationTypeBase(ID, PhantomDockerBundle.message("compose.run.type.name"),
+                                                       PhantomDockerBundle.message("compose.run.type.description"),
                                                        NotNullLazyValue.createValue { DockerIcons.Docker }) {
   init {
     addFactory(object : ConfigurationFactory(this) {
@@ -77,8 +79,8 @@ class ComposeRunConfiguration(project: Project, factory: ConfigurationFactory, n
   }
 
   override fun checkConfiguration() {
-    if (composeFiles.isEmpty()) throw RuntimeConfigurationError("Choose a compose file")
-    composeFiles.firstOrNull { !File(it).isFile }?.let { throw RuntimeConfigurationError("'$it' does not exist") }
+    if (composeFiles.isEmpty()) throw RuntimeConfigurationError(PhantomDockerBundle.message("compose.run.no.file"))
+    composeFiles.firstOrNull { !File(it).isFile }?.let { throw RuntimeConfigurationError(PhantomDockerBundle.message("compose.run.file.missing", it)) }
     if (DockerCli.executable() == null) throw RuntimeConfigurationWarning(DockerNotFoundException().message!!)
   }
 
@@ -116,11 +118,11 @@ class ComposeRunConfiguration(project: Project, factory: ConfigurationFactory, n
 
 class ComposeSettingsEditor(project: Project) : SettingsEditor<ComposeRunConfiguration>() {
   private val file = TextFieldWithBrowseButton().apply {
-    addBrowseFolderListener(project, FileChooserDescriptorFactory.createSingleFileDescriptor().withTitle("Compose File"))
+    addBrowseFolderListener(project, FileChooserDescriptorFactory.createSingleFileDescriptor().withTitle(PhantomDockerBundle.message("compose.run.file.chooser")))
   }
-  private val services = JBTextField().apply { emptyText.text = "All services" }
-  private val build = JBCheckBox("Build images before starting (--build)")
-  private val removeOrphans = JBCheckBox("Remove containers of services no longer in the file (--remove-orphans)")
+  private val services = JBTextField().apply { emptyText.text = PhantomDockerBundle.message("compose.run.all.services") }
+  private val build = JBCheckBox(PhantomDockerBundle.message("compose.run.build"))
+  private val removeOrphans = JBCheckBox(PhantomDockerBundle.message("compose.run.remove.orphans"))
   private val extraArgs = RawCommandLineEditor()
 
   override fun resetEditorFrom(c: ComposeRunConfiguration) {
@@ -140,12 +142,12 @@ class ComposeSettingsEditor(project: Project) : SettingsEditor<ComposeRunConfigu
   }
 
   override fun createEditor(): JComponent = FormBuilder.createFormBuilder()
-    .addLabeledComponent("Compose files:", file)
-    .addTooltip("Several files: separate them with ${File.pathSeparator}")
-    .addLabeledComponent("Services:", services)
+    .addLabeledComponent(PhantomDockerBundle.message("compose.run.files"), file)
+    .addTooltip(PhantomDockerBundle.message("compose.run.files.tooltip", File.pathSeparator))
+    .addLabeledComponent(PhantomDockerBundle.message("compose.run.services"), services)
     .addComponent(build)
     .addComponent(removeOrphans)
-    .addLabeledComponent("Arguments for up:", extraArgs)
+    .addLabeledComponent(PhantomDockerBundle.message("compose.run.arguments"), extraArgs)
     .panel
 }
 

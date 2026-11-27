@@ -8,12 +8,13 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
 import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiReference
 import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.PsiReferenceContributor
 import com.intellij.psi.PsiReferenceProvider
 import com.intellij.psi.PsiReferenceRegistrar
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.ProcessingContext
 import dev.phantom.docker.ComposeFiles
@@ -53,6 +54,8 @@ object ComposeReferences {
     for (item in volumes.items) {
       when (val v = item.value) {
         is YAMLScalar -> {
+          // `C:\data:/data` is a Windows bind mount, not volume `C`
+          if (WINDOWS_PATH.containsMatchIn(v.textValue)) continue
           val parts = v.textValue.split(':')
           val source = parts[0]
           if (parts.size >= 2 && NAMED_VOLUME.matches(source)) add(Target(source, v, Kind.VOLUME))
@@ -68,6 +71,7 @@ object ComposeReferences {
   }
 
   private val NAMED_VOLUME = Regex("""[a-zA-Z0-9][a-zA-Z0-9_.-]*""")
+  private val WINDOWS_PATH = Regex("""^[A-Za-z]:[\\/]""")
 
   /** Items of a list (scalars, mapped by [name]) or keys of a mapping. */
   private fun names(value: YAMLValue?, kind: Kind, name: (String) -> String?): List<Target> = when (value) {
@@ -100,17 +104,19 @@ object ComposeReferences {
   }
 
   /** The definitions of [kind] in this compose file and the compose files beside it. */
-  fun definitions(file: YAMLFile, kind: Kind): Map<String, YAMLKeyValue> {
-    val files = listOf(file) + file.originalFile.virtualFile?.parent?.children.orEmpty()
-      .filter { it != file.originalFile.virtualFile && ComposeFiles.isComposeFile(it.name) }
-      .mapNotNull { PsiManager.getInstance(file.project).findFile(it) as? YAMLFile }
-    val result = LinkedHashMap<String, YAMLKeyValue>()
-    for (f in files) {
-      val root = f.documents.firstOrNull()?.topLevelValue as? YAMLMapping ?: continue
-      for (kv in Yaml.keys(root.getKeyValueByKey(kind.section)?.value)) result.putIfAbsent(kv.keyText, kv)
+  fun definitions(file: YAMLFile, kind: Kind): Map<String, YAMLKeyValue> = CachedValuesManager.getCachedValue(file) {
+    val siblings = ComposeModel.siblings(file)
+    val files = listOf(file) + siblings
+    val all = Kind.entries.associateWith { k ->
+      val result = LinkedHashMap<String, YAMLKeyValue>()
+      for (f in files) {
+        val root = f.documents.firstOrNull()?.topLevelValue as? YAMLMapping ?: continue
+        for (kv in Yaml.keys(root.getKeyValueByKey(k.section)?.value)) result.putIfAbsent(kv.keyText, kv)
+      }
+      result
     }
-    return result
-  }
+    CachedValueProvider.Result.create(all, *ComposeModel.siblingDeps(file, siblings))
+  }[kind].orEmpty()
 }
 
 /** Ctrl+B and completion on the scalar names: `depends_on: [db]`, `links`, `extends`, `networks: [back]`, `vol:/data`. */

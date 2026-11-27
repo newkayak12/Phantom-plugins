@@ -205,7 +205,7 @@
     {
       "id": "dev.phantom.docker",
       "name": "Support for Docker",
-      "version": "0.6.3",
+      "version": "0.6.4",
       "source": "docker",
       "description": "Docker Compose through the docker CLI: run icons on compose services, a Docker Compose run configuration shown in Services, and a Docker tool window listing containers by compose project with start, stop, restart, remove, logs and compose down. Polls only while open. 0.2.0: Compose checks (unknown keys and values, undefined services/networks/volumes with Ctrl+B and completion, missing image, unquoted base-60 ports, duplicate container names) and Dockerfile checks (continuations, argument counts, exec form, heredocs, stages, COPY/ADD paths). Wave 7: Compose pull_policy and network_mode values. Wave 8: Compose build -> Dockerfile and depends_on gutters, Dockerfile stage Ctrl+B. Wave 10: COPY/ADD here-documents BuildKit rejects. Wave 11: FROM ... AS stage to its usages marker.",
       "vendor": "Phantom",
@@ -216,7 +216,7 @@
         "com.intellij.modules.lang",
         "org.jetbrains.plugins.yaml"
       ],
-      "download": "docker-0.6.3/docker-0.6.3.zip",
+      "download": "docker-0.6.4/docker-0.6.4.zip",
       "detectFiles": [
         "compose.yaml",
         "compose.yml",

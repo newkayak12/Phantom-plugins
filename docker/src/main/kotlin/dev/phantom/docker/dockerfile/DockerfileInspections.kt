@@ -11,8 +11,13 @@ import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.PsiModificationTracker
+import com.intellij.openapi.vfs.VirtualFileManager
 import dev.phantom.docker.ComposeFiles
 import dev.phantom.docker.compose.PhantomDockerBundle
+import org.jetbrains.yaml.YAMLLanguage
 import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLMapping
 import org.jetbrains.yaml.psi.YAMLScalar
@@ -79,7 +84,8 @@ class DockerfileInspectionImpl : DockerfileInspection() {
         "EXPOSE", "VOLUME", "RUN", "CMD", "ENTRYPOINT", "MAINTAINER" ->
           if (ins.args.isBlank() && ins.heredocs.isEmpty()) report(ins.keywordRange, PhantomDockerBundle.message("dockerfile.needs.argument", upper), error)
         "ARG" -> {
-          if (ins.tokens.size != 1 || !ARG.matches(ins.tokens.firstOrNull().orEmpty())) report(ins.argsRange.takeIf { !it.isEmpty } ?: ins.keywordRange, PhantomDockerBundle.message("dockerfile.arg.form"), error)
+          // `ARG a=1 b=2` declares several arguments at once
+          if (ins.tokens.isEmpty() || ins.tokens.any { !ARG.matches(it) }) report(ins.argsRange.takeIf { !it.isEmpty } ?: ins.keywordRange, PhantomDockerBundle.message("dockerfile.arg.form"), error)
         }
         "LABEL" -> {
           if (ins.tokens.isEmpty() || ins.tokens.any { !it.contains('=') }) report(ins.argsRange.takeIf { !it.isEmpty } ?: ins.keywordRange, PhantomDockerBundle.message("dockerfile.label.form"), error)
@@ -133,7 +139,11 @@ class DockerfileCopyPathsInspection : DockerfileInspection() {
   override fun check(file: PsiFile, dockerfile: Dockerfile, report: (TextRange, String, ProblemHighlightType) -> Unit) {
     val vFile = file.originalFile.virtualFile ?: return
     val dir = vFile.parent ?: return
-    val context = composeContext(file, vFile) ?: dir
+    // Reading the compose files around is the slow part; it changes only with YAML edits or files added, moved or removed.
+    val context = CachedValuesManager.getCachedValue(file) {
+      CachedValueProvider.Result.create(composeContext(file, vFile), VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS,
+                                        PsiModificationTracker.getInstance(file.project).forLanguage(YAMLLanguage.INSTANCE))
+    } ?: dir
     val stop = file.project.guessProjectDir()
     for (ins in dockerfile.instructions) {
       if (ins.upper !in setOf("COPY", "ADD") || ins.flag("from") != null || ins.heredocs.isNotEmpty() || ins.isExecForm) continue
