@@ -17,9 +17,11 @@ class QueryDslTest : LightJavaCodeInsightFixtureTestCase() {
     myFixture.addClass("package com.querydsl.core.types.dsl; public class EntityPathBase<T> extends BeanPath<T> { protected EntityPathBase(Class<? extends T> type, String name) { super(type, name); } }")
     myFixture.addClass("package com.querydsl.core.types.dsl; public class StringPath {}")
     myFixture.addClass("package jakarta.persistence; public @interface Transient {}")
-    myFixture.addClass("package app; public class Base { Long id; }")
-    myFixture.addClass("package app; public class Order extends Base { String name; Customer customer; @jakarta.persistence.Transient String note; static int COUNT; }")
-    myFixture.addClass("package app; public class Customer { String name; }")
+    myFixture.addClass("package jakarta.persistence; public @interface Entity {}")
+    myFixture.addClass("package jakarta.persistence; public @interface MappedSuperclass {}")
+    myFixture.addClass("package app; @jakarta.persistence.MappedSuperclass public class Base { Long id; }")
+    myFixture.addClass("package app; @jakarta.persistence.Entity public class Order extends Base { String name; Customer customer; @jakarta.persistence.Transient String note; static int COUNT; }")
+    myFixture.addClass("package app; @jakarta.persistence.Entity public class Customer { String name; }")
     myFixture.addClass("""
       package app;
       import com.querydsl.core.types.dsl.*;
@@ -96,11 +98,43 @@ class QueryDslTest : LightJavaCodeInsightFixtureTestCase() {
         "Shop: QShop still has name, which this class no longer declares: build to regenerate the Q classes",
         "email: QShop has no path for email: the Q classes are out of date, build to regenerate them",
       ),
-      staleWarnings("Shop.java", "package app; public class Shop { String email; static int X; transient int y; }").sorted(),
+      staleWarnings("Shop.java", "package app; @jakarta.persistence.Entity public class Shop { String email; static int X; transient int y; }").sorted(),
     )
   }
 
   fun testUpToDateEntitiesAreQuiet() {
-    assertEmpty(staleWarnings("Order.java", "package app; public class Order extends Base { String name; Customer customer; @jakarta.persistence.Transient String note; static int COUNT; }"))
+    assertEmpty(staleWarnings("Order.java", "package app; @jakarta.persistence.Entity public class Order extends Base { String name; Customer customer; @jakarta.persistence.Transient String note; static int COUNT; }"))
+  }
+
+  fun testClassesQueryDslDoesNotMapAreNotChecked() {
+    myFixture.addClass("package app; public class QPlain extends com.querydsl.core.types.dsl.BeanPath<Plain> { public final com.querydsl.core.types.dsl.StringPath name = null; public QPlain() { super(Plain.class, \"plain\"); } }")
+    assertEmpty(staleWarnings("Plain.java", "package app; public class Plain { String email; }"))
+  }
+
+  fun testBooleanIsGetterKeepsItsPath() {
+    myFixture.addClass("package app; public class QFlag extends com.querydsl.core.types.dsl.EntityPathBase<Flag> { public final com.querydsl.core.types.dsl.StringPath active = null; public QFlag() { super(Flag.class, \"flag\"); } }")
+    assertEmpty(staleWarnings("Flag.java", "package app; @jakarta.persistence.Entity public class Flag { public boolean isActive() { return true; } }"))
+  }
+
+  fun testNestedEntityUsesOuterUnderscoreInnerQClass() {
+    myFixture.addClass("package app; public class QOuter_Inner extends com.querydsl.core.types.dsl.EntityPathBase<Outer.Inner> { public final com.querydsl.core.types.dsl.StringPath name = null; public QOuter_Inner() { super(Outer.Inner.class, \"inner\"); } }")
+    assertEquals(
+      listOf("email: QOuter_Inner has no path for email: the Q classes are out of date, build to regenerate them"),
+      staleWarnings("Outer.java", "package app; public class Outer { @jakarta.persistence.Entity public static class Inner { String name; String email; } }"),
+    )
+    myFixture.addClass("package app; class InnerRepo { Object f() { return new QOuter_Inner().name; } }")
+    val inner = myFixture.findClass("app.Outer.Inner")
+    assertEquals(1, ReferencesSearch.search(inner.findFieldByName("name", false)!!).findAll().count { it.element.text.endsWith(".name") })
+  }
+
+  fun testKotlinEntity() {
+    myFixture.addClass("package app; public class QTicket extends com.querydsl.core.types.dsl.EntityPathBase<Ticket> { public final com.querydsl.core.types.dsl.StringPath code = null; public QTicket() { super(Ticket.class, \"ticket\"); } }")
+    assertEquals(
+      listOf(
+        "Ticket: QTicket still has code, which this class no longer declares: build to regenerate the Q classes",
+        "seat: QTicket has no path for seat: the Q classes are out of date, build to regenerate them",
+      ),
+      staleWarnings("Ticket.kt", "package app\n\n@jakarta.persistence.Entity\nclass Ticket(val seat: String)\n").sorted(),
+    )
   }
 }
