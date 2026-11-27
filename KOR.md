@@ -51,6 +51,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Support for gRPC | [grpc](./grpc/KOR.md) · [English](./grpc/README.md) | `.proto` 편집: 강조, 문법 오류, 구조 보기, 메시지·enum·import 이동, 사용처 찾기와 이름 바꾸기 |
 | Phantom for Terraform | [terraform](./terraform/KOR.md) · [English](./terraform/README.md) | `.tf`/`.tfvars` 편집: 강조, 문법 오류, 서식 정리, 구조 보기, 변수·local·모듈·리소스 이동, 사용처 찾기와 이름 바꾸기, 선언 없는 참조 경고 |
 | Phantom for Gradle Version Catalogs | [version-catalog](./version-catalog/KOR.md) · [English](./version-catalog/README.md) | `*.versions.toml` 라이브러리의 새 버전을 실행할 때만 Maven Central에서 확인하고 고른 버전으로 바꿈 |
+| Phantom String Helpers | [string-helpers](./string-helpers/KOR.md) · [English](./string-helpers/README.md) | Spring·Quartz cron 식: 검사와 거터의 다음 실행 시각 |
 | Phantom Icon Pack | [icons](./icons/KOR.md) · [English](./icons/README.md) | Material 파일·폴더 아이콘; Java 파일은 찻잔, Kotlin 파일은 로고, Java 클래스는 종류별 |
 | Phantom Tab Groups | [tabs](./tabs/KOR.md) · [English](./tabs/README.md) | 브라우저처럼 에디터 탭 그룹: 이름, 색, 첫 탭으로 접기, 끌어서 넣고 빼기, 분할마다 |
 | Phantom Workspaces | [workspaces](./workspaces/KOR.md) · [English](./workspaces/README.md) | 열린 프로젝트를 한 창의 탭처럼: Projects and Files에 저장소·worktree별 목록, 환영 창 대신 Home, 같은 크기·위치로 겹친 프로젝트 창 |

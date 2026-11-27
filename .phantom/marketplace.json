@@ -1541,6 +1541,25 @@
       "since": "262.261127",
       "until": "262.*",
       "download": "maven-262.261127/Maven-262.261127.zip"
+    },
+    {
+      "id": "dev.phantom.string-helpers",
+      "name": "Phantom String Helpers",
+      "version": "0.1.0",
+      "source": "string-helpers",
+      "description": "Checks for strings that are code in disguise: cron expressions in @Scheduled, Spring's CronExpression and CronTrigger, and Quartz's CronScheduleBuilder, CronExpression and CronTriggerFactoryBean are validated as Spring or Quartz parse them, and a gutter icon lists the next five runs. Java only. Works offline.",
+      "vendor": "Phantom",
+      "since": "262",
+      "until": "262.*",
+      "category": "Tools",
+      "depends": [
+        "com.intellij.modules.java"
+      ],
+      "download": "string-helpers-0.1.0/string-helpers-0.1.0.zip",
+      "detect": [
+        "org.quartz-scheduler:quartz",
+        "org.springframework:spring-context"
+      ]
     }
   ]
 }
