@@ -1,0 +1,28 @@
+<idea-plugin>
+  <id>dev.phantom.local-insights</id>
+  <name>Phantom Local Insights</name>
+  <vendor>Phantom</vendor>
+  <category>Profiling</category>
+  <description><![CDATA[
+  Shows what makes the IDE slow, on this machine only: the slowest inspections of Code | Inspect Code runs, with a
+  button that turns an inspection off in the project's profile, and indexing time per plugin. The numbers stay in
+  memory until the IDE closes; nothing is written to disk and nothing is sent anywhere.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+  </dependencies>
+
+  <resource-bundle>messages.LocalInsightsBundle</resource-bundle>
+  <extensions defaultExtensionNs="com.intellij">
+    <toolWindow id="Local Insights" anchor="bottom" secondary="true" icon="AllIcons.Toolwindows.ToolWindowProfiler"
+                doNotActivateOnStart="true" factoryClass="dev.phantom.localinsights.LocalInsightsToolWindowFactory"/>
+  </extensions>
+  <projectListeners>
+    <listener class="dev.phantom.localinsights.InspectionTimingListener" topic="com.intellij.codeInspection.ex.InspectListener"/>
+  </projectListeners>
+  <applicationListeners>
+    <listener class="dev.phantom.localinsights.IndexingTimingListener"
+              topic="com.intellij.util.indexing.diagnostic.ProjectIndexingActivityHistoryListener"/>
+  </applicationListeners>
+</idea-plugin>
