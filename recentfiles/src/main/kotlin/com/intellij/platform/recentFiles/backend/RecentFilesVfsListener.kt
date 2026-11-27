@@ -1,8 +1,10 @@
 // Copyright 2000-2025 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package com.intellij.platform.recentFiles.backend
 
 import com.intellij.ide.actions.shouldUseFallbackSwitcher
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.serviceIfCreated
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.diagnostic.trace
 import com.intellij.openapi.project.Project
@@ -17,15 +19,21 @@ import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.openapi.vfs.newvfs.events.VFileMoveEvent
 import com.intellij.openapi.vfs.newvfs.events.VFilePropertyChangeEvent
 import com.intellij.platform.recentFiles.shared.FileChangeKind
+import com.intellij.platform.recentFiles.shared.RecentFileKind
 
 internal class RecentFilesVfsListener : AsyncFileListener {
   override fun prepareChange(events: List<VFileEvent>): AsyncFileListener.ChangeApplier? {
     if (ApplicationManager.getApplication().isUnitTestMode || shouldUseFallbackSwitcher()) return null
 
-    val removedFiles = collectRemovedFiles(events)
-    val movedFiles = collectMovedFiles(events)
-    val renamedFiles = collectRenamedFiles(events)
-    val filesWithChangedContents = collectFilesWithChangedContents(events)
+    // phantom-idea: only files the recent files lists hold are passed on, since BackendRecentFileEventsModel drops the
+    // others; without this every save, VCS update or build output paid for a ProjectFileIndex lookup per file and project
+    val known = knownRecentFiles()
+    if (known.isEmpty()) return null
+    val removedFiles = collectRemovedFiles(events).filter { it in known }
+    val movedFiles = collectMovedFiles(events).filter { it in known }
+    val renamedFiles = collectRenamedFiles(events).filter { it in known }
+    val filesWithChangedContents = collectFilesWithChangedContents(events).filter { it in known }
+    if (listOf(removedFiles, movedFiles, renamedFiles, filesWithChangedContents).all { it.isEmpty() }) return null
 
     return object : AsyncFileListener.ChangeApplier {
       override fun beforeVfsChange() {
@@ -54,6 +62,13 @@ internal class RecentFilesVfsListener : AsyncFileListener {
       }
     }
   }
+
+  // phantom-idea: the files of every recent files list of the open projects whose model exists
+  private fun knownRecentFiles(): Set<VirtualFile> =
+    ProjectManager.getInstance().openProjects.flatMapTo(HashSet()) { project ->
+      val model = project.serviceIfCreated<BackendRecentFilesModel>() ?: return@flatMapTo emptyList()
+      RecentFileKind.entries.flatMap(model::getFilesByKind)
+    }
 
   private fun filterProjectFiles(
     files: List<VirtualFile>,

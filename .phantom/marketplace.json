@@ -1293,7 +1293,7 @@
     {
       "id": "dev.phantom.recentfiles",
       "name": "Phantom Recent Files",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "source": "recentfiles",
       "description": "Recent Files, Recent Locations and the Switcher (Ctrl+Tab). Based on the IntelliJ Community Recent Files plugin (Apache 2.0); intellij.recentFiles.plugin stays as an alias and the content module names stay the IntelliJ ones. Bundled with Phantom from build 262.261120; older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -1303,7 +1303,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "recentfiles-0.1.1/recentfiles-0.1.1.zip",
+      "download": "recentfiles-0.1.2/recentfiles-0.1.2.zip",
       "detect": [],
       "aliases": [
         "intellij.recentFiles.plugin"
