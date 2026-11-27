@@ -4,11 +4,11 @@
 
 ## 0.3.3 (2026-11-27)
 
-- Liquibase `classpath:` include를 의존하는 모듈의 루트에서도 찾는다. (#PR)
-- Flyway·Liquibase 라이브러리가 마이그레이션 모듈에 없고 이를 의존하는 모듈에 있어도 검사와 거터가 동작한다. (#PR)
-- 설정 파일을 리소스 루트가 있으면 리소스 루트에서만 읽고, 다른 YAML 파일을 편집해도 Flyway 위치를 다시 읽지 않는다. (#PR)
-- Flyway 버전 거터를 느린 패스에서 계산한다. (#PR)
-- `liquibase`와 `parameters`라는 단어만 있는 YAML 때문에 정의되지 않은 변경 로그 속성 검사가 꺼지지 않는다. `spring.liquibase.parameters`의 키는 정의된 이름으로 읽는다. (#PR)
+- Liquibase `classpath:` include를 의존하는 모듈의 루트에서도 찾는다. (#172)
+- Flyway·Liquibase 라이브러리가 마이그레이션 모듈에 없고 이를 의존하는 모듈에 있어도 검사와 거터가 동작한다. (#172)
+- 설정 파일을 리소스 루트가 있으면 리소스 루트에서만 읽고, 다른 YAML 파일을 편집해도 Flyway 위치를 다시 읽지 않는다. (#172)
+- Flyway 버전 거터를 느린 패스에서 계산한다. (#172)
+- `liquibase`와 `parameters`라는 단어만 있는 YAML 때문에 정의되지 않은 변경 로그 속성 검사가 꺼지지 않는다. `spring.liquibase.parameters`의 키는 정의된 이름으로 읽는다. (#172)
 
 ## 0.3.2 (2026-11-26)
 
