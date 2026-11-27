@@ -67,6 +67,24 @@ class OpenApiReference(element: PsiElement, range: TextRange, private val value:
     return OpenApiSpecs.resolvePointer(target, pointer)
   }
 
+  /**
+   * Renaming a schema (or a file) changes only the last segment: PsiReferenceBase replaced the whole range, which turned
+   * `#/components/schemas/Pet` into the bare new name. A pointer segment escapes `~` and `/` as `~0` and `~1`.
+   */
+  override fun handleElementRename(newElementName: String): PsiElement {
+    val hash = value.indexOf('#')
+    val pointer = if (hash >= 0) value.substring(hash + 1) else ""
+    val renamed = if (pointer.isNotEmpty()) {
+      value.substring(0, hash + 1) + pointer.substringBeforeLast('/', "") + "/" + newElementName.replace("~", "~0").replace("/", "~1")
+    }
+    else {
+      val filePart = value.substringBefore('#')
+      val dir = filePart.substringBeforeLast('/', "")
+      (if (dir.isEmpty() && !filePart.startsWith("/")) newElementName else "$dir/$newElementName") + value.substring(filePart.length)
+    }
+    return ElementManipulators.handleContentChange(element, rangeInElement, renamed)
+  }
+
   override fun getVariants(): Array<Any> =
     OpenApiSpecs.componentPointers(element.containingFile.originalFile).map { LookupElementBuilder.create(it).withIcon(AllIcons.Nodes.Field) }.toTypedArray()
 }
@@ -75,7 +93,7 @@ class OpenApiReferenceContributor : PsiReferenceContributor() {
   override fun registerReferenceProviders(registrar: PsiReferenceRegistrar) {
     val provider = object : PsiReferenceProvider() {
       override fun getReferencesByElement(element: PsiElement, context: ProcessingContext): Array<PsiReference> {
-        if (!isRefValue(element) || !OpenApiSpecs.isSpec(element.containingFile.originalFile)) return PsiReference.EMPTY_ARRAY
+        if (!isRefValue(element) || !SpecFragments.isSpecOrFragment(element.containingFile.originalFile)) return PsiReference.EMPTY_ARRAY
         val range = ElementManipulators.getValueTextRange(element)
         val value = range.substring(element.text)
         return arrayOf(OpenApiReference(element, range, value))
@@ -86,10 +104,10 @@ class OpenApiReferenceContributor : PsiReferenceContributor() {
   }
 }
 
-/** `$ref` values of a spec that resolve to nothing. */
+/** `$ref` values of a spec, or of a file a spec points to, that resolve to nothing. */
 class OpenApiRefInspection : LocalInspectionTool() {
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
-    if (!OpenApiSpecs.isSpec(holder.file)) return PsiElementVisitor.EMPTY_VISITOR
+    if (!SpecFragments.isSpecOrFragment(holder.file)) return PsiElementVisitor.EMPTY_VISITOR
     return object : PsiElementVisitor() {
       override fun visitElement(element: PsiElement) {
         if (!isRefValue(element)) return
@@ -141,11 +159,16 @@ internal object CodeEndpoints {
                                       ProjectRootManager.getInstance(project), DumbService.getInstance(project).modificationTracker)
   }
 
-  /** An empty method list accepts every method (`@RequestMapping` without `method`). */
-  fun serving(project: Project, operation: SpecOperation): List<PsiElement> =
-    all(project).filter { OpenApiSpecs.pathsMatch(operation.path, it.path) && (it.methods.isEmpty() || operation.method in it.methods) }.mapNotNull { it.element }
+  /** The candidates whose path equals [path], or all of them when none does: a prefix match is the fallback. */
+  fun <T> preferExact(candidates: List<T>, path: String, pathOf: (T) -> String): List<T> =
+    candidates.filter { OpenApiSpecs.pathsEqual(pathOf(it), path) }.ifEmpty { candidates }
 
-  fun same(a: PsiElement, b: PsiElement): Boolean = a == b || a.navigationElement == b || a == b.navigationElement || a.navigationElement == b.navigationElement
+  /** An empty method list accepts every method (`@RequestMapping` without `method`). */
+  fun serves(endpoint: Endpoint, operation: SpecOperation): Boolean =
+    OpenApiSpecs.pathsMatch(operation.path, endpoint.path) && (endpoint.methods.isEmpty() || operation.method in endpoint.methods)
+
+  fun serving(project: Project, operation: SpecOperation): List<PsiElement> =
+    preferExact(all(project).filter { serves(it, operation) }, operation.path) { it.path }.mapNotNull { it.element }
 }
 
 /** On each operation of a spec (`get:` under a path), a gutter link to the code that serves it. */
@@ -181,12 +204,18 @@ class EndpointSpecLineMarkerProvider : LineMarkerProvider {
     if (specs.isEmpty()) return
     val endpoints = CodeEndpoints.all(project)
     if (endpoints.isEmpty()) return
+    // Indexed once per pass: an endpoint belongs to a handler when either of them is the other's navigation element.
+    val byElement = HashMap<PsiElement, MutableList<CodeEndpoints.Endpoint>>()
+    for (endpoint in endpoints) {
+      val target = endpoint.element ?: continue
+      for (key in setOf(target, target.navigationElement)) byElement.getOrPut(key) { ArrayList() }.add(endpoint)
+    }
+    val allOperations by lazy { specs.flatMap { OpenApiSpecs.operations(it) } }
     for ((element, owner) in owners) {
-      val mine = endpoints.filter { endpoint -> endpoint.element?.let { CodeEndpoints.same(it, owner) } == true }
+      val mine = (byElement[owner].orEmpty() + byElement[owner.navigationElement].orEmpty()).distinct()
       if (mine.isEmpty()) continue
-      val operations = specs.flatMap { OpenApiSpecs.operations(it) }.filter { op ->
-        mine.any { OpenApiSpecs.pathsMatch(op.path, it.path) && (it.methods.isEmpty() || op.method in it.methods) }
-      }
+      val found = allOperations.filter { op -> mine.any { CodeEndpoints.serves(it, op) } }
+      val operations = found.filter { op -> mine.any { OpenApiSpecs.pathsEqual(op.path, it.path) } }.ifEmpty { found }
       if (operations.isEmpty()) continue
       val first = operations.first()
       result += NavigationGutterIconBuilder.create(AllIcons.Gutter.ImplementingMethod)
