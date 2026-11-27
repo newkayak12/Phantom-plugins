@@ -63,7 +63,7 @@ enum class Dbms(
       GENERIC -> AllIcons.Nodes.DataTables
     }
 
-  /** False for [GENERIC]: no EXPLAIN, DDL, schema changes or dialect checks. */
+  /** False for [GENERIC]: no EXPLAIN, reported DDL, schema compare or dialect checks; Modify Table only adds and drops columns. */
   val hasDialect: Boolean get() = this != GENERIC
 
   /** MySQL keeps databases in catalogs; the others in schemas. */

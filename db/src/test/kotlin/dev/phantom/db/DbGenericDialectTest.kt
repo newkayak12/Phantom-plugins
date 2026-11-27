@@ -101,6 +101,26 @@ class DbGenericDialectTest : BasePlatformTestCase() {
     assertEquals(listOf("a", "b"), copied.rows.map { it[0] })
   }
 
+  /** Modify Table without a dialect: adding and dropping columns and creating indexes; anything else is refused by name. */
+  fun testModifyTableWithoutDialectWritesOnlyStandardDdl() {
+    val t = DbTableRef("x", null, "app", "orders", "TABLE")
+    val id = DbAlter.ColumnDef("id", "id", "INT", false, null)
+    val old = DbAlter.ColumnDef("old", "old", "INT", true, null)
+    val added = DbAlter.ColumnDef(null, "note", "VARCHAR(20)", false, "'n'")
+    assertEquals(listOf("ALTER TABLE app.orders DROP COLUMN old", "ALTER TABLE app.orders ADD note VARCHAR(20) DEFAULT 'n' NOT NULL",
+                        "CREATE UNIQUE INDEX ux_note ON app.orders (note)"),
+                 DbAlter.statements(Dbms.GENERIC, t, listOf(id, old), listOf(id, added), emptyList(),
+                                    listOf(DbAlter.IndexDef(null, "ux_note", listOf("note"), true))))
+    fun refused(block: () -> Unit, name: String) {
+      val e = runCatching(block).exceptionOrNull()
+      assertTrue(e.toString(), e is DbException && e.message!!.endsWith(name))
+    }
+    refused({ DbAlter.statements(Dbms.GENERIC, t, listOf(id, old), listOf(id, old.copy(type = "BIGINT"))) }, "old")
+    refused({ DbAlter.statements(Dbms.GENERIC, t, listOf(id, old), listOf(id, old.copy(name = "renamed"))) }, "old")
+    refused({ DbAlter.statements(Dbms.GENERIC, t, listOf(id), listOf(id, added.copy(comment = "c"))) }, "note")
+    refused({ DbAlter.statements(Dbms.GENERIC, t, listOf(id), listOf(id), listOf(DbAlter.IndexDef("ix", "ix", listOf("id"), false)), emptyList()) }, "ix")
+  }
+
   private fun genericH2(): DbDataSource {
     DbDriverRegistry.getInstance().save(DbDriverDefinition().apply {
       id = "my-h2"; name = "My H2"; driverClass = "org.h2.Driver"
