@@ -1,0 +1,30 @@
+<idea-plugin>
+  <id>dev.phantom.grpc</id>
+  <name>Support for gRPC</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Languages</category>
+  <description><![CDATA[
+  Editing support for Protocol Buffers (.proto) files used by gRPC: highlighting, syntax errors, a structure view of
+  messages, enums, services and rpcs, Go to Declaration, Find Usages and rename for message and enum types, and Go to
+  Declaration on import paths. Works offline; nothing runs until a .proto file is opened.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+  </dependencies>
+
+  <!-- Both plugins register the .proto file type. -->
+  <incompatible-with>idea.plugin.protoeditor</incompatible-with>
+
+  <resource-bundle>messages.GrpcBundle</resource-bundle>
+  <extensions defaultExtensionNs="com.intellij">
+    <fileType name="Phantom Protocol Buffers" language="PhantomProto" extensions="proto"
+              implementationClass="dev.phantom.grpc.ProtoFileType" fieldName="INSTANCE"/>
+    <lang.parserDefinition language="PhantomProto" implementationClass="dev.phantom.grpc.ProtoParserDefinition"/>
+    <lang.syntaxHighlighterFactory language="PhantomProto" implementationClass="dev.phantom.grpc.ProtoSyntaxHighlighterFactory"/>
+    <lang.commenter language="PhantomProto" implementationClass="dev.phantom.grpc.ProtoCommenter"/>
+    <lang.braceMatcher language="PhantomProto" implementationClass="dev.phantom.grpc.ProtoBraceMatcher"/>
+    <lang.findUsagesProvider language="PhantomProto" implementationClass="dev.phantom.grpc.ProtoFindUsagesProvider"/>
+    <lang.psiStructureViewFactory language="PhantomProto" implementationClass="dev.phantom.grpc.ProtoStructureViewFactory"/>
+  </extensions>
+</idea-plugin>
