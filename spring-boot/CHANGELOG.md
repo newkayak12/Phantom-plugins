@@ -2,6 +2,7 @@
 
 ## 미배포
 
+- @ConfigurationProperties 클래스의 키를 메서드 본문을 고칠 때마다 다시 읽지 않는다. 선언·주석·기본값이 바뀔 때만 다시 읽는다. (#PR)
 ## 0.8.5 (2026-11-26)
 
 - 표시 이름을 바꿨다: Phantom for Spring Boot → Support for Spring Boot. 플러그인 id와 기능은 그대로다. (#136)

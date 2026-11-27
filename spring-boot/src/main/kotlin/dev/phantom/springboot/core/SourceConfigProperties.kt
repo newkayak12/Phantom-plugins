@@ -14,12 +14,13 @@ import com.intellij.psi.search.searches.AnnotatedElementsSearch
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.PropertyUtilBase
-import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiUtil
 import com.intellij.psi.util.PsiUtilCore
 import org.jetbrains.uast.UField
 import org.jetbrains.uast.UParameter
 import org.jetbrains.uast.toUElementOfType
+import org.jetbrains.annotations.TestOnly
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Keys of the project's own `@ConfigurationProperties` classes, read from source. Projects often skip
@@ -31,11 +32,14 @@ object SourceConfigProperties {
   private const val DEPRECATED_PROPERTY = "org.springframework.boot.context.properties.DeprecatedConfigurationProperty"
   private const val MAX_DEPTH = 5
 
+  @TestOnly
+  val computeCount: AtomicInteger = AtomicInteger()
+
   fun metadata(module: Module): ParsedMetadata {
     val project = module.project
     return CachedValuesManager.getManager(project).getCachedValue(module) {
-      val tracker = PsiModificationTracker.getInstance(project).forLanguages { it.id == "JAVA" || it.id == "kotlin" }
-      CachedValueProvider.Result.create(compute(module), tracker, ProjectRootModificationTracker.getInstance(project))
+      // Typing inside a method body cannot change the keys; BootStructureTracker skips those edits.
+      CachedValueProvider.Result.create(compute(module), BootStructureTracker.getInstance(project), ProjectRootModificationTracker.getInstance(project))
     }
   }
 
@@ -48,6 +52,7 @@ object SourceConfigProperties {
   }
 
   private fun compute(module: Module): ParsedMetadata {
+    computeCount.incrementAndGet()
     val project = module.project
     val annotation = JavaPsiFacade.getInstance(project).findClass(CONFIGURATION_PROPERTIES, module.getModuleWithDependenciesAndLibrariesScope(false))
                      ?: return ParsedMetadata.EMPTY
