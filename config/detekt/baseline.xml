@@ -377,6 +377,7 @@
     <ID>CyclomaticComplexMethod:GradleVersionCatalogLibrariesTest.kt:GradleVersionCatalogLibrariesTest$@Test fun testAllDependencies</ID>
     <ID>CyclomaticComplexMethod:GraphQLLexer.kt:GraphQLLexer$override fun advance</ID>
     <ID>CyclomaticComplexMethod:GraphQLLexer.kt:GraphQLLexer$private fun numberEnd: Int</ID>
+    <ID>CyclomaticComplexMethod:GraphQLParser.kt:GraphQLParser.Run$private fun typeDefinition</ID>
     <ID>CyclomaticComplexMethod:GrazieSpellCheckerEngine.kt:internal fun identifierParts: List&lt;IntRange></ID>
     <ID>CyclomaticComplexMethod:GroovyDeclarationHighlightingPassFactory.kt:private fun getDeclarationHighlightingAttribute: TextAttributesKey?</ID>
     <ID>CyclomaticComplexMethod:GroovyDeclarationHighlightingPassFactory.kt:private fun getReferenceHighlightingAttribute: TextAttributesKey?</ID>
@@ -2775,6 +2776,7 @@
     <ID>TooManyFunctions:GradleVersionCatalogEntityImpl.kt:GradleVersionCatalogEntityData : WorkspaceEntityData</ID>
     <ID>TooManyFunctions:GrammarCheckingStrategy.kt:GrammarCheckingStrategy</ID>
     <ID>TooManyFunctions:GraphQLLexer.kt:GraphQLLexer : LexerBase</ID>
+    <ID>TooManyFunctions:GraphQLParser.kt:GraphQLParser$Run</ID>
     <ID>TooManyFunctions:GrazieConfig.kt:GrazieConfig$State : VersionedState</ID>
     <ID>TooManyFunctions:GrazieDynamic.kt:GrazieDynamic : DynamicPluginListener</ID>
     <ID>TooManyFunctions:GrazieDynamicDataBroker.kt:GrazieDynamicDataBroker : ResourceDataBroker</ID>

@@ -4,7 +4,8 @@
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Languages</category>
   <description><![CDATA[
-  GraphQL for Phantom: highlighting for .graphql, .graphqls and .gql files. Works offline.
+  GraphQL for Phantom: highlighting and navigation from type references to types and from fragment spreads to
+  fragments in .graphql, .graphqls and .gql files. Works offline.
   ]]></description>
 
   <dependencies>
@@ -20,6 +21,7 @@
   <extensions defaultExtensionNs="com.intellij">
     <fileType name="GraphQL" language="GraphQL" implementationClass="dev.phantom.graphql.lang.GraphQLFileType" fieldName="INSTANCE"
               extensions="graphql;graphqls;gql"/>
+    <lang.parserDefinition language="GraphQL" implementationClass="dev.phantom.graphql.lang.GraphQLParserDefinition"/>
     <lang.syntaxHighlighterFactory language="GraphQL" implementationClass="dev.phantom.graphql.lang.GraphQLSyntaxHighlighterFactory"/>
   </extensions>
 </idea-plugin>
