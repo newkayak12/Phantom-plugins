@@ -2843,6 +2843,7 @@
     <ID>TooManyFunctions:MermaidCompletionContributor.kt:MermaidCompletionContributor : CompletionContributor</ID>
     <ID>TooManyFunctions:MermaidElementFactory.kt:MermaidElementFactory$Companion</ID>
     <ID>TooManyFunctions:MermaidHighlighter.kt:MermaidHighlighter$Companion</ID>
+    <ID>TooManyFunctions:MermaidPreviewEditor.kt:MermaidPreviewEditor : FileEditorUserDataHolder</ID>
     <ID>TooManyFunctions:MissingJsonSchemaObject.kt:MissingJsonSchemaObject : JsonSchemaObjectBackedByJacksonBase</ID>
     <ID>TooManyFunctions:ModelUpdatingTerminalDisplay.kt:ModelUpdatingTerminalDisplay : TerminalDisplay</ID>
     <ID>TooManyFunctions:MutableShellExecOptionsImpl.kt:MutableShellExecOptionsImpl : MutableShellExecOptions</ID>
