@@ -15,7 +15,6 @@ import org.jetbrains.uast.toUElement
 class SpringBeanNavigationTest : LightJavaCodeInsightFixtureTestCase() {
   override fun getProjectDescriptor() = RealJdk
 
-
   override fun setUp() {
     super.setUp()
     val retention = "@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)"
@@ -83,6 +82,19 @@ class SpringBeanNavigationTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals(listOf("A"), names(SpringBeans.findCandidates(pointAtCaret())))
   }
 
+  fun testMetaQualifier() {
+    myFixture.addClass("package app; @org.springframework.stereotype.Component(\"first\") public class A implements Port {}")
+    myFixture.addClass("package app; @org.springframework.stereotype.Component public class B implements Port {}")
+    myFixture.addClass("""
+      package app;
+      @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)
+      @org.springframework.beans.factory.annotation.Qualifier("first")
+      public @interface First {}
+    """.trimIndent())
+    myFixture.configureByText("Svc.java", "package app; @UseCase public class Svc { public Svc(@First Port p<caret>ort) {} }")
+    assertEquals(listOf("A"), names(SpringBeans.findCandidates(pointAtCaret())))
+  }
+
   fun testCollectionInjectionUnwrapsElementType() {
     myFixture.addClass("package app; @org.springframework.stereotype.Component public class Adapter implements Port {}")
     myFixture.configureByText("Svc.java", "package app; @UseCase public class Svc { public Svc(java.util.List<Port> p<caret>orts) {} }")
@@ -96,6 +108,12 @@ class SpringBeanNavigationTest : LightJavaCodeInsightFixtureTestCase() {
     val points = SpringBeans.findInjectionPoints(adapter)
     assertEquals(listOf("port"), points.map { (it.element as PsiParameter).name })
     assertEquals("Svc", (points.single().element as PsiParameter).let { PsiTreeUtil.getParentOfType(it, PsiClass::class.java)?.name })
+  }
+
+  fun testBeanToInjectionPointsThroughLibraryType() {
+    val pool = myFixture.addClass("package app; @org.springframework.stereotype.Component public abstract class Pool implements javax.sql.DataSource {}")
+    myFixture.addClass("package app; @UseCase public class Repo { public Repo(javax.sql.DataSource dataSource) {} }")
+    assertEquals(listOf("dataSource"), SpringBeans.findInjectionPoints(pool).map { (it.element as PsiParameter).name })
   }
 
   fun testImplicitUsage() {

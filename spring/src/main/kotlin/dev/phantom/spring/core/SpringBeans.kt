@@ -37,8 +37,9 @@ class InjectionPoint(
 }
 
 /**
- * Bean model computed directly from PSI and indexes. Nothing here is precomputed or cached project-wide:
- * the gutter only does cheap annotation checks while highlighting, and the searches run when the user clicks.
+ * Bean model computed directly from PSI and indexes. The gutter only does cheap annotation checks while highlighting
+ * and the searches run when the user clicks; only the `@Bean` methods and inheritor searches the autowiring inspection
+ * repeats are cached, until declarations change.
  */
 object SpringBeans {
   private val STEREOTYPES = listOf(SpringNames.COMPONENT)
@@ -97,6 +98,10 @@ object SpringBeans {
   fun qualifier(owner: PsiModifierListOwner): String? {
     for (fqn in SpringNames.NAMED_QUALIFIERS) {
       val annotation = owner.getAnnotation(fqn) ?: continue
+      AnnotationUtil.getStringAttributeValue(annotation, "value")?.takeIf { it.isNotBlank() }?.let { return it }
+    }
+    // a custom annotation carrying @Qualifier("name"), which Spring matches against bean names like a direct one
+    for (annotation in MetaAnnotationUtil.findMetaAnnotations(owner, SpringNames.NAMED_QUALIFIERS).toList()) {
       AnnotationUtil.getStringAttributeValue(annotation, "value")?.takeIf { it.isNotBlank() }?.let { return it }
     }
     return null
@@ -274,7 +279,10 @@ object SpringBeans {
     ))
   }
 
-  /** Injection points in project sources that would receive [bean] (a bean class or a `@Bean` method). */
+  /**
+   * Injection points in project sources that would receive [bean] (a bean class or a `@Bean` method): typed as its class
+   * or any supertype, library ones included (a `DataSource` bean is injected as `javax.sql.DataSource`).
+   */
   fun findInjectionPoints(bean: PsiModifierListOwner): List<InjectionPoint> {
     val beanClass = when (bean) {
       is PsiClass -> bean
@@ -287,7 +295,9 @@ object SpringBeans {
     val ownQualifier = qualifier(bean)
     val types = LinkedHashSet<PsiClass>()
     types.add(beanClass)
-    InheritanceUtil.getSuperClasses(beanClass, types, false)
+    InheritanceUtil.getSuperClasses(beanClass, types, true)
+    // beanTypeOf never yields java.* or kotlin.* types, so searching their references could find nothing
+    types.removeIf(::isLanguageType)
 
     val result = LinkedHashMap<PsiElement, InjectionPoint>()
     val scope = GlobalSearchScope.projectScope(project)
@@ -303,6 +313,9 @@ object SpringBeans {
     }
     return result.values.toList()
   }
+
+  private fun isLanguageType(psiClass: PsiClass): Boolean =
+    psiClass.qualifiedName.let { it == null || it.startsWith("java.") || it.startsWith("kotlin.") }
 
   private fun injectionPointAround(element: PsiElement): InjectionPoint? {
     var current: PsiElement? = element
