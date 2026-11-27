@@ -9,6 +9,7 @@ import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiEnumConstant
 import com.intellij.psi.PsiMethod
+import com.intellij.psi.PsiModifier
 import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.SmartPsiElementPointer
 import com.intellij.psi.search.GlobalSearchScope
@@ -95,8 +96,8 @@ object SpringMvcEndpoints {
     val httpMethods = SHORTCUTS[mappingName]?.let(::listOf) ?: requestMethods(mapping)
     val pointer = SmartPointerManager.getInstance(method.project).createSmartPsiElementPointer(method)
     return controllers.flatMap { controller ->
-      val classPaths = (controller.toUElement() as? UAnnotated)?.findAnnotation(REQUEST_MAPPING)?.let(::paths) ?: listOf("")
-      val ownerPaths = if (controller == owner) emptyList() else (owner.toUElement() as? UAnnotated)?.findAnnotation(REQUEST_MAPPING)?.let(::paths).orEmpty()
+      val classPaths = classMapping(controller)?.let(::paths) ?: listOf("")
+      val ownerPaths = if (controller == owner) emptyList() else classMapping(owner)?.let(::paths).orEmpty()
       val prefixes = (classPaths.ifEmpty { listOf("") }).flatMap { c -> ownerPaths.ifEmpty { listOf("") }.map { join(c, it) } }
       prefixes.flatMap { prefix -> methodPaths.map { join(prefix, it) } }.distinct().map { path ->
         SpringEndpoint(path, httpMethods, controller.name ?: "?", method.name, ModuleUtilCore.findModuleForPsiElement(controller), pointer)
@@ -104,10 +105,18 @@ object SpringMvcEndpoints {
     }
   }
 
-  /** The class itself when it is a controller, or the controllers implementing it when it is an interface. */
+  /** `@RequestMapping` on [psiClass], or on an annotation it carries (`@ApiController` holding `@RequestMapping("/api")`). */
+  private fun classMapping(psiClass: PsiClass): UAnnotation? =
+    (psiClass.toUElement() as? UAnnotated)?.findAnnotation(REQUEST_MAPPING)
+    ?: MetaAnnotationUtil.findMetaAnnotations(psiClass, listOf(REQUEST_MAPPING)).findFirst().orElse(null)?.toUElement() as? UAnnotation
+
+  /**
+   * The class itself when it is a controller, or the controllers extending it when it is an interface or an abstract
+   * base class: Spring registers the mappings a controller inherits.
+   */
   private fun controllersServing(owner: PsiClass): List<PsiClass> {
     if (isController(owner)) return listOf(owner)
-    if (!owner.isInterface) return emptyList()
+    if (!owner.isInterface && !owner.hasModifierProperty(PsiModifier.ABSTRACT)) return emptyList()
     return ClassInheritorsSearch.search(owner, GlobalSearchScope.projectScope(owner.project), true)
       .findAll().filter { !it.isInterface && isController(it) }
   }

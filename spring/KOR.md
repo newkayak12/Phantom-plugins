@@ -7,7 +7,7 @@ Java와 Kotlin 프로젝트를 위한 Spring 지원입니다.
 - **자동 주입 검사:** 주입할 타입의 빈이 프로젝트에 없거나, 여러 개인데 고를 근거가 없으면 알려 줍니다. 빠른 수정으로 `@Qualifier`나 `@Primary`를 붙일 수 있습니다. 선택적 주입, 컬렉션, 테스트 소스는 검사하지 않습니다.
 - **잘못된 "사용 안 함" 표시 없음:** Spring이 관리하는 클래스와 메서드(빈, `@Bean`, 이벤트 리스너 등)를 쓰지 않는 코드로 표시하지 않습니다.
 - **Endpoints:** Phantom의 Endpoints 툴 윈도우에 Spring MVC 핸들러를 모듈별로 채웁니다. 예: `GET /api/v1/menu/{id}  FindMenuController.findMenu`
-  - `@Controller` 클래스와 컨트롤러가 구현한 인터페이스의 `@RequestMapping`, `@GetMapping` 계열 애너테이션을 읽습니다.
+  - `@Controller` 클래스와 컨트롤러가 구현한 인터페이스, 상속한 추상 기반 클래스의 `@RequestMapping`, `@GetMapping` 계열 애너테이션을 읽습니다. 클래스의 `@RequestMapping`은 합성 애너테이션을 거쳐 붙어 있어도 읽습니다.
   - 상수와 문자열 템플릿으로 만든 경로도 실제 경로로 풀어 줍니다.
   - 메서드, 경로, 컨트롤러 이름으로 거를 수 있습니다. Enter나 더블클릭으로 핸들러를 열고, 우클릭 메뉴로 URL을 복사합니다.
 - **Spring Security:** `requestMatchers("…")`와 Kotlin DSL `authorize("…")`에서 프로젝트 핸들러 경로(와 `/**` 접두사)를 자동완성합니다. `@PreAuthorize` / `@PostAuthorize` / `@PreFilter` / `@PostFilter`에서 함수, 변수, `#인자`를 자동완성하고, 메서드 인자가 아닌 `#이름`은 오류로 표시합니다.
