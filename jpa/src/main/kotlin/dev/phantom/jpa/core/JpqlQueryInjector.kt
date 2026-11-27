@@ -9,21 +9,29 @@ import com.intellij.psi.ElementManipulators
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiLanguageInjectionHost
+import com.intellij.psi.PsiPolyadicExpression
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import org.jetbrains.uast.*
 
 /**
  * Injects JPQL into `@Query`/`@NamedQuery` strings and `EntityManager.createQuery` arguments, including the common Kotlin style where the annotation names a
- * `const val` holding a template. Most strings are rejected by a text check before any UAST conversion.
+ * `const val` holding a template, and Java's `"select … " + "where …"` concatenations. Most strings are rejected by a
+ * text check before any UAST conversion.
  */
 class JpqlQueryInjector : MultiHostInjector {
-  override fun elementsToInjectIn(): List<Class<out PsiElement>> = listOf(PsiLanguageInjectionHost::class.java)
+  override fun elementsToInjectIn(): List<Class<out PsiElement>> = listOf(PsiLanguageInjectionHost::class.java, PsiPolyadicExpression::class.java)
 
   override fun getLanguagesToInject(registrar: MultiHostRegistrar, context: PsiElement) {
+    if (context is PsiPolyadicExpression) {
+      injectConcatenation(registrar, context)
+      return
+    }
     val host = context as? PsiLanguageInjectionHost ?: return
     val language = host.language.id
     if (language != "JAVA" && language != "kotlin") return
+    // A literal of a Java concatenation is injected together with the others, from the concatenation itself
+    if (language == "JAVA" && host.parent is PsiPolyadicExpression) return
     if (!host.isValidHost) return
     val text = host.text
     if (text.length < MIN_LENGTH || !QUERY_WORD.containsMatchIn(text)) return
@@ -31,37 +39,78 @@ class JpqlQueryInjector : MultiHostInjector {
     if (!JpaGate.isJpaModule(module)) return
 
     val expression = host.toUElement() as? UExpression ?: return
-    if (!isQuery(expression, host)) return
-    val places = places(expression, host)
+    if (!isQuery(expression)) return
+    register(registrar, places(expression, host))
+  }
+
+  /**
+   * `"select o " + "from Order o"` in Java: one query over all literals, registered with the concatenation as context so
+   * that the platform finds it from any of its literals (it walks up from the literal to the concatenation).
+   */
+  private fun injectConcatenation(registrar: MultiHostRegistrar, concatenation: PsiPolyadicExpression) {
+    if (concatenation.language.id != "JAVA" || concatenation.parent is PsiPolyadicExpression) return
+    if (concatenation.operands.none { it is PsiLanguageInjectionHost }) return
+    val text = concatenation.text
+    if (text.length < MIN_LENGTH || !QUERY_WORD.containsMatchIn(text)) return
+    val module = ModuleUtilCore.findModuleForPsiElement(concatenation) ?: return
+    if (!JpaGate.isJpaModule(module)) return
+    val expression = (concatenation.toUElement() as? UPolyadicExpression)?.takeIf { it.operator == UastBinaryOperator.PLUS } ?: return
+    if (!isQuery(expression)) return
+    register(registrar, concatenationPlaces(expression))
+  }
+
+  private fun register(registrar: MultiHostRegistrar, places: List<Place>) {
     if (places.isEmpty()) return
     registrar.startInjecting(JpqlLanguage)
-    for (place in places) registrar.addPlace(place.prefix, null, host, place.range)
+    for (place in places) registrar.addPlace(place.prefix, place.suffix, place.host, place.range)
     registrar.doneInjecting()
   }
 
-  private class Place(val prefix: String?, val range: TextRange)
+  private class Place(val prefix: String?, val host: PsiLanguageInjectionHost, val range: TextRange) {
+    var suffix: String? = null
+  }
 
-  /** Literal parts of the string; each interpolation (`$CONDITION`) becomes a placeholder token. */
-  private fun places(expression: UExpression, host: PsiLanguageInjectionHost): List<Place> {
-    val polyadic = expression as? UPolyadicExpression
-    if (polyadic == null || polyadic.operands.size <= 1) return listOf(Place(null, ElementManipulators.getValueTextRange(host)))
-    val hostStart = host.textRange.startOffset
+  /** Each string literal operand of a concatenation in its own host; other operands become placeholder tokens. */
+  private fun concatenationPlaces(concatenation: UPolyadicExpression): List<Place> {
     val result = ArrayList<Place>()
     var pending: String? = null
-    for (operand in polyadic.operands) {
-      val psi = operand.sourcePsi
-      if (operand is ULiteralExpression && psi != null && psi.textRange in host.textRange) {
-        result.add(Place(pending, psi.textRange.shiftLeft(hostStart)))
+    for (operand in concatenation.operands) {
+      val literalHost = (operand as? ULiteralExpression)?.takeIf { it.value is String }?.sourcePsi as? PsiLanguageInjectionHost
+      if (literalHost != null && literalHost.isValidHost) {
+        result.add(Place(pending, literalHost, ElementManipulators.getValueTextRange(literalHost)))
         pending = null
       }
       else {
         pending = (pending ?: "") + " ${JpqlTokens.PLACEHOLDER_TEXT} "
       }
     }
+    result.lastOrNull()?.suffix = pending
     return result
   }
 
-  private fun isQuery(expression: UExpression, host: PsiLanguageInjectionHost): Boolean {
+  /** Literal parts of the string; each interpolation (`$CONDITION`) becomes a placeholder token. */
+  private fun places(expression: UExpression, host: PsiLanguageInjectionHost): List<Place> {
+    val polyadic = expression as? UPolyadicExpression
+    if (polyadic == null || polyadic.operands.size <= 1) return listOf(Place(null, host, ElementManipulators.getValueTextRange(host)))
+    val hostStart = host.textRange.startOffset
+    val result = ArrayList<Place>()
+    var pending: String? = null
+    for (operand in polyadic.operands) {
+      val psi = operand.sourcePsi
+      if (operand is ULiteralExpression && psi != null && psi.textRange in host.textRange) {
+        result.add(Place(pending, host, psi.textRange.shiftLeft(hostStart)))
+        pending = null
+      }
+      else {
+        pending = (pending ?: "") + " ${JpqlTokens.PLACEHOLDER_TEXT} "
+      }
+    }
+    // `"… WHERE o.id = 1 $CONDITION"`: an interpolation after the last literal still stands in the query
+    result.lastOrNull()?.suffix = pending
+    return result
+  }
+
+  private fun isQuery(expression: UExpression): Boolean {
     var parent = expression.uastParent
     while (parent is UParenthesizedExpression) parent = parent.uastParent
     return when (parent) {
@@ -69,7 +118,8 @@ class JpqlQueryInjector : MultiHostInjector {
       is UAnnotation -> isQueryAnnotation(parent)
       is UField, is ULocalVariable -> {
         val variable = parent as UVariable
-        variable.uastInitializer?.sourcePsi == host && variable.name in queryConstantNames(host.containingFile)
+        val source = expression.sourcePsi ?: return false
+        variable.uastInitializer?.sourcePsi == source && variable.name in queryConstantNames(source.containingFile)
       }
       is UCallExpression -> isQueryCall(parent, expression)
       else -> false
