@@ -11,7 +11,7 @@ class TestcontainersTest : LightJavaCodeInsightFixtureTestCase() {
     super.setUp()
     val runtime = "@java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.RUNTIME)"
     myFixture.addClass("package org.testcontainers.lifecycle; public interface Startable { void start(); }")
-    myFixture.addClass("package org.testcontainers.utility; public class DockerImageName { public DockerImageName(String n) {} public static DockerImageName parse(String n) { return null; } }")
+    myFixture.addClass("package org.testcontainers.utility; public class DockerImageName { public DockerImageName(String n) {} public static DockerImageName parse(String n) { return null; } public DockerImageName withTag(String t) { return this; } }")
     myFixture.addClass("package org.testcontainers.containers; public class GenericContainer<S> implements org.testcontainers.lifecycle.Startable { public GenericContainer(String image) {} public GenericContainer(org.testcontainers.utility.DockerImageName image) {} public void start() {} }")
     myFixture.addClass("package org.testcontainers.containers; public class PostgreSQLContainer<S> extends GenericContainer<S> { public PostgreSQLContainer(String image) { super(image); } }")
     myFixture.addClass("package org.testcontainers.containers; public class Network {}")
@@ -150,6 +150,38 @@ class TestcontainersTest : LightJavaCodeInsightFixtureTestCase() {
             @JvmStatic @DynamicPropertySource fun ok(r: DynamicPropertyRegistry) {}
           }
           @DynamicPropertySource fun props(r: DynamicPropertyRegistry) {}
+        }
+      """.trimIndent()),
+    )
+  }
+
+  fun testParseWithTagHasATag() {
+    assertEmpty(problems("Images.java", """
+      import org.testcontainers.containers.*;
+      import org.testcontainers.utility.DockerImageName;
+      class Images { Object a = new GenericContainer<>(DockerImageName.parse("postgres").withTag("16")); }
+    """.trimIndent()))
+  }
+
+  fun testAnAbstractBaseSharesItsContainers() {
+    assertEmpty(problems("BaseTest.java", """
+      import org.testcontainers.containers.*;
+      abstract class BaseTest {
+        @org.testcontainers.junit.jupiter.Container static PostgreSQLContainer<?> db = new PostgreSQLContainer<>("postgres:16");
+      }
+    """.trimIndent()))
+  }
+
+  fun testKotlinClassNestedInAnObjectIsNotStatic() {
+    assertEquals(
+      listOf("props: Spring calls @DynamicPropertySource methods only when they are static (in Kotlin: @JvmStatic in the companion object)"),
+      problems("ATest.kt", """
+        import org.springframework.test.context.*
+
+        object Holder {
+          class ATest {
+            @JvmStatic @DynamicPropertySource fun props(r: DynamicPropertyRegistry) {}
+          }
         }
       """.trimIndent()),
     )

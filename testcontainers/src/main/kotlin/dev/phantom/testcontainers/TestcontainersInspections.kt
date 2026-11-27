@@ -24,7 +24,11 @@ import org.jetbrains.uast.UCallExpression
 import org.jetbrains.uast.UClass
 import org.jetbrains.uast.UElement
 import org.jetbrains.uast.UField
+import org.jetbrains.uast.ULiteralExpression
 import org.jetbrains.uast.UMethod
+import org.jetbrains.uast.UPolyadicExpression
+import org.jetbrains.uast.UQualifiedReferenceExpression
+import org.jetbrains.uast.UReferenceExpression
 import org.jetbrains.uast.evaluateString
 import org.jetbrains.uast.getParentOfType
 import org.jetbrains.uast.visitor.AbstractUastNonRecursiveVisitor
@@ -79,9 +83,11 @@ internal object Tc {
   fun isStatic(member: PsiModifierListOwner, node: UElement): Boolean {
     if (member.language.id == "JAVA") return member.hasModifierProperty(PsiModifier.STATIC)
     if (member.hasModifierProperty(PsiModifier.STATIC)) return true
-    // no Kotlin PSI classes here: the object declaration is found by its PSI class name
-    return generateSequence(node.sourcePsi?.parent) { it.parent }.takeWhile { it !is PsiFile }
-      .any { it.javaClass.simpleName == "KtObjectDeclaration" }
+    // No Kotlin PSI classes here: the declaration is found by its PSI class name. Only the nearest class counts, so a
+    // member of a class nested in an object is not static; an object expression (`object : X {}`) is not static either.
+    val nearest = generateSequence(node.sourcePsi?.parent) { it.parent }.takeWhile { it !is PsiFile }
+      .firstOrNull { it.javaClass.simpleName == "KtObjectDeclaration" || it.javaClass.simpleName == "KtClass" } ?: return false
+    return nearest.javaClass.simpleName == "KtObjectDeclaration" && nearest.parent?.javaClass?.simpleName != "KtObjectLiteralExpression"
   }
 
   /** What is wrong with an image reference, or null when it has a tag or digest. */
@@ -117,8 +123,9 @@ class ContainerNotStartedInspection : LocalInspectionTool() {
         }
         // the enclosing classes count too: a Kotlin companion's container belongs to the class around it
         val owner = node.getParentOfType<UClass>()?.javaPsi ?: return true
-        if (!Tc.startsContainers(owner)) {
-          val testClass = if (owner.name == "Companion") owner.containingClass ?: owner else owner
+        val testClass = if (owner.name == "Companion") owner.containingClass ?: owner else owner
+        // An abstract base class shares its containers with test classes that carry @Testcontainers themselves.
+        if (!Tc.startsContainers(owner) && !testClass.hasModifierProperty(PsiModifier.ABSTRACT)) {
           holder.registerProblem(anchor, TestcontainersBundle.message("container.no.extension", testClass.name ?: ""), ProblemHighlightType.GENERIC_ERROR_OR_WARNING)
         }
         return true
@@ -149,12 +156,18 @@ class ContainerImageTagInspection : LocalInspectionTool() {
     if (!Tc.isTestcontainersModule(holder.file)) PsiElementVisitor.EMPTY_VISITOR
     else UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
       override fun visitCallExpression(node: UCallExpression): Boolean {
+        // Cheap checks before resolving: only `parse` and constructors (capitalized callee) with a string-like first argument.
+        val callee = node.methodIdentifier?.name
+        if (callee != null && callee != "parse" && callee.firstOrNull()?.isUpperCase() != true) return true
+        val first = node.valueArguments.firstOrNull() ?: return true
+        if (first !is ULiteralExpression && first !is UPolyadicExpression && first !is UReferenceExpression) return true
         val method = node.resolve() ?: return true
         val owner = method.containingClass ?: return true
         val imageCall = when {
           method.isConstructor -> InheritanceUtil.isInheritor(owner, false, Tc.GENERIC_CONTAINER) || owner.qualifiedName == Tc.GENERIC_CONTAINER ||
             owner.qualifiedName == Tc.IMAGE_NAME
-          else -> owner.qualifiedName == Tc.IMAGE_NAME && method.name == "parse"
+          // `parse("postgres").withTag("16")` sets the tag after parsing
+          else -> owner.qualifiedName == Tc.IMAGE_NAME && method.name == "parse" && !followedByWithTag(node)
         }
         if (!imageCall || method.parameterList.parameters.firstOrNull()?.type?.canonicalText != "java.lang.String") return true
         val argument = node.getArgumentForParameter(0) ?: return true
@@ -164,6 +177,14 @@ class ContainerImageTagInspection : LocalInspectionTool() {
         return true
       }
     }, arrayOf(UCallExpression::class.java), true)
+}
+
+/** The call is the receiver of `.withTag(...)`. */
+private fun followedByWithTag(call: UCallExpression): Boolean {
+  // `DockerImageName.parse(..)` is itself a qualified expression; `.withTag` is applied to it
+  val parsed = (call.uastParent as? UQualifiedReferenceExpression)?.takeIf { it.selector == call } ?: call
+  val qualified = parsed.uastParent as? UQualifiedReferenceExpression ?: return false
+  return qualified.receiver == parsed && (qualified.selector as? UCallExpression)?.methodName == "withTag"
 }
 
 /** Spring finds `@DynamicPropertySource` methods and `@ServiceConnection` fields only when they are static. */
