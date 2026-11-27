@@ -26,7 +26,8 @@ class MapperSqlInjector : MultiHostInjector {
   override fun getLanguagesToInject(registrar: MultiHostRegistrar, context: PsiElement) {
     val sql = Language.findLanguageByID("SQL") ?: return
     val chunks = when (context) {
-      is XmlTag -> MapperSql.chunks(context)
+      // Injections are recomputed only when this file changes, so fragments of other files are not copied in.
+      is XmlTag -> MapperSql.chunks(context, otherFiles = false)
       is PsiAnnotation -> MapperSql.chunks(context)
       else -> null
     } ?: return
@@ -77,12 +78,13 @@ object MapperSql {
   /**
    * The chunks of a statement or `<sql>` tag directly under `<mapper>`; null for any other tag. A `<choose>` in
    * [branch] keeps only that branch; [keepOverrides] keeps the text `<trim>` and `<set>` drop (for formatting).
+   * Without [otherFiles] an `<include>` of another mapper file's `<sql>` adds only a space.
    */
-  fun chunks(tag: XmlTag, branch: Map<XmlTag, XmlTag> = emptyMap(), keepOverrides: Boolean = false): List<Chunk>? {
+  fun chunks(tag: XmlTag, branch: Map<XmlTag, XmlTag> = emptyMap(), keepOverrides: Boolean = false, otherFiles: Boolean = true): List<Chunk>? {
     if (tag.name !in MyBatis.STATEMENTS && tag.name != "sql") return null
     val root = MyBatis.mapperOf(tag) ?: return null
     if (tag.parentTag != root) return null
-    return Builder(branch, keepOverrides, 0).also { it.walk(tag) }.result
+    return Builder(branch, keepOverrides, 0, otherFiles).also { it.walk(tag) }.result
   }
 
   /**
@@ -110,7 +112,7 @@ object MapperSql {
     }.map { it as? PsiLiteralExpression ?: return null }
     if (literals.any { it !is PsiLanguageInjectionHost || it.value !is String }) return null
     if ((literals.firstOrNull()?.value as? String)?.trimStart()?.startsWith("<script>") == true) return null
-    val builder = Builder(emptyMap(), false, 0)
+    val builder = Builder(emptyMap(), false, 0, true)
     for ((i, literal) in literals.withIndex()) {
       // MyBatis joins the array elements with a space
       if (i > 0) builder.result += Extra(" ")
@@ -173,7 +175,8 @@ object MapperSql {
 
   /**
    * The statement reads as one whole SQL statement, so syntax errors are real: no `${...}` (it may stand for a name
-   * or a clause), no `<choose>` (its branches are all kept) and every `<include>` found.
+   * or a clause), no `<choose>` (its branches are all kept) and every `<include>` found in this file: the injection
+   * leaves out fragments of other files.
    */
   fun isWhole(tag: XmlTag): Boolean {
     if (tag.name !in MyBatis.STATEMENTS) return false
@@ -184,7 +187,7 @@ object MapperSql {
         when (child.name) {
           "choose" -> whole = false
           "include" -> {
-            val target = includeTarget(child)
+            val target = includeTarget(child)?.takeIf { it.containingFile == tag.containingFile }
             if (target == null || depth > 8 || target.value.text.contains("\${")) whole = false else visit(target, depth + 1)
           }
           else -> visit(child, depth)
@@ -255,7 +258,7 @@ object MapperSql {
     private fun overrides(attribute: String?): List<String> = attribute?.split('|')?.filter { it.isNotEmpty() }.orEmpty()
   }
 
-  private class Builder(val branch: Map<XmlTag, XmlTag>, val keepOverrides: Boolean, val depth: Int) {
+  private class Builder(val branch: Map<XmlTag, XmlTag>, val keepOverrides: Boolean, val depth: Int, val otherFiles: Boolean) {
     val result = ArrayList<Chunk>()
     /** Ranges of texts that MyBatis drops: overrides of `<trim>` and `<set>`. */
     private val dropped = HashMap<XmlText, MutableList<TextRange>>()
@@ -295,9 +298,9 @@ object MapperSql {
           result += Extra(tag.getAttributeValue("close").orEmpty() + " ")
         }
         "include" -> {
-          val target = includeTarget(tag)
+          val target = includeTarget(tag)?.takeIf { otherFiles || it.containingFile == tag.containingFile }
           if (target == null || depth > 8) { result += Extra(" "); return }
-          val inner = Builder(emptyMap(), false, depth + 1).also { it.walk(target) }.result
+          val inner = Builder(emptyMap(), false, depth + 1, otherFiles).also { it.walk(target) }.result
           result += Extra(" " + MapperSql.text(places(inner)) + " ")
         }
         "choose" -> {

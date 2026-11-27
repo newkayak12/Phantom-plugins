@@ -19,6 +19,9 @@ import com.intellij.psi.PsiJavaCodeReferenceElement
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.psi.codeStyle.CodeStyleSettings
 import com.intellij.psi.impl.source.codeStyle.PostFormatProcessor
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.PsiModificationTracker
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.lang.xml.XMLLanguage
 import com.intellij.psi.XmlElementFactory
@@ -30,7 +33,6 @@ import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.VerticalFlowLayout
@@ -67,12 +69,25 @@ class MapperWholeInjection : SqlWholeInjection {
  * Syntax errors in mapper statements that do not read as one whole statement: each branch of a `<choose>` is checked
  * on its own, and `${...}` reads as a name. Errors in the text the tags add or in `<include>`d fragments are left out.
  */
-class MapperSqlSyntaxAnnotator : Annotator, DumbAware {
+// Not DumbAware: `<include>` targets in other mappers are found through an index.
+class MapperSqlSyntaxAnnotator : Annotator {
   override fun annotate(element: PsiElement, holder: AnnotationHolder) {
     val tag = element as? XmlTag ?: return
     if (tag.name !in MyBatis.STATEMENTS || MyBatis.mapperOf(tag)?.let { tag.parentTag == it } != true) return
-    if (MapperSql.isWhole(tag) || !MapperSql.includesFound(tag)) return
-    val seen = HashSet<Pair<TextRange, String>>()
+    for ((range, message) in problems(tag)) holder.newAnnotation(HighlightSeverity.ERROR, message).range(range).create()
+  }
+
+  /**
+   * Cached per tag until an XML file changes: each `<choose>` branch is parsed on its own, up to 32 parses, which
+   * otherwise ran again on every highlighting pass. Any XML change counts, as `<include>`d fragments may be in other files.
+   */
+  private fun problems(tag: XmlTag): List<Pair<TextRange, String>> = CachedValuesManager.getCachedValue(tag) {
+    CachedValueProvider.Result.create(computeProblems(tag), PsiModificationTracker.getInstance(tag.project).forLanguages { it.id == "XML" })
+  }
+
+  private fun computeProblems(tag: XmlTag): List<Pair<TextRange, String>> {
+    if (MapperSql.isWhole(tag) || !MapperSql.includesFound(tag)) return emptyList()
+    val seen = LinkedHashSet<Pair<TextRange, String>>()
     for (variant in MapperSql.variants(tag)) {
       val (sql, segments) = text(variant)
       for (problem in SqlSyntaxProblems.of(sql)) {
@@ -80,9 +95,10 @@ class MapperSqlSyntaxAnnotator : Annotator, DumbAware {
         val chunk = segment.second
         val start = chunk.host.textRange.startOffset + chunk.range.startOffset + problem.range.startOffset - segment.first
         val end = minOf(start + problem.range.length, chunk.host.textRange.startOffset + chunk.range.endOffset)
-        if (seen.add(TextRange(start, end) to problem.message)) holder.newAnnotation(HighlightSeverity.ERROR, problem.message).range(TextRange(start, end)).create()
+        seen += TextRange(start, end) to problem.message
       }
     }
+    return seen.toList()
   }
 
   /** The SQL of [chunks] with `#{}` as `?` and `${}` as a name, and where each text chunk starts in it. */

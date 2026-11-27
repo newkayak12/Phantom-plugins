@@ -3,6 +3,10 @@ package dev.phantom.mybatis
 
 import com.intellij.DynamicBundle
 import com.intellij.ide.highlighter.XmlFileType
+import com.intellij.java.library.JavaLibraryUtil
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.module.Module
+import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VirtualFileManager
@@ -19,6 +23,7 @@ import com.intellij.psi.PsiParameter
 import com.intellij.psi.PsiPrimitiveType
 import com.intellij.psi.PsiType
 import com.intellij.psi.search.GlobalSearchScope
+import com.intellij.psi.search.searches.ClassInheritorsSearch
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.InheritanceUtil
@@ -38,6 +43,7 @@ import com.intellij.util.io.EnumeratorStringDescriptor
 import com.intellij.util.io.KeyDescriptor
 import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.PropertyKey
+import java.util.concurrent.ConcurrentHashMap
 
 private const val BUNDLE = "messages.PhantomMyBatisBundle"
 
@@ -85,33 +91,47 @@ object MyBatis {
   /** The `<mapper>` root a tag is in, for tags of a mapper file only. */
   fun mapperOf(tag: XmlTag): XmlTag? = mapperRoot(tag.containingFile)
 
-  /** The mapper XML files whose namespace is [namespace]. */
+  /** MyBatis is on the classpath of [module]. */
+  fun isMyBatisModule(module: Module): Boolean {
+    if (module.isDisposed) return false
+    if (JavaLibraryUtil.hasLibraryClass(module, PARAM)) return true
+    // Light test fixtures declare the annotations as source stubs instead of a library.
+    return ApplicationManager.getApplication().isUnitTestMode &&
+           JavaPsiFacade.getInstance(module.project).findClass(PARAM, module.getModuleWithDependenciesAndLibrariesScope(false)) != null
+  }
+
+  /** The mapper XML files whose namespace is [namespace], also those packaged in libraries. */
   fun mapperFiles(project: Project, namespace: String): List<XmlFile> {
     val manager = PsiManager.getInstance(project)
-    return FileBasedIndex.getInstance().getContainingFiles(MapperNamespaceIndex.NAME, namespace, GlobalSearchScope.projectScope(project))
+    return FileBasedIndex.getInstance().getContainingFiles(MapperNamespaceIndex.NAME, namespace, GlobalSearchScope.allScope(project))
       .mapNotNull { manager.findFile(it) as? XmlFile }
       .filter { namespace(it) == namespace }
   }
 
   /**
-   * Kept until the interface's own file, an XML file, or the files and roots of the project change: the line markers and
-   * inspections ask for each method of every interface, which otherwise queried the index and loaded the XML once per
-   * method on every highlighting pass, also without MyBatis. PsiModificationTracker.MODIFICATION_COUNT also moved on
-   * every keystroke in any other Java or Kotlin file.
+   * Kept by namespace until an XML file or the files and roots of the project change: the line markers and inspections
+   * ask for each method of every interface, which otherwise queried the index and loaded the XML once per method on
+   * every highlighting pass. Keyed by name rather than cached on the interface, so typing in the interface's own file
+   * keeps it; PsiModificationTracker.MODIFICATION_COUNT also moved on every keystroke in any Java or Kotlin file.
+   * Interfaces of modules without MyBatis have none, without asking the index.
    */
-  fun mapperFiles(mapper: PsiClass): List<XmlFile> = CachedValuesManager.getCachedValue(mapper) {
+  fun mapperFiles(mapper: PsiClass): List<XmlFile> {
+    val name = mapper.qualifiedName ?: return emptyList()
+    val module = ModuleUtilCore.findModuleForPsiElement(mapper)
+    if (module != null && !isMyBatisModule(module)) return emptyList()
     val project = mapper.project
-    val files = mapper.qualifiedName?.let { mapperFiles(project, it) }.orEmpty()
-    val deps = listOf<Any>(mapper.containingFile, PsiModificationTracker.getInstance(project).forLanguages { it.id == "XML" },
-                           VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS, ProjectRootManager.getInstance(project)) +
-               files.mapNotNull { it.virtualFile }
-    CachedValueProvider.Result.create(files, *deps.toTypedArray())
+    val byNamespace = CachedValuesManager.getManager(project).getCachedValue(project) {
+      CachedValueProvider.Result.create(ConcurrentHashMap<String, List<XmlFile>>(),
+                                        PsiModificationTracker.getInstance(project).forLanguages { it.id == "XML" },
+                                        VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS, ProjectRootManager.getInstance(project))
+    }
+    return byNamespace.getOrPut(name) { mapperFiles(project, name) }
   }
 
-  /** The interface named by the mapper's namespace. */
-  fun mapperClass(file: PsiFile): PsiClass? {
-    val namespace = namespace(file) ?: return null
-    return JavaPsiFacade.getInstance(file.project).findClass(namespace, file.resolveScope)
+  /** The interface named by the mapper's namespace; cached, since every statement and attribute of the file asks. */
+  fun mapperClass(file: PsiFile): PsiClass? = CachedValuesManager.getCachedValue(file) {
+    val found = namespace(file)?.let { JavaPsiFacade.getInstance(file.project).findClass(it, file.resolveScope) }
+    CachedValueProvider.Result.create(found, PsiModificationTracker.MODIFICATION_COUNT)
   }
 
   fun statements(file: PsiFile): List<XmlTag> = mapperRoot(file)?.subTags?.filter { it.name in STATEMENTS }.orEmpty()
@@ -132,11 +152,17 @@ object MyBatis {
     }
   }
 
-  /** The XML statements of a mapper method, from the XML files of the interface it is declared in. */
-  fun statementsFor(method: PsiMethod): List<XmlTag> {
+  /**
+   * The XML statements of a mapper method, from the XML files of the interface it is declared in; with [subMappers] also
+   * from those of the project's interfaces extending it (`UserMapper extends BaseMapper<User>`), which searches inheritors
+   * and so is only for explicit navigation.
+   */
+  fun statementsFor(method: PsiMethod, subMappers: Boolean = false): List<XmlTag> {
     val mapper = method.containingClass ?: return emptyList()
     val name = method.name
-    return mapperFiles(mapper).flatMap { file -> statements(file).filter { it.getAttributeValue("id") == name } }
+    val classes = if (!subMappers) listOf(mapper)
+    else listOf(mapper) + ClassInheritorsSearch.search(mapper, GlobalSearchScope.projectScope(mapper.project), true).filter { it.isInterface }
+    return classes.flatMap { mapperFiles(it) }.distinct().flatMap { file -> statements(file).filter { it.getAttributeValue("id") == name } }
   }
 
   /** The methods an XML statement is for: the namespace interface's (or its super-interfaces') methods with its id. */
@@ -190,8 +216,12 @@ object MyBatis {
     return cls
   }
 
-  /** Readable properties of a bean: fields and getters, by name. */
-  fun properties(cls: PsiClass): Map<String, PsiType> {
+  /** Readable properties of a bean: fields and getters, by name; cached, since completion and each `#{a.b}` path ask. */
+  fun properties(cls: PsiClass): Map<String, PsiType> = CachedValuesManager.getCachedValue(cls) {
+    CachedValueProvider.Result.create(computeProperties(cls), PsiModificationTracker.MODIFICATION_COUNT)
+  }
+
+  private fun computeProperties(cls: PsiClass): Map<String, PsiType> {
     val result = LinkedHashMap<String, PsiType>()
     for (field in cls.allFields) if (!field.hasModifierProperty(PsiModifier.STATIC)) result.putIfAbsent(field.name, field.type)
     for (method in cls.allMethods) {
