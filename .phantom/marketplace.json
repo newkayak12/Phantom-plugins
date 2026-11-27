@@ -289,6 +289,26 @@
       ]
     },
     {
+      "id": "dev.phantom.spring.security",
+      "name": "Phantom for Spring Security",
+      "version": "0.1.0",
+      "source": "spring-security",
+      "description": "Spring Security filter chains in Java: a gutter icon on each SecurityFilterChain bean with its order among the project's chains, its securityMatcher and its authorizeHttpRequests rules; errors for requestMatchers after anyRequest() and for chains placed after a chain that matches every request.",
+      "vendor": "Phantom",
+      "since": "262",
+      "until": "262.*",
+      "category": "Frameworks",
+      "depends": [
+        "com.intellij.modules.lang",
+        "com.intellij.java"
+      ],
+      "download": "spring-security-0.1.0/spring-security-0.1.0.zip",
+      "detect": [
+        "org.springframework.security:spring-security-web",
+        "org.springframework.boot:spring-boot-starter-security"
+      ]
+    },
+    {
       "id": "dev.phantom.migrations",
       "name": "Phantom Migrations",
       "version": "0.3.3",

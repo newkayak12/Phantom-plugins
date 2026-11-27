@@ -27,6 +27,7 @@ dependencyResolutionManagement {
 include("db")
 include("spring")
 include("spring-boot")
+include("spring-security")
 include("jpa")
 include("reactive-streams")
 include("ktor")

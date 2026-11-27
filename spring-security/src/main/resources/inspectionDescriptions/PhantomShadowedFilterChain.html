@@ -1,0 +1,7 @@
+<html>
+<body>
+Reports a <code>SecurityFilterChain</code> bean ordered after a chain without <code>securityMatcher</code>.
+A chain without a matcher handles every request, so Spring Security rejects later chains at startup.
+Give the earlier chain a <code>securityMatcher</code> or a later <code>@Order</code>.
+</body>
+</html>
