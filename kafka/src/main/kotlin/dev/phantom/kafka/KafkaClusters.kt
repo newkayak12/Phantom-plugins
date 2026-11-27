@@ -82,15 +82,15 @@ class KafkaClusterDialog(project: Project, private val cluster: KafkaCluster, pr
   }
 
   init {
-    title = "Kafka Cluster"
+    title = KafkaBundle.message("cluster.dialog.title")
     init()
   }
 
   override fun createCenterPanel(): JComponent = FormBuilder.createFormBuilder()
-    .addLabeledComponent("Name:", name)
-    .addLabeledComponent("Bootstrap servers:", bootstrap)
-    .addLabeledComponent("Client properties:", props, true)
-    .addTooltip("Kept in the password safe; one key=value per line")
+    .addLabeledComponent(KafkaBundle.message("cluster.name"), name)
+    .addLabeledComponent(KafkaBundle.message("cluster.bootstrap"), bootstrap)
+    .addLabeledComponent(KafkaBundle.message("cluster.properties"), props, true)
+    .addTooltip(KafkaBundle.message("cluster.properties.tooltip"))
     .panel
 
   fun result(): Pair<KafkaCluster, String> {

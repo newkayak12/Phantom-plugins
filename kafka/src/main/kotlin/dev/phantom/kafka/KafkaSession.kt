@@ -3,6 +3,7 @@ package dev.phantom.kafka
 
 import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.AdminClientConfig
+import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsSpec
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.admin.OffsetSpec
 import org.apache.kafka.clients.consumer.Consumer
@@ -19,16 +20,27 @@ import java.io.Closeable
 import java.io.StringReader
 import java.time.Duration
 import java.util.Properties
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 
 data class KafkaTopic(val name: String, val partitions: Int, val internal: Boolean)
 data class KafkaPartition(val partition: Int, val leader: String, val replicas: Int, val inSync: Int, val begin: Long, val end: Long)
 data class KafkaMessage(val partition: Int, val offset: Long, val timestamp: Long, val key: String?, val value: String?, val headers: List<Pair<String, String>>)
-/** What a read got; [unfinishedPartitions] > 0 means it gave up (timeout or cancel) before reaching the end of those. */
-data class KafkaReadResult(val messages: List<KafkaMessage>, val unfinishedPartitions: Int, val timeoutMs: Long) {
+/**
+ * What a read got; [unfinishedPartitions] > 0 means it gave up (timeout or cancel) before reaching the end of those.
+ * [perPartitionLimit] is set when the requested count per partition was lowered to keep the total under
+ * [KafkaSession.MAX_TOTAL_RECORDS].
+ */
+data class KafkaReadResult(
+  val messages: List<KafkaMessage>,
+  val unfinishedPartitions: Int,
+  val timeoutMs: Long,
+  val perPartitionLimit: Int? = null,
+) {
   val partial: Boolean get() = unfinishedPartitions > 0
 }
-data class KafkaGroupLag(val group: String, val state: String, val topic: String, val lag: Long, val members: Int)
+/** [error] is set when the group's committed offsets could not be read; the other groups are listed anyway. */
+data class KafkaGroupLag(val group: String, val state: String, val topic: String, val lag: Long, val members: Int, val error: String? = null)
 
 /** Where reading starts: the last [count] records of each partition, the first ones, or those after [epochMs]. */
 sealed interface KafkaStart {
@@ -116,11 +128,11 @@ class KafkaSession(private val bootstrap: String, private val extra: String?) : 
       consumer.assign(tps)
       val begin = consumer.beginningOffsets(tps)
       val end = consumer.endOffsets(tps)
-      val count = when (start) { is KafkaStart.Latest -> start.count; is KafkaStart.Earliest -> start.count; is KafkaStart.Since -> start.count }
-      val from: Map<TopicPartition, Long> = when (start) {
-        is KafkaStart.Latest -> tps.associateWith { maxOf(begin.getValue(it), end.getValue(it) - count) }
-        is KafkaStart.Earliest -> tps.associateWith { begin.getValue(it) }
-        is KafkaStart.Since -> consumer.offsetsForTimes(tps.associateWith { start.epochMs }).mapValues { (tp, o) -> o?.offset() ?: end.getValue(tp) }
+      val requested = when (start) { is KafkaStart.Latest -> start.count; is KafkaStart.Earliest -> start.count; is KafkaStart.Since -> start.count }
+      // count is per partition: on a topic with many partitions it would otherwise hold partitions x count records in memory
+      val count = minOf(requested, maxOf(1, MAX_TOTAL_RECORDS / tps.size))
+      val from = startOffsets(start, count, tps, begin, end) { epochMs ->
+        consumer.offsetsForTimes(tps.associateWith { epochMs }).mapValues { it.value?.offset() }
       }
       val until = tps.associateWith { minOf(end.getValue(it), from.getValue(it) + count) }
       val pending = tps.filter { from.getValue(it) < until.getValue(it) }.toMutableSet()
@@ -141,7 +153,50 @@ class KafkaSession(private val bootstrap: String, private val extra: String?) : 
       }
       // whatever is still pending was cut off by the deadline (or a cancel): the caller must not present this as complete
       return KafkaReadResult(out.sortedWith(compareByDescending<KafkaMessage> { it.timestamp }.thenBy { it.partition }.thenByDescending { it.offset }),
-                             pending.size, timeoutMs)
+                             pending.size, timeoutMs, count.takeIf { it < requested })
+    }
+
+    /** Upper bound on the records one read keeps, over all partitions. */
+    const val MAX_TOTAL_RECORDS: Int = 10_000
+
+    /** The first offset to read per partition; [atTime] (asked only for [KafkaStart.Since]) maps to null where no record is that new. */
+    internal fun startOffsets(
+      start: KafkaStart,
+      count: Int,
+      tps: Collection<TopicPartition>,
+      begin: Map<TopicPartition, Long>,
+      end: Map<TopicPartition, Long>,
+      atTime: (Long) -> Map<TopicPartition, Long?>,
+    ): Map<TopicPartition, Long> = when (start) {
+      is KafkaStart.Latest -> tps.associateWith { maxOf(begin.getValue(it), end.getValue(it) - count) }
+      is KafkaStart.Earliest -> tps.associateWith { begin.getValue(it) }
+      is KafkaStart.Since -> atTime(start.epochMs).let { found -> tps.associateWith { found[it] ?: end.getValue(it) } }
+    }
+
+    /** One row per group and topic with the summed lag; a group whose offsets failed gets one row with the error. */
+    internal fun groupLags(
+      ids: List<String>,
+      states: Map<String, Pair<String, Int>>,
+      committed: Map<String, Result<Map<TopicPartition, Long>>>,
+      ends: Map<TopicPartition, Long>,
+    ): List<KafkaGroupLag> {
+      val out = ArrayList<KafkaGroupLag>()
+      for (id in ids.sorted()) {
+        val (state, members) = states[id] ?: ("UNKNOWN" to 0)
+        val offsets = committed[id]?.getOrElse { e ->
+          val cause = if (e is ExecutionException) e.cause ?: e else e
+          out.add(KafkaGroupLag(id, state, "", 0, members, cause.message ?: cause.javaClass.simpleName))
+          null
+        } ?: continue
+        if (offsets.isEmpty()) {
+          out.add(KafkaGroupLag(id, state, "", 0, members)); continue
+        }
+        offsets.entries.groupBy { it.key.topic() }.toSortedMap().forEach { (topic, entries) ->
+          val lag = entries.sumOf { (tp, offset) -> maxOf(0, (ends[tp] ?: 0) - offset) }
+          out.add(KafkaGroupLag(id, state, topic, lag, members))
+        }
+      }
+      return out
     }
   }
 
@@ -165,23 +220,26 @@ class KafkaSession(private val bootstrap: String, private val extra: String?) : 
     val listings = admin.listConsumerGroups().all().get(15, TimeUnit.SECONDS)
     if (listings.isEmpty()) return emptyList()
     val ids = listings.map { it.groupId() }
-    val descriptions = admin.describeConsumerGroups(ids).all().get(15, TimeUnit.SECONDS)
-    val out = ArrayList<KafkaGroupLag>()
-    for (id in ids.sorted()) {
-      val committed = admin.listConsumerGroupOffsets(id).partitionsToOffsetAndMetadata().get(15, TimeUnit.SECONDS).filterValues { it != null }
-      val description = descriptions[id]
-      val state = description?.state()?.toString() ?: "UNKNOWN"
-      val members = description?.members()?.size ?: 0
-      if (committed.isEmpty()) {
-        out.add(KafkaGroupLag(id, state, "", 0, members)); continue
-      }
-      val ends = admin.listOffsets(committed.keys.associateWith { OffsetSpec.latest() }).all().get(15, TimeUnit.SECONDS)
-      committed.entries.groupBy { it.key.topic() }.forEach { (topic, entries) ->
-        val lag = entries.sumOf { (tp, offset) -> maxOf(0, (ends[tp]?.offset() ?: 0) - offset.offset()) }
-        out.add(KafkaGroupLag(id, state, topic, lag, members))
+    val states = admin.describeConsumerGroups(ids).all().get(15, TimeUnit.SECONDS)
+      .mapValues { (_, d) -> (d.state()?.toString() ?: "UNKNOWN") to d.members().size }
+    // One request for all groups instead of one per group; a group that fails (no access, coordinator moving) gets a
+    // row with its error instead of failing the whole list.
+    val offsets = admin.listConsumerGroupOffsets(ids.associateWith { ListConsumerGroupOffsetsSpec() })
+    val committed = ids.associateWith { id ->
+      runCatching {
+        offsets.partitionsToOffsetAndMetadata(id).get(15, TimeUnit.SECONDS).filterValues { it != null }.mapValues { it.value.offset() }
       }
     }
-    return out
+    val tps = committed.values.flatMap { it.getOrNull()?.keys.orEmpty() }.toSet()
+    val ends = if (tps.isEmpty()) {
+      emptyMap()
+    }
+    else {
+      val result = admin.listOffsets(tps.associateWith { OffsetSpec.latest() })
+      // Per partition, so a deleted topic does not drop every group's lag.
+      tps.mapNotNull { tp -> runCatching { tp to result.partitionResult(tp).get(15, TimeUnit.SECONDS).offset() }.getOrNull() }.toMap()
+    }
+    return groupLags(ids, states, committed, ends)
   }
 
   /** [replication] null: the broker's default.replication.factor. */
