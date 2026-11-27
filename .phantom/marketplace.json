@@ -1360,11 +1360,11 @@
         "build.gradle.kts",
         "settings.gradle.kts"
       ],
-      "version": "262.261126.0-IJ",
+      "version": "262.261127.0-IJ",
       "vendor": "Phantom",
-      "since": "262.261126",
+      "since": "262.261127",
       "until": "262.*",
-      "download": "kotlin-262.261126/Kotlin-262.261126.zip"
+      "download": "kotlin-262.261127/Kotlin-262.261127.zip"
     },
     {
       "id": "org.jetbrains.idea.maven",
@@ -1377,11 +1377,11 @@
       "detectFiles": [
         "pom.xml"
       ],
-      "version": "262.261126.0",
+      "version": "262.261127.0",
       "vendor": "Phantom",
-      "since": "262.261126",
+      "since": "262.261127",
       "until": "262.*",
-      "download": "maven-262.261126/Maven-262.261126.zip"
+      "download": "maven-262.261127/Maven-262.261127.zip"
     }
   ]
 }
