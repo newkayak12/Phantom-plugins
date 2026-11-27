@@ -335,9 +335,9 @@
     {
       "id": "dev.phantom.http",
       "name": "Phantom HTTP Client",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "source": "http-client",
-      "description": "HTTP requests in .http / .rest files, run from the editor: file and http-client.env.json environment variables, import and run lines to reuse requests from other files, a run gutter per request plus Run All, checks for common mistakes (broken JSON bodies, headers the client can't send, unknown methods, missing ###, broken {{}}, plain http to remote hosts), and a response view with status, headers and a formatted body. Moved out of the Phantom core so it updates like any other plugin. 0.2.0: auth ids from Security.Auths (resolution, completion, Ctrl+B, unknown id and configuration checks), URL scheme and encoding checks.",
+      "description": "HTTP requests in .http / .rest files, run from the editor: file and http-client.env.json environment variables, import and run lines to reuse requests from other files, a run gutter per request plus Run All, checks for common mistakes (broken JSON bodies, headers the client can't send, unknown methods, missing ###, broken {{}}, plain http to remote hosts), and a response view with status, headers and a formatted body. Moved out of the Phantom core so it updates like any other plugin. 0.2.0: auth ids from Security.Auths (resolution, Ctrl+B, unknown id and configuration checks), URL scheme and encoding checks.",
       "vendor": "Phantom",
       "category": "Tools Integration",
       "since": "262",
@@ -345,7 +345,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "http-client-0.2.1/http-client-0.2.1.zip",
+      "download": "http-client-0.2.2/http-client-0.2.2.zip",
       "detect": [],
       "detectFiles": [
         "http-client.env.json",
