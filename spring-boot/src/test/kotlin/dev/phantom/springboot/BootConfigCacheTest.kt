@@ -7,6 +7,7 @@ import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
+import dev.phantom.springboot.core.BootConfigFiles
 import dev.phantom.springboot.core.BootConfigImports
 import dev.phantom.springboot.core.BootConfigUsages
 import dev.phantom.springboot.core.FunctionBeans
@@ -99,6 +100,13 @@ class BootConfigCacheTest : LightJavaCodeInsightFixtureTestCase() {
     assertEquals(listOf("m", "25", "h"), ProjectConfigKeys.under(project, "app.mail").map { it.value })
     assertTrue(BootConfigUsages.bound(setOf("app.mail"), "app.mail.port"))
     assertFalse(BootConfigUsages.bound(setOf("app.mail"), "app.mailer.x"))
+  }
+
+  /** The same names as the Spring plugin: `application_local.yml` is a configuration file, `applications.yml` is not. */
+  fun testConfigFileNames() {
+    assertTrue(BootConfigFiles.isConfigFile("application_local.yml"))
+    assertTrue(BootConfigFiles.isConfigFile("application-dev.properties"))
+    assertFalse(BootConfigFiles.isConfigFile("applications.yml"))
   }
 
   fun testUnsavedYamlEditUpdatesKeys() {

@@ -6,6 +6,7 @@ import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ModuleRootManager
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.util.CachedValueProvider
@@ -58,6 +59,9 @@ object BootConfigImports {
   private fun compute(project: Project, base: List<VirtualFile>): Set<VirtualFile> {
     computeCount.incrementAndGet()
     val roots = ModuleManager.getInstance(project).modules.flatMap { BootRoots.production(it) }
+    // A relative `file:` location is resolved against the working directory, usually the project directory, when it is not
+    // beside the importing file; the Spring plugin's SpringConfigKeys looks in the same two places.
+    val baseDir = project.basePath?.let { LocalFileSystem.getInstance().findFileByPath(it) }
     val seen = HashSet<VirtualFile>(base)
     val imported = LinkedHashSet<VirtualFile>()
     val queue = ArrayDeque(base)
@@ -67,7 +71,7 @@ object BootConfigImports {
       for (match in FILE_IMPORT.findAll(importValues(text, file.name.endsWith(".properties")))) {
         val path = match.groupValues[2]
         val found = if (match.groupValues[1] == "classpath") roots.firstNotNullOfOrNull { it.findFileByRelativePath(path.removePrefix("/")) }
-                    else file.parent?.findFileByRelativePath(path.removePrefix("./"))
+                    else file.parent?.findFileByRelativePath(path.removePrefix("./")) ?: baseDir?.findFileByRelativePath(path.removePrefix("./"))
         if (found != null && !found.isDirectory && seen.add(found)) {
           imported += found
           queue += found
