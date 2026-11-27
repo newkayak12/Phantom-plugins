@@ -1,0 +1,2 @@
+MERGE INTO people KEY (id) VALUES (1, 'Ann');
+SELECT TOP 5 * FROM people QUALIFY ROW_NUMBER() OVER (ORDER BY id) = 1;
