@@ -7,6 +7,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.components.serviceIfCreated
 import com.intellij.openapi.project.Project
 import dev.phantom.db.core.DbDataSource
+import dev.phantom.db.core.DbDataSourceService
 import dev.phantom.db.core.Dbms
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -39,7 +40,7 @@ data class DbSequence(val schema: DbSchemaRef, val name: String)
 
 /**
  * Keys, indexes, routines and triggers, loaded on the schema-tree connection when a tree folder is first expanded and
- * kept in memory until Refresh, like [DbMetadataCache]. Each kind is a separate call, so expanding Indexes never pays
+ * kept until Refresh, like [DbMetadataCache], with a copy on disk. Each kind is a separate call, so expanding Indexes never pays
  * for foreign keys.
  */
 @Service(Service.Level.PROJECT)
@@ -64,24 +65,24 @@ class DbObjectCache(private val project: Project) {
                             runCatching { it.getString("REMARKS") }.getOrNull()?.takeIf { r -> r.isNotBlank() })
       }
     }
-  }.also { details[table] = it }
+  }.also { details[table] = it; store.update(dataSource.id) { s -> s.details[table] = it } }
 
   suspend fun primaryKey(dataSource: DbDataSource, table: DbTableRef): DbPrimaryKey = primaryKeys[table] ?: metadata(dataSource) { md, _ ->
     md.getPrimaryKeys(table.catalog, table.schema, table.name).use { rs ->
       val keys = rows(rs) { Triple(it.getString("PK_NAME"), it.getShort("KEY_SEQ").toInt(), it.getString("COLUMN_NAME")) }.sortedBy { it.second }
       DbPrimaryKey(keys.firstOrNull()?.first, keys.map { it.third })
     }
-  }.also { primaryKeys[table] = it }
+  }.also { primaryKeys[table] = it; store.update(dataSource.id) { s -> s.primaryKeys[table] = it } }
 
   /** Foreign keys of [table] pointing at other tables. */
   suspend fun foreignKeys(dataSource: DbDataSource, table: DbTableRef): List<DbForeignKey> = foreignKeys[table] ?: metadata(dataSource) { md, _ ->
     md.getImportedKeys(table.catalog, table.schema, table.name).use { keys(rs = it, dataSourceId = dataSource.id) }
-  }.also { foreignKeys[table] = it }
+  }.also { foreignKeys[table] = it; store.update(dataSource.id) { s -> s.foreignKeys[table] = it } }
 
   /** Foreign keys of other tables pointing at [table]. */
   suspend fun referencingKeys(dataSource: DbDataSource, table: DbTableRef): List<DbForeignKey> = referencing[table] ?: metadata(dataSource) { md, _ ->
     md.getExportedKeys(table.catalog, table.schema, table.name).use { keys(rs = it, dataSourceId = dataSource.id) }
-  }.also { referencing[table] = it }
+  }.also { referencing[table] = it; store.update(dataSource.id) { s -> s.referencing[table] = it } }
 
   /** Indexes other than the one backing the primary key, which the Keys folder already shows. */
   suspend fun indexes(dataSource: DbDataSource, table: DbTableRef): List<DbIndex> = indexes[table] ?: run {
@@ -98,7 +99,7 @@ class DbObjectCache(private val project: Project) {
         DbIndex(name, parts.sortedBy { it.second.first }.mapNotNull { it.second.second }, parts.first().third)
       }.filterNot { isPrimaryKeyIndex(it, pk) }.sortedBy { it.name.lowercase() }
     }
-  }.also { indexes[table] = it }
+  }.also { indexes[table] = it; store.update(dataSource.id) { s -> s.indexes[table] = it } }
 
   suspend fun routines(dataSource: DbDataSource, schema: DbSchemaRef): List<DbRoutine> = routines[schema] ?: metadata(dataSource) { md, _ ->
     val procedures = runCatching {
@@ -114,7 +115,7 @@ class DbObjectCache(private val project: Project) {
       .filter { r -> !r.name.startsWith("pg_") && r.name.isNotEmpty() }
       .distinctBy { it.name to it.function }
       .sortedBy { it.name.lowercase() }
-  }.also { routines[schema] = it }
+  }.also { routines[schema] = it; store.update(dataSource.id) { s -> s.routines[schema] = it } }
 
   suspend fun triggers(dataSource: DbDataSource, schema: DbSchemaRef): List<DbTrigger> = triggers[schema] ?: metadata(dataSource) { _, c ->
     val sql = when (dataSource.dialect()) {
@@ -135,7 +136,7 @@ class DbObjectCache(private val project: Project) {
     }.getOrDefault(emptyList())
       // H2 lists a trigger once per event
       .groupBy { it.name to it.table }.values.map { same -> same[0].copy(event = same.map { it.event }.distinct().joinToString(" OR ")) }
-  }.also { triggers[schema] = it }
+  }.also { triggers[schema] = it; store.update(dataSource.id) { s -> s.triggers[schema] = it } }
 
   /**
    * Sequences: tables of type `SEQUENCE` where the driver reports that type (PostgreSQL, MariaDB, many others), else the
@@ -165,20 +166,33 @@ class DbObjectCache(private val project: Project) {
       }.getOrDefault(emptyList())
     }
     names.distinct().sortedBy { it.lowercase() }.map { DbSequence(schema, it) }
-  }.also { sequences[schema] = it }
+  }.also { sequences[schema] = it; store.update(dataSource.id) { s -> s.sequences[schema] = it } }
 
   /** Routines the tree has loaded, of every data source; never connects. */
-  fun cachedRoutines(): List<DbRoutine> = routines.values.flatten()
+  fun cachedRoutines(): List<DbRoutine> {
+    val ids = DbDataSourceService.getInstance(project).dataSources.mapTo(HashSet()) { it.id } + routines.keys.map { it.dataSourceId }
+    val stored = ids.flatMap { id -> store.get(id)?.routines?.filterKeys { !routines.containsKey(it) }?.values.orEmpty() }
+    return routines.values.flatten() + stored.flatten()
+  }
 
-  fun cachedForeignKeys(table: DbTableRef): List<DbForeignKey>? = foreignKeys[table]
+  fun cachedForeignKeys(table: DbTableRef): List<DbForeignKey>? = foreignKeys[table] ?: stored(table)?.foreignKeys?.get(table)
 
-  fun cachedReferencingKeys(table: DbTableRef): List<DbForeignKey>? = referencing[table]
+  fun cachedReferencingKeys(table: DbTableRef): List<DbForeignKey>? = referencing[table] ?: stored(table)?.referencing?.get(table)
 
-  fun cachedColumnDetails(table: DbTableRef): List<DbColumnDetail>? = details[table]
+  fun cachedColumnDetails(table: DbTableRef): List<DbColumnDetail>? = details[table] ?: stored(table)?.details?.get(table)
 
-  fun cachedPrimaryKey(table: DbTableRef): DbPrimaryKey? = primaryKeys[table]
+  fun cachedPrimaryKey(table: DbTableRef): DbPrimaryKey? = primaryKeys[table] ?: stored(table)?.primaryKeys?.get(table)
 
-  fun cachedIndexes(table: DbTableRef): List<DbIndex>? = indexes[table]
+  fun cachedIndexes(table: DbTableRef): List<DbIndex>? = indexes[table] ?: stored(table)?.indexes?.get(table)
+
+  /** Whether these parts of [table] were loaded in this session, not only read from [DbMetadataStore]. */
+  fun isFreshDetails(table: DbTableRef): Boolean = details.containsKey(table)
+  fun isFreshIndexes(table: DbTableRef): Boolean = indexes.containsKey(table) && primaryKeys.containsKey(table)
+  fun isFreshKeys(table: DbTableRef): Boolean = foreignKeys.containsKey(table) && referencing.containsKey(table)
+
+  private val store: DbMetadataStore get() = DbMetadataStore.getInstance()
+
+  private fun stored(table: DbTableRef): DbStoredMetadata? = store.get(table.dataSourceId)
 
   fun invalidate(dataSourceId: String) {
     for (map in listOf(details, primaryKeys, foreignKeys, referencing, indexes)) map.keys.removeIf { it.dataSourceId == dataSourceId }
