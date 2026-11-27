@@ -1,0 +1,24 @@
+<idea-plugin>
+  <id>dev.phantom.version.catalog</id>
+  <name>Phantom for Gradle Version Catalogs</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Build</category>
+  <description><![CDATA[
+  Checks the libraries of a Gradle version catalog (<code>*.versions.toml</code>) for newer versions on Maven Central and
+  updates the chosen ones in the file, including shared <code>[versions]</code> entries. Maven Central is asked only when
+  you run <b>Check for Newer Versions on Maven Central</b> from the editor or Project view menu of the catalog; nothing runs
+  automatically.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+  </dependencies>
+
+  <resource-bundle>messages.VersionCatalogBundle</resource-bundle>
+  <actions>
+    <action id="dev.phantom.version.catalog.CheckNewerVersions" class="dev.phantom.version.catalog.CheckNewerVersionsAction">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+      <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+    </action>
+  </actions>
+</idea-plugin>
