@@ -56,6 +56,23 @@ class AgentTeamsTest {
     assertEquals(emptyMap<String, List<Subagent>>(), scanner.scan(listOf(dir.resolve("none"))))
   }
 
+  @Test fun pollerStopsItselfWithoutAClaudeSession() {
+    val poller = AgentTeamsPoller()
+    val live = listOf(AgentSession("t", "/w", AgentKind.CODEX, sessionId = "s"))
+    poller.sessions = { live }
+    poller.start()
+    try {
+      assertTrue(poller.isStarted)
+      poller.tick()
+      assertFalse(poller.isStarted)
+      poller.start()
+      assertTrue(poller.isStarted)
+    }
+    finally {
+      poller.dispose()
+    }
+  }
+
   @Test fun pollerIsNeededOnlyForAClaudeSessionWithAnId() {
     assertFalse(AgentTeamsPoller.needed(null))
     assertFalse(AgentTeamsPoller.needed(AgentSession("t", "/w", AgentKind.CLAUDE)))

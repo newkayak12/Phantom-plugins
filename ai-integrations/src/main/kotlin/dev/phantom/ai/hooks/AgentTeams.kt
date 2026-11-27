@@ -79,6 +79,8 @@ object AgentTeams {
 @Service(Service.Level.APP)
 class AgentTeamsPoller : Disposable {
   private val scanner = AgentTeams.Scanner()
+  /** The live sessions; replaced only by tests. */
+  internal var sessions: () -> List<AgentSession> = { SessionStore.getInstance().all() }
   @Volatile private var future: ScheduledFuture<*>? = null
 
   val isStarted: Boolean get() = future != null
@@ -89,10 +91,13 @@ class AgentTeamsPoller : Disposable {
     future = AppExecutorUtil.getAppScheduledExecutorService().scheduleWithFixedDelay({ if (!Unloading.inProgress) bestEffort { tick() } }, 2, 3, TimeUnit.SECONDS)
   }
 
-  private fun tick() {
+  internal fun tick() {
+    val claude = sessions().filter { needed(it) }
+    if (claude.isEmpty()) {
+      stopIfIdle()
+      return
+    }
     val store = SessionStore.getInstance()
-    val claude = store.all().filter { it.kind == AgentKind.CLAUDE && it.sessionId != null }
-    if (claude.isEmpty()) return
     val dirs = (listOf(SystemDirs.dir(AgentKind.CLAUDE)) + AccountsService.getInstance().accounts(AgentKind.CLAUDE).map { Path.of(it.dir) })
       .distinct()
     val teams = scanner.scan(dirs)
@@ -100,6 +105,17 @@ class AgentTeamsPoller : Disposable {
       val next = AgentTeams.merge(s.subagents, teams[s.sessionId].orEmpty())
       if (next != s.subagents) store.update(s.tabId) { it.copy(subagents = AgentTeams.merge(it.subagents, teams[it.sessionId].orEmpty())) }
     }
+  }
+
+  /**
+   * Stops polling once no session can lead a team; [AgentTeamsStarter] starts it again with the next one. Checked again
+   * under the lock, so a session that arrived since [tick] read the list keeps the poller running.
+   */
+  @Synchronized
+  private fun stopIfIdle() {
+    if (sessions().any { needed(it) }) return
+    future?.cancel(false)
+    future = null
   }
 
   override fun dispose() {
