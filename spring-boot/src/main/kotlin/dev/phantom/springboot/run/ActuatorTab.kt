@@ -14,6 +14,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.ide.CopyPasteManager
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.util.Condition
 import com.intellij.openapi.util.Key
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.ScrollPaneFactory
@@ -23,6 +24,7 @@ import com.intellij.ui.components.JBTabbedPane
 import com.intellij.ui.table.JBTable
 import com.intellij.util.Alarm
 import com.intellij.util.ui.JBUI
+import dev.phantom.springboot.core.PhantomSpringBootBundle
 import java.awt.BorderLayout
 import java.awt.datatransfer.StringSelection
 import java.net.URI
@@ -127,7 +129,7 @@ object ActuatorJson {
   /** Boot 3 masks every value (`******`) unless `management.endpoint.env.show-values` says otherwise. */
   fun masked(properties: List<Property>): Boolean = properties.isNotEmpty() && properties.all { it.value == "******" }
 
-  const val MASKED_HINT: String = "Boot hides the values. Set management.endpoint.env.show-values=always (or when-authorized) to see them."
+  val MASKED_HINT: String get() = PhantomSpringBootBundle.message("actuator.masked.hint")
 
   /** `UP`, plus one line per component: `db: UP (MySQL)`. */
   fun health(root: JsonElement): Pair<String, List<String>> {
@@ -158,10 +160,12 @@ object ActuatorClient {
                                  .header("Accept", "application/json").GET().build(), HttpResponse.BodyHandlers.ofString())
     // health answers 503 with a body when the application is DOWN
     if (response.statusCode() == 404) {
-      throw IllegalStateException(if (endpoint == "health") "No /actuator/health: is spring-boot-starter-actuator a dependency, and is the health endpoint exposed?"
-                                  else "/actuator/$endpoint is not exposed. Add it to management.endpoints.web.exposure.include")
+      throw IllegalStateException(if (endpoint == "health") PhantomSpringBootBundle.message("actuator.error.no.health")
+                                  else PhantomSpringBootBundle.message("actuator.error.not.exposed", endpoint))
     }
-    if (response.statusCode() >= 400 && !(endpoint == "health" && response.statusCode() == 503)) throw IllegalStateException("HTTP ${response.statusCode()} from /actuator/$endpoint")
+    if (response.statusCode() >= 400 && !(endpoint == "health" && response.statusCode() == 503)) {
+      throw IllegalStateException(PhantomSpringBootBundle.message("actuator.error.http", response.statusCode(), endpoint))
+    }
     return JsonParser.parseString(response.body())
   }
 }
@@ -173,24 +177,30 @@ object ActuatorClient {
  */
 class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent(BorderLayout()) {
   private val servers = ArrayList<ActuatorAddress.Server>()
-  private val status = JBLabel("Waiting for the application to start…").apply { border = JBUI.Borders.empty(4, 8) }
+  private val status = JBLabel(PhantomSpringBootBundle.message("actuator.waiting")).apply { border = JBUI.Borders.empty(4, 8) }
   private val tabs = JBTabbedPane()
   private val health = JBLabel().apply { verticalAlignment = JBLabel.TOP; border = JBUI.Borders.empty(8) }
-  private val beans = RowView(listOf("Bean", "Type", "Scope", "Dependencies")) { b: ActuatorJson.Bean -> listOf(b.name, b.type, b.scope, b.dependencies) }
-  private val mappings = RowView(listOf("Method", "Path", "Handler")) { m: ActuatorJson.Mapping -> listOf(m.methods, m.path, m.handler) }
-  private val env = RowView(listOf("Property", "Value", "Source")) { p: ActuatorJson.Property -> listOf(p.name, p.value, p.source) }
+  private val beans = RowView(columns("bean", "type", "scope", "dependencies")) { b: ActuatorJson.Bean -> listOf(b.name, b.type, b.scope, b.dependencies) }
+  private val mappings = RowView(columns("method", "path", "handler")) { m: ActuatorJson.Mapping -> listOf(m.methods, m.path, m.handler) }
+  private val env = RowView(columns("property", "value", "source")) { p: ActuatorJson.Property -> listOf(p.name, p.value, p.source) }
   private val poll = Alarm(Alarm.ThreadToUse.POOLED_THREAD, this)
   private val loaded = HashSet<Int>()
   private val client: HttpClient by lazy { ActuatorClient.newClient() }
 
+  // Copies of Swing state for the pooled threads that fetch: they must not read components off the EDT.
+  @Volatile private var selectedTab = HEALTH
+  @Volatile private var onScreen = false
+  @Volatile private var disposed = false
+
   init {
-    tabs.addTab("Health", ScrollPaneFactory.createScrollPane(health, true))
-    tabs.addTab("Beans", beans)
-    tabs.addTab("Mappings", mappings)
-    tabs.addTab("Environment", env)
+    tabs.addTab(PhantomSpringBootBundle.message("actuator.tab.health"), ScrollPaneFactory.createScrollPane(health, true))
+    tabs.addTab(PhantomSpringBootBundle.message("actuator.tab.beans"), beans)
+    tabs.addTab(PhantomSpringBootBundle.message("actuator.tab.mappings"), mappings)
+    tabs.addTab(PhantomSpringBootBundle.message("actuator.tab.environment"), env)
     tabs.addChangeListener {
-      if (tabs.selectedIndex != HEALTH) poll.cancelAllRequests()
-      if (isShowing) load(tabs.selectedIndex, force = false)
+      selectedTab = tabs.selectedIndex
+      if (selectedTab != HEALTH) poll.cancelAllRequests()
+      if (isShowing) load(selectedTab, force = false)
     }
     add(status, BorderLayout.NORTH)
     add(tabs, BorderLayout.CENTER)
@@ -198,16 +208,19 @@ class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent
       override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
         val server = ActuatorAddress.parse(event.text) ?: return
         synchronized(servers) { servers.add(server) }
-        ApplicationManager.getApplication().invokeLater({ started() }, ModalityState.any())
+        onEdt { started() }
       }
 
       override fun processTerminated(event: ProcessEvent) {
-        ApplicationManager.getApplication().invokeLater({ status.text = "The application has stopped"; poll.cancelAllRequests() }, ModalityState.any())
+        onEdt { status.text = PhantomSpringBootBundle.message("actuator.stopped"); poll.cancelAllRequests() }
       }
     }, this)
   }
 
   private fun baseUrl(): String? = synchronized(servers) { ActuatorAddress.baseUrl(servers) }
+
+  /** Runs [action] on the EDT unless the tab has been closed by then. */
+  private fun onEdt(action: () -> Unit) = ApplicationManager.getApplication().invokeLater(action, ModalityState.any(), Condition<Any?> { disposed })
 
   private fun started() {
     status.text = baseUrl() ?: return
@@ -217,11 +230,13 @@ class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent
 
   override fun addNotify() {
     super.addNotify()
+    onScreen = true
     if (baseUrl() != null) load(tabs.selectedIndex, force = false)
   }
 
   override fun removeNotify() {
     super.removeNotify()
+    onScreen = false
     poll.cancelAllRequests()
   }
 
@@ -240,10 +255,10 @@ class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent
   private fun fetch(base: String, tab: Int) {
     val endpoint = ENDPOINTS[tab]
     val result: Result<JsonElement> = runCatching { ActuatorClient.get(client, base, endpoint) }
-    ApplicationManager.getApplication().invokeLater({
+    onEdt {
       result.fold({ show(tab, it) }, { e ->
         loaded.remove(tab)
-        val message = if (e is java.net.ConnectException) "Cannot connect to $base" else e.message ?: e.javaClass.simpleName
+        val message = if (e is java.net.ConnectException) PhantomSpringBootBundle.message("actuator.error.connect", base) else e.message ?: e.javaClass.simpleName
         when (tab) {
           0 -> health.text = message
           1 -> beans.showError(message)
@@ -251,8 +266,8 @@ class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent
           else -> env.showError(message)
         }
       })
-    }, ModalityState.any())
-    if (tab == HEALTH && pollsHealth(tabs.selectedIndex, isShowing, process?.isProcessTerminated == true)) {
+    }
+    if (tab == HEALTH && !disposed && pollsHealth(selectedTab, onScreen, process?.isProcessTerminated == true)) {
       poll.addRequest({ fetch(base, HEALTH) }, HEALTH_PERIOD_MS)
     }
   }
@@ -268,12 +283,12 @@ class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent
         2 -> mappings.show(ActuatorJson.mappings(json))
         else -> ActuatorJson.environment(json).let { env.show(it, if (ActuatorJson.masked(it)) ActuatorJson.MASKED_HINT else null) }
       }
-    }.onFailure { e -> if (tab == 0) health.text = "Unexpected answer: ${e.message}" }
+    }.onFailure { e -> if (tab == 0) health.text = PhantomSpringBootBundle.message("actuator.error.unexpected", e.message.orEmpty()) }
   }
 
-  override fun getTabTitle(): String = "Actuator"
+  override fun getTabTitle(): String = PhantomSpringBootBundle.message("actuator.tab.title")
   override fun getPreferredFocusableComponent(): JComponent = tabs
-  override fun getToolbarActions(): ActionGroup = DefaultActionGroup(object : DumbAwareAction("Refresh", null, AllIcons.Actions.Refresh) {
+  override fun getToolbarActions(): ActionGroup = DefaultActionGroup(object : DumbAwareAction(PhantomSpringBootBundle.message("actuator.refresh"), null, AllIcons.Actions.Refresh) {
     override fun getActionUpdateThread() = ActionUpdateThread.EDT
     override fun update(e: AnActionEvent) { e.presentation.isEnabled = baseUrl() != null }
     override fun actionPerformed(e: AnActionEvent) = load(tabs.selectedIndex, force = true)
@@ -282,7 +297,9 @@ class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent
   override fun getToolbarPlace(): String = "PhantomActuator"
   override fun getToolbarContextComponent(): JComponent = this
   override fun isContentBuiltIn(): Boolean = false
-  override fun dispose() {}
+  override fun dispose() {
+    disposed = true
+  }
 
   /** A filterable table; double-click copies the row. */
   private class RowView<T>(columns: List<String>, private val cells: (T) -> List<String>) : JPanel(BorderLayout()) {
@@ -300,7 +317,7 @@ class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent
 
     init {
       table.rowSorter = sorter
-      table.emptyText.text = "Loading…"
+      table.emptyText.text = PhantomSpringBootBundle.message("actuator.loading")
       filter.addDocumentListener(object : DocumentAdapter() {
         override fun textChanged(e: DocumentEvent) {
           val words = filter.text.trim().lowercase().split(Regex("\\s+")).filter { it.isNotEmpty() }
@@ -330,7 +347,7 @@ class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent
       note.isVisible = hint != null
       rows = items.map(cells)
       model.fireTableDataChanged()
-      table.emptyText.text = "Nothing reported"
+      table.emptyText.text = PhantomSpringBootBundle.message("actuator.empty")
     }
 
     fun showError(message: String) {
@@ -343,6 +360,8 @@ class ActuatorTab(private val process: ProcessHandler?) : AdditionalTabComponent
 
   companion object {
     private val ENDPOINTS = listOf("health", "beans", "mappings", "env")
+
+    private fun columns(vararg keys: String): List<String> = keys.map { PhantomSpringBootBundle.message("actuator.column.$it") }
     private const val HEALTH = 0
 
     /** Health is read again only while its sub-tab is selected, the Actuator tab is on screen and the application runs. */

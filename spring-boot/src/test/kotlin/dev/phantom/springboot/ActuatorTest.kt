@@ -5,6 +5,10 @@ import com.google.gson.JsonParser
 import com.intellij.diagnostic.logging.AdditionalTabComponent
 import com.intellij.execution.configurations.AdditionalTabComponentManager
 import com.intellij.execution.process.NopProcessHandler
+import com.intellij.execution.process.ProcessOutputTypes
+import com.intellij.testFramework.PlatformTestUtil
+import com.intellij.ui.components.JBLabel
+import dev.phantom.springboot.core.PhantomSpringBootBundle
 import com.intellij.openapi.util.Disposer
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import dev.phantom.springboot.run.ActuatorAddress
@@ -67,6 +71,23 @@ class ActuatorTest : BasePlatformTestCase() {
     assertFalse("switched to Beans", ActuatorTab.pollsHealth(selectedTab = 1, showing = true, terminated = false))
     assertFalse("Actuator tab hidden", ActuatorTab.pollsHealth(selectedTab = 0, showing = false, terminated = false))
     assertFalse("application stopped", ActuatorTab.pollsHealth(selectedTab = 0, showing = true, terminated = true))
+  }
+
+  /** A startup line queued for the EDT is dropped when the tab is closed before it runs. */
+  fun testClosedTabIgnoresQueuedUpdates() {
+    val line = "Tomcat started on port 18099 (http) with context path ''\n"
+    val open = NopProcessHandler()
+    val openTab = ActuatorTab(open)
+    Disposer.register(testRootDisposable, openTab)
+    open.notifyTextAvailable(line, ProcessOutputTypes.STDOUT)
+    val closed = NopProcessHandler()
+    val closedTab = ActuatorTab(closed)
+    closed.notifyTextAvailable(line, ProcessOutputTypes.STDOUT)
+    Disposer.dispose(closedTab)
+    PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+    assertEquals("http://localhost:18099/actuator", (openTab.getComponent(0) as JBLabel).text)
+    assertEquals(PhantomSpringBootBundle.message("actuator.waiting"), (closedTab.getComponent(0) as JBLabel).text)
+    assertEquals(PhantomSpringBootBundle.message("actuator.tab.title"), closedTab.tabTitle)
   }
 
   fun testSpringBootRunsGetAnActuatorTab() {
