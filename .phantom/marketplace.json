@@ -691,6 +691,29 @@
       ]
     },
     {
+      "id": "dev.phantom.asyncapi",
+      "name": "Phantom for AsyncAPI",
+      "version": "0.1.0",
+      "source": "asyncapi",
+      "description": "AsyncAPI 2 and 3 documents in YAML and JSON, offline: completion and validation from bundled schemas, gutter links between a channel and the Spring Kafka code of its topic (@KafkaListener and KafkaTemplate.send, Java), and $ref navigation, completion and unresolved $ref errors. Works only in files that declare asyncapi.",
+      "vendor": "Phantom",
+      "category": "Microservices",
+      "since": "262",
+      "until": "262.*",
+      "depends": [
+        "com.intellij.modules.lang",
+        "org.jetbrains.plugins.yaml",
+        "com.intellij.modules.json",
+        "com.intellij.java"
+      ],
+      "download": "asyncapi-0.1.0/asyncapi-0.1.0.zip",
+      "detectFiles": [
+        "asyncapi.yaml",
+        "asyncapi.yml",
+        "asyncapi.json"
+      ]
+    },
+    {
       "id": "dev.phantom.testcontainers",
       "name": "Support for Testcontainers",
       "version": "0.1.4",

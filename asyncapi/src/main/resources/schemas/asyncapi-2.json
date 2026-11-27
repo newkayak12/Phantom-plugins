@@ -1,0 +1,207 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "AsyncAPI 2",
+  "type": "object",
+  "required": ["asyncapi", "info", "channels"],
+  "additionalProperties": false,
+  "patternProperties": {
+    "^x-": {}
+  },
+  "properties": {
+    "asyncapi": {"type": "string", "pattern": "^2\\.\\d+\\.\\d+$", "description": "The AsyncAPI version of the document"},
+    "id": {"type": "string"},
+    "info": {"$ref": "#/definitions/info"},
+    "servers": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {"$ref": "#/definitions/reference"},
+          {"$ref": "#/definitions/server"}
+        ]
+      }
+    },
+    "defaultContentType": {"type": "string"},
+    "channels": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {"$ref": "#/definitions/reference"},
+          {"$ref": "#/definitions/channelItem"}
+        ]
+      }
+    },
+    "components": {"$ref": "#/definitions/components"},
+    "tags": {"type": "array", "items": { "anyOf": [ {"$ref": "#/definitions/reference"}, {"$ref": "#/definitions/tag"} ]}
+    },
+    "externalDocs": {"$ref": "#/definitions/externalDocs"}
+  },
+  "definitions": {
+    "reference": {
+      "type": "object",
+      "required": ["$ref"],
+      "properties": {
+        "$ref": {"type": "string", "description": "A reference: #/components/... in this file, or another file"}
+      }
+    },
+    "externalDocs": {"type": "object", "required": ["url"], "additionalProperties": false, "patternProperties": { "^x-": {}},
+      "properties": {"description": {"type": "string"}, "url": {"type": "string"}}
+    },
+    "tag": {"type": "object", "required": ["name"], "additionalProperties": false, "patternProperties": { "^x-": {}},
+      "properties": {
+        "name": {"type": "string"},
+        "description": {"type": "string"},
+        "externalDocs": {"$ref": "#/definitions/externalDocs"}
+      }
+    },
+    "contact": {"type": "object", "additionalProperties": false, "patternProperties": { "^x-": {}},
+      "properties": {"name": {"type": "string"}, "url": {"type": "string"}, "email": {"type": "string"}}
+    },
+    "license": {"type": "object", "required": ["name"], "additionalProperties": false, "patternProperties": { "^x-": {}},
+      "properties": {"name": {"type": "string"}, "url": {"type": "string"}}
+    },
+    "info": {
+      "type": "object",
+      "required": ["title", "version"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
+      "properties": {
+        "title": {"type": "string", "description": "The title of the application"},
+        "version": {"type": "string", "description": "The version of the API"},
+        "description": {"type": "string"},
+        "termsOfService": {"type": "string"},
+        "contact": {"$ref": "#/definitions/contact"},
+        "license": {"$ref": "#/definitions/license"}
+      }
+    },
+    "server": {
+      "type": "object",
+      "required": ["url", "protocol"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^x-": {}
+      },
+      "properties": {
+        "url": {"type": "string"},
+        "protocol": {"type": "string", "description": "kafka, amqp, mqtt, ws, http, ..."},
+        "protocolVersion": {"type": "string"},
+        "description": {"type": "string"},
+        "variables": {"type": "object"},
+        "security": {"type": "array"},
+        "tags": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {"$ref": "#/definitions/reference"},
+              {"$ref": "#/definitions/tag"}
+            ]
+          }
+        },
+        "bindings": {"type": "object"}
+      }
+    },
+    "channelItem": {"type": "object", "additionalProperties": false, "patternProperties": { "^x-": {}},
+      "properties": {"description": {"type": "string"}, "servers": { "type": "array", "items": {"type": "string"}},
+        "subscribe": {"$ref": "#/definitions/operation"},
+        "publish": {"$ref": "#/definitions/operation"},
+        "parameters": {"type": "object"},
+        "bindings": {"type": "object"}
+      }
+    },
+    "operation": {"type": "object", "additionalProperties": false, "patternProperties": { "^x-": {}},
+      "properties": {
+        "operationId": {"type": "string"},
+        "summary": {"type": "string"},
+        "description": {"type": "string"},
+        "security": {"type": "array"},
+        "tags": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {"$ref": "#/definitions/reference"},
+              {"$ref": "#/definitions/tag"}
+            ]
+          }
+        },
+        "externalDocs": {"$ref": "#/definitions/externalDocs"},
+        "bindings": {"type": "object"},
+        "traits": {"type": "array"},
+        "message": {
+          "anyOf": [
+            {"$ref": "#/definitions/reference"},
+            {"$ref": "#/definitions/message"},
+            {
+              "type": "object",
+              "required": ["oneOf"],
+              "properties": {
+                "oneOf": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {"$ref": "#/definitions/reference"},
+                      {"$ref": "#/definitions/message"}
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "message": {"type": "object", "additionalProperties": false, "patternProperties": { "^x-": {}},
+      "properties": {
+        "messageId": {"type": "string"},
+        "headers": {"type": "object"},
+        "payload": {},
+        "correlationId": {"type": "object"},
+        "schemaFormat": {"type": "string"},
+        "contentType": {"type": "string"},
+        "name": {"type": "string"},
+        "title": {"type": "string"},
+        "summary": {"type": "string"},
+        "description": {"type": "string"},
+        "tags": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {"$ref": "#/definitions/reference"},
+              {"$ref": "#/definitions/tag"}
+            ]
+          }
+        },
+        "externalDocs": {"$ref": "#/definitions/externalDocs"},
+        "bindings": {"type": "object"},
+        "examples": {"type": "array"},
+        "traits": {"type": "array"}
+      }
+    },
+    "components": {"type": "object", "additionalProperties": false, "patternProperties": { "^x-": {}},
+      "properties": {
+        "schemas": {"type": "object"},
+        "servers": {"type": "object"},
+        "serverVariables": {"type": "object"},
+        "channels": {"type": "object"},
+        "securitySchemes": {"type": "object"},
+        "parameters": {"type": "object"},
+        "correlationIds": {"type": "object"},
+        "operationTraits": {"type": "object"},
+        "messageTraits": {"type": "object"},
+        "serverBindings": {"type": "object"},
+        "channelBindings": {"type": "object"},
+        "operationBindings": {"type": "object"},
+        "messageBindings": {"type": "object"},
+        "messages": {
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [
+              {"$ref": "#/definitions/reference"},
+              {"$ref": "#/definitions/message"}
+            ]
+          }
+        }
+      }
+    }
+  }
+}
