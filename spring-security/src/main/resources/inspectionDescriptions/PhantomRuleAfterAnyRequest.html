@@ -1,0 +1,6 @@
+<html>
+<body>
+Reports <code>requestMatchers(...)</code> rules written after <code>anyRequest()</code> in <code>authorizeHttpRequests</code>.
+Spring Security rejects such a configuration at startup with <code>IllegalStateException</code>; move <code>anyRequest()</code> last.
+</body>
+</html>

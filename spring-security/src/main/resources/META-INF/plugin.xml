@@ -1,0 +1,21 @@
+<idea-plugin>
+  <id>dev.phantom.spring.security</id>
+  <name>Phantom for Spring Security</name>
+  <vendor>Phantom</vendor>
+  <category>Frameworks</category>
+  <description><![CDATA[
+  Spring Security filter chains for Phantom, in Java: a gutter icon on each SecurityFilterChain bean shows its position
+  among the project's chains, its securityMatcher and its authorizeHttpRequests rules in order. Errors for
+  configurations Spring Security rejects at startup: requestMatchers after anyRequest(), and a chain that matches every
+  request placed before other chains. Does nothing in modules without Spring Security.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+    <plugin id="com.intellij.java"/>
+  </dependencies>
+
+  <content namespace="jetbrains">
+    <module name="phantom.springSecurity.core"/>
+  </content>
+</idea-plugin>
