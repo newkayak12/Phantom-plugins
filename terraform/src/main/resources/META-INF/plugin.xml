@@ -18,5 +18,6 @@
   <extensions defaultExtensionNs="com.intellij">
     <fileType name="Phantom Terraform" language="PhantomTerraform" extensions="tf;tfvars"
               implementationClass="dev.phantom.terraform.TerraformFileType" fieldName="INSTANCE"/>
+    <lang.parserDefinition language="PhantomTerraform" implementationClass="dev.phantom.terraform.HclParserDefinition"/>
   </extensions>
 </idea-plugin>

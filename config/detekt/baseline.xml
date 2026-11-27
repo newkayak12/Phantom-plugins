@@ -385,6 +385,8 @@
     <ID>CyclomaticComplexMethod:GroovyKeywordAnnotator.kt:fun shouldBeErased: Boolean</ID>
     <ID>CyclomaticComplexMethod:HamcrestAssertionsConverterInspection.kt:MigrateToAssertThatQuickFix$override fun applyFix</ID>
     <ID>CyclomaticComplexMethod:HclLexer.kt:HclLexer$private fun code</ID>
+    <ID>CyclomaticComplexMethod:HclParser.kt:HclParser$private fun postfixOperator: IElementType?</ID>
+    <ID>CyclomaticComplexMethod:HclParser.kt:HclParser$private fun primary: Boolean</ID>
     <ID>CyclomaticComplexMethod:Helm.kt:HelmValuesInspection$override fun checkFile: Array&lt;ProblemDescriptor>?</ID>
     <ID>CyclomaticComplexMethod:HelmChecks.kt:HelmDefineLineMarkerProvider$override fun collectSlowLineMarkers</ID>
     <ID>CyclomaticComplexMethod:HelmChecks.kt:HelmWhitespaceTrimInspection$override fun checkFile: Array&lt;ProblemDescriptor>?</ID>
@@ -2800,6 +2802,7 @@
     <ID>TooManyFunctions:GroovyPostfixTemplateUtils.kt:GroovyPostfixTemplateUtils</ID>
     <ID>TooManyFunctions:GroovyRedundantKotlinStdLibInspectionVisitor.kt:GroovyRedundantKotlinStdLibInspectionVisitor : GroovyElementVisitor</ID>
     <ID>TooManyFunctions:HclLexer.kt:HclLexer : LexerBase</ID>
+    <ID>TooManyFunctions:HclParser.kt:HclParser : PsiParser</ID>
     <ID>TooManyFunctions:Helm.kt:HelmChart</ID>
     <ID>TooManyFunctions:HierarchicalTableResultPanel.kt:HierarchicalTableResultPanel : TableResultPanelDataGridWithNestedTables</ID>
     <ID>TooManyFunctions:HierarchyView.kt:HierarchyView : AbstractLightClass</ID>

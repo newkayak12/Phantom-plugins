@@ -12,6 +12,7 @@ import com.intellij.psi.TokenType
 import com.intellij.psi.tree.IElementType
 import com.intellij.psi.tree.IFileElementType
 import com.intellij.psi.tree.TokenSet
+import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.annotations.Nls
 import org.jetbrains.annotations.NonNls
 import org.jetbrains.annotations.PropertyKey
@@ -46,6 +47,9 @@ class TerraformFileType private constructor() : LanguageFileType(TerraformLangua
 class HclFile(viewProvider: FileViewProvider) : PsiFileBase(viewProvider, TerraformLanguage) {
   override fun getFileType(): FileType = TerraformFileType.INSTANCE
   override fun toString(): String = "Terraform file"
+
+  val blocks: List<HclBlock> get() = PsiTreeUtil.getChildrenOfTypeAsList(this, HclBlock::class.java)
+  val attributes: List<HclAttribute> get() = PsiTreeUtil.getChildrenOfTypeAsList(this, HclAttribute::class.java)
 
   /** Configuration files (.tf) declare and reference objects; variable definition files (.tfvars) only assign values. */
   val isConfiguration: Boolean get() = originalFile.name.endsWith(".tf")
