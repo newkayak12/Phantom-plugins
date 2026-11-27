@@ -1,7 +1,14 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.db.core
 
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.FileEditorManagerListener
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.util.FileContentUtilCore
+import dev.phantom.db.core.exec.DbConsoles
 
 /**
  * Syntax that only some dialects have. The parser accepts it in every dialect; a construct the file's dialect lacks is
@@ -158,6 +165,27 @@ object SqlDialects {
   val KEY: Key<SqlDialect> = Key.create("phantom.db.sqlDialect")
 
   fun forDbms(dbms: Dbms?): SqlDialect = SUPPORTED.firstOrNull { it.dbms == dbms } ?: ANY
+
+  /**
+   * Puts the dialect of [file]'s data source on it and, when that changed, reparses it later on the EDT: a reparse
+   * replaces the file's PSI, which the caller (a data source popup, an opening editor) may still hold.
+   */
+  fun update(project: Project, file: VirtualFile) {
+    val dialect = forDbms(DbConsoles.dataSourceFor(project, file)?.dialect())
+    if ((file.getUserData(KEY) ?: ANY) === dialect) return
+    file.putUserData(KEY, dialect)
+    ApplicationManager.getApplication().invokeLater({ FileContentUtilCore.reparseFiles(file) }, project.disposed)
+  }
+}
+
+/**
+ * The dialect key lives only in memory, so a SQL file gets it from its data source when an editor opens it;
+ * [DbConsoles.attach] updates it when the user picks another data source.
+ */
+internal class SqlDialectFileListener : FileEditorManagerListener {
+  override fun fileOpened(source: FileEditorManager, file: VirtualFile) {
+    if (file.fileType == SqlFileType.INSTANCE) SqlDialects.update(source.project, file)
+  }
 }
 
 private fun words(text: String): Set<String> = text.trim().split(Regex("\\s+")).toSet()

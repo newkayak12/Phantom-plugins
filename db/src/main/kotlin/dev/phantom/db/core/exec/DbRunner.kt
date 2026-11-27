@@ -89,6 +89,7 @@ object DbConsoles {
     PropertiesComponent.getInstance(project).setValue(KEY_PREFIX + file.url, dataSourceId)
     EditorNotifications.getInstance(project).updateNotifications(file)
     DbColorService.getInstance(project).refresh(file)
+    SqlDialects.update(project, file)
   }
 
   /** The schema (catalog in MySQL) chosen for [file]; null for the one the connection opens in. Kept per file in the workspace. */
@@ -434,7 +435,6 @@ object DbRunner {
     panel.job = job
   }
 }
-
 
 /** Consoles are edited without the Non-Project Files Protection prompt: they live outside every project by design. */
 class DbConsoleWritingAccess : com.intellij.openapi.fileEditor.impl.NonProjectFileWritingAccessExtension {

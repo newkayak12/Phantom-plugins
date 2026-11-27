@@ -179,6 +179,9 @@
     <database.datagrid.extractorsHelper implementation="dev.phantom.db.core.exec.DbExtractorsHelper" order="first"/>
     <notificationGroup id="Phantom Database" displayType="BALLOON" bundle="messages.PhantomDbBundle" key="db.notification.group"/>
   </extensions>
+  <projectListeners>
+    <listener class="dev.phantom.db.core.SqlDialectFileListener" topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+  </projectListeners>
   <actions resource-bundle="messages.PhantomDbBundle">
     <action id="PhantomDb.NewErd" class="dev.phantom.db.core.erd.ErdNewFileAction" icon="AllIcons.FileTypes.Diagram">
       <add-to-group group-id="NewGroup" anchor="last"/>
