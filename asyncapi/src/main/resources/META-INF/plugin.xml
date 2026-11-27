@@ -1,0 +1,24 @@
+<idea-plugin>
+  <id>dev.phantom.asyncapi</id>
+  <name>Phantom for AsyncAPI</name>
+  <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
+  <category>Microservices</category>
+  <description><![CDATA[
+  AsyncAPI 2 and 3 documents in YAML and JSON: completion and validation from bundled schemas.
+  Works offline and only in files whose top level declares <code>asyncapi</code>.
+  ]]></description>
+
+  <dependencies>
+    <plugin id="com.intellij.modules.lang"/>
+    <plugin id="org.jetbrains.plugins.yaml"/>
+    <plugin id="com.intellij.modules.json"/>
+    <!-- JsonSchemaProviderFactory lives in this content module of the JSON plugin -->
+    <module name="intellij.json.backend"/>
+  </dependencies>
+
+  <resource-bundle>messages.AsyncApiBundle</resource-bundle>
+
+  <extensions defaultExtensionNs="JavaScript.JsonSchema">
+    <ProviderFactory implementation="dev.phantom.asyncapi.AsyncApiSchemaProviderFactory"/>
+  </extensions>
+</idea-plugin>
