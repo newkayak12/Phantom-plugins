@@ -1,7 +1,11 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.localsharedindex.agent
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.fileEditor.impl.FileDocumentManagerImpl
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -11,6 +15,11 @@ class CodeQueriesTest : BasePlatformTestCase() {
   private lateinit var queries: CodeQueries
 
   override fun setUp() {
+    // A heavy test of this module that ran before in the same JVM (LocalSharedIndexAliasRestartTest) can leave an
+    // unsaved document of a checkout it deleted; LightPlatformTestCase refuses to start while there is one.
+    ApplicationManager.getApplication()?.invokeAndWait {
+      WriteAction.run<Exception> { (FileDocumentManager.getInstance() as FileDocumentManagerImpl).dropAllUnsavedDocuments() }
+    }
     super.setUp()
     order = myFixture.addFileToProject("shop/OrderService.java", """
       package shop;
