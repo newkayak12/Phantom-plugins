@@ -6,6 +6,7 @@ import com.intellij.lang.ASTNode
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiReference
@@ -13,7 +14,6 @@ import com.intellij.psi.PsiReferenceBase
 import com.intellij.psi.impl.source.resolve.reference.impl.providers.FileReferenceSet
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.PsiModificationTracker
 import java.nio.file.Path
 
 /** Path text of an `import` or `run` line resolved against the `.http` file's directory (absolute paths as they are). */
@@ -107,7 +107,9 @@ object HttpImports {
         if (imported != file && result.add(imported)) queue += imported
       }
     }
-    CachedValueProvider.Result.create(result.toList(), PsiModificationTracker.MODIFICATION_COUNT)
+    // The file and the files it reaches, plus VFS structure changes for an import whose target appears or moves later;
+    // a project-wide PSI counter would drop this on every keystroke anywhere.
+    CachedValueProvider.Result.create(result.toList(), listOf(file) + result + VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS)
   }
 
   /** Requests `run #name` can name: this file's first, then the imported files', the first one of a name wins. */

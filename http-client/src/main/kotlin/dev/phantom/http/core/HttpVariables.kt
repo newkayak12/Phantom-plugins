@@ -2,13 +2,17 @@
 package dev.phantom.http.core
 
 import com.intellij.ide.util.PropertiesComponent
+import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.util.SimpleModificationTracker
 import com.intellij.openapi.vfs.VfsUtilCore
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
@@ -90,24 +94,34 @@ class HttpEnvironmentService(private val project: Project) {
 
   private val parsed = ConcurrentHashMap<String, Parsed>()
 
+  /** Counts environment selections, so values cached per `.http` file follow a switch. */
+  val selectionTracker: SimpleModificationTracker = SimpleModificationTracker()
+
   fun environmentsFor(httpFile: VirtualFile): HttpEnvironments {
+    val files = envFiles(httpFile)
+    return HttpEnvironments(files.firstOrNull { it.name == PUBLIC_ENV }?.let(::parse), files.firstOrNull { it.name == PRIVATE_ENV }?.let(::parse))
+  }
+
+  /** The env files of the nearest directory (up to the content root) that has any. */
+  fun envFiles(httpFile: VirtualFile): List<VirtualFile> {
     val stop = ProjectFileIndex.getInstance(project).getContentRootForFile(httpFile) ?: project.guessProjectDir()
     var dir = httpFile.parent
     while (dir != null) {
-      val public = dir.findChild(PUBLIC_ENV)
-      val private = dir.findChild(PRIVATE_ENV)
-      if (public != null || private != null) return HttpEnvironments(public?.let(::parse), private?.let(::parse))
+      val found = listOfNotNull(dir.findChild(PUBLIC_ENV), dir.findChild(PRIVATE_ENV))
+      if (found.isNotEmpty()) return found
       if (dir == stop) break
       dir = dir.parent
     }
-    return HttpEnvironments(null, null)
+    return emptyList()
   }
 
   private fun parse(file: VirtualFile): HttpEnvFile? {
-    val stamp = file.modificationStamp
+    // An env file open in an editor is read from its document, so variables added there count before it is saved.
+    val document = FileDocumentManager.getInstance().getCachedDocument(file)
+    val stamp = document?.modificationStamp ?: file.modificationStamp
     parsed[file.url]?.takeIf { it.stamp == stamp }?.let { return it.env }
     val env = try {
-      val root = Json.parseToJsonElement(VfsUtilCore.loadText(file)) as? JsonObject
+      val root = Json.parseToJsonElement(document?.text ?: VfsUtilCore.loadText(file)) as? JsonObject
       root?.let {
         val environments = it.mapNotNull { (name, value) -> (value as? JsonObject)?.let { name to flatten(it) } }.toMap()
         val auths = it.mapNotNull { (name, value) -> (value as? JsonObject)?.let { env -> authsOf(env)?.let { name to it } } }.toMap()
@@ -135,6 +149,9 @@ class HttpEnvironmentService(private val project: Project) {
 
   fun selectEnvironment(httpFile: VirtualFile, env: String?) {
     PropertiesComponent.getInstance(project).setValue(selectionKey(httpFile), env)
+    selectionTracker.incModificationCount()
+    // Unresolved-variable warnings depend on the environment, and the daemon does not notice a property change.
+    PsiManager.getInstance(project).findFile(httpFile)?.let { DaemonCodeAnalyzer.getInstance(project).restart(it) }
   }
 
   private fun selectionKey(file: VirtualFile) = "phantom.http.environment:" + file.path
@@ -214,9 +231,30 @@ object HttpVariables {
   fun isKnown(file: PsiFile, name: String): Boolean {
     // auth references are judged by their own inspection, which knows the auth ids
     if (authId(name) != null) return true
-    if (isDynamic(name) || name in fileVariables(file) || name in handlerGlobals(file) || name in importedFileVariables(file)) return true
+    return isDynamic(name) || name in knownNames(file)
+  }
+
+  /**
+   * Names with a value for [file]: its file variables, handler globals, imported file variables and the selected
+   * environment's keys. Kept per file, so highlighting does not walk env directories and imports for every reference.
+   */
+  private fun knownNames(file: PsiFile): Set<String> = CachedValuesManager.getCachedValue(file) {
+    val names = HashSet<String>()
+    names += fileVariables(file).keys
+    names += handlerGlobals(file)
+    names += importedFileVariables(file).keys
     val (envs, selected) = environments(file)
-    return envs.definingFile(selected, name) != null
+    names += envs.keys(selected)
+    val dependencies = ArrayList<Any>()
+    dependencies += file
+    (file as? HttpRequestFile)?.let { dependencies.addAll(HttpImports.importedFiles(it)) }
+    dependencies += VirtualFileManager.VFS_STRUCTURE_MODIFICATIONS
+    file.originalFile.virtualFile?.let { vFile ->
+      val service = HttpEnvironmentService.getInstance(file.project)
+      dependencies += service.selectionTracker
+      for (env in service.envFiles(vFile)) dependencies += FileDocumentManager.getInstance().getDocument(env) ?: env
+    }
+    CachedValueProvider.Result.create(names as Set<String>, dependencies)
   }
 
   fun findDeclaration(ref: HttpVariableRef): PsiElement? {
@@ -248,7 +286,6 @@ object HttpVariables {
     for ((name, v) in importedFileVariables(file)) result.putIfAbsent(name, v.containingFile.name)
     for (name in handlerGlobals(file)) result.putIfAbsent(name, "set by handler")
     for ((name, description) in DYNAMIC) result.putIfAbsent(name, description)
-    for (id in envs.authIds(selected)) result.putIfAbsent("\$auth.token(\"$id\")", "auth token")
     return result.map { it.key to it.value }
   }
 
