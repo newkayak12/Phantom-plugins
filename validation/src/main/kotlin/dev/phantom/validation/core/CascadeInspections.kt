@@ -2,6 +2,7 @@
 package dev.phantom.validation.core
 
 import com.intellij.codeInsight.AnnotationUtil
+import com.intellij.codeInsight.MetaAnnotationUtil
 import com.intellij.codeInsight.intention.IntentionAction
 import com.intellij.codeInspection.IntentionWrapper
 import com.intellij.codeInspection.LocalQuickFix
@@ -57,9 +58,14 @@ class KotlinConstraintTargetInspection : ValidationInspectionBase() {
   /** Without a declared target a Java annotation applies to parameters too; a Kotlin one lists VALUE_PARAMETER. */
   private fun targetsParameters(annotationClass: PsiClass): Boolean {
     val javaTarget = annotationClass.getAnnotation("java.lang.annotation.Target")
-    if (javaTarget != null) return javaTarget.findAttributeValue("value")?.text?.contains("PARAMETER") == true
+    // PARAMETER as a whole word: TYPE_PARAMETER is a different target
+    if (javaTarget != null) return javaTarget.findAttributeValue("value")?.text?.let { PARAMETER.containsMatchIn(it) } == true
     val kotlinTarget = annotationClass.getAnnotation("kotlin.annotation.Target") ?: return true
     return kotlinTarget.text.contains("VALUE_PARAMETER")
+  }
+
+  private companion object {
+    val PARAMETER = Regex("""\bPARAMETER\b""")
   }
 
   private class FieldTargetFix : LocalQuickFix {
@@ -99,7 +105,7 @@ class MissingValidInspection : ValidationInspectionBase() {
     }
   }
 
-  /** `@Valid` on the field itself, on its getter, or (Kotlin) written on the constructor property in any form. */
+  /** `@Valid` on the field itself, on its getter, or (Kotlin) written on the property in any form (`@Valid`, `@field:Valid`, `@get:Valid`). */
   private fun hasValid(field: UField, kotlinParams: Set<PsiElement>): Boolean {
     if (field.uAnnotations.any { Constraints.isValid(it) }) return true
     // container element form: List<@Valid Address>
@@ -108,9 +114,15 @@ class MissingValidInspection : ValidationInspectionBase() {
     if (AnnotationUtil.isAnnotated(psiField, Constraints.VALID, 0)) return true
     val source = field.sourcePsi
     if (source != null && source in kotlinParams || source?.javaClass?.simpleName == "KtProperty") {
-      return validMark.containsMatchIn(source!!.text.substringBefore(field.name))
+      return kotlinAnnotations(source!!).any { Constraints.isValid(it) }
     }
     return false
+  }
+
+  /** The annotations written on a Kotlin property or constructor property, whatever their use-site target, resolved through UAST (import aliases too). */
+  private fun kotlinAnnotations(declaration: PsiElement): List<UAnnotation> {
+    val modifiers = declaration.children.firstOrNull { it.javaClass.simpleName.endsWith("ModifierList") } ?: return emptyList()
+    return modifiers.children.filter { it.javaClass.simpleName == "KtAnnotationEntry" }.mapNotNull { it.toUElement() as? UAnnotation }
   }
 
   /** The class a field holds: itself, or the element type of an array, Iterable, Optional, or a Map's values. */
@@ -143,25 +155,34 @@ class MissingValidInspection : ValidationInspectionBase() {
 }
 
 /**
- * A Spring service, component or repository with constraints (or `@Valid`) on method parameters or return values, but
- * no `@Validated` on the class or its supertypes: Spring applies method validation only to `@Validated` beans.
- * Controllers are left out, since Spring MVC validates their arguments by itself.
+ * A Spring bean (a service, component or repository, also through a stereotype of the project's own) with constraints (or
+ * `@Valid`) on method parameters or return values, but no `@Validated` on the class or its supertypes: Spring applies
+ * method validation only to `@Validated` beans.
+ * Controllers validate `@Valid` arguments by themselves. Since Spring Framework 6.1 they also apply constraints on
+ * parameters (`@RequestParam @Min(1)`) without `@Validated`; with older versions those constraints are reported.
  */
 class MissingValidatedInspection : ValidationInspectionBase() {
   private val stereotypes = listOf("org.springframework.stereotype.Service", "org.springframework.stereotype.Component", "org.springframework.stereotype.Repository")
+  private val component = listOf("org.springframework.stereotype.Component")
   private val controllers = listOf("org.springframework.stereotype.Controller", "org.springframework.web.bind.annotation.RestController")
   private val validated = "org.springframework.validation.annotation.Validated"
+  // Added in Spring Framework 6.1 together with built-in method validation for controllers.
+  private val handlerMethodValidator = "org.springframework.web.method.annotation.HandlerMethodValidator"
 
   override fun check(node: UClass, holder: ProblemsHolder) {
     val psiClass = node.javaPsi
     if (psiClass.isInterface || psiClass.isAnnotationType) return
-    if (!AnnotationUtil.isAnnotated(psiClass, stereotypes, 0) || AnnotationUtil.isAnnotated(psiClass, controllers, 0)) return
+    val controller = AnnotationUtil.isAnnotated(psiClass, controllers, 0) || MetaAnnotationUtil.isMetaAnnotated(psiClass, controllers)
+    if (!controller && !AnnotationUtil.isAnnotated(psiClass, stereotypes, 0) && !MetaAnnotationUtil.isMetaAnnotated(psiClass, component)) return
     val scope = psiClass.resolveScope
-    if (JavaPsiFacade.getInstance(holder.project).findClass(validated, scope) == null) return
+    val facade = JavaPsiFacade.getInstance(holder.project)
+    if (facade.findClass(validated, scope) == null) return
+    if (controller && facade.findClass(handlerMethodValidator, scope) != null) return
     if (AnnotationUtil.isAnnotated(psiClass, validated, AnnotationUtil.CHECK_HIERARCHY)) return
+    // a controller's @Valid arguments are validated by Spring MVC's argument resolvers, @Validated or not
     val constrained = node.methods.any { method ->
       !method.isConstructor && !method.javaPsi.hasModifierProperty(PsiModifier.PRIVATE) &&
-      (method.uastParameters.any { p -> p.uAnnotations.any { Constraints.isConstraint(it) || Constraints.isValid(it) } } ||
+      (method.uastParameters.any { p -> p.uAnnotations.any { Constraints.isConstraint(it) || !controller && Constraints.isValid(it) } } ||
        method.uAnnotations.any { Constraints.isConstraint(it) })
     }
     if (!constrained) return

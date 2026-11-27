@@ -269,7 +269,7 @@
     {
       "id": "dev.phantom.validation",
       "name": "Support for Bean Validation",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "source": "validation",
       "description": "Bean Validation checks for Java and Kotlin: contradictory bounds (@Min above @Max, @Size min above max), constraints on types they cannot validate, Kotlin constructor properties whose constraint lands on the parameter (quick fix: @field:), nested objects with constraints but no @Valid, and Spring beans with method constraints but no @Validated. Wave 7: custom @Constraint definitions.",
       "vendor": "Phantom",
@@ -280,7 +280,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "validation-0.2.3/validation-0.2.3.zip",
+      "download": "validation-0.2.4/validation-0.2.4.zip",
       "detect": [
         "jakarta.validation:jakarta.validation-api",
         "javax.validation:validation-api",

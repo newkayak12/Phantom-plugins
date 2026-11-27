@@ -25,10 +25,12 @@ object ValidationStubs {
     fixture.addClass("package jakarta.validation.constraints; $constraint public @interface DecimalMax { String value(); }")
     fixture.addClass("package org.hibernate.validator.constraints; $constraint public @interface Length { int min() default 0; int max() default Integer.MAX_VALUE; }")
     val type = "$RUNTIME @java.lang.annotation.Target(java.lang.annotation.ElementType.TYPE)"
-    for (name in listOf("Service", "Component", "Repository", "Controller")) {
-      fixture.addClass("package org.springframework.stereotype; $type public @interface $name {}")
+    // the stereotypes are meta-annotated as in Spring, so stereotypes of a project's own are recognised through them
+    fixture.addClass("package org.springframework.stereotype; $type public @interface Component {}")
+    for (name in listOf("Service", "Repository", "Controller")) {
+      fixture.addClass("package org.springframework.stereotype; $type @Component public @interface $name {}")
     }
-    fixture.addClass("package org.springframework.web.bind.annotation; $type public @interface RestController {}")
+    fixture.addClass("package org.springframework.web.bind.annotation; $type @org.springframework.stereotype.Controller public @interface RestController {}")
     fixture.addClass("package org.springframework.web.bind.annotation; $RUNTIME public @interface RequestBody {}")
     fixture.addClass("package org.springframework.validation.annotation; $RUNTIME public @interface Validated {}")
   }

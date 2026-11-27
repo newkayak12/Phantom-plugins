@@ -2,6 +2,12 @@
 
 ## 미배포
 
+## 0.2.4 (2026-11-27)
+
+- 빠진 `@Validated` 검사가 프로젝트가 만든 스테레오타입 애너테이션(`@Service`를 붙인 `@UseCase` 등)을 붙인 빈도 본다. Spring Framework 6.1 이전에서는 파라미터 제약이 있는 컨트롤러도 알린다. (#PR)
+- `@Target`에 `TYPE_PARAMETER`만 있는 제약을 생성자 파라미터에도 붙는 것으로 잘못 보고 `@field:`를 권하던 문제를 고쳤다. (#PR)
+- Kotlin 속성의 `@Valid`를 텍스트가 아니라 해석된 애너테이션으로 찾아, import 별칭으로 쓴 `@Valid`도 인식한다. 제약이 있는 클래스인지 판단한 결과는 캐시한다. (#PR)
+
 ## 0.2.3 (2026-11-26)
 
 - 표시 이름을 바꿨다: Phantom for Bean Validation → Support for Bean Validation. 플러그인 id와 기능은 그대로다. (#136)
