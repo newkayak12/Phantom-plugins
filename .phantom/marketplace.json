@@ -454,6 +454,21 @@
       ]
     },
     {
+      "id": "dev.phantom.local-insights",
+      "name": "Phantom Local Insights",
+      "version": "0.1.0",
+      "source": "local-insights",
+      "description": "Shows what makes the IDE slow, on this machine only: a Local Insights tool window lists the slowest inspections of Code | Inspect Code runs, with a button that turns one off in the project's inspection profile, and indexing time per plugin. The numbers stay in memory for the IDE session; nothing is written to disk and nothing is sent.",
+      "vendor": "Phantom",
+      "since": "262",
+      "until": "262.*",
+      "category": "Profiling",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "local-insights-0.1.0/local-insights-0.1.0.zip"
+    },
+    {
       "id": "dev.phantom.iconpack",
       "name": "Phantom Icon Pack",
       "version": "0.3.6",
