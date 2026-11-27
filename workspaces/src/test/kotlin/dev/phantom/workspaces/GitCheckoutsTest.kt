@@ -41,6 +41,21 @@ class GitCheckoutsTest {
   }
 
   @Test
+  fun `a subfolder of a checkout is in that checkout`() {
+    val repo = repository()
+    val checkout = GitCheckouts.read(repo.resolve("app/module"), home = temp.root.toPath())!!
+    assertEquals(repo.resolve(".git").toRealPath().toString(), checkout.commonDir)
+    assertEquals("main", checkout.branch)
+  }
+
+  @Test
+  fun `a repository in the home folder does not claim the folders under it`() {
+    val home = repository()
+    assertNull(GitCheckouts.read(home.resolve("projects/app"), home = home))
+    assertEquals("main", GitCheckouts.read(home, home = home)?.branch)
+  }
+
+  @Test
   fun `a main checkout is its own repository, on its branch`() {
     val repo = repository()
     val checkout = GitCheckouts.read(repo)!!

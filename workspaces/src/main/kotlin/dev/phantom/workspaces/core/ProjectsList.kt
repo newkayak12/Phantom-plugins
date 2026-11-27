@@ -124,8 +124,9 @@ class ProjectsList(private val project: Project, parent: Disposable) {
     val home = WelcomeScreenProjectProvider.getWelcomeScreenProjectPath()
     val recent = manager.getRecentPaths().filter { home == null || Path.of(it) != home }.map { it to manager.getProjectName(it) }
     loading?.cancel()
-    loading = service.scope.launch(Dispatchers.IO) {
-      val known = known(open, recent)
+    val read = service.knownProjects(open, recent)
+    loading = service.scope.launch {
+      val known = read.await()
       withContext(Dispatchers.EDT + ModalityState.any().asContextElement()) {
         if (!disposed) {
           rows = WorkspaceList.rows(known, project, SystemProperties.getUserHome())

@@ -101,6 +101,24 @@ class WorkspacesInIdeTest : BasePlatformTestCase() {
     assertEquals(listOf(false, true), second.tabs.map { it.isCurrent })
   }
 
+  fun testNextProjectNeedsAnotherTab() {
+    stripOf(project)
+    settle()
+    assertFalse(ProjectTabsService.getInstance().canSwitch())
+    stripOf(openSecondProject("next"))
+    settle()
+    assertTrue(ProjectTabsService.getInstance().canSwitch())
+  }
+
+  fun testTheListsOfAllFramesShareOneReadPerEvent() {
+    val service = ProjectTabsService.getInstance()
+    val recent = listOf("/nowhere" to "nowhere")
+    val first = service.knownProjects(emptyList(), recent)
+    assertSame(first, service.knownProjects(emptyList(), recent))
+    settle()
+    assertNotSame(first, service.knownProjects(emptyList(), recent))
+  }
+
   fun testAClosedProjectLeavesTheStrip() {
     val first = stripOf(project)
     val other = openSecondProject("closing")

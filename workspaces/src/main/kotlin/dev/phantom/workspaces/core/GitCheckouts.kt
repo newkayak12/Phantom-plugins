@@ -1,6 +1,7 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
 package dev.phantom.workspaces.core
 
+import com.intellij.util.SystemProperties
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -22,10 +23,24 @@ object GitCheckouts {
   private const val SHORT_HASH = 7
   private const val WORKTREES = "worktrees"
 
-  /** The checkout at [root], or null when [root] has no `.git` or it cannot be read. Reads files: not on the EDT. */
-  fun read(root: Path): GitCheckout? = try {
+  /**
+   * The checkout [root] is in: its own `.git`, else the nearest one of a folder above it (a project opened in a
+   * subfolder of a repository). The search stops below [home], so a repository there (dotfiles) does not claim every
+   * project under it, unless [root] is [home] itself. Null when none is found or it cannot be read. Reads files: not on
+   * the EDT.
+   */
+  fun read(root: Path, home: Path = Path.of(SystemProperties.getUserHome())): GitCheckout? = try {
+    generateSequence(root.toAbsolutePath().normalize()) { dir -> dir.parent?.takeIf { it != home } }
+      .firstOrNull { Files.exists(it.resolve(".git")) }
+      ?.let(::readAt)
+  }
+  catch (_: IOException) {
+    null
+  }
+
+  private fun readAt(root: Path): GitCheckout? {
     val dotGit = root.resolve(".git")
-    when {
+    return when {
       Files.isDirectory(dotGit) -> checkout(dotGit, dotGit)
       Files.isRegularFile(dotGit) -> {
         val line = Files.readAllLines(dotGit).firstOrNull { it.startsWith(GITDIR) }
@@ -33,9 +48,6 @@ object GitCheckouts {
       }
       else -> null
     }
-  }
-  catch (_: IOException) {
-    null
   }
 
   // A worktree's git dir is <repo>/.git/worktrees/<name> and its commondir file points back to <repo>/.git. A git dir

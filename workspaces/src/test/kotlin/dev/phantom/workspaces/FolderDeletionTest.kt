@@ -55,6 +55,12 @@ class FolderDeletionTest : TestCase() {
     assertEquals(0, p.waitFor())
   }
 
+  fun testAFailingGitIsReportedNotThrown() {
+    val missing = Files.createTempDirectory("folder-no-repo").resolve("nothing")
+    assertNotNull(removeWorktree(missing.resolve(".git").toString(), missing.toString()))
+    pruneWorktrees(missing.resolve(".git").toString())
+  }
+
   fun testRemovesACleanWorktreeAndKeepsOneWithChanges() {
     val root = Files.createTempDirectory("folder-deletion").toRealPath()
     val main = Files.createDirectory(root.resolve("main"))
