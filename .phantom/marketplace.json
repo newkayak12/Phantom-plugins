@@ -228,7 +228,7 @@
     {
       "id": "dev.phantom.redis",
       "name": "Phantom Key-Value Console",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "source": "redis",
       "description": "A key browser and console for Redis-compatible servers (Redis, Valkey, KeyDB…): keys by SCAN pattern, values of every type with JSON indented, delete, and a redis-cli style command line with history. Password, ACL user, database and TLS. Connects only while the Redis tool window is shown.",
       "vendor": "Phantom",
@@ -238,7 +238,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "redis-0.1.4/redis-0.1.4.zip",
+      "download": "redis-0.1.5/redis-0.1.5.zip",
       "detect": [
         "org.springframework.data:spring-data-redis",
         "io.lettuce:lettuce-core",

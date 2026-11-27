@@ -8,6 +8,10 @@ sets, streams), delete, and a command line with redis-cli style output and histo
 protocol (RESP) itself, with password, ACL user, database and TLS; the connection opens only while the tool window is
 shown. Passwords are kept in the IDE's password safe under the service name "Phantom Redis".
 
+Limits: TLS checks that the server certificate names the host. A key list scans for at most 5 seconds or 1,000 SCAN
+calls, strings show their first 1 MiB, and a console reply shows at most 1,000 lines. The console refuses SELECT
+(the database is set in Edit Server…) and blocking commands such as SUBSCRIBE or BLPOP.
+
 Redis is a trademark of Redis Ltd. This plugin is not affiliated with or endorsed by Redis Ltd., the Valkey project or
 the KeyDB project.
 

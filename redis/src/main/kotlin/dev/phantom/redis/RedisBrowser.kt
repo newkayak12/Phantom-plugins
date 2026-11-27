@@ -7,22 +7,37 @@ data class RedisKey(val name: String, val type: String, val ttlSeconds: Long)
 /** What the value viewer shows: rows of cells, or one text. */
 sealed interface RedisValue {
   val type: String
-  data class Text(override val type: String, val text: String) : RedisValue
+  /** [size] is the full length in bytes when [text] shows only its start, else -1. */
+  data class Text(override val type: String, val text: String, val size: Long = -1) : RedisValue
   data class Rows(override val type: String, val columns: List<String>, val rows: List<List<String>>, val total: Long) : RedisValue
 }
 
-/** The commands behind the key list and the value viewer. Reads at most [limit] keys or items, never `KEYS *`. */
-class RedisBrowser(private val connection: RedisConnection, private val limit: Int = 2000) {
-  /** `SCAN` with `MATCH` until [limit] keys or the end; the boolean says whether there were more. */
-  fun scan(pattern: String): Pair<List<RedisKey>, Boolean> {
+/**
+ * The commands behind the key list and the value viewer. Reads at most [limit] keys or items, never `KEYS *`, and
+ * stops scanning after [scanCalls] SCAN round trips or [scanMillis] milliseconds.
+ */
+class RedisBrowser(
+  private val connection: RedisConnection,
+  private val limit: Int = 2000,
+  private val scanCalls: Int = 1000,
+  private val scanMillis: Long = 5_000,
+) {
+  /**
+   * `SCAN` with `MATCH` until [limit] keys, the end, the call or time budget, or [cancelled]; the boolean says whether
+   * there were more. A pattern matching few keys of a large database otherwise walked the whole keyspace.
+   */
+  fun scan(pattern: String, cancelled: () -> Boolean = { false }): Pair<List<RedisKey>, Boolean> {
     val names = LinkedHashSet<String>()
     var cursor = "0"
+    var calls = 0
+    val deadline = System.nanoTime() + scanMillis * 1_000_000
+    fun budgetLeft() = calls < scanCalls && System.nanoTime() < deadline && !cancelled()
     do {
-      val reply = connection.command("SCAN", cursor, "MATCH", pattern.ifBlank { "*" }, "COUNT", "1000")
-      val parts = (reply as? RedisReply.Array)?.items ?: throw RedisException((reply as? RedisReply.Error)?.message ?: "Unexpected SCAN reply")
-      cursor = (parts[0] as RedisReply.Bulk).text
-      (parts[1] as RedisReply.Array).items.forEach { names.add((it as RedisReply.Bulk).text) }
-    } while (cursor != "0" && names.size < limit)
+      val (next, page) = page(connection.command("SCAN", cursor, "MATCH", pattern.ifBlank { "*" }, "COUNT", "1000"), "SCAN")
+      cursor = next
+      names.addAll(page)
+      calls++
+    } while (cursor != "0" && names.size < limit && budgetLeft())
     val keys = names.take(limit).sorted()
     // TYPE and TTL of each key, pipelined in batches: a round trip per batch rather than two per key (4,000 for a
     // full list), which made a remote server slow to list
@@ -36,7 +51,14 @@ class RedisBrowser(private val connection: RedisConnection, private val limit: I
   fun value(key: String): RedisValue {
     val type = simple(connection.command("TYPE", key))
     return when (type) {
-      "string" -> RedisValue.Text(type, RedisText.prettyJson((connection.command("GET", key) as? RedisReply.Bulk)?.let { RedisText.display(it.bytes) } ?: ""))
+      "string" -> {
+        // GET of a string of hundreds of megabytes filled the heap and froze the text area
+        val size = integer(connection.command("STRLEN", key))
+        val cut = size > MAX_STRING_BYTES
+        val reply = if (cut) connection.command("GETRANGE", key, "0", (MAX_STRING_BYTES - 1).toString()) else connection.command("GET", key)
+        val text = bulk(reply)?.let { RedisText.display(it) } ?: ""
+        if (cut) RedisValue.Text(type, text, size) else RedisValue.Text(type, RedisText.prettyJson(text))
+      }
       "hash" -> {
         val total = integer(connection.command("HLEN", key))
         val items = scanItems("HSCAN", key)
@@ -58,13 +80,14 @@ class RedisBrowser(private val connection: RedisConnection, private val limit: I
       }
       "stream" -> {
         val total = integer(connection.command("XLEN", key))
-        val entries = (connection.command("XREVRANGE", key, "+", "-", "COUNT", ITEMS.toString()) as? RedisReply.Array)?.items.orEmpty()
+        val entries = array(connection.command("XREVRANGE", key, "+", "-", "COUNT", ITEMS.toString()))
         RedisValue.Rows(type, listOf("ID", "Fields"), entries.map { e ->
-          val parts = (e as RedisReply.Array).items
-          listOf((parts[0] as RedisReply.Bulk).text, bulks(parts[1]).chunked(2).joinToString(", ") { "${it[0]}=${it.getOrElse(1) { "" }}" })
+          val parts = array(e)
+          listOf(bulk(parts[0])?.let { String(it, Charsets.UTF_8) }.orEmpty(),
+                 bulks(parts[1]).chunked(2).joinToString(", ") { "${it[0]}=${it.getOrElse(1) { "" }}" })
         }, total)
       }
-      "none" -> RedisValue.Text(type, "The key does not exist any more")
+      "none" -> RedisValue.Text(type, PhantomRedisBundle.message("value.gone"))
       else -> RedisValue.Text(type, connection.command("DUMP", key).render())
     }
   }
@@ -73,14 +96,36 @@ class RedisBrowser(private val connection: RedisConnection, private val limit: I
     val out = ArrayList<String>()
     var cursor = "0"
     do {
-      val parts = (connection.command(command, key, cursor, "COUNT", "500") as RedisReply.Array).items
-      cursor = (parts[0] as RedisReply.Bulk).text
-      out.addAll(bulks(parts[1]))
+      val (next, page) = page(connection.command(command, key, cursor, "COUNT", "500"), command)
+      cursor = next
+      out.addAll(page)
     } while (cursor != "0" && out.size < ITEMS * 2)
     return out
   }
 
-  private fun bulks(reply: RedisReply): List<String> = (reply as? RedisReply.Array)?.items.orEmpty().map {
+  /** The next cursor and the items of a SCAN-family reply. */
+  private fun page(reply: RedisReply, command: String): Pair<String, List<String>> {
+    val parts = array(reply)
+    val cursor = (parts.getOrNull(0) as? RedisReply.Bulk)?.text ?: throw unexpected(command)
+    return cursor to bulks(parts.getOrNull(1) ?: throw unexpected(command))
+  }
+
+  // An error reply (WRONGTYPE when the key changed type after TYPE, a NOPERM from an ACL) used to end in a
+  // ClassCastException; it is shown as the server's message instead.
+  private fun array(reply: RedisReply): List<RedisReply> = when (reply) {
+    is RedisReply.Array -> reply.items
+    is RedisReply.Nil -> emptyList()
+    is RedisReply.Error -> throw RedisException(reply.message)
+    else -> throw unexpected(reply.render())
+  }
+
+  private fun bulk(reply: RedisReply): ByteArray? = when (reply) {
+    is RedisReply.Bulk -> reply.bytes
+    is RedisReply.Error -> throw RedisException(reply.message)
+    else -> null
+  }
+
+  private fun bulks(reply: RedisReply): List<String> = array(reply).map {
     when (it) {
       is RedisReply.Bulk -> RedisText.display(it.bytes)
       else -> it.render()
@@ -100,8 +145,11 @@ class RedisBrowser(private val connection: RedisConnection, private val limit: I
     else -> -1
   }
 
+  private fun unexpected(what: String) = RedisException(PhantomRedisBundle.message("error.unexpected.reply", what))
+
   companion object {
     const val ITEMS: Int = 500
+    const val MAX_STRING_BYTES: Long = 1L shl 20
     private const val PIPELINE_KEYS = 500
   }
 }

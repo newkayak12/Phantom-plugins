@@ -3,11 +3,15 @@ package dev.phantom.redis
 
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
+import java.io.ByteArrayOutputStream
 import java.io.Closeable
 import java.io.IOException
 import java.io.InputStream
 import java.net.InetSocketAddress
 import java.net.Socket
+import javax.net.ssl.SNIHostName
+import javax.net.ssl.SSLParameters
+import javax.net.ssl.SSLSocket
 import javax.net.ssl.SSLSocketFactory
 
 /** A RESP2/RESP3 reply. */
@@ -100,40 +104,89 @@ object RedisText {
   }
 
   /** Splits a command line the way redis-cli does: spaces separate, quotes group, `\n` and `\xNN` work in double quotes. */
-  fun split(line: String): List<String> {
-    val out = ArrayList<String>()
+  fun split(line: String): List<String> = splitBytes(line).map { String(it, Charsets.UTF_8) }
+
+  /**
+   * The arguments of [line] as the bytes to send. `\xNN` is the single byte NN, not the character U+00NN encoded as
+   * UTF-8 (two bytes from 0x80 on); a `\x` without two hex digits stays `x`, as in redis-cli, instead of throwing.
+   */
+  fun splitBytes(line: String): List<ByteArray> {
+    val out = ArrayList<ByteArray>()
     var i = 0
     while (i < line.length) {
       while (i < line.length && line[i].isWhitespace()) i++
       if (i >= line.length) break
-      val sb = StringBuilder()
-      when (line[i]) {
-        '"' -> {
-          i++
-          while (i < line.length && line[i] != '"') {
-            if (line[i] == '\\' && i + 1 < line.length) {
-              i++
-              when (line[i]) {
-                'n' -> sb.append('\n'); 'r' -> sb.append('\r'); 't' -> sb.append('\t')
-                'x' -> if (i + 2 < line.length) { sb.append(line.substring(i + 1, i + 3).toInt(16).toChar()); i += 2 }
-                else -> sb.append(line[i])
-              }
-            }
-            else sb.append(line[i])
-            i++
-          }
-          i++
-        }
+      val arg = Argument()
+      i = when (line[i]) {
+        '"' -> doubleQuoted(line, i + 1, arg)
         '\'' -> {
-          i++
-          while (i < line.length && line[i] != '\'') { sb.append(line[i]); i++ }
-          i++
+          val end = line.indexOf('\'', i + 1).let { if (it < 0) line.length else it }
+          arg.text.append(line, i + 1, end)
+          end + 1
         }
-        else -> while (i < line.length && !line[i].isWhitespace()) { sb.append(line[i]); i++ }
+        else -> {
+          val end = (i until line.length).firstOrNull { line[it].isWhitespace() } ?: line.length
+          arg.text.append(line, i, end)
+          end
+        }
       }
-      out.add(sb.toString())
+      out.add(arg.bytes())
     }
     return out
+  }
+
+  /** Reads a double-quoted argument starting after its quote; returns the index after the closing quote. */
+  private fun doubleQuoted(line: String, start: Int, arg: Argument): Int {
+    var i = start
+    while (i < line.length && line[i] != '"') {
+      if (line[i] == '\\' && i + 1 < line.length) {
+        i++
+        i += escape(line, i, arg)
+      }
+      else arg.text.append(line[i])
+      i++
+    }
+    return i + 1
+  }
+
+  /** Adds the escape whose letter is at [i]; returns how many characters after the letter it used. */
+  private fun escape(line: String, i: Int, arg: Argument): Int {
+    when (line[i]) {
+      'n' -> arg.text.append('\n')
+      'r' -> arg.text.append('\r')
+      't' -> arg.text.append('\t')
+      'x' -> {
+        val hex = line.substring(i + 1, minOf(i + 3, line.length))
+        if (hex.length == 2 && hex.all { it in '0'..'9' || it.lowercaseChar() in 'a'..'f' }) {
+          arg.byte(hex.toInt(16))
+          return 2
+        }
+        arg.text.append('x')
+      }
+      else -> arg.text.append(line[i])
+    }
+    return 0
+  }
+
+  /** An argument's bytes: typed text as UTF-8, `\xNN` escapes as raw bytes. */
+  private class Argument {
+    val text = StringBuilder()
+    private val out = ByteArrayOutputStream()
+
+    fun byte(b: Int) {
+      flush()
+      out.write(b)
+    }
+
+    fun bytes(): ByteArray {
+      flush()
+      return out.toByteArray()
+    }
+
+    private fun flush() {
+      out.writeBytes(text.toString().toByteArray(Charsets.UTF_8))
+      text.setLength(0)
+    }
   }
 }
 
@@ -178,12 +231,22 @@ class RedisConnection private constructor(private val socket: Socket) : Closeabl
   override fun close() {
     try { socket.close() } catch (_: IOException) {}
   }
-
   companion object {
     private val CRLF = "\r\n".toByteArray()
 
+    /** Checks that the server certificate names [host] and sends [host] as SNI, unless it is an IP address. */
+    internal fun tlsParameters(parameters: SSLParameters, host: String): SSLParameters = parameters.apply {
+      endpointIdentificationAlgorithm = "HTTPS"
+      val ip = host.contains(':') || host.all { it.isDigit() || it == '.' }
+      // SNIHostName rejects names outside the DNS syntax (an underscore, say); such a host simply goes without SNI
+      if (!ip) runCatching { SNIHostName(host) }.getOrNull()?.let { serverNames = listOf(it) }
+    }
+
     fun open(host: String, port: Int, user: String?, password: String?, database: Int, tls: Boolean, timeoutMs: Int = 5_000): RedisConnection {
-      val socket = if (tls) SSLSocketFactory.getDefault().createSocket() else Socket()
+      // SSLSocketFactory checks neither the certificate's host name nor sends SNI on its own: without the HTTPS
+      // endpoint identification any trusted certificate, issued for any host, was accepted.
+      val socket = if (tls) (SSLSocketFactory.getDefault().createSocket() as SSLSocket).apply { sslParameters = tlsParameters(sslParameters, host) }
+                   else Socket()
       socket.connect(InetSocketAddress(host, port), timeoutMs)
       socket.soTimeout = 30_000
       val connection = RedisConnection(socket)
@@ -203,16 +266,19 @@ class RedisConnection private constructor(private val socket: Socket) : Closeabl
   }
 }
 
-/** Reads one reply; RESP3 types (`%` maps, `~` sets, `,` doubles, `#` booleans, `_` null) are mapped onto RESP2 ones. */
+/**
+ * Reads one reply; RESP3 types (`%` maps, `~` sets, `,` doubles, `(` big numbers, `#` booleans, `_` null) are mapped
+ * onto RESP2 ones, and `|` attributes are read and dropped.
+ */
 class RespReader(private val input: InputStream) {
   fun read(): RedisReply {
     val type = input.read()
-    if (type < 0) throw RedisException("Connection closed by the server")
+    if (type < 0) throw RedisException(PhantomRedisBundle.message("error.connection.closed"))
     return when (type.toChar()) {
       '+' -> RedisReply.Simple(line())
       '-' -> RedisReply.Error(line())
       ':' -> RedisReply.Integer(line().toLong())
-      ',' -> RedisReply.Simple(line())
+      ',', '(' -> RedisReply.Simple(line())
       '#' -> RedisReply.Integer(if (line() == "t") 1 else 0)
       '_' -> { line(); RedisReply.Nil }
       '$', '=' -> {
@@ -228,19 +294,24 @@ class RespReader(private val input: InputStream) {
         val count = line().toInt()
         if (count < 0) RedisReply.Nil else RedisReply.Array(List(count) { read() })
       }
+      // an attribute map comes before the reply it describes (RESP3 spec); redis-cli does not show it either
+      '|' -> {
+        repeat(line().toInt() * 2) { read() }
+        read()
+      }
       '%' -> {
         val count = line().toInt()
         RedisReply.Map(List(count) { read() to read() })
       }
-      else -> throw RedisException("Unexpected reply type '${type.toChar()}'")
+      else -> throw RedisException(PhantomRedisBundle.message("error.unexpected.reply", type.toChar().toString()))
     }
   }
 
   private fun line(): String {
-    val bytes = java.io.ByteArrayOutputStream()
+    val bytes = ByteArrayOutputStream()
     while (true) {
       val c = input.read()
-      if (c < 0) throw RedisException("Connection closed by the server")
+      if (c < 0) throw RedisException(PhantomRedisBundle.message("error.connection.closed"))
       if (c == '\r'.code) {
         input.read()
         return bytes.toString(Charsets.UTF_8)

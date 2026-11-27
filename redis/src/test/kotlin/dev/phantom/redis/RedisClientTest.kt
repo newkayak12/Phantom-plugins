@@ -69,6 +69,94 @@ class RedisClientTest : TestCase() {
     assertEquals(listOf("SCAN", "TYPE", "TTL", "TYPE", "TTL"), received.map { it[0] })
   }
 
+  /** A fake server answering each command it reads with [answer]; returns the commands it received after [use] ends. */
+  private fun withServer(answer: (List<String>) -> String, use: (RedisConnection) -> Unit): List<List<String>> {
+    val received = java.util.Collections.synchronizedList(mutableListOf<List<String>>())
+    java.net.ServerSocket(0).use { server ->
+      val serving = Thread {
+        server.accept().use { s ->
+          val input = java.io.BufferedReader(java.io.InputStreamReader(s.getInputStream(), Charsets.ISO_8859_1))
+          val out = s.getOutputStream()
+          while (true) {
+            val head = input.readLine() ?: break
+            val args = List(head.removePrefix("*").toInt()) { input.readLine(); input.readLine() }
+            received.add(args)
+            out.write(answer(args).toByteArray())
+            out.flush()
+          }
+        }
+      }.apply { isDaemon = true; start() }
+      RedisConnection.open("localhost", server.localPort, null, null, 0, false).use(use)
+      serving.join(5_000)
+    }
+    return received
+  }
+
+  fun testScanStopsAfterItsBudget() {
+    val received = withServer({ if (it[0] == "SCAN") "*2\r\n$1\r\n7\r\n*0\r\n" else "-ERR unexpected\r\n" }) { c ->
+      val (keys, more) = RedisBrowser(c, scanCalls = 3).scan("rare:*")
+      assertEquals(emptyList<RedisKey>(), keys)
+      assertTrue(more)
+    }
+    assertEquals(3, received.size)
+  }
+
+  fun testScanStopsWhenCancelled() {
+    val received = withServer({ "*2\r\n$1\r\n7\r\n*0\r\n" }) { c ->
+      assertTrue(RedisBrowser(c).scan("*") { true }.second)
+    }
+    assertEquals(1, received.size)
+  }
+
+  fun testErrorReplyIsAnError() {
+    withServer({
+      when (it[0]) {
+        "TYPE" -> "+hash\r\n"
+        "HLEN" -> ":1\r\n"
+        else -> "-WRONGTYPE Operation against a key holding the wrong kind of value\r\n"
+      }
+    }) { c ->
+      val e = org.junit.Assert.assertThrows(RedisException::class.java) { RedisBrowser(c).value("k") }
+      assertTrue(e.message!!.startsWith("WRONGTYPE"))
+    }
+  }
+
+  fun testLargeStringReadsOnlyItsStart() {
+    val received = withServer({
+      when (it[0]) {
+        "TYPE" -> "+string\r\n"
+        "STRLEN" -> ":5000000\r\n"
+        "GETRANGE" -> "$3\r\nabc\r\n"
+        else -> "-ERR unexpected\r\n"
+      }
+    }) { c ->
+      assertEquals(RedisValue.Text("string", "abc", 5_000_000), RedisBrowser(c).value("big"))
+    }
+    assertEquals(listOf("TYPE", "STRLEN", "GETRANGE"), received.map { it[0] })
+    assertEquals(listOf("GETRANGE", "big", "0", (RedisBrowser.MAX_STRING_BYTES - 1).toString()), received[2])
+  }
+
+  fun testRespThreeAttributesAndBigNumbers() {
+    assertEquals(RedisReply.Simple("3492890328409238509324850943850943825024385"), read("(3492890328409238509324850943850943825024385\r\n"))
+    assertEquals(RedisReply.Integer(7), read("|1\r\n+key-popularity\r\n%1\r\n$1\r\na\r\n,0.19\r\n:7\r\n"))
+  }
+
+  fun testTlsChecksHostNameAndSendsSni() {
+    val p = RedisConnection.tlsParameters(javax.net.ssl.SSLParameters(), "redis.example.com")
+    assertEquals("HTTPS", p.endpointIdentificationAlgorithm)
+    assertEquals(listOf(javax.net.ssl.SNIHostName("redis.example.com")), p.serverNames)
+    val ip = RedisConnection.tlsParameters(javax.net.ssl.SSLParameters(), "10.0.0.1")
+    assertEquals("HTTPS", ip.endpointIdentificationAlgorithm)
+    assertTrue(ip.serverNames.isNullOrEmpty())
+  }
+
+  fun testHexEscapesAreBytes() {
+    assertEquals(listOf("SET", "k"), RedisText.splitBytes("SET k \"\\xff\\x00a\"").take(2).map { String(it) })
+    assertTrue(byteArrayOf(0xFF.toByte(), 0, 'a'.code.toByte()).contentEquals(RedisText.splitBytes("SET k \"\\xff\\x00a\"")[2]))
+    assertEquals(listOf("GET", "xZZ", "é"), RedisText.split("GET \"\\xZZ\" \"é\""))
+    assertEquals(listOf("GET", "x"), RedisText.split("GET \"\\x"))
+  }
+
   /** Read-only commands against a Redis on localhost:6379, when one runs. */
   fun testLocalServerReadOnly() {
     val up = runCatching { Socket("localhost", 6379).close() }.isSuccess
