@@ -45,6 +45,7 @@ Public repositories need no token.
 | Phantom Migrations | [migrations](./migrations/README.md) · [한국어](./migrations/KOR.md) | Flyway file names and duplicate versions; Liquibase duplicate changesets and missing includes |
 | Support for OpenAPI | [openapi](./openapi/README.md) · [한국어](./openapi/KOR.md) | `$ref` navigation, completion and errors in OpenAPI/Swagger specs; spec ↔ handler gutters |
 | Support for GraphQL | [graphql](./graphql/README.md) · [한국어](./graphql/KOR.md) | GraphQL schema and query editing and navigation; schema fields ↔ Spring GraphQL handlers, root fields without a handler |
+| Phantom for AsyncAPI | [asyncapi](./asyncapi/README.md) · [한국어](./asyncapi/KOR.md) | AsyncAPI 2/3 completion and validation, channel ↔ `@KafkaListener`/`KafkaTemplate` gutters, `$ref` navigation and errors |
 | Phantom HTTP Client | [http-client](./http-client/README.md) · [한국어](./http-client/KOR.md) | `.http` / `.rest` requests run from the editor: environments, `import` / `run`, checks, response view |
 | Support for gRPC | [grpc](./grpc/README.md) · [한국어](./grpc/KOR.md) | `.proto` editing: highlighting, syntax errors, structure view, message/enum and import navigation, Find Usages and rename |
 | Phantom Icon Pack | [icons](./icons/README.md) · [한국어](./icons/KOR.md) | Material file and folder icons; Java cup and Kotlin logo on their files, Java classes by kind |
