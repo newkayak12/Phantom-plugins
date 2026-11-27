@@ -29,4 +29,17 @@ class RedisConsoleTest : TestCase() {
     assertEquals("ACL SETUSER bob on ~* +@all", masked("ACL SETUSER bob on ~* +@all"))
     assertEquals("CONFIG SET maxmemory 1gb", masked("CONFIG SET maxmemory 1gb"))
   }
+
+  fun testRefusesSelectAndBlockingCommands() {
+    assertNotNull(RedisConsole.refusal(listOf("select", "2")))
+    assertNotNull(RedisConsole.refusal(listOf("SUBSCRIBE", "news")))
+    assertNull(RedisConsole.refusal(listOf("GET", "k")))
+    assertNull(RedisConsole.refusal(emptyList()))
+  }
+
+  fun testClipsLongOutput() {
+    assertEquals("a\nb", RedisConsole.clip("a\nb", maxLines = 2))
+    assertTrue(RedisConsole.clip("1\n2\n3\n4", maxLines = 2).startsWith("1\n2\n…"))
+    assertTrue(RedisConsole.clip("x".repeat(50), maxChars = 10).startsWith("x".repeat(10) + "\n…"))
+  }
 }

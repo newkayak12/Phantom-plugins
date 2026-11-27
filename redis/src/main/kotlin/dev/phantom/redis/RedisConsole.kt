@@ -5,9 +5,33 @@ package dev.phantom.redis
 object RedisConsole {
   /** What a command deleting every key of a database or of the server deletes, to confirm before it is sent; null for others. */
   fun wipeScope(args: List<String>, server: String): String? = when (args.firstOrNull()?.uppercase()) {
-    "FLUSHDB" -> "every key in the current database of $server"
-    "FLUSHALL" -> "every key in every database of $server"
+    "FLUSHDB" -> PhantomRedisBundle.message("console.wipe.database", server)
+    "FLUSHALL" -> PhantomRedisBundle.message("console.wipe.all", server)
     else -> null
+  }
+
+  /**
+   * Why the console does not send [args], or null. Blocking commands would hold the one connection the key list shares.
+   * SELECT would switch that connection's database silently: the key list and later commands would then read another
+   * database than the server settings name.
+   */
+  fun refusal(args: List<String>): String? {
+    val command = args.firstOrNull()?.uppercase() ?: return null
+    return when {
+      command == "SELECT" -> PhantomRedisBundle.message("console.select.refused")
+      command in BLOCKING -> PhantomRedisBundle.message("console.blocking.refused", args[0])
+      else -> null
+    }
+  }
+
+  /** [text] cut to [maxLines] lines and [maxChars] characters, saying how much was left out. */
+  fun clip(text: String, maxLines: Int = MAX_LINES, maxChars: Int = MAX_CHARS): String {
+    var end = text.length.coerceAtMost(maxChars)
+    var lines = 0
+    for (i in 0 until end) if (text[i] == '\n' && ++lines == maxLines) { end = i; break }
+    if (end == text.length) return text
+    val rest = text.substring(end).count { it == '\n' } + (if (text[end] == '\n') 0 else 1)
+    return text.substring(0, end) + "\n" + PhantomRedisBundle.message("console.clipped", text.length - end, rest)
   }
 
   /**
@@ -42,6 +66,10 @@ object RedisConsole {
   }
 
   private const val SECRET = "***"
+  private const val MAX_LINES = 1_000
+  private const val MAX_CHARS = 200_000
+  private val BLOCKING = setOf("SUBSCRIBE", "PSUBSCRIBE", "SSUBSCRIBE", "MONITOR", "BLPOP", "BRPOP", "BLMOVE", "BZPOPMIN", "BZPOPMAX", "XREAD", "SYNC",
+                               "PSYNC")
   private val PASSWORD_RULES = setOf('>', '<', '#', '!')
   private val SECRET_SETTINGS = setOf("requirepass", "masterauth")
 }

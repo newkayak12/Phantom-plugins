@@ -30,6 +30,7 @@ import java.awt.BorderLayout
 import java.awt.datatransfer.StringSelection
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
+import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.*
 import javax.swing.table.DefaultTableModel
 
@@ -54,10 +55,13 @@ class RedisPanel(private val project: Project, parent: Disposable) : JPanel(Bord
   private val valueHeader = JBLabel().apply { border = JBUI.Borders.empty(4, 8) }
   private val valueHolder = JPanel(BorderLayout())
   private val consoleOutput = JBTextArea().apply { isEditable = false; font = JBUI.Fonts.create(java.awt.Font.MONOSPACED, font.size) }
-  private val consoleInput = JBTextField().apply { emptyText.text = "Redis command, e.g. INFO memory — Enter runs it" }
+  private val consoleInput = JBTextField().apply { emptyText.text = PhantomRedisBundle.message("console.input.empty") }
   private val history = ArrayList<String>()
   private var historyIndex = 0
-
+  // Bumped by each request; a reply to an older one is dropped (the server or pattern changed meanwhile) and a request
+  // still queued behind a slow one is skipped, so a long scan of the previous server no longer runs first.
+  private val keysGeneration = AtomicInteger()
+  private val valueGeneration = AtomicInteger()
   // touched only on the executor thread
   private var connection: RedisConnection? = null
   private var connectedTo: String? = null
@@ -72,16 +76,16 @@ class RedisPanel(private val project: Project, parent: Disposable) : JPanel(Bord
         append(value.type.padEnd(7).take(7), SimpleTextAttributes.GRAYED_SMALL_ATTRIBUTES)
         append(" ")
         append(value.name)
-        if (value.ttlSeconds >= 0) append("  ttl ${value.ttlSeconds}s", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+        if (value.ttlSeconds >= 0) append(PhantomRedisBundle.message("key.ttl", value.ttlSeconds), SimpleTextAttributes.GRAYED_ATTRIBUTES)
       }
     }
     keys.selectionMode = ListSelectionModel.SINGLE_SELECTION
     keys.addListSelectionListener { if (!it.valueIsAdjusting) keys.selectedValue?.let(::loadValue) }
-    keys.emptyText.text = "No keys"
+    keys.emptyText.text = PhantomRedisBundle.message("keys.empty")
     pattern.addKeyboardListener(object : KeyAdapter() {
       override fun keyPressed(e: KeyEvent) { if (e.keyCode == KeyEvent.VK_ENTER) loadKeys() }
     })
-    pattern.textEditor.emptyText.text = "Pattern, e.g. session:* — Enter"
+    pattern.textEditor.emptyText.text = PhantomRedisBundle.message("keys.pattern.empty")
 
     consoleInput.addKeyListener(object : KeyAdapter() {
       override fun keyPressed(e: KeyEvent) {
@@ -97,13 +101,13 @@ class RedisPanel(private val project: Project, parent: Disposable) : JPanel(Bord
     })
 
     val actions = DefaultActionGroup(
-      action("Add Server…", AllIcons.General.Add) { editServer(RedisServer()) },
-      action("Edit Server…", AllIcons.Actions.Edit) { (servers.selectedItem as? RedisServer)?.let { editServer(it.copy()) } },
-      action("Remove Server", AllIcons.General.Remove) { removeServer() },
+      action(PhantomRedisBundle.message("action.add.server"), AllIcons.General.Add) { editServer(RedisServer()) },
+      action(PhantomRedisBundle.message("action.edit.server"), AllIcons.Actions.Edit) { (servers.selectedItem as? RedisServer)?.let { editServer(it.copy()) } },
+      action(PhantomRedisBundle.message("action.remove.server"), AllIcons.General.Remove) { removeServer() },
       Separator.getInstance(),
-      action("Refresh Keys", AllIcons.Actions.Refresh) { loadKeys() },
-      action("Copy Key Name", AllIcons.Actions.Copy) { keys.selectedValue?.let { CopyPasteManager.getInstance().setContents(StringSelection(it.name)) } },
-      action("Delete Key…", AllIcons.Actions.GC) { deleteKey() },
+      action(PhantomRedisBundle.message("action.refresh.keys"), AllIcons.Actions.Refresh) { loadKeys() },
+      action(PhantomRedisBundle.message("action.copy.key"), AllIcons.Actions.Copy) { keys.selectedValue?.let { CopyPasteManager.getInstance().setContents(StringSelection(it.name)) } },
+      action(PhantomRedisBundle.message("action.delete.key"), AllIcons.Actions.GC) { deleteKey() },
     )
     val toolbar = ActionManager.getInstance().createActionToolbar("PhantomRedis", actions, true).apply { targetComponent = this@RedisPanel }
     val top = JPanel(BorderLayout()).apply {
@@ -160,13 +164,17 @@ class RedisPanel(private val project: Project, parent: Disposable) : JPanel(Bord
     // The password safe may block on the OS keychain. On the connection executor the write also lands before the
     // connection that reloadServers opens reads the password.
     if (password != null) executor.execute { servers.storePassword(edited.id, String(password)) }
+    // The open connection is keyed by server id, which an edit keeps: without this it stayed on the old host, port,
+    // user, database or TLS setting until the window was hidden.
+    closeConnection()
     reloadServers(edited.id)
   }
 
   private fun removeServer() {
     val server = servers.selectedItem as? RedisServer ?: return
     if (server.id == RedisServers.LOCAL_ID) return
-    if (Messages.showYesNoDialog(project, "Remove ${server}?", "Remove Redis Server", null) != Messages.YES) return
+    if (Messages.showYesNoDialog(project, PhantomRedisBundle.message("dialog.remove.server.message", server.toString()),
+                                 PhantomRedisBundle.message("dialog.remove.server.title"), null) != Messages.YES) return
     val servers = RedisServers.getInstance(project)
     servers.remove(server.id)
     // The password safe may block on the OS keychain.
@@ -174,10 +182,14 @@ class RedisPanel(private val project: Project, parent: Disposable) : JPanel(Bord
     reloadServers(null)
   }
 
-  /** Runs [task] with the connection on the background thread, then [done] on the EDT; errors go to the status line. */
-  private fun <T> onConnection(task: (RedisConnection) -> T, failed: (String) -> Unit, done: (T) -> Unit) {
+  /**
+   * Runs [task] with the connection on the background thread, then [done] on the EDT; errors go to the status line.
+   * Once [stale] is true the task is skipped if it has not started and its result is dropped.
+   */
+  private fun <T> onConnection(task: (RedisConnection) -> T, failed: (String) -> Unit, stale: () -> Boolean = { false }, done: (T) -> Unit) {
     val server = servers.selectedItem as? RedisServer ?: return
     executor.execute {
+      if (stale()) return@execute
       val result = runCatching {
         val c = connection?.takeIf { connectedTo == server.id } ?: run {
           closeConnectionNow()
@@ -190,28 +202,39 @@ class RedisPanel(private val project: Project, parent: Disposable) : JPanel(Bord
       // a broken connection is dropped, the next command opens a new one
       if (result.isFailure) closeConnectionNow()
       ApplicationManager.getApplication().invokeLater({
-        result.fold(done) { e -> failed(if (e is java.net.ConnectException) "Cannot connect to ${server.host}:${server.port}" else e.message ?: e.javaClass.simpleName) }
+        if (stale()) return@invokeLater
+        result.fold(done) { e ->
+          failed(if (e is java.net.ConnectException) PhantomRedisBundle.message("error.cannot.connect", "${server.host}:${server.port}") else e.message ?: e.javaClass.simpleName)
+        }
       }, ModalityState.any()) { Disposer.isDisposed(this) }
     }
   }
 
   private fun loadKeys() {
     val query = pattern.text.trim().ifEmpty { "*" }
-    keysStatus.text = "Scanning…"
-    onConnection({ RedisBrowser(it).scan(query) }, { keysStatus.text = it; keysModel.clear() }) { (found, more) ->
+    keysStatus.text = PhantomRedisBundle.message("keys.scanning")
+    val ticket = keysGeneration.incrementAndGet()
+    val stale = { keysGeneration.get() != ticket }
+    onConnection({ RedisBrowser(it).scan(query, stale) }, { keysStatus.text = it; keysModel.clear() }, stale) { (found, more) ->
       val selected = keys.selectedValue?.name
       keysModel.clear()
       found.forEach(keysModel::addElement)
-      keysStatus.text = if (more) "First ${found.size} keys, narrow the pattern to see others" else "${found.size} keys"
+      keysStatus.text = if (more) PhantomRedisBundle.message("keys.more", found.size) else PhantomRedisBundle.message("keys.count", found.size)
       found.indexOfFirst { it.name == selected }.takeIf { it >= 0 }?.let { keys.selectedIndex = it }
     }
   }
 
   private fun loadValue(key: RedisKey) {
     valueHeader.text = key.name
-    onConnection({ RedisBrowser(it).value(key.name) }, { valueHeader.text = it }) { value ->
-      val size = (value as? RedisValue.Rows)?.let { if (it.total > it.rows.size) " · first ${it.rows.size} of ${it.total}" else " · ${it.total}" }.orEmpty()
-      valueHeader.text = "${key.name}  ·  ${value.type}$size${if (key.ttlSeconds >= 0) " · ttl ${key.ttlSeconds}s" else ""}"
+    val ticket = valueGeneration.incrementAndGet()
+    onConnection({ RedisBrowser(it).value(key.name) }, { valueHeader.text = it }, { valueGeneration.get() != ticket }) { value ->
+      val size = when (value) {
+        is RedisValue.Rows -> if (value.total > value.rows.size) PhantomRedisBundle.message("value.first.items", value.rows.size, value.total)
+                              else PhantomRedisBundle.message("value.items", value.total)
+        is RedisValue.Text -> if (value.size >= 0) PhantomRedisBundle.message("value.first.bytes", RedisBrowser.MAX_STRING_BYTES, value.size) else ""
+      }
+      val ttl = if (key.ttlSeconds >= 0) PhantomRedisBundle.message("value.ttl", key.ttlSeconds) else ""
+      valueHeader.text = PhantomRedisBundle.message("value.header", key.name, value.type, size, ttl)
       valueHolder.removeAll()
       valueHolder.add(when (value) {
         is RedisValue.Text -> JBScrollPane(JBTextArea(value.text).apply { isEditable = false; lineWrap = true; font = JBUI.Fonts.create(java.awt.Font.MONOSPACED, font.size) })
@@ -226,7 +249,8 @@ class RedisPanel(private val project: Project, parent: Disposable) : JPanel(Bord
 
   private fun deleteKey() {
     val key = keys.selectedValue ?: return
-    if (Messages.showYesNoDialog(project, "Delete key '${key.name}'?", "Delete Redis Key", null) != Messages.YES) return
+    if (Messages.showYesNoDialog(project, PhantomRedisBundle.message("dialog.delete.key.message", key.name),
+                                 PhantomRedisBundle.message("dialog.delete.key.title"), null) != Messages.YES) return
     onConnection({ it.command("DEL", key.name) }, { keysStatus.text = it }) { loadKeys() }
   }
 
@@ -234,33 +258,39 @@ class RedisPanel(private val project: Project, parent: Disposable) : JPanel(Bord
     val typed = consoleInput.text.trim()
     if (typed.isEmpty()) return
     val args = RedisText.split(typed)
+    val bytes = RedisText.splitBytes(typed)
     // passwords never reach the output or the history (screen sharing, the up arrow)
     val line = RedisConsole.shown(typed, args)
     if (line == typed && history.lastOrNull() != typed) history.add(typed)
     historyIndex = history.size
     consoleInput.text = ""
-    if (args.firstOrNull()?.uppercase() in BLOCKING) {
-      append("> $line\n(error) ${args[0]} would hold the connection; use redis-cli for it\n")
+    RedisConsole.refusal(args)?.let {
+      append("> $line\n(error) $it\n")
       return
     }
     // a key deleted from the list asks first; so does a typed command deleting all of them, naming the server
     val server = servers.selectedItem as? RedisServer ?: return
     RedisConsole.wipeScope(args, "$server (${server.host}:${server.port})")?.let { scope ->
-      val answer = Messages.showOkCancelDialog(project, "${args[0].uppercase()} deletes $scope. This cannot be undone.",
-                                               "Delete All Keys", "Delete", Messages.getCancelButton(), Messages.getWarningIcon())
+      val answer = Messages.showOkCancelDialog(project, PhantomRedisBundle.message("dialog.wipe.message", args[0].uppercase(), scope),
+                                               PhantomRedisBundle.message("dialog.wipe.title"), PhantomRedisBundle.message("dialog.wipe.ok"),
+                                               Messages.getCancelButton(), Messages.getWarningIcon())
       if (answer != Messages.OK) {
-        append("> $line\n(cancelled, nothing was sent)\n")
+        append("> $line\n${PhantomRedisBundle.message("console.cancelled")}\n")
         return
       }
     }
-    onConnection({ it.command(*args.toTypedArray()) }, { append("> $line\n(error) $it\n") }) { reply ->
-      append("> $line\n${reply.render()}\n")
+    // rendered and clipped off the EDT: a reply of a million lines froze the text area
+    onConnection({ RedisConsole.clip(it.command(bytes).render()) }, { append("> $line\n(error) $it\n") }) { reply ->
+      append("> $line\n$reply\n")
       if (args.firstOrNull()?.uppercase() in WRITES) loadKeys()
     }
   }
 
   private fun append(text: String) {
     consoleOutput.append(text)
+    // the output keeps only its end, so a long session does not grow without bound
+    val document = consoleOutput.document
+    if (document.length > CONSOLE_CHARS) document.remove(0, document.length - CONSOLE_CHARS)
     consoleOutput.caretPosition = consoleOutput.document.length
   }
 
@@ -277,8 +307,8 @@ class RedisPanel(private val project: Project, parent: Disposable) : JPanel(Bord
   }
 
   private companion object {
-    val BLOCKING = setOf("SUBSCRIBE", "PSUBSCRIBE", "SSUBSCRIBE", "MONITOR", "BLPOP", "BRPOP", "BLMOVE", "BZPOPMIN", "BZPOPMAX", "XREAD", "SYNC", "PSYNC")
+    const val CONSOLE_CHARS = 1_000_000
     val WRITES = setOf("SET", "DEL", "UNLINK", "EXPIRE", "PERSIST", "RENAME", "HSET", "HDEL", "LPUSH", "RPUSH", "SADD", "SREM", "ZADD", "ZREM",
-                       "XADD", "FLUSHDB", "FLUSHALL", "MSET", "SETEX", "INCR", "DECR", "APPEND", "SELECT")
+                       "XADD", "FLUSHDB", "FLUSHALL", "MSET", "SETEX", "INCR", "DECR", "APPEND")
   }
 }

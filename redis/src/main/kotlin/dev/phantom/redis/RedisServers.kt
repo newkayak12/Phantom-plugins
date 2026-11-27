@@ -83,23 +83,23 @@ class RedisServerDialog(project: Project, private val server: RedisServer) : Dia
   private val name = JBTextField(server.name)
   private val host = JBTextField(server.host)
   private val port = JSpinner(SpinnerNumberModel(server.port, 1, 65535, 1)).apply { editor = JSpinner.NumberEditor(this, "#") }
-  private val user = JBTextField(server.user).apply { emptyText.text = "default" }
-  private val password = JBPasswordField().apply { emptyText.text = "unchanged" }
+  private val user = JBTextField(server.user).apply { emptyText.text = PhantomRedisBundle.message("server.user.empty") }
+  private val password = JBPasswordField().apply { emptyText.text = PhantomRedisBundle.message("server.password.empty") }
   private val database = JSpinner(SpinnerNumberModel(server.database, 0, 255, 1))
-  private val tls = JBCheckBox("TLS", server.tls)
+  private val tls = JBCheckBox(PhantomRedisBundle.message("server.tls"), server.tls)
 
   init {
-    title = "Redis Server"
+    title = PhantomRedisBundle.message("server.dialog.title")
     init()
   }
 
   override fun createCenterPanel(): JComponent = FormBuilder.createFormBuilder()
-    .addLabeledComponent("Name:", name)
-    .addLabeledComponent("Host:", host)
-    .addLabeledComponent("Port:", port)
-    .addLabeledComponent("User:", user)
-    .addLabeledComponent("Password:", password)
-    .addLabeledComponent("Database:", database)
+    .addLabeledComponent(PhantomRedisBundle.message("server.name"), name)
+    .addLabeledComponent(PhantomRedisBundle.message("server.host"), host)
+    .addLabeledComponent(PhantomRedisBundle.message("server.port"), port)
+    .addLabeledComponent(PhantomRedisBundle.message("server.user"), user)
+    .addLabeledComponent(PhantomRedisBundle.message("server.password"), password)
+    .addLabeledComponent(PhantomRedisBundle.message("server.database"), database)
     .addComponent(tls)
     .panel
 
