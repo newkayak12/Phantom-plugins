@@ -23,6 +23,8 @@ intellijPlatform {
 
 dependencies {
   intellijPlatform {
+    // CodeSmellDetector, the file analysis of the agent index queries
+    bundledModule("intellij.platform.vcs.impl")
     testBundledPlugin("com.intellij.java")
     if (kotlinBundled) testBundledPlugin("org.jetbrains.kotlin")
     testFramework(TestFrameworkType.Plugin.Java, providers.gradleProperty("platformTestBuild"))

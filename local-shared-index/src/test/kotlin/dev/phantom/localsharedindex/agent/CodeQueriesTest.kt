@@ -1,14 +1,12 @@
 // Copyright 2026 Phantom contributors. Use of this source code is governed by the Apache 2.0 license.
-package dev.phantom.ai
+package dev.phantom.localsharedindex.agent
 
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import dev.phantom.ai.mcp.CodeQueries
-import dev.phantom.ai.mcp.McpToolError
 
-class CodeIndexInIdeTest : BasePlatformTestCase() {
+class CodeQueriesTest : BasePlatformTestCase() {
   private lateinit var order: VirtualFile
   private lateinit var queries: CodeQueries
 
@@ -52,8 +50,8 @@ class CodeIndexInIdeTest : BasePlatformTestCase() {
   }
 
   fun testAWrongLineIsAnErrorNotAGuess() {
-    assertThrows(McpToolError::class.java) { ReadAction.run<Exception> { queries.usages(order, 1, "total", 10) } }
-    assertThrows(McpToolError::class.java) { ReadAction.run<Exception> { queries.usages(order, 99, "total", 10) } }
+    assertThrows(IndexToolError::class.java) { ReadAction.run<Exception> { queries.usages(order, 1, "total", 10) } }
+    assertThrows(IndexToolError::class.java) { ReadAction.run<Exception> { queries.usages(order, 99, "total", 10) } }
   }
 
   fun testSymbolInfoFromAUseGivesTheDeclarationSignatureAndDoc() {

@@ -12,6 +12,9 @@
 
   <dependencies>
     <plugin id="com.intellij.modules.platform"/>
+    <!-- the agent index queries (dev.phantom.localsharedindex.agent) use structure views and the code analysis of CodeSmellDetector -->
+    <plugin id="com.intellij.modules.lang"/>
+    <module name="intellij.platform.vcs.impl"/>
   </dependencies>
 
   <extensions defaultExtensionNs="com.intellij">
