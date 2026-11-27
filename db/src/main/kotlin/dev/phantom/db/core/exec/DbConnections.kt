@@ -328,7 +328,20 @@ class DbConnectionService(private val project: Project, private val cs: Coroutin
     }
     if (dataSource.readOnly) runCatching { connection.isReadOnly = true }
     else if (dataSource.manualCommit) connection.autoCommit = false
+    applyIsolation(connection, dataSource.isolation)
     return connection
+  }
+
+  /** A level the driver does not support fails the connect with the driver's message, rather than running at another level. */
+  private fun applyIsolation(connection: Connection, isolation: DbIsolation) {
+    if (isolation == DbIsolation.DEFAULT) return
+    try {
+      connection.transactionIsolation = isolation.level
+    }
+    catch (e: SQLException) {
+      runCatching { connection.close() }
+      throw e
+    }
   }
 
   private fun loadDriver(jars: List<Path>, driverClass: String): Driver {
