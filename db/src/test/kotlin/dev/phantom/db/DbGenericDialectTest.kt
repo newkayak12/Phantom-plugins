@@ -82,6 +82,25 @@ class DbGenericDialectTest : BasePlatformTestCase() {
     assertNull(runBlocking { DbEditTargets.resolve(project, ds, rows) })
   }
 
+  /** Copy Table To between databases without a dialect: the table is created with standard types and filled. */
+  fun testCopyTableBetweenGenericDataSources() {
+    val source = genericH2()
+    val target = genericH2()
+    val made = runBlocking {
+      DbExecutor.execute(project, source, listOf("CREATE TABLE guest (id INT PRIMARY KEY, name VARCHAR(20), born DATE)",
+                                                "INSERT INTO guest VALUES (1, 'a', DATE '2000-01-01'), (2, 'b', NULL)"))
+    }
+    assertTrue(made.toString(), made.none { it is DbOutcome.Failed })
+    val cache = DbMetadataCache.getInstance(project)
+    val table = runBlocking { cache.tables(source, cache.schemas(source).first { it.name == "PUBLIC" }) }.first { it.name == "GUEST" }
+    val schema = runBlocking { cache.schemas(target) }.first { it.name == "PUBLIC" }
+    val result = runBlocking { DbTableCopy.run(project, source, table, target, schema) }
+    assertTrue(result.created)
+    assertEquals(2L, result.rows)
+    val copied = runBlocking { DbExecutor.execute(project, target, listOf("SELECT name FROM guest ORDER BY id")) }.single() as DbOutcome.Rows
+    assertEquals(listOf("a", "b"), copied.rows.map { it[0] })
+  }
+
   private fun genericH2(): DbDataSource {
     DbDriverRegistry.getInstance().save(DbDriverDefinition().apply {
       id = "my-h2"; name = "My H2"; driverClass = "org.h2.Driver"
