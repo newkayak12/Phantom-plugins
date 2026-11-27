@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.spring.security</id>
-  <name>Phantom for Spring Security</name>
+  <name>Support for Spring Security</name>
   <vendor>Phantom</vendor>
   <category>Frameworks</category>
   <description><![CDATA[

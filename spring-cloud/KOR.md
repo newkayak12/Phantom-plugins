@@ -1,4 +1,4 @@
-# Phantom for Spring Cloud
+# Support for Spring Cloud
 `dev.phantom.spring.cloud` · [English](./README.md)
 
 Spring Cloud를 쓰는 프로젝트에서만, 오프라인으로 동작합니다.

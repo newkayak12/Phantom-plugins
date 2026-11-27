@@ -1,4 +1,4 @@
-# Phantom for Spring Cloud
+# Support for Spring Cloud
 `dev.phantom.spring.cloud` · [한국어](./KOR.md)
 
 Spring Cloud support that works offline, in projects that use it.

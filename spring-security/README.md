@@ -1,4 +1,4 @@
-# Phantom for Spring Security
+# Support for Spring Security
 `dev.phantom.spring.security` · [한국어](./KOR.md)
 
 Spring Security filter chains in Java, read from the source without running the application.

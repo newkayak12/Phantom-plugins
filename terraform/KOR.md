@@ -1,4 +1,4 @@
-# Phantom for Terraform
+# Support for Terraform
 
 `dev.phantom.terraform` · [English](./README.md)
 

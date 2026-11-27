@@ -33,8 +33,8 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom Database Console | [db](./db/KOR.md) · [English](./db/README.md) | 드라이버를 추가할 수 있는 JDBC 콘솔(MySQL, PostgreSQL, H2, AWS, Oracle 등). 에디터에서 SQL 실행, 결과 그리드, 스키마 트리, MongoDB find/aggregate 콘솔 |
 | Support for Spring | [spring](./spring/KOR.md) · [English](./spring/README.md) | 빈 주입 이동, 자동 주입 검사, Spring MVC 엔드포인트, Security 경로·표현식, Kafka·RabbitMQ·JMS 이동 (Java, Kotlin) |
 | Support for Spring Boot | [spring-boot](./spring-boot/KOR.md) · [English](./spring-boot/README.md) | Spring Initializr로 새 Spring Boot 프로젝트 만들기, `application.yml` / `.properties` 키·값 자동완성과 문서 |
-| Phantom for Spring Security | [spring-security](./spring-security/KOR.md) · [English](./spring-security/README.md) | 거터에 `SecurityFilterChain` 순서, 매처, 규칙 표시; Spring Security가 시작할 때 거부하는 매처 순서 |
-| Phantom for Spring Cloud | [spring-cloud](./spring-cloud/KOR.md) · [English](./spring-cloud/README.md) | `@FeignClient` 메서드와 그 요청을 받는 컨트롤러 메서드 사이 양방향 이동 |
+| Support for Spring Security | [spring-security](./spring-security/KOR.md) · [English](./spring-security/README.md) | 거터에 `SecurityFilterChain` 순서, 매처, 규칙 표시; Spring Security가 시작할 때 거부하는 매처 순서 |
+| Support for Spring Cloud | [spring-cloud](./spring-cloud/KOR.md) · [English](./spring-cloud/README.md) | `@FeignClient` 메서드와 그 요청을 받는 컨트롤러 메서드 사이 양방향 이동 |
 | Support for JPA | [jpa](./jpa/KOR.md) · [English](./jpa/README.md) | `@Query` 안의 JPQL, 파생 쿼리·`@Modifying` 검사, 엔티티 매핑 검사, 리포지토리·엔티티 이동 |
 | Support for MyBatis | [mybatis](./mybatis/KOR.md) · [English](./mybatis/README.md) | 매퍼 인터페이스 ↔ XML 이동, statement / resultMap / property 참조와 오류, 빠진 statement 빠른 수정, `#{}` 자동완성, 매퍼 XML 안 SQL |
 | Support for Reactive Streams | [reactive-streams](./reactive-streams/KOR.md) · [English](./reactive-streams/README.md) | 구독하지 않은 `Mono`/`Flux`, 연산자 안의 블로킹 호출 (Reactor, RxJava) |
@@ -46,11 +46,11 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Phantom Migrations | [migrations](./migrations/KOR.md) · [English](./migrations/README.md) | Flyway 파일 이름과 중복 버전, Liquibase 중복 changeset과 없는 include |
 | Support for OpenAPI | [openapi](./openapi/KOR.md) · [English](./openapi/README.md) | OpenAPI/Swagger 스펙의 `$ref` 이동·자동완성·오류, 스펙 ↔ 핸들러 거터 |
 | Support for GraphQL | [graphql](./graphql/KOR.md) · [English](./graphql/README.md) | GraphQL 스키마·쿼리 편집과 이동, 스키마 필드 ↔ Spring GraphQL 핸들러, 핸들러 없는 루트 필드 경고 |
-| Phantom for AsyncAPI | [asyncapi](./asyncapi/KOR.md) · [English](./asyncapi/README.md) | AsyncAPI 2/3 자동완성·검증, 채널 ↔ `@KafkaListener`/`KafkaTemplate` 거터, `$ref` 이동·오류 |
+| Support for AsyncAPI | [asyncapi](./asyncapi/KOR.md) · [English](./asyncapi/README.md) | AsyncAPI 2/3 자동완성·검증, 채널 ↔ `@KafkaListener`/`KafkaTemplate` 거터, `$ref` 이동·오류 |
 | Phantom HTTP Client | [http-client](./http-client/KOR.md) · [English](./http-client/README.md) | `.http` / `.rest` 요청을 에디터에서 실행: 환경 변수, `import` / `run`, 검사, 응답 창 |
 | Support for gRPC | [grpc](./grpc/KOR.md) · [English](./grpc/README.md) | `.proto` 편집: 강조, 문법 오류, 구조 보기, 메시지·enum·import 이동, 사용처 찾기와 이름 바꾸기 |
-| Phantom for Terraform | [terraform](./terraform/KOR.md) · [English](./terraform/README.md) | `.tf`/`.tfvars` 편집: 강조, 문법 오류, 서식 정리, 구조 보기, 변수·local·모듈·리소스 이동, 사용처 찾기와 이름 바꾸기, 선언 없는 참조 경고 |
-| Phantom for Gradle Version Catalogs | [version-catalog](./version-catalog/KOR.md) · [English](./version-catalog/README.md) | `*.versions.toml` 라이브러리의 새 버전을 실행할 때만 Maven Central에서 확인하고 고른 버전으로 바꿈 |
+| Support for Terraform | [terraform](./terraform/KOR.md) · [English](./terraform/README.md) | `.tf`/`.tfvars` 편집: 강조, 문법 오류, 서식 정리, 구조 보기, 변수·local·모듈·리소스 이동, 사용처 찾기와 이름 바꾸기, 선언 없는 참조 경고 |
+| Support for Gradle Version Catalogs | [version-catalog](./version-catalog/KOR.md) · [English](./version-catalog/README.md) | `*.versions.toml` 라이브러리의 새 버전을 실행할 때만 Maven Central에서 확인하고 고른 버전으로 바꿈 |
 | Phantom String Helpers | [string-helpers](./string-helpers/KOR.md) · [English](./string-helpers/README.md) | Spring·Quartz cron 식: 검사와 거터의 다음 실행 시각 |
 | Phantom Icon Pack | [icons](./icons/KOR.md) · [English](./icons/README.md) | Material 파일·폴더 아이콘; Java 파일은 찻잔, Kotlin 파일은 로고, Java 클래스는 종류별 |
 | Phantom Tab Groups | [tabs](./tabs/KOR.md) · [English](./tabs/README.md) | 브라우저처럼 에디터 탭 그룹: 이름, 색, 첫 탭으로 접기, 끌어서 넣고 빼기, 분할마다 |

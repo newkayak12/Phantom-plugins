@@ -1,4 +1,4 @@
-# Phantom for AsyncAPI
+# Support for AsyncAPI
 `dev.phantom.asyncapi` · [English](./README.md)
 
 최상위에 `asyncapi`가 있는 YAML·JSON 파일에서만, 오프라인으로 동작합니다.

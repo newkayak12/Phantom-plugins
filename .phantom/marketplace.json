@@ -292,8 +292,8 @@
     },
     {
       "id": "dev.phantom.spring.security",
-      "name": "Phantom for Spring Security",
-      "version": "0.1.0",
+      "name": "Support for Spring Security",
+      "version": "0.1.1",
       "source": "spring-security",
       "description": "Spring Security filter chains in Java: a gutter icon on each SecurityFilterChain bean with its order among the project's chains, its securityMatcher and its authorizeHttpRequests rules; errors for requestMatchers after anyRequest() and for chains placed after a chain that matches every request.",
       "vendor": "Phantom",
@@ -304,7 +304,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-security-0.1.0/spring-security-0.1.0.zip",
+      "download": "spring-security-0.1.1/spring-security-0.1.1.zip",
       "detect": [
         "org.springframework.security:spring-security-web",
         "org.springframework.boot:spring-boot-starter-security"
@@ -419,8 +419,8 @@
     },
     {
       "id": "dev.phantom.terraform",
-      "name": "Phantom for Terraform",
-      "version": "0.1.0",
+      "name": "Support for Terraform",
+      "version": "0.1.1",
       "source": "terraform",
       "description": "Terraform (.tf, .tfvars) editing: highlighting, syntax errors, formatting, a structure view, Go to Declaration, Find Usages and rename for variables, locals, modules, resources and data sources, and a warning for references with no declaration in the module. Works offline.",
       "vendor": "Phantom",
@@ -430,15 +430,15 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "terraform-0.1.0/terraform-0.1.0.zip",
+      "download": "terraform-0.1.1/terraform-0.1.1.zip",
       "detectFiles": [
         "*.tf"
       ]
     },
     {
       "id": "dev.phantom.version.catalog",
-      "name": "Phantom for Gradle Version Catalogs",
-      "version": "0.1.0",
+      "name": "Support for Gradle Version Catalogs",
+      "version": "0.1.1",
       "source": "version-catalog",
       "description": "Checks the libraries of a Gradle version catalog (*.versions.toml) for newer versions on Maven Central and updates the chosen ones, including shared [versions] entries. Maven Central is asked only when you run the action.",
       "vendor": "Phantom",
@@ -448,7 +448,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "version-catalog-0.1.0/version-catalog-0.1.0.zip",
+      "download": "version-catalog-0.1.1/version-catalog-0.1.1.zip",
       "detectFiles": [
         "*.versions.toml"
       ]
@@ -723,8 +723,8 @@
     },
     {
       "id": "dev.phantom.spring.cloud",
-      "name": "Phantom for Spring Cloud",
-      "version": "0.1.0",
+      "name": "Support for Spring Cloud",
+      "version": "0.1.1",
       "source": "spring-cloud",
       "description": "Spring Cloud support for Java, offline: a gutter icon on a @FeignClient method goes to the controller method of the same project serving its request (same HTTP method and path, with the client's path attribute and the controller's @RequestMapping), and one on the controller method goes back to the Feign clients calling it.",
       "vendor": "Phantom",
@@ -735,7 +735,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-cloud-0.1.0/spring-cloud-0.1.0.zip",
+      "download": "spring-cloud-0.1.1/spring-cloud-0.1.1.zip",
       "detect": [
         "org.springframework.cloud:spring-cloud-starter-openfeign",
         "org.springframework.cloud:spring-cloud-openfeign-core"
@@ -743,8 +743,8 @@
     },
     {
       "id": "dev.phantom.asyncapi",
-      "name": "Phantom for AsyncAPI",
-      "version": "0.1.0",
+      "name": "Support for AsyncAPI",
+      "version": "0.1.1",
       "source": "asyncapi",
       "description": "AsyncAPI 2 and 3 documents in YAML and JSON, offline: completion and validation from bundled schemas, gutter links between a channel and the Spring Kafka code of its topic (@KafkaListener and KafkaTemplate.send, Java), and $ref navigation, completion and unresolved $ref errors. Works only in files that declare asyncapi.",
       "vendor": "Phantom",
@@ -757,7 +757,7 @@
         "com.intellij.modules.json",
         "com.intellij.java"
       ],
-      "download": "asyncapi-0.1.0/asyncapi-0.1.0.zip",
+      "download": "asyncapi-0.1.1/asyncapi-0.1.1.zip",
       "detectFiles": [
         "asyncapi.yaml",
         "asyncapi.yml",

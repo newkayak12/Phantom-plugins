@@ -1,6 +1,6 @@
 <idea-plugin>
   <id>dev.phantom.spring.cloud</id>
-  <name>Phantom for Spring Cloud</name>
+  <name>Support for Spring Cloud</name>
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>JVM Frameworks</category>
   <description><![CDATA[

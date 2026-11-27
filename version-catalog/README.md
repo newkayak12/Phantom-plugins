@@ -1,4 +1,4 @@
-# Phantom for Gradle Version Catalogs
+# Support for Gradle Version Catalogs
 
 `dev.phantom.version.catalog` · [한국어](./KOR.md)
 
