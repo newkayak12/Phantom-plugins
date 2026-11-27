@@ -1274,7 +1274,7 @@
     {
       "id": "dev.phantom.navbar",
       "name": "Phantom Navigation Bar",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "source": "navbar",
       "description": "The navigation bar: the path of the current file above or below the editor, with popups to browse and open files. Based on the IntelliJ Community Navbar plugin (Apache 2.0); intellij.navbar.plugin stays as an alias and the content module names stay the IntelliJ ones. Bundled with Phantom from build 262.261120; older Phantom builds bundle the IntelliJ plugin instead and don't list it.",
       "vendor": "Phantom",
@@ -1284,7 +1284,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "navbar-0.1.1/navbar-0.1.1.zip",
+      "download": "navbar-0.1.2/navbar-0.1.2.zip",
       "detect": [],
       "aliases": [
         "intellij.navbar.plugin"

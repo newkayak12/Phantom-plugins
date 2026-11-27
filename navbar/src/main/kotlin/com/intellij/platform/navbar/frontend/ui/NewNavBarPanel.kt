@@ -1,10 +1,10 @@
 // Copyright 2000-2024 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license.
+// Modified by Phantom contributors, 2026; see the Git history of https://github.com/newkayak12/Phantom-plugins.
 package com.intellij.platform.navbar.frontend.ui
 
 import com.intellij.accessibility.AccessibilityUtils
 import com.intellij.ide.IdeBundle
 import com.intellij.ide.ui.UISettings
-import com.intellij.internal.statistic.service.fus.collectors.UIEventLogger.NavBarShowPopup
 import com.intellij.openapi.actionSystem.DataSink
 import com.intellij.openapi.actionSystem.UiDataProvider
 import com.intellij.openapi.actionSystem.ex.ActionUtil
@@ -173,7 +173,7 @@ class NewNavBarPanel(
 
   @OptIn(AwaitCancellationAndInvoke::class)
   private fun showPopup(cs: CoroutineScope, itemComponentIndex: Int, vm: NavBarPopupVm<*>) {
-    NavBarShowPopup.log(project)
+    // phantom-idea: opening a popup is not logged to usage statistics (UIEventLogger.NavBarShowPopup)
     val itemComponent = myItemComponents[itemComponentIndex]
     val list = navBarPopupList(vm, this, isFloating).also {
       AccessibleContextUtil.setName(it, itemComponent.text)
