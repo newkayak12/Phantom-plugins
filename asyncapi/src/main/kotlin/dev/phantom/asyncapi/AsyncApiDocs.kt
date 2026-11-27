@@ -2,6 +2,7 @@
 package dev.phantom.asyncapi
 
 import com.intellij.json.JsonLanguage
+import com.intellij.json.psi.JsonArray
 import com.intellij.json.psi.JsonFile
 import com.intellij.json.psi.JsonObject
 import com.intellij.json.psi.JsonProperty
@@ -22,6 +23,9 @@ import org.jetbrains.yaml.psi.YAMLFile
 import org.jetbrains.yaml.psi.YAMLKeyValue
 import org.jetbrains.yaml.psi.YAMLMapping
 import org.jetbrains.yaml.psi.YAMLScalar
+import org.jetbrains.yaml.psi.YAMLSequence
+import org.jetbrains.yaml.psi.YAMLSequenceItem
+import java.net.URLDecoder
 
 /** A channel of a spec and the Kafka topic it names; [anchor] is the first leaf of the channel's key. */
 class Channel(val topic: String, val key: PsiElement) {
@@ -68,6 +72,32 @@ object AsyncApiDocs {
     }
     CachedValueProvider.Result.create(result, file)
   }
+
+  /** The element a JSON pointer (`/components/messages/Order`) names in [file]: a key-value, property or item; the file for an empty one. */
+  fun resolvePointer(file: PsiFile, pointer: String): PsiElement? {
+    val segments = pointer.trim().removePrefix("/").split('/').filter { it.isNotEmpty() }
+      .map { URLDecoder.decode(it.replace("+", "%2B"), Charsets.UTF_8).replace("~1", "/").replace("~0", "~") }
+    var value: PsiElement? = root(file)
+    var found: PsiElement = file
+    for (segment in segments) {
+      val current = value
+      val entry: PsiElement = when (current) {
+        is YAMLSequence -> segment.toIntOrNull()?.let { current.items.getOrNull(it) }
+        is JsonArray -> segment.toIntOrNull()?.let { current.valueList.getOrNull(it) }
+        else -> entries(current).firstOrNull { it.first == segment }?.second
+      } ?: return null
+      found = entry
+      value = when (entry) {
+        is YAMLSequenceItem -> entry.value
+        is JsonArray, is JsonObject -> entry
+        else -> valueOf(entry)
+      }
+    }
+    return found
+  }
+
+  /** The keys of the mapping at [path] of [file]: `names(file, "components", "messages")`. */
+  fun names(file: PsiFile, vararg path: String): List<String> = entries(path.fold(root(file)) { value, key -> child(value, key) }).map { it.first }
 
   private fun root(file: PsiFile): PsiElement? = when (file) {
     is YAMLFile -> file.documents.firstOrNull()?.topLevelValue

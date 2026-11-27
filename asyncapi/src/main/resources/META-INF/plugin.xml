@@ -4,7 +4,8 @@
   <vendor url="https://github.com/newkayak12/Phantom-plugins">Phantom</vendor>
   <category>Microservices</category>
   <description><![CDATA[
-  AsyncAPI 2 and 3 documents in YAML and JSON: completion and validation from bundled schemas, and gutter links between
+  AsyncAPI 2 and 3 documents in YAML and JSON: completion and validation from bundled schemas, <code>$ref</code>
+  navigation, completion and unresolved errors (local pointers and other files), and gutter links between
   a channel and the Spring Kafka code of its topic (<code>@KafkaListener</code> and <code>KafkaTemplate.send</code>).
   Works offline and only in files whose top level declares <code>asyncapi</code>.
   ]]></description>
@@ -28,6 +29,12 @@
   <resource-bundle>messages.AsyncApiBundle</resource-bundle>
 
   <extensions defaultExtensionNs="com.intellij">
+    <psi.referenceContributor language="yaml" implementation="dev.phantom.asyncapi.AsyncApiReferenceContributor"/>
+    <psi.referenceContributor language="JSON" implementation="dev.phantom.asyncapi.AsyncApiReferenceContributor"/>
+    <localInspection enabledByDefault="true" level="ERROR" shortName="AsyncApiRef"
+                     bundle="messages.AsyncApiBundle" key="ref.display.name"
+                     groupBundle="messages.AsyncApiBundle" groupKey="group.name"
+                     implementationClass="dev.phantom.asyncapi.AsyncApiRefInspection"/>
     <codeInsight.lineMarkerProvider language="yaml" implementationClass="dev.phantom.asyncapi.ChannelLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="JSON" implementationClass="dev.phantom.asyncapi.ChannelLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.asyncapi.KafkaTopicLineMarkerProvider"/>
