@@ -373,6 +373,28 @@
       ]
     },
     {
+      "id": "dev.phantom.grpc",
+      "name": "Support for gRPC",
+      "version": "0.1.0",
+      "source": "grpc",
+      "description": "Protocol Buffers (.proto) editing for gRPC: highlighting, syntax errors, a structure view of messages, enums, services and rpcs, Go to Declaration, Find Usages and rename for message and enum types, and Go to Declaration on import paths. Works offline.",
+      "vendor": "Phantom",
+      "since": "262",
+      "until": "262.*",
+      "category": "Languages",
+      "depends": [
+        "com.intellij.modules.lang"
+      ],
+      "download": "grpc-0.1.0/grpc-0.1.0.zip",
+      "detect": [
+        "io.grpc:grpc-api",
+        "com.google.protobuf:protobuf-java"
+      ],
+      "detectFiles": [
+        "*.proto"
+      ]
+    },
+    {
       "id": "dev.phantom.iconpack",
       "name": "Phantom Icon Pack",
       "version": "0.3.6",
