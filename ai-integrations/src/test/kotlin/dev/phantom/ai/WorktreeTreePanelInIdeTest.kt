@@ -38,7 +38,7 @@ import javax.swing.JPanel
 import javax.swing.JTree
 import javax.swing.tree.DefaultMutableTreeNode
 
-/** The sidebar of the current project in a real IDE: rows, menus, activation, no drag and drop. Fake repos, worktrees and starter. */
+/** The sidebar of the current project in a real IDE: rows, menus, activation. Fake repos, worktrees and starter. */
 class WorktreeTreePanelInIdeTest : BasePlatformTestCase() {
   private class Started(val cwd: String, val command: String)
 
@@ -185,11 +185,9 @@ class WorktreeTreePanelInIdeTest : BasePlatformTestCase() {
     assertEquals(2, started.size)
   }
 
-  fun testSessionMenuResumeAndNoDragAndMockupColors() {
+  fun testSessionMenuResumeAndMockupColors() {
     click(sessionRow(), "action.resume")
     assertEquals(LaunchCommand.resume(AgentKind.CLAUDE, "sess-9"), started.single().command)
-    assertFalse(tree.dragEnabled)
-    assertNull(tree.transferHandler.takeIf { it.javaClass.name.contains("phantom") })
     assertEquals(0xe8b339, SidebarColors.WORKING.rgb and 0xffffff)
     assertEquals(0xe06c5a, SidebarColors.WAITING.rgb and 0xffffff)
     assertEquals(0x5fb865, SidebarColors.DONE.rgb and 0xffffff)

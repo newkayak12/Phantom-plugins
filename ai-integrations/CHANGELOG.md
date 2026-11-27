@@ -2,6 +2,8 @@
 
 ## 미배포
 
+- worktree 트리에 사용자 폴더를 둔다: New Folder…, 폴더 이름 바꾸기와 지우기(안의 worktree는 맨 위로 돌아감), worktree를 끌어 넣고 빼기. 저장소별로 저장되고 디스크에는 아무것도 바뀌지 않는다. (#PR)
+
 ## 0.7.1 (2026-11-27)
 
 - 트리와 보드의 열린 PR 제목은 Settings | Tools | Phantom AI Integration의 "Show the open pull request of each branch"를 켠 경우에만 GitHub API로 찾는다. 기본은 꺼져 있다. (#167)
