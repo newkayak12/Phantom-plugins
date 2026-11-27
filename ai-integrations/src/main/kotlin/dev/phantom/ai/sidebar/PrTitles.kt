@@ -71,9 +71,22 @@ class BackgroundPrTitles(
   }
 }
 
-/** The views' shared PR titles: one lookup per branch however many views ask; an arrival refreshes every view. */
-object SharedPrTitles : PrTitles by BackgroundPrTitles(
-  GithubPrTitles(),
-  { com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread(it) },
-  { dev.phantom.ai.core.AiState.getInstance().changed() },
+/** [delegate] only while [enabled]; otherwise nothing is looked up and every answer is null. */
+class OptInPrTitles(private val enabled: () -> Boolean, private val delegate: PrTitles) : PrTitles {
+  override fun titleFor(repoPath: String, branch: String): String? = infoFor(repoPath, branch)?.title
+
+  override fun infoFor(repoPath: String, branch: String): PrInfo? = if (enabled()) delegate.infoFor(repoPath, branch) else null
+}
+
+/**
+ * The views' shared PR titles: one lookup per branch however many views ask; an arrival refreshes every view. A lookup
+ * calls the GitHub API whenever a view refreshes, so it happens only after the user turns PR titles on in Settings.
+ */
+object SharedPrTitles : PrTitles by OptInPrTitles(
+  { dev.phantom.ai.core.AiState.getInstance().state.prTitles },
+  BackgroundPrTitles(
+    GithubPrTitles(),
+    { com.intellij.openapi.application.ApplicationManager.getApplication().executeOnPooledThread(it) },
+    { dev.phantom.ai.core.AiState.getInstance().changed() },
+  ),
 )

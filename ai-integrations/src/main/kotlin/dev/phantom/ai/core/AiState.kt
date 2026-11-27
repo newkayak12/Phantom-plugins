@@ -63,6 +63,8 @@ class AiStateData : BaseState() {
   var skipPermissions by property(false)
   /** The agents' database tools (Phantom Database Console data sources, their schemas and query results); off by default. */
   var dbTools by property(false)
+  /** The tree and board show the open pull request of each branch, looked up through the GitHub API; off by default. */
+  var prTitles by property(false)
   /** Ids of the data sources the user allowed agents to read (asked once per data source); cleared when [dbTools] goes off. */
   var dbAllowedSources by list<String>()
   /** Id of the TerminalBackend agent terminals open in; absent = automatic (the IDE's tab with tmux, else the OS terminal). */
