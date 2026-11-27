@@ -34,6 +34,7 @@ Phantom은 아래 순서로 토큰을 찾고, 등록된 저장소의 `api.github
 | Support for Spring | [spring](./spring/KOR.md) · [English](./spring/README.md) | 빈 주입 이동, 자동 주입 검사, Spring MVC 엔드포인트, Security 경로·표현식, Kafka·RabbitMQ·JMS 이동 (Java, Kotlin) |
 | Support for Spring Boot | [spring-boot](./spring-boot/KOR.md) · [English](./spring-boot/README.md) | Spring Initializr로 새 Spring Boot 프로젝트 만들기, `application.yml` / `.properties` 키·값 자동완성과 문서 |
 | Phantom for Spring Security | [spring-security](./spring-security/KOR.md) · [English](./spring-security/README.md) | 거터에 `SecurityFilterChain` 순서, 매처, 규칙 표시; Spring Security가 시작할 때 거부하는 매처 순서 |
+| Phantom for Spring Cloud | [spring-cloud](./spring-cloud/KOR.md) · [English](./spring-cloud/README.md) | `@FeignClient` 메서드와 그 요청을 받는 컨트롤러 메서드 사이 양방향 이동 |
 | Support for JPA | [jpa](./jpa/KOR.md) · [English](./jpa/README.md) | `@Query` 안의 JPQL, 파생 쿼리·`@Modifying` 검사, 엔티티 매핑 검사, 리포지토리·엔티티 이동 |
 | Support for MyBatis | [mybatis](./mybatis/KOR.md) · [English](./mybatis/README.md) | 매퍼 인터페이스 ↔ XML 이동, statement / resultMap / property 참조와 오류, 빠진 statement 빠른 수정, `#{}` 자동완성, 매퍼 XML 안 SQL |
 | Support for Reactive Streams | [reactive-streams](./reactive-streams/KOR.md) · [English](./reactive-streams/README.md) | 구독하지 않은 `Mono`/`Flux`, 연산자 안의 블로킹 호출 (Reactor, RxJava) |
