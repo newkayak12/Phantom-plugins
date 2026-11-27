@@ -291,7 +291,7 @@
     {
       "id": "dev.phantom.migrations",
       "name": "Phantom Migrations",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "source": "migrations",
       "description": "Flyway and Liquibase checks: migration names Flyway skips (single underscore, lower-case prefix, no description) and duplicate versions in db/migration and spring.flyway.locations; duplicate changeset id and author and missing include/includeAll paths in XML, YAML and formatted SQL changelogs. Wave 8: Flyway previous/next migration gutters, Liquibase include navigation. 0.3.0: unresolved Liquibase changelog properties.",
       "vendor": "Phantom",
@@ -302,7 +302,7 @@
         "com.intellij.modules.lang",
         "org.jetbrains.plugins.yaml"
       ],
-      "download": "migrations-0.3.2/migrations-0.3.2.zip",
+      "download": "migrations-0.3.3/migrations-0.3.3.zip",
       "detect": [
         "org.flywaydb:flyway-core",
         "org.liquibase:liquibase-core"

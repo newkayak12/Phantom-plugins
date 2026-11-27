@@ -36,6 +36,18 @@ class MigrationMarkersTest : BasePlatformTestCase() {
     assertEmpty(gutters("other/V1_5__elsewhere.sql"))
   }
 
+  /** The neighbors come from a scan of the migration locations, so the marker is computed only in the slow pass. */
+  fun testFlywayMarkerOnlyInSlowPass() {
+    myFixture.addFileToProject("db/migration/V1__a.sql", "SELECT 1;\n")
+    val file = myFixture.addFileToProject("db/migration/V2__b.sql", "SELECT 2;\n")
+    val leaf = file.findElementAt(0)!!
+    val provider = FlywayLineMarkerProvider()
+    assertNull(provider.getLineMarkerInfo(leaf))
+    val slow = ArrayList<LineMarkerInfo<*>>()
+    provider.collectSlowLineMarkers(mutableListOf(leaf), slow)
+    assertEquals(1, slow.size)
+  }
+
   fun testLiquibaseIncludes() {
     myFixture.addFileToProject("db/changelog/parts/001-users.xml", "<databaseChangeLog/>")
     myFixture.addFileToProject("db/changelog/all/a.xml", "<databaseChangeLog/>")

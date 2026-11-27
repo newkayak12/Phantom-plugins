@@ -176,6 +176,27 @@ class MigrationsTest : BasePlatformTestCase() {
                  problemsIn("db/changelog/parts/tables.xml"))
   }
 
+  /** `spring.liquibase.parameters` keys are known names; a YAML that only mentions both words judges nothing away. */
+  fun testLiquibaseParametersFromSpringYaml() {
+    myFixture.enableInspections(LiquibaseUnresolvedPropertyInspection::class.java)
+    myFixture.addFileToProject("application.yaml", """
+      spring:
+        liquibase:
+          change-log: classpath:db/changelog/master.xml
+          parameters:
+            schema: app
+      springdoc:
+        parameters: x
+    """.trimIndent())
+    myFixture.addFileToProject("db/changelog/master.xml", """
+      <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog">
+        <changeSet id="1" author="kim"><sql>create table ${'$'}{schema}.${'$'}{prefix}users (id int)</sql></changeSet>
+      </databaseChangeLog>
+    """.trimIndent())
+    assertEquals(listOf("Changelog property 'prefix' is not defined; Liquibase leaves the placeholder in the SQL as written"),
+                 problemsIn("db/changelog/master.xml"))
+  }
+
   /** Migration names come from the VFS: a rename updates the list, typing in a migration does not rescan. */
   fun testMigrationListFollowsFileNamesOnly() {
     val v1 = myFixture.addFileToProject("db/migration/V1__a.sql", "select 1;")

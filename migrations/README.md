@@ -8,6 +8,6 @@ Flyway and Liquibase checks.
 - **Flyway duplicate versions:** versions compare as numbers, so `V1_16`, `V1.16` and `V1.016` collide. Gaps are fine and not reported.
 - **Liquibase changelogs** (XML, YAML, formatted SQL): a changeset id and author used twice in one changelog, and `include` / `includeAll` paths that do not exist.
 
-Phantom suggests this plugin when a project depends on `flyway-core` or `liquibase-core`. In other modules it does nothing.
+Phantom suggests this plugin when a project depends on `flyway-core` or `liquibase-core`. It works in a module that has one of them or is used by a module that has one; in other modules it does nothing.
 
 Not yet: running migrations, a migrations view.
