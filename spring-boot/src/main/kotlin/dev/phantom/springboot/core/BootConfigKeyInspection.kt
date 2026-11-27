@@ -15,6 +15,7 @@ import com.intellij.psi.PsiFile
  * map entries and properties bound in code.
  */
 class BootConfigKeyInspection : LocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor = object : PsiElementVisitor() {
     override fun visitFile(file: PsiFile) {
       if (!BootConfigFiles.isConfigFile(file)) return

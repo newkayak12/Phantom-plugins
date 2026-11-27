@@ -64,7 +64,7 @@
     {
       "id": "dev.phantom.spring.boot",
       "name": "Support for Spring Boot",
-      "version": "0.8.6",
+      "version": "0.8.7",
       "source": "spring-boot",
       "description": "Spring Boot support: File → New → Project → Spring Boot generates projects with Spring Initializr, and application*.yml / application*.properties get completion and quick documentation for keys and values, from library metadata and the project's own @ConfigurationProperties, in Java and Kotlin. An Actuator tab beside the console of a running app (health, beans, mappings, environment, polled only while shown; only for modules with spring-boot-starter-actuator), and completion and Ctrl+B for ${...} placeholders in @Value from the project's application.yml/properties and Spring Boot metadata. Wave 7: datasource driver missing, config key <-> @Value/@ConfigurationProperties gutters, spring.config.import files count as config. Wave 8: profile override gutters between application-<profile> and base config, @SpringBootApplication -> config files. Wave 9: @ConditionalOnProperty, @EnableConfigurationProperties, test property, @ConfigurationProperties field and profile value gutters. Wave 11: unread bootstrap.yml, Spring Cloud Stream bindings without a function bean.",
       "vendor": "Phantom",
@@ -75,7 +75,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "spring-boot-0.8.6/spring-boot-0.8.6.zip",
+      "download": "spring-boot-0.8.7/spring-boot-0.8.7.zip",
       "detect": [
         "org.springframework.boot:spring-boot",
         "org.springframework.boot:spring-boot-autoconfigure"

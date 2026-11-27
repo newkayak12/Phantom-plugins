@@ -19,6 +19,7 @@ import com.intellij.psi.search.GlobalSearchScope
  * reported. A `driver-class-name` in the same file is checked instead of the URL's vendor.
  */
 class BootDatasourceDriverInspection : LocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor = object : PsiElementVisitor() {
     override fun visitFile(file: PsiFile) {
       if (!BootConfigFiles.isConfigFile(file)) return

@@ -246,6 +246,7 @@
     <ID>CyclomaticComplexMethod:BootConfigGotoDeclarationHandler.kt:BootConfigNavigation$private fun fromSource: PsiElement?</ID>
     <ID>CyclomaticComplexMethod:BootConfigImports.kt:BootConfigImports$fun importValues: String</ID>
     <ID>CyclomaticComplexMethod:BootConfigKeyInspection.kt:BootConfigKeyInspection$private fun keyRanges: List&lt;TextRange></ID>
+    <ID>CyclomaticComplexMethod:BootProfileValueLineMarkers.kt:BootProfileValueLineMarkerProvider$override fun getLineMarkerInfo: LineMarkerInfo&lt;*>?</ID>
     <ID>CyclomaticComplexMethod:BranchesDashboardActions.kt:BranchesDashboardActions.BranchActionsBuilder$@RequiresBackgroundThread fun build: ActionGroup?</ID>
     <ID>CyclomaticComplexMethod:BranchesInGitLogUiFactoryProvider.kt:BranchesVcsLogUi$private fun createMainComponent: JComponent</ID>
     <ID>CyclomaticComplexMethod:BrowserLogin.kt:BrowserLogin$fun await</ID>

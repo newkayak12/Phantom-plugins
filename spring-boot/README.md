@@ -18,3 +18,7 @@ Spring Boot support: new projects from Spring Initializr, and configuration supp
 - **Inspection:** reports deprecated keys, with a quick fix to the replacement key. Under a prefix of one of the project's own `@ConfigurationProperties` classes, it also reports keys that don't exist there.
 
 Phantom suggests this plugin when a project depends on Spring Boot. In other projects, only the New Project entry is there.
+
+## Ghost Mode
+
+When Phantom's Ghost Mode is on (registry key `phantom.ghost`), this plugin's inspections and gutter icons are off. Coloring, syntax errors, completion and navigation stay.

@@ -27,6 +27,7 @@ private fun hasClass(project: Project, scope: GlobalSearchScope, fqn: String) = 
  * switch) on the classpath.
  */
 class BootBootstrapConfigInspection : LocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor = object : PsiElementVisitor() {
     override fun visitFile(file: PsiFile) {
       if (!BOOTSTRAP.matches(file.name)) return
@@ -117,6 +118,7 @@ internal object FunctionBeans {
  * bindings are not checked, since `StreamBridge` creates them under any name.
  */
 class BootCloudStreamBindingInspection : LocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor = object : PsiElementVisitor() {
     override fun visitFile(file: PsiFile) {
       if (!BootConfigFiles.isConfigFile(file)) return

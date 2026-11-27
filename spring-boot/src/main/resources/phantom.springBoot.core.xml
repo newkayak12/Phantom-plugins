@@ -45,4 +45,7 @@
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.springboot.core.BootConfigPropertyFieldLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.springboot.core.BootConfigPropertyFieldLineMarkerProvider"/>
   </extensions>
+  <applicationListeners>
+    <listener class="dev.phantom.springboot.core.GhostModeListener" topic="com.intellij.openapi.util.registry.RegistryValueListener"/>
+  </applicationListeners>
 </idea-plugin>
