@@ -250,7 +250,7 @@ class DbExplorerPanel(private val project: Project, parent: Disposable) : Simple
         (selectedNode() as? DbNode.Table)?.let { sqlGenerator(project, it.dataSource, it.ref) }
       },
       command("Modify", {
-        (selectedNode() as? DbNode.Table)?.let { !it.ref.isView && !it.dataSource.readOnly && it.dataSource.dialect().hasDialect } == true
+        (selectedNode() as? DbNode.Table)?.let { !it.ref.isView && !it.dataSource.readOnly } == true
       }) { modifyTable() },
       command("Select", { selectedNode() is DbNode.Table }) {
         (selectedNode() as? DbNode.Table)?.let { openConsole(it.dataSource, selectAll(it)) }

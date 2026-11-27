@@ -63,7 +63,7 @@ enum class Dbms(
       GENERIC -> AllIcons.Nodes.DataTables
     }
 
-  /** False for [GENERIC]: no EXPLAIN, DDL, schema changes or dialect checks. */
+  /** False for [GENERIC]: no EXPLAIN, reported DDL, schema compare or dialect checks; Modify Table only adds and drops columns. */
   val hasDialect: Boolean get() = this != GENERIC
 
   /** MySQL keeps databases in catalogs; the others in schemas. */
@@ -93,6 +93,8 @@ class DbDataSource {
   var queryHistory: Boolean = true
   /** Changes stay in an open transaction until committed from the Database Changes tool window. */
   var manualCommit: Boolean = false
+  /** The JDBC transaction isolation of every connection; [DbIsolation.DEFAULT] keeps the driver's. */
+  var isolation: DbIsolation = DbIsolation.DEFAULT
   /** All consoles share one connection (the default); off, each console gets its own, as in DataGrip. Manual commit always shares. */
   var singleSession: Boolean = true
   /** The schemas (catalogs in MySQL) the tree, completion and checks load: comma-separated names or globs, `!` excludes. Empty: all. */
@@ -141,7 +143,7 @@ class DbDataSource {
   var global: Boolean = false
 
   fun copy(): DbDataSource = DbDataSource().also {
-    it.id = id; it.name = name; it.dbms = dbms; it.url = url; it.user = user; it.readOnly = readOnly; it.queryHistory = queryHistory; it.manualCommit = manualCommit; it.singleSession = singleSession; it.schemas = schemas; it.introspection = introspection
+    it.id = id; it.name = name; it.dbms = dbms; it.url = url; it.user = user; it.readOnly = readOnly; it.queryHistory = queryHistory; it.manualCommit = manualCommit; it.isolation = isolation; it.singleSession = singleSession; it.schemas = schemas; it.introspection = introspection
     it.driverJars = ArrayList(driverJars); it.maxRows = maxRows; it.queryTimeoutSeconds = queryTimeoutSeconds
     it.driverId = driverId; it.properties = LinkedHashMap(properties); it.authKind = authKind
     it.awsProfile = awsProfile; it.awsRegion = awsRegion; it.color = color
@@ -155,6 +157,15 @@ class DbDataSource {
 }
 
 enum class DbAuthKind { PASSWORD, NONE, AWS_IAM }
+
+/** java.sql.Connection's isolation levels, by [level]. */
+enum class DbIsolation(val level: Int) {
+  DEFAULT(-1),
+  READ_UNCOMMITTED(java.sql.Connection.TRANSACTION_READ_UNCOMMITTED),
+  READ_COMMITTED(java.sql.Connection.TRANSACTION_READ_COMMITTED),
+  REPEATABLE_READ(java.sql.Connection.TRANSACTION_REPEATABLE_READ),
+  SERIALIZABLE(java.sql.Connection.TRANSACTION_SERIALIZABLE),
+}
 
 /** As DataGrip's Save: in the password safe, in memory until the IDE closes, or asked at every connect. */
 enum class DbPasswordStorage { FOREVER, UNTIL_RESTART, NEVER }

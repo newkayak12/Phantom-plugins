@@ -87,7 +87,15 @@ class DbModifyTableDialog(
   )
 
   private fun changed() {
-    val sql = statements()
+    // a database without a dialect refuses changes it has no standard statement for; the preview says which
+    val sql = try {
+      statements()
+    }
+    catch (e: DbException) {
+      preview.text = e.message
+      isOKActionEnabled = false
+      return
+    }
     preview.text = if (sql.isEmpty()) PhantomDbBundle.message("db.modify.nothing") else sql.joinToString(";\n", postfix = ";")
     isOKActionEnabled = sql.isNotEmpty()
   }

@@ -18,7 +18,9 @@ object DbAlter {
 
   fun statements(dbms: Dbms, table: DbTableRef, before: List<ColumnDef>, after: List<ColumnDef>,
                  indexesBefore: List<IndexDef> = emptyList(), indexesAfter: List<IndexDef> = emptyList()): List<String> {
-    if (!dbms.hasDialect) throw DbException(PhantomDbBundle.message("db.generic.unsupported"))
+    val generic = !dbms.hasDialect
+    // without a dialect only the statements every database spells the same way are written; the rest is refused, not guessed
+    fun unsupported(what: String): Nothing = throw DbException(PhantomDbBundle.message("db.modify.generic.unsupported", what))
     val t = DbNames.table(dbms, table)
     fun q(s: String) = DbNames.quote(dbms, s)
     val result = ArrayList<String>()
@@ -28,7 +30,7 @@ object DbAlter {
     val droppedIndexes = indexesBefore.filter { it.original != null && it.original !in keptIndexes } +
                          indexesAfter.filter { a -> a.original != null && indexesBefore.firstOrNull { it.original == a.original }?.let { it != a } == true }
                            .mapNotNull { a -> indexesBefore.first { it.original == a.original } }
-    for (index in droppedIndexes) result += dropIndex(dbms, table, index.original!!)
+    for (index in droppedIndexes) result += if (generic) unsupported(index.original!!) else dropIndex(dbms, table, index.original!!)
 
     val kept = after.mapNotNull { it.original }.toSet()
     for (column in before) if (column.original != null && column.original !in kept) result += "ALTER TABLE $t DROP COLUMN ${q(column.original)}"
@@ -36,11 +38,13 @@ object DbAlter {
     for (column in after) {
       val old = before.firstOrNull { it.original != null && it.original == column.original }
       if (old == null) {
-        result += "ALTER TABLE $t ADD COLUMN ${definition(dbms, column)}"
-        if (!dbms.usesCatalogs && !column.comment.isNullOrBlank()) result += commentOn(dbms, t, column)
+        // ADD without COLUMN: Oracle and SQL Server reject the optional keyword, the others accept its absence
+        result += "ALTER TABLE $t ADD ${if (generic) "" else "COLUMN "}${definition(dbms, column)}"
+        if (!dbms.usesCatalogs && !column.comment.isNullOrBlank()) result += if (generic) unsupported(column.name) else commentOn(dbms, t, column)
         continue
       }
       if (old.name != column.name) {
+        if (generic) unsupported(old.name)
         result += if (dbms == Dbms.H2) "ALTER TABLE $t ALTER COLUMN ${q(old.name)} RENAME TO ${q(column.name)}"
                   else "ALTER TABLE $t RENAME COLUMN ${q(old.name)} TO ${q(column.name)}"
       }
@@ -53,7 +57,7 @@ object DbAlter {
       when (dbms) {
         // MySQL restates the whole column; anything left out (default, NOT NULL) would be lost
         Dbms.MYSQL, Dbms.MARIADB -> result += "ALTER TABLE $t MODIFY COLUMN ${definition(dbms, column)}"
-        Dbms.GENERIC -> {}
+        Dbms.GENERIC -> unsupported(column.name)
         Dbms.POSTGRESQL, Dbms.H2 -> {
           if (typeChanged) {
             result += "ALTER TABLE $t ALTER COLUMN $c " + (if (dbms == Dbms.POSTGRESQL) "TYPE " else "SET DATA TYPE ") + column.type

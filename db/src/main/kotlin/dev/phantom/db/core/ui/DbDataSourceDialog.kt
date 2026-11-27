@@ -91,6 +91,10 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
   private val readOnlyBox = JBCheckBox(PhantomDbBundle.message("db.dialog.read.only"), source.readOnly)
   private val queryHistoryBox = JBCheckBox(PhantomDbBundle.message("db.dialog.query.history"), source.queryHistory)
   private val manualCommitBox = JBCheckBox(PhantomDbBundle.message("db.dialog.manual.commit"), source.manualCommit)
+  internal val isolationCombo = ComboBox(DbIsolation.entries.toTypedArray()).apply {
+    selectedItem = source.isolation
+    renderer = com.intellij.ui.SimpleListCellRenderer.create("") { PhantomDbBundle.message("db.dialog.isolation.${it.name.lowercase()}") }
+  }
   internal val singleSessionBox = JBCheckBox(PhantomDbBundle.message("db.dialog.single.session"), source.singleSession)
   private val driverLabel = JBLabel(" ")
   private val downloadLink = ActionLink(PhantomDbBundle.message("db.dialog.driver.download")) { downloadDriver() }.apply { isVisible = false }
@@ -346,6 +350,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     row { cell(readOnlyBox) }
     row { cell(queryHistoryBox).comment(PhantomDbBundle.message("db.dialog.query.history.hint")) }
     row { cell(manualCommitBox).comment(PhantomDbBundle.message("db.dialog.manual.commit.hint")) }
+    row(PhantomDbBundle.message("db.dialog.isolation")) { cell(isolationCombo) }
     row { cell(singleSessionBox).comment(PhantomDbBundle.message("db.dialog.single.session.hint")) }
     collapsibleGroup(PhantomDbBundle.message("db.dialog.options")) {
       row(PhantomDbBundle.message("db.dialog.driver.files")) {
@@ -401,6 +406,7 @@ class DbDataSourceDialog internal constructor(private val project: Project, exis
     readOnly = readOnlyBox.isSelected
     queryHistory = queryHistoryBox.isSelected
     manualCommit = manualCommitBox.isSelected
+    isolation = isolationCombo.selectedItem as DbIsolation
     singleSession = singleSessionBox.isSelected
     credentialStorage = credentialStorageCombo.selectedItem as DbPasswordStorage
     color = colorCombo.selectedItem as String

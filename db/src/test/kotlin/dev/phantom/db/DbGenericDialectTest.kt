@@ -60,11 +60,78 @@ class DbGenericDialectTest : BasePlatformTestCase() {
     assertEmpty(warningsFor(Dbms.GENERIC))
   }
 
-  fun testGridIsReadOnlyWithoutDialect() {
-    val columns = listOf(DbColumn("id", Types.INTEGER, "INT", null))
-    val name = DbTableName(null, "t")
-    assertNotNull(DbEditTargets.build(Dbms.H2, "\"", name, null, "T", listOf("id"), listOf("id"), columns))
-    assertNull(DbEditTargets.build(Dbms.GENERIC, "\"", name, null, "T", listOf("id"), listOf("id"), columns))
+  fun testGridEditsWithoutDialectUseDriverQuotes() {
+    val columns = listOf(DbColumn("id", Types.INTEGER, "INT", null), DbColumn("name", Types.VARCHAR, "VARCHAR", null))
+    val target = DbEditTargets.build(Dbms.GENERIC, "`", DbTableName("app", "t"), "app", "T", listOf("id"), listOf("id", "name"), columns)!!
+    assertEquals("UPDATE `app`.`T` SET `name` = ? WHERE `id` = ?", target.update(arrayOf(1, "a"), 1, "b").sql)
+    // standard SQL for a row of defaults; MySQL's `() VALUES ()` is not
+    assertEquals("INSERT INTO `app`.`T` DEFAULT VALUES", target.insert(emptyMap()).sql)
+    assertNull(DbEditTargets.build(Dbms.GENERIC, "\"", DbTableName(null, "t"), null, "T", emptyList(), listOf("id"), columns))
+  }
+
+  fun testGenericResultIsEditableThroughMetadata() {
+    val ds = genericH2()
+    val outcomes = runBlocking {
+      DbExecutor.execute(project, ds, listOf("CREATE TABLE \"Item\"(id INT PRIMARY KEY, name VARCHAR(20))", "INSERT INTO \"Item\" VALUES (1, 'a')",
+                                            "SELECT id, name FROM \"Item\""))
+    }
+    val rows = outcomes[2] as DbOutcome.Rows
+    val target = runBlocking { DbEditTargets.resolve(project, ds, rows) }!!
+    assertEquals("UPDATE \"Item\" SET \"NAME\" = ? WHERE \"ID\" = ?", target.update(arrayOf(1, "a"), 1, "b").sql)
+    ds.readOnly = true
+    assertNull(runBlocking { DbEditTargets.resolve(project, ds, rows) })
+  }
+
+  /** Copy Table To between databases without a dialect: the table is created with standard types and filled. */
+  fun testCopyTableBetweenGenericDataSources() {
+    val source = genericH2()
+    val target = genericH2()
+    val made = runBlocking {
+      DbExecutor.execute(project, source, listOf("CREATE TABLE guest (id INT PRIMARY KEY, name VARCHAR(20), born DATE)",
+                                                "INSERT INTO guest VALUES (1, 'a', DATE '2000-01-01'), (2, 'b', NULL)"))
+    }
+    assertTrue(made.toString(), made.none { it is DbOutcome.Failed })
+    val cache = DbMetadataCache.getInstance(project)
+    val table = runBlocking { cache.tables(source, cache.schemas(source).first { it.name == "PUBLIC" }) }.first { it.name == "GUEST" }
+    val schema = runBlocking { cache.schemas(target) }.first { it.name == "PUBLIC" }
+    val result = runBlocking { DbTableCopy.run(project, source, table, target, schema) }
+    assertTrue(result.created)
+    assertEquals(2L, result.rows)
+    val copied = runBlocking { DbExecutor.execute(project, target, listOf("SELECT name FROM guest ORDER BY id")) }.single() as DbOutcome.Rows
+    assertEquals(listOf("a", "b"), copied.rows.map { it[0] })
+  }
+
+  /** Modify Table without a dialect: adding and dropping columns and creating indexes; anything else is refused by name. */
+  fun testModifyTableWithoutDialectWritesOnlyStandardDdl() {
+    val t = DbTableRef("x", null, "app", "orders", "TABLE")
+    val id = DbAlter.ColumnDef("id", "id", "INT", false, null)
+    val old = DbAlter.ColumnDef("old", "old", "INT", true, null)
+    val added = DbAlter.ColumnDef(null, "note", "VARCHAR(20)", false, "'n'")
+    assertEquals(listOf("ALTER TABLE app.orders DROP COLUMN old", "ALTER TABLE app.orders ADD note VARCHAR(20) DEFAULT 'n' NOT NULL",
+                        "CREATE UNIQUE INDEX ux_note ON app.orders (note)"),
+                 DbAlter.statements(Dbms.GENERIC, t, listOf(id, old), listOf(id, added), emptyList(),
+                                    listOf(DbAlter.IndexDef(null, "ux_note", listOf("note"), true))))
+    fun refused(block: () -> Unit, name: String) {
+      val e = runCatching(block).exceptionOrNull()
+      assertTrue(e.toString(), e is DbException && e.message!!.endsWith(name))
+    }
+    refused({ DbAlter.statements(Dbms.GENERIC, t, listOf(id, old), listOf(id, old.copy(type = "BIGINT"))) }, "old")
+    refused({ DbAlter.statements(Dbms.GENERIC, t, listOf(id, old), listOf(id, old.copy(name = "renamed"))) }, "old")
+    refused({ DbAlter.statements(Dbms.GENERIC, t, listOf(id), listOf(id, added.copy(comment = "c"))) }, "note")
+    refused({ DbAlter.statements(Dbms.GENERIC, t, listOf(id), listOf(id), listOf(DbAlter.IndexDef("ix", "ix", listOf("id"), false)), emptyList()) }, "ix")
+  }
+
+  private fun genericH2(): DbDataSource {
+    DbDriverRegistry.getInstance().save(DbDriverDefinition().apply {
+      id = "my-h2"; name = "My H2"; driverClass = "org.h2.Driver"
+      urlPrefixes = mutableListOf("jdbc:h2:"); artifacts = mutableListOf("com.h2database:h2"); dialect = Dbms.GENERIC
+    })
+    val ds = DbDataSource().apply {
+      name = "generic-h2"; driverId = "my-h2"; user = "sa"; url = "jdbc:h2:mem:generic_${System.nanoTime()};DB_CLOSE_DELAY=-1"
+    }
+    DbDataSourceService.getInstance(project).save(ds, CharArray(0))
+    assertEquals(Dbms.GENERIC, ds.dialect())
+    return ds
   }
 
   fun testGenericHasNoDriverToFind() {

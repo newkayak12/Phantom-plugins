@@ -238,11 +238,11 @@ class DbStatement(val sql: String, val params: List<DbParam>, private val dbms: 
 object DbEditTargets {
   /**
    * The edit target of a result, or null when its rows cannot be traced back to table rows: not a single-table select,
-   * a read-only or dialect-less data source, a view or table without a primary key, or a key column missing from the result.
+   * a read-only data source, a view or table without a primary key, or a key column missing from the result.
    * [schema]: the one the select ran in; an unqualified table is looked up there and edited with that qualifier.
    */
   suspend fun resolve(project: Project, dataSource: DbDataSource, rows: DbOutcome.Rows, schema: DbSchemaChoice? = null): DbEditTarget? {
-    if (dataSource.readOnly || !dataSource.dialect().hasDialect) return null
+    if (dataSource.readOnly) return null
     val parsed = SingleTableSelect.parse(rows.sql) ?: return resolveJoin(project, dataSource, rows)
     // the chosen name is the database's own spelling: no case folding
     val name = if (parsed.schema == null && schema != null && !schema.isDefault) parsed.copy(schema = schema.name, schemaQuoted = true) else parsed
@@ -330,7 +330,7 @@ object DbEditTargets {
   /** Pure part of [resolve], for tests. */
   internal fun build(dbms: Dbms, quote: String, name: DbTableName, schema: String?, table: String, keys: List<String>,
                      tableColumns: List<String>, resultColumns: List<DbColumn>): DbEditTarget? {
-    if (!dbms.hasDialect || keys.isEmpty()) return null
+    if (keys.isEmpty()) return null
     fun q(identifier: String) = if (quote.isEmpty()) identifier else quote + identifier.replace(quote, quote + quote) + quote
     val byLowerName = tableColumns.groupBy { it.lowercase() }
     // a result column is a table column when its label names exactly one table column, ignoring case
