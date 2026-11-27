@@ -1,0 +1,4 @@
+SELECT a, b FRM t WHERE x = 1
+SELECT * FROM
+;
+INSERT INTO t (a, b
