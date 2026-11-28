@@ -31,4 +31,7 @@
                      groupName="QueryDSL" key="inspection.stale" bundle="messages.PhantomQueryDslBundle"
                      implementationClass="dev.phantom.querydsl.StaleQClassInspection"/>
   </extensions>
+  <applicationListeners>
+    <listener class="dev.phantom.querydsl.GhostModeListener" topic="com.intellij.openapi.util.registry.RegistryValueListener"/>
+  </applicationListeners>
 </idea-plugin>

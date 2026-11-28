@@ -7,10 +7,12 @@ import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
+import com.intellij.psi.PsiFile
 import org.jetbrains.annotations.NonNls
 
 /** Checks of `.http` files; each is its own inspection so it can be turned off on its own. */
 abstract class HttpInspection : LocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
     if (holder.file !is HttpRequestFile) return PsiElementVisitor.EMPTY_VISITOR
     return object : PsiElementVisitor() {
@@ -470,6 +472,7 @@ class HttpAmbiguousEncodingInspection : HttpInspection() {
  * (`Client ID`, `Token URL`, `Auth URL`, `Device Auth URL`, `Username`/`Password`). Values with `{{variables}}` count as set.
  */
 class HttpAuthConfigurationInspection : com.intellij.codeInspection.LocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun checkFile(file: com.intellij.psi.PsiFile, manager: com.intellij.codeInspection.InspectionManager, isOnTheFly: Boolean): Array<com.intellij.codeInspection.ProblemDescriptor>? {
     if (file.name != HttpEnvironmentService.PUBLIC_ENV && file.name != HttpEnvironmentService.PRIVATE_ENV) return null
     val text = file.text

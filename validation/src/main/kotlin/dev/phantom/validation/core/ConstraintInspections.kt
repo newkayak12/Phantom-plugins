@@ -7,6 +7,7 @@ import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiType
 import com.intellij.psi.PsiTypes
 import com.intellij.uast.UastHintedVisitorAdapter
@@ -44,6 +45,7 @@ internal fun constrainedElements(node: UClass): List<Constrained> {
 
 /** Shared gate: the file's module has Bean Validation; one visitor per class. */
 abstract class ValidationInspectionBase : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor {
     val module = ModuleUtilCore.findModuleForPsiElement(holder.file) ?: return PsiElementVisitor.EMPTY_VISITOR
     if (!ValidationGate.isValidationModule(module)) return PsiElementVisitor.EMPTY_VISITOR

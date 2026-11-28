@@ -2,6 +2,8 @@
 package dev.phantom.http
 
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import dev.phantom.http.core.*
 
@@ -233,5 +235,24 @@ class HttpInspectionsTest : BasePlatformTestCase() {
       msg("http.inspection.auth.missing", "Type"),
       msg("http.inspection.auth.grant", "Client Credential", "Authorization Code, Client Credentials, Device Authorization, Implicit, Password"),
     ).sorted(), found)
+  }
+
+  fun testGhostModeTurnsOffTheChecks() {
+    ghostMode(true)
+    myFixture.enableInspections(HttpRestrictedHeaderInspection())
+    assertEmpty(problems("""
+      POST http://localhost/a
+      Content-Length: 12
+
+      {}
+    """.trimIndent()))
+  }
+
+  // Phantom registers phantom.ghost; the IntelliJ test platform does not, so a system property, which RegistryValue reads before
+  // the bundle, makes the key resolvable for setValue.
+  private fun ghostMode(on: Boolean) {
+    System.setProperty(GhostMode.KEY, "false")
+    Disposer.register(testRootDisposable) { System.clearProperty(GhostMode.KEY) }
+    Registry.get(GhostMode.KEY).setValue(on, testRootDisposable)
   }
 }

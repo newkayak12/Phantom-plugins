@@ -14,6 +14,7 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiField
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiReference
 import com.intellij.psi.search.searches.ReferencesSearch
 import com.intellij.uast.UastHintedVisitorAdapter
@@ -56,6 +57,7 @@ class QueryDslUsagesSearcher : QueryExecutorBase<PsiReference, ReferencesSearch.
  * regenerates them. Only entities and other mapped classes of modules with QueryDSL are checked.
  */
 class StaleQClassInspection : AbstractBaseUastLocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean, session: LocalInspectionToolSession): PsiElementVisitor =
     UastHintedVisitorAdapter.create(holder.file.language, object : AbstractUastNonRecursiveVisitor() {
       override fun visitClass(node: UClass): Boolean {

@@ -2,6 +2,8 @@
 package dev.phantom.querydsl
 
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationHandler
+import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiField
 import com.intellij.psi.PsiMember
@@ -136,5 +138,21 @@ class QueryDslTest : LightJavaCodeInsightFixtureTestCase() {
       ),
       staleWarnings("Ticket.kt", "package app\n\n@jakarta.persistence.Entity\nclass Ticket(val seat: String)\n").sorted(),
     )
+  }
+
+  fun testGhostModeTurnsOffTheStaleCheckAndKeepsUsages() {
+    ghostMode(true)
+    myFixture.addClass("package app; public class QShop extends com.querydsl.core.types.dsl.EntityPathBase<Shop> { public final com.querydsl.core.types.dsl.StringPath name = null; public QShop() { super(Shop.class, \"shop\"); } }")
+    assertEmpty(staleWarnings("Shop.java", "package app; @jakarta.persistence.Entity public class Shop { String email; static int X; transient int y; }"))
+    myFixture.addClass("package app; class Repo3 { Object f() { return QOrder.order.name; } }")
+    assertNotEmpty(ReferencesSearch.search(myFixture.findClass("app.Order").findFieldByName("name", false)!!).findAll())
+  }
+
+  // Phantom registers phantom.ghost; the IntelliJ test platform does not, so a system property, which RegistryValue reads before
+  // the bundle, makes the key resolvable for setValue.
+  private fun ghostMode(on: Boolean) {
+    System.setProperty(GhostMode.KEY, "false")
+    Disposer.register(testRootDisposable) { System.clearProperty(GhostMode.KEY) }
+    Registry.get(GhostMode.KEY).setValue(on, testRootDisposable)
   }
 }

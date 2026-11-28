@@ -15,3 +15,7 @@ A Q class is a class named `Q…` extending one of QueryDSL's paths (`EntityPath
 type argument of that path; a nested class `Outer.Inner` has `QOuter_Inner`. Only entities, embeddables, mapped
 superclasses and `@QueryEntity` classes of modules with QueryDSL are checked, and a boolean property read through
 `isActive()` keeps its path. Find Usages needs the entity in Java.
+
+## Ghost Mode
+
+When Phantom's Ghost Mode is on (registry key `phantom.ghost`), the stale Q class inspection is off. Go to Declaration from Q class paths to entities and Find Usages stay.

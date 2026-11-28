@@ -271,7 +271,7 @@
     {
       "id": "dev.phantom.validation",
       "name": "Support for Bean Validation",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "source": "validation",
       "description": "Bean Validation checks for Java and Kotlin: contradictory bounds (@Min above @Max, @Size min above max), constraints on types they cannot validate, Kotlin constructor properties whose constraint lands on the parameter (quick fix: @field:), nested objects with constraints but no @Valid, and Spring beans with method constraints but no @Validated. Wave 7: custom @Constraint definitions.",
       "vendor": "Phantom",
@@ -282,7 +282,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "validation-0.2.4/validation-0.2.4.zip",
+      "download": "validation-0.2.5/validation-0.2.5.zip",
       "detect": [
         "jakarta.validation:jakarta.validation-api",
         "javax.validation:validation-api",
@@ -333,7 +333,7 @@
     {
       "id": "dev.phantom.openapi",
       "name": "Support for OpenAPI",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "source": "openapi",
       "description": "OpenAPI and Swagger specs in YAML and JSON: $ref navigation to local pointers and other files, #/components/... completion, unresolved $ref errors, and gutter links between a spec operation and its handler (Spring MVC and any framework in the Endpoints view). Wave 10: specs not recognized because of a misspelled version key, unsupported versions, unknown top-level keys.",
       "vendor": "Phantom",
@@ -345,7 +345,7 @@
         "org.jetbrains.plugins.yaml",
         "com.intellij.modules.json"
       ],
-      "download": "openapi-0.2.5/openapi-0.2.5.zip",
+      "download": "openapi-0.2.6/openapi-0.2.6.zip",
       "detect": [
         "org.springdoc:springdoc-openapi-starter-webmvc-ui",
         "org.springdoc:springdoc-openapi-starter-webflux-ui",
@@ -378,7 +378,7 @@
     {
       "id": "dev.phantom.http",
       "name": "Phantom HTTP Client",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "source": "http-client",
       "description": "HTTP requests in .http / .rest files, run from the editor: file and http-client.env.json environment variables, import and run lines to reuse requests from other files, a run gutter per request plus Run All, checks for common mistakes (broken JSON bodies, headers the client can't send, unknown methods, missing ###, broken {{}}, plain http to remote hosts), and a response view with status, headers and a formatted body. Moved out of the Phantom core so it updates like any other plugin. 0.2.0: auth ids from Security.Auths (resolution, Ctrl+B, unknown id and configuration checks), URL scheme and encoding checks.",
       "vendor": "Phantom",
@@ -388,7 +388,7 @@
       "depends": [
         "com.intellij.modules.lang"
       ],
-      "download": "http-client-0.2.2/http-client-0.2.2.zip",
+      "download": "http-client-0.2.3/http-client-0.2.3.zip",
       "detect": [],
       "detectFiles": [
         "http-client.env.json",
@@ -701,7 +701,7 @@
     {
       "id": "dev.phantom.querydsl",
       "name": "Support for QueryDSL",
-      "version": "0.1.4",
+      "version": "0.1.5",
       "source": "querydsl",
       "description": "QueryDSL Q classes followed back to their entities: Go to Declaration on a Q class path (order.customer.name, QOrder.order) goes to the entity property or entity, in Java and Kotlin code; Find Usages of a Java entity field also finds its QueryDSL paths; Java entities whose Q class is out of date (a field added or removed since the last build) are reported.",
       "vendor": "Phantom",
@@ -712,7 +712,7 @@
         "com.intellij.modules.lang",
         "com.intellij.java"
       ],
-      "download": "querydsl-0.1.4/querydsl-0.1.4.zip",
+      "download": "querydsl-0.1.5/querydsl-0.1.5.zip",
       "detect": [
         "com.querydsl:querydsl-jpa",
         "com.querydsl:querydsl-core",

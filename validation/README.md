@@ -10,3 +10,7 @@ Jakarta (and javax) Bean Validation checks for Java and Kotlin.
 - **Missing `@Validated`:** a Spring service, component or repository (also through a stereotype annotation of the project's own) with constraints on method parameters but no `@Validated` (weak warning). Controllers are checked only before Spring Framework 6.1, and only for constraints on parameters: `@Valid` arguments and, since 6.1, all controller parameters are validated by Spring MVC itself.
 
 Phantom suggests this plugin when a project depends on the Bean Validation API, Hibernate Validator or `spring-boot-starter-validation`. In other modules it does nothing.
+
+## Ghost Mode
+
+When Phantom's Ghost Mode is on (registry key `phantom.ghost`), all Bean Validation inspections are off.

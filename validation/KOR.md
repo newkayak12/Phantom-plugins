@@ -10,3 +10,7 @@ Java와 Kotlin을 위한 Jakarta(그리고 javax) Bean Validation 검사입니�
 - **빠진 `@Validated`:** 메서드 파라미터에 제약이 있는데 `@Validated`가 없는 Spring 서비스, 컴포넌트, 리포지토리(프로젝트가 만든 스테레오타입 애너테이션을 거친 것도 포함)에 약한 경고를 냅니다. 컨트롤러는 Spring Framework 6.1 이전에서만, 파라미터에 붙은 제약만 봅니다. `@Valid` 인자와 6.1부터의 컨트롤러 파라미터는 Spring MVC가 직접 검사합니다.
 
 프로젝트가 Bean Validation API, Hibernate Validator, `spring-boot-starter-validation`을 쓰면 Phantom이 이 플러그인 설치를 제안합니다. 그 밖의 모듈에서는 아무것도 하지 않습니다.
+
+## 고스트 모드
+
+Phantom의 고스트 모드(레지스트리 키 `phantom.ghost`)가 켜져 있으면 Bean Validation 검사가 모두 꺼진다.

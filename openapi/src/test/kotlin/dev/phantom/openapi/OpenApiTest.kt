@@ -10,6 +10,8 @@ import com.intellij.microservices.endpoints.HTTP_SERVER_TYPE
 import com.intellij.microservices.endpoints.presentation.HttpMethodPresentation
 import com.intellij.navigation.ItemPresentation
 import com.intellij.openapi.application.WriteAction
+import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.registry.Registry
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.ModificationTracker
 import com.intellij.openapi.util.SimpleModificationTracker
@@ -306,5 +308,25 @@ class OpenApiTest : LightJavaCodeInsightFixtureTestCase() {
     PsiDocumentManager.getInstance(project).commitAllDocuments()
     assertContainsElements(specNames(), "api.yaml")
     assertEquals(before, OpenApiSpecs.specFilesComputations.get())
+  }
+
+  fun testGhostModeTurnsOffRefChecksAndGuttersAndKeepsNavigation() {
+    ghostMode(true)
+    myFixture.addClass("package app; public class PetController { public String find(long id) { return \"\"; } }")
+    val handler = { JavaPsiFacade.getInstance(project).findClass("app.PetController", myFixture.module.moduleScope)?.findMethodsByName("find", false)?.firstOrNull() as PsiMethod? }
+    ExtensionTestUtil.maskExtensions(EndpointsProvider.EP_NAME, listOf(FakeProvider(handler = handler)), testRootDisposable)
+    myFixture.addFileToProject("common.yaml", "components:\n  responses:\n    NotFound:\n      description: not found\n")
+    myFixture.configureByText("petstore.yaml", petstore.replace("'#/components/schemas/Pet'", "'#/components/schemas/P<caret>et'"))
+    assertEmpty(errors())
+    assertEmpty(myFixture.findAllGutters().filter { it.tooltipText?.startsWith("Go to") == true })
+    assertEquals("Pet", (myFixture.getReferenceAtCaretPositionWithAssertion().resolve() as YAMLKeyValue).keyText)
+  }
+
+  // Phantom registers phantom.ghost; the IntelliJ test platform does not, so a system property, which RegistryValue reads before
+  // the bundle, makes the key resolvable for setValue.
+  private fun ghostMode(on: Boolean) {
+    System.setProperty(GhostMode.KEY, "false")
+    Disposer.register(testRootDisposable) { System.clearProperty(GhostMode.KEY) }
+    Registry.get(GhostMode.KEY).setValue(on, testRootDisposable)
   }
 }

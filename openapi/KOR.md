@@ -9,3 +9,7 @@ YAML과 JSON으로 쓴 OpenAPI 3, Swagger 2 스펙을 지원합니다.
 최상위에 `openapi:`나 `swagger:`가 있는 파일만 스펙으로 다룹니다.
 
 아직 없는 것: 스펙 자체의 스키마 검증, 코드 생성.
+
+## 고스트 모드
+
+Phantom의 고스트 모드(레지스트리 키 `phantom.ghost`)가 켜져 있으면 `$ref`·스펙 모양 검사와 스펙 operation과 핸들러 사이 거터 아이콘이 꺼진다. `$ref` 이동, 완성, 이름 바꾸기는 그대로다.

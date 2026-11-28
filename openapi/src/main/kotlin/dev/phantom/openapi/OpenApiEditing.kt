@@ -23,6 +23,7 @@ import com.intellij.patterns.PlatformPatterns
 import com.intellij.psi.ElementManipulators
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
+import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.PsiReference
@@ -106,6 +107,7 @@ class OpenApiReferenceContributor : PsiReferenceContributor() {
 
 /** `$ref` values of a spec, or of a file a spec points to, that resolve to nothing. */
 class OpenApiRefInspection : LocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {
     if (!SpecFragments.isSpecOrFragment(holder.file)) return PsiElementVisitor.EMPTY_VISITOR
     return object : PsiElementVisitor() {
@@ -176,6 +178,7 @@ class SpecOperationLineMarkerProvider : LineMarkerProvider {
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? = null
 
   override fun collectSlowLineMarkers(elements: MutableList<out PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
+    if (GhostMode.enabled) return
     val file = elements.firstOrNull()?.containingFile ?: return
     if (!OpenApiSpecs.isSpec(file)) return
     val operations = OpenApiSpecs.operations(file).associateBy { PsiTreeUtil.getDeepestFirst(it.element) }
@@ -197,6 +200,7 @@ class EndpointSpecLineMarkerProvider : LineMarkerProvider {
   override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? = null
 
   override fun collectSlowLineMarkers(elements: MutableList<out PsiElement>, result: MutableCollection<in LineMarkerInfo<*>>) {
+    if (GhostMode.enabled) return
     val project = elements.firstOrNull()?.project ?: return
     val owners = elements.mapNotNull { element -> handlerCandidate(element)?.let { element to it } }
     if (owners.isEmpty()) return

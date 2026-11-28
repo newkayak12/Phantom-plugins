@@ -12,3 +12,7 @@ HTTP requests in `.http` and `.rest` files, run from the editor.
 Until 2026-10-18 this was part of the Phantom core; it is a plugin now so it updates without a new Phantom build.
 
 Not yet: auth configurations, gRPC and WebSocket requests.
+
+## Ghost Mode
+
+When Phantom's Ghost Mode is on (registry key `phantom.ghost`), the `.http` file and auth configuration inspections are off. Coloring, completion and the run icons on requests stay.
