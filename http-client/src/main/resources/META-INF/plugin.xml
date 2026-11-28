@@ -89,4 +89,7 @@
       <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="PhantomHttp.RunAll"/>
     </action>
   </actions>
+  <applicationListeners>
+    <listener class="dev.phantom.http.core.GhostModeListener" topic="com.intellij.openapi.util.registry.RegistryValueListener"/>
+  </applicationListeners>
 </idea-plugin>
