@@ -333,7 +333,7 @@
     {
       "id": "dev.phantom.openapi",
       "name": "Support for OpenAPI",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "source": "openapi",
       "description": "OpenAPI and Swagger specs in YAML and JSON: $ref navigation to local pointers and other files, #/components/... completion, unresolved $ref errors, and gutter links between a spec operation and its handler (Spring MVC and any framework in the Endpoints view). Wave 10: specs not recognized because of a misspelled version key, unsupported versions, unknown top-level keys.",
       "vendor": "Phantom",
@@ -345,7 +345,7 @@
         "org.jetbrains.plugins.yaml",
         "com.intellij.modules.json"
       ],
-      "download": "openapi-0.2.5/openapi-0.2.5.zip",
+      "download": "openapi-0.2.6/openapi-0.2.6.zip",
       "detect": [
         "org.springdoc:springdoc-openapi-starter-webmvc-ui",
         "org.springdoc:springdoc-openapi-starter-webflux-ui",

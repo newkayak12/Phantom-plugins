@@ -24,6 +24,7 @@ import org.jetbrains.yaml.psi.YAMLScalar
  * - unknown top-level keys of a spec (extensions `x-*` are fine), as weak warnings.
  */
 class OpenApiSpecShapeInspection : LocalInspectionTool() {
+  override fun isAvailableForFile(file: PsiFile): Boolean = !GhostMode.enabled && super.isAvailableForFile(file)
   private class TopKey(val name: String, val key: PsiElement, val value: PsiElement?, val valueText: String?)
 
   override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): PsiElementVisitor {

@@ -9,3 +9,7 @@ OpenAPI 3 and Swagger 2 specifications in YAML and JSON.
 Only files whose top level has `openapi:` or `swagger:` are treated as specs.
 
 Not yet: schema validation of the spec itself, code generation.
+
+## Ghost Mode
+
+When Phantom's Ghost Mode is on (registry key `phantom.ghost`), the `$ref` and spec shape inspections and the gutter icons between spec operations and handlers are off. `$ref` navigation, completion and rename stay.

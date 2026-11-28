@@ -33,4 +33,7 @@
     <codeInsight.lineMarkerProvider language="JAVA" implementationClass="dev.phantom.openapi.EndpointSpecLineMarkerProvider"/>
     <codeInsight.lineMarkerProvider language="kotlin" implementationClass="dev.phantom.openapi.EndpointSpecLineMarkerProvider"/>
   </extensions>
+  <applicationListeners>
+    <listener class="dev.phantom.openapi.GhostModeListener" topic="com.intellij.openapi.util.registry.RegistryValueListener"/>
+  </applicationListeners>
 </idea-plugin>
