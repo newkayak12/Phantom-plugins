@@ -34,4 +34,7 @@
                      groupBundle="messages.PhantomValidationBundle" groupKey="group.name"
                      implementationClass="dev.phantom.validation.core.ConstraintDefinitionInspection"/>
   </extensions>
+  <applicationListeners>
+    <listener class="dev.phantom.validation.core.GhostModeListener" topic="com.intellij.openapi.util.registry.RegistryValueListener"/>
+  </applicationListeners>
 </idea-plugin>

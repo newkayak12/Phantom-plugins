@@ -3,6 +3,9 @@ package dev.phantom.validation
 
 import com.intellij.codeInsight.daemon.impl.HighlightInfo
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.registry.Registry
+import dev.phantom.validation.core.GhostMode
 import com.intellij.testFramework.fixtures.LightJavaCodeInsightFixtureTestCase
 import dev.phantom.validation.core.ConstraintBoundsInspection
 import dev.phantom.validation.core.ConstraintTypeInspection
@@ -286,5 +289,26 @@ class ValidationInspectionsTest : LightJavaCodeInsightFixtureTestCase() {
       )
     """.trimIndent())
     assertEmpty(problems())
+  }
+
+  fun testGhostModeTurnsOffTheChecks() {
+    ghostMode(true)
+    myFixture.configureByText("Booking.java", """
+      import jakarta.validation.constraints.*;
+
+      public class Booking {
+          @Min(10) @Max(5) int guests;
+          @Size(min = 5, max = 2) String code;
+      }
+    """.trimIndent())
+    assertEmpty(problems())
+  }
+
+  // Phantom registers phantom.ghost; the IntelliJ test platform does not, so a system property, which RegistryValue reads before
+  // the bundle, makes the key resolvable for setValue.
+  private fun ghostMode(on: Boolean) {
+    System.setProperty(GhostMode.KEY, "false")
+    Disposer.register(testRootDisposable) { System.clearProperty(GhostMode.KEY) }
+    Registry.get(GhostMode.KEY).setValue(on, testRootDisposable)
   }
 }
