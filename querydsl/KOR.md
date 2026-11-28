@@ -15,3 +15,7 @@ Q클래스는 `Q…` 이름에 QueryDSL 경로(`EntityPathBase`, `BeanPath`)를 
 중첩 클래스 `Outer.Inner`의 Q클래스는 `QOuter_Inner`입니다. 오래됨 검사는 QueryDSL이 있는 모듈의 엔티티, 임베더블, 매핑된
 상위 클래스, `@QueryEntity` 클래스만 보고, `isActive()`로 읽는 boolean 속성의 경로는 남아 있는 것으로 봅니다.
 Find Usages는 엔티티가 Java일 때만 됩니다.
+
+## 고스트 모드
+
+Phantom의 고스트 모드(레지스트리 키 `phantom.ghost`)가 켜져 있으면 Q클래스가 오래됨 검사가 꺼진다. Q클래스 경로에서 엔티티로 이동과 사용처 찾기는 그대로다.
